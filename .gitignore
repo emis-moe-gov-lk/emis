@@ -1,0 +1,47 @@
+# Environment
+.env
+
+# Node
+node_modules/
+dist/
+web/.flowbite-react/
+
+# PHP / Laravel
+vendor/
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+bootstrap/cache/*
+.phpunit.result.cache
+
+# WSO2 distribution zips and JARs (large binaries)
+ansible/resources/*.zip
+ansible/resources/*.jar
+
+# Tmp directory (user workspace)
+tmp/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+
+# Ansible
+*.retry
+
+# Playwright
+playwright/.env
+playwright/test-results/
+
+# Hurl
+hurl/vars.env
