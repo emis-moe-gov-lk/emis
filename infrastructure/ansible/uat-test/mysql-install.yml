@@ -1,0 +1,50 @@
+---
+- name: Install and Configure MySQL 8.0 for EMIS &  WSO2 Environment
+  hosts: mysql
+  become: yes
+  vars:
+    # var values from inventory .ini files
+    expose_port: "{{ mysql_port }}"  
+    root_pass: "{{ mysql_password }}"
+
+  tasks:
+    - name: Update apt and install MySQL + Python connector
+      apt:
+        name: 
+          - mysql-server
+          - python3-pymysql
+        state: present
+        update_cache: yes
+
+    - name: Ensure MySQL is running
+      service:
+        name: mysql
+        state: started
+        enabled: yes
+
+    - name: Configure MySQL to listen on custom port
+      lineinfile:
+        path: /etc/mysql/mysql.conf.d/mysqld.cnf
+        regexp: '^port\s*='
+        line: "port = {{ expose_port }}"
+      notify: restart mysql
+
+
+    # Flush handlers
+    - name: Flush handlers to restart MySQL now
+      meta: flush_handlers
+
+
+    - name: Set root password
+      mysql_user:
+        name: root
+        password: "{{ root_pass }}"
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+        check_implicit_admin: yes
+        state: present
+
+  handlers:
+    - name: restart mysql
+      service:
+        name: mysql
+        state: restarted

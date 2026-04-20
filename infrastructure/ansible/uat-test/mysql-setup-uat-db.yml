@@ -1,0 +1,26 @@
+---
+- name: Configure MySQL Database and User
+  hosts: mysql
+  become: true
+
+  tasks:
+    - name: Create the database
+      community.mysql.mysql_db:
+        name: "{{ mysql_emis_dbname }}"
+        state: present
+        login_user: root
+        login_password: "{{ mysql_password }}"
+        login_host: "{{ mysql_host }}"
+      register: db_creation
+
+    - name: Create MySQL user for any host (%)
+      community.mysql.mysql_user:
+        name: "{{ mysql_user_emis }}"
+        password: "{{ mysql_user_emis_password }}"
+        priv: "{{ mysql_emis_dbname }}.*:ALL"
+        host: "%"
+        state: present
+        login_user: root
+        login_password: "{{ mysql_password }}"
+        login_host: "{{ mysql_host }}"
+      # This task handles both user creation and the "Grant" requirement
