@@ -1,0 +1,49 @@
+---
+- name: Deploy EMIS UAT Environment
+  hosts: uat-server
+  become: true
+  vars:
+    remote_project_path: "/opt/emis-uat"
+    local_project_root: "{{  playbook_dir | dirname | dirname }}"
+    env_path: "{{ local_project_root }}/docker/uat-test"
+    
+    # env files
+    frontend_env_file: "{{ env_path }}/frontend.env"
+    backend_env_file: "{{ env_path }}/backend.env"
+    docker_compose_env_file: "{{ env_path }}/.env"
+    # docker compose file
+    docker_compose_file: "{{local_project_root}}/docker/uat-test/docker-compose.yml"
+  tasks:
+    - name: Ensure project directory exists
+      ansible.builtin.file:
+        path: "{{ remote_project_path }}"
+        state: directory
+        mode: '0755'
+
+    - name: Copy environment files to target
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: "{{ remote_project_path }}/{{ item | basename }}"
+        mode: '0600'
+      loop:
+        - "{{  frontend_env_file }}"
+        - "{{  backend_env_file }}"
+        - "{{  docker_compose_env_file }}"
+
+    - name: Copy Docker Compose file
+      ansible.builtin.copy:
+        src: "{{ docker_compose_file }}"
+        dest: "{{ remote_project_path }}/docker-compose.yml"
+        mode: '0644'
+
+    - name: Pull images and start containers
+      community.docker.docker_compose_v2:
+        project_src: "{{ remote_project_path }}"
+        state: present
+        pull: always
+        build: always
+      register: output
+
+    - name: Show Docker Compose output
+      ansible.builtin.debug:
+        var: output
