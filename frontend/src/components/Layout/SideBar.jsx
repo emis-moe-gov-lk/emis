@@ -65,7 +65,7 @@ const SideBar = ({
         .filter(Boolean),
     }))
     .filter((section) => section.items.length > 0);
-
+ console.log("Filtered Menu:", filteredMenu);
   return (
     <div
       className={`

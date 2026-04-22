@@ -115,6 +115,24 @@ const TeacherList = () => {
     );
   }, [settings]);
 
+  const getAppointmentStatus = (appointment) => {
+    if (appointment?.is_confirmed === 1) {
+      return { label: "Confirmed", color: "success" };
+    }
+
+    if (appointment?.is_verified === 2) {
+      return { label: "Rejected", color: "failure" };
+    }
+
+    if (appointment?.is_verified === 1) {
+      return { label: "Verified", color: "info" };
+    }
+
+    return { label: "Pending", color: "warning" };
+  };
+
+  const filteredTeachers = teachers;
+
   return (
     <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-6">
       {/* ================= HEADER ================= */}
@@ -129,7 +147,7 @@ const TeacherList = () => {
         </div>
         <div className="flex items-center gap-2">
           <Badge color="blue" size="lg">
-            Total: {total}
+            Total: {filteredTeachers.length}
           </Badge>
         </div>
       </div>
@@ -176,9 +194,12 @@ const TeacherList = () => {
         </div>
       ) : (
         <div className="space-y-4">
-          {teachers.length > 0 ? (
+          {filteredTeachers.length > 0 ? (
             <>
-              {teachers.map((t, index) => (
+              {filteredTeachers.map((t, index) => {
+                const appointmentStatus = getAppointmentStatus(t.appointment);
+
+                return (
                 <div
                   key={t.people_id}
                   onClick={() => navigate(`/employees/teacher/${t.people_id}`)}
@@ -276,12 +297,10 @@ const TeacherList = () => {
                     <div className="md:col-span-2 flex items-center justify-end gap-2 flex-nowrap">
 
                       <Badge
-                        color={
-                          t.appointment?.is_confirmed ? "success" : "warning"
-                        }
+                        color={appointmentStatus.color}
                         className="px-3 py-1 whitespace-nowrap"
                       >
-                        {t.appointment?.is_confirmed ? "Confirmed" : "Pending"}
+                        {appointmentStatus.label}
                       </Badge>
 
                       {/* View Button */}
@@ -354,7 +373,8 @@ const TeacherList = () => {
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
 
               {/* Pagination Controls */}
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
@@ -406,7 +426,7 @@ const TeacherList = () => {
                 No teachers found
               </h3>
               <p className="text-gray-500 max-w-sm mx-auto mt-2">
-                Try adjusting your search or add a new teacher.
+                No teachers match this search.
               </p>
             </div>
           )}

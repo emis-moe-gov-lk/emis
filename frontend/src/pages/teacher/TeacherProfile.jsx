@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { NavLink, useParams } from "react-router-dom";
+import { useAuthContext } from "@asgardeo/auth-react";
 import {
   HiArrowLeft,
   HiDocumentText,
@@ -7,8 +8,10 @@ import {
   HiCheckCircle,
   HiExclamation,
   HiPlus,
+  HiX,
 } from "react-icons/hi";
 import api from "@/api/axios";
+import toast from "react-hot-toast";
 import { Badge, Spinner } from "flowbite-react";
 import TeacherUpdateModal from "@/components/teacher/TeacherUpdateModal";
 /**
@@ -19,6 +22,116 @@ import TeacherUpdateModal from "@/components/teacher/TeacherUpdateModal";
  */
 const TeacherProfile = () => {
   const { id } = useParams();
+  const { state: authState, getDecodedIDToken } = useAuthContext();
+
+  const getStoredRoles = () => {
+    try {
+      const storedRoles = JSON.parse(localStorage.getItem("roles"));
+      return Array.isArray(storedRoles) ? storedRoles : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const findRejectCommentRecord = (payload, teacherId, appointmentId) => {
+    const collectRecords = (value) => {
+      if (!value) return [];
+      if (Array.isArray(value)) {
+        return value.flatMap((item) => collectRecords(item));
+      }
+      if (typeof value !== "object") return [];
+
+      const directRecord =
+        "reject_comment" in value ||
+        "update_comments" in value ||
+        "update_comments_date" in value ||
+        "reject_reason" in value ||
+        "review_comments" in value ||
+        "reason" in value ||
+        "comment" in value ||
+        "note" in value;
+
+      const nestedRecords = Object.values(value).flatMap((entry) =>
+        Array.isArray(entry) || (entry && typeof entry === "object")
+          ? collectRecords(entry)
+          : [],
+      );
+
+      return directRecord ? [value, ...nestedRecords] : nestedRecords;
+    };
+
+    const records = collectRecords(payload);
+
+    const matchesTeacher = (item) =>
+      [
+        item?.people_id,
+        item?.employee_id,
+        item?.teacher_id,
+        item?.teacher_people_id,
+      ].some(
+        (value) => String(value ?? "") === String(teacherId ?? ""),
+      );
+
+    const matchesAppointment = (item) =>
+      appointmentId &&
+      [
+        item?.appointment_id,
+        item?.employer_appointment_id,
+        item?.teacher_appointment_id,
+        item?.id,
+      ].some((value) => String(value ?? "") === String(appointmentId));
+
+    const matchedRecord =
+      records.find((item) => matchesAppointment(item) || matchesTeacher(item)) ||
+      records[0];
+
+    return matchedRecord || null;
+  };
+
+  const extractRejectReason = (record) => {
+    if (!record) return "";
+    return (
+      record.reject_comment ||
+      record.reject_reason ||
+      record.reason ||
+      record.review_comments ||
+      record.comment ||
+      record.note ||
+      ""
+    );
+  };
+
+  const extractUpdatedRejectComment = (record) => {
+    if (!record) return "";
+    return record.update_comments || "";
+  };
+
+  const mergeCommentHistory = (...comments) =>
+    comments
+      .map((comment) => String(comment || "").trim())
+      .filter(Boolean)
+      .join("\n\n");
+
+  const loadRejectComment = useCallback(async (teacherId, appointmentId) => {
+    if (!teacherId) return null;
+
+    try {
+      const res = await api.get(
+        `/employer-appointment-reject-comments/profile/${teacherId}`,
+      );
+
+      const matchedRecord = findRejectCommentRecord(
+        res.data,
+        teacherId,
+        appointmentId,
+      );
+
+      return matchedRecord;
+    } catch (error) {
+      console.error("Failed to load reject reason.", error);
+      return null;
+    }
+  }, []);
 
   // Tabs (left menu)
   const tabs = [
@@ -49,112 +162,363 @@ const TeacherProfile = () => {
   const [family, setFamily] = useState({ spouses: [] });
   const [editRequests, setEditRequests] = useState([]);
   const [modalSection, setModalSection] = useState(null);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isRejecting, setIsRejecting] = useState(false);
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+  const [updateComment, setUpdateComment] = useState("");
+  const [userRoles, setUserRoles] = useState([]);
+  const [currentUserName, setCurrentUserName] = useState("");
+  const [showUpdateAction, setShowUpdateAction] = useState(false);
 
   /**
    * API Integration Hook (later)
    * - When you get API for teacher profile, replace state with response.
    * - Keep this structure for easy mapping.
    */
-  useEffect(() => {
+  const loadTeacherProfile = useCallback(async () => {
     if (!id) return;
+
     setLoading(true);
-    api
-      .get(`/teacher/${id}`)
-      .then((res) => {
-        if (res.data?.status !== "success") return;
-        const d = res.data.data;
+    try {
+      const res = await api.get(`/teacher/${id}`);
+      if (res.data?.status !== "success") return;
 
-        /* ---------------------------
-                   GENERAL
-                --------------------------- */
-        setTeacher({
-          id: d.people_id,
-          fullName: d.full_name,
-          initialsName: d.name_with_initials,
-          nic: d.nic,
-          employeeId: d.people_id,
-          wopNo: d.appointment?.w_op_no,
-          paySheetNo: d.appointment?.pay_sheet_no,
+      const d = res.data.data;
+      const appointmentId =
+        d.appointment?.appointment_id ||
+        d.appointment?.employer_appointment_id ||
+        d.appointment?.id ||
+        null;
+      const fallbackRejectReason =
+        d.appointment?.reject_comment ||
+        d.appointment?.reject_reason ||
+        d.appointment?.reason ||
+        d.appointment?.review_comments ||
+        d.reject_reason ||
+        d.reason ||
+        d.review_comments ||
+        "";
+      const fallbackUpdatedComment = d.appointment?.update_comments || "";
+      const rejectCommentRecord =
+        d.appointment?.is_verified === 2
+          ? await loadRejectComment(d.people_id, appointmentId)
+          : null;
+      const resolvedRejectReason = mergeCommentHistory(
+        extractRejectReason(rejectCommentRecord) || fallbackRejectReason,
+        extractUpdatedRejectComment(rejectCommentRecord) ||
+          fallbackUpdatedComment,
+      );
+
+      /* ---------------------------
+                 GENERAL
+              --------------------------- */
+      setTeacher({
+        id: d.people_id,
+        fullName: d.full_name,
+        initialsName: d.name_with_initials,
+        nic: d.nic,
+        employeeId: d.people_id,
+        wopNo: d.appointment?.w_op_no,
+        paySheetNo: d.appointment?.pay_sheet_no,
+        service: d.appointment?.service_id,
+        status:
+          d.appointment?.is_confirmed === 1
+            ? "Confirmed"
+            : d.appointment?.is_verified === 2
+              ? "Rejected"
+              : d.appointment?.is_verified === 1
+                ? "Verified"
+                : "Pending",
+        confirmed: d.appointment?.is_confirmed === 1,
+        rejected: d.appointment?.is_verified === 2,
+        verified: d.appointment?.is_verified === 1,
+        rejectReason: resolvedRejectReason,
+        rejectCommentId:
+          rejectCommentRecord?.id ||
+          rejectCommentRecord?.comment_id ||
+          rejectCommentRecord?.reject_comment_id ||
+          null,
+        rejectCommentDate:
+          rejectCommentRecord?.update_comments_date ||
+          rejectCommentRecord?.date ||
+          rejectCommentRecord?.reject_date ||
+          rejectCommentRecord?.comment_date ||
+          rejectCommentRecord?.updated_at ||
+          rejectCommentRecord?.created_at ||
+          null,
+
+        dob: d.date_of_birth,
+        gender: d.gender?.gender_name,
+        religion: d.religion?.religion_name,
+        ethnicity: d.ethnicity?.ethnicity_name,
+        civilStatus: d.civil_status?.civil_status_name,
+
+        bloodGroup: d.blood_group?.blood_group,
+        overallCondition: d.health_condition ? "Good" : "Issue",
+        knownProblems: d.health_problem,
+
+        email: d.email,
+        phone: d.phone,
+
+        district: d.district?.district_name,
+        gnDivision: d.gn_division?.gn_division_name,
+        permanentAddress: [d.address_line1, d.address_line2, d.address_line3]
+          .filter(Boolean)
+          .join("\n"),
+
+        latitude: d.latitude,
+        longitude: d.longitude,
+        tempAddress: [d.t_address_line1, d.t_address_line2, d.t_address_line3]
+          .filter(Boolean)
+          .join("\n"),
+      });
+
+      /* ---------------------------
+                 EMPLOYMENT
+              --------------------------- */
+      setEmployment({
+        appointmentCurrentStatus: {
+          service: d.current_appointment?.service_id,
+          currentServiceRank: d.current_appointment?.rank_id,
+          appointmentDate: d.current_appointment?.appoint_date,
+          positionDesignation: d.current_appointment?.position_id,
+          workplaceNameAddress: d.current_appointment?.workplace?.institution
+            ? `[${d.current_appointment.workplace.institution.census_no}] ${d.current_appointment.workplace.institution.name}\n${d.current_appointment.workplace.institution.address}`
+            : "",
+        },
+        myAppointment: {
           service: d.appointment?.service_id,
-          status: d.appointment?.is_confirmed ? "Confirmed" : "Not Confirmed",
-          verified: !!d.appointment?.is_verified,
+          serviceRank: d.appointment?.rank_id,
+          appointmentDate: d.appointment?.first_appointment_date,
+          appointmentNumber: d.appointment?.appointment_letter_no,
+          positionDesignation: d.appointment?.position_id,
+        },
+        teachingInfo: {
+          teacherCategory: d.teacher?.teacher_category,
+          teacherAppointmentType: d.teacher?.teacher_type,
+          medium: d.teacher?.appointment_medium,
+          appointmentSubject: d.teacher?.appointment_subject?.name_en,
+          mainTeachingSubject: d.teacher?.main_subject?.name_en,
+          secondarySubjectOptional: d.teacher?.secondary_subject?.name_en,
+          currentTeachingSubjectAssignedBySchool:
+            d.teacher?.current_teaching_subject?.name_en,
+        },
+        previousService: [],
+        previousServiceRelatedInfo: [],
+        previousWorkingPlace: [],
+      });
 
-          dob: d.date_of_birth,
-          gender: d.gender?.gender_name,
-          religion: d.religion?.religion_name,
-          ethnicity: d.ethnicity?.ethnicity_name,
-          civilStatus: d.civil_status?.civil_status_name,
+      /* ---------------------------
+                 W&OP
+              --------------------------- */
+      setWopAndPayment({
+        wopNo: d.appointment?.w_op_no,
+        paySheetNo: d.appointment?.pay_sheet_no,
+      });
 
-          bloodGroup: d.blood_group?.blood_group,
-          overallCondition: d.health_condition ? "Good" : "Issue",
-          knownProblems: d.health_problem,
+      setQualifications([]);
+      setFamily({ spouses: [] });
+      setEditRequests([]);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to load teacher profile.");
+    } finally {
+      setLoading(false);
+    }
+  }, [id, loadRejectComment]);
 
-          email: d.email,
-          phone: d.phone,
+  useEffect(() => {
+    loadTeacherProfile();
+  }, [loadTeacherProfile]);
 
-          district: d.district?.district_name,
-          gnDivision: d.gn_division?.gn_division_name,
-          permanentAddress: [d.address_line1, d.address_line2, d.address_line3]
-            .filter(Boolean)
-            .join("\n"),
+  useEffect(() => {
+    if (!authState.isAuthenticated) {
+      setUserRoles([]);
+      return;
+    }
 
-          latitude: d.latitude,
-          longitude: d.longitude,
-          tempAddress: [d.t_address_line1, d.t_address_line2, d.t_address_line3]
-            .filter(Boolean)
-            .join("\n"),
-        });
+    let ignore = false;
 
-        /* ---------------------------
-                   EMPLOYMENT
-                --------------------------- */
-        setEmployment({
-          appointmentCurrentStatus: {
-            service: d.current_appointment?.service_id,
-            currentServiceRank: d.current_appointment?.rank_id,
-            appointmentDate: d.current_appointment?.appoint_date,
-            positionDesignation: d.current_appointment?.position_id,
-            workplaceNameAddress: d.current_appointment?.workplace?.institution
-              ? `[${d.current_appointment.workplace.institution.census_no}] ${d.current_appointment.workplace.institution.name}\n${d.current_appointment.workplace.institution.address}`
-              : "",
-          },
-          myAppointment: {
-            service: d.appointment?.service_id,
-            serviceRank: d.appointment?.rank_id,
-            appointmentDate: d.appointment?.first_appointment_date,
-            appointmentNumber: d.appointment?.appointment_letter_no,
-            positionDesignation: d.appointment?.position_id,
-          },
-          teachingInfo: {
-            teacherCategory: d.teacher?.teacher_category,
-            teacherAppointmentType: d.teacher?.teacher_type,
-            medium: d.teacher?.appointment_medium,
-            appointmentSubject: d.teacher?.appointment_subject?.name_en,
-            mainTeachingSubject: d.teacher?.main_subject?.name_en,
-            secondarySubjectOptional: d.teacher?.secondary_subject?.name_en,
-            currentTeachingSubjectAssignedBySchool:
-              d.teacher?.current_teaching_subject?.name_en,
-          },
-          previousService: [],
-          previousServiceRelatedInfo: [],
-          previousWorkingPlace: [],
-        });
-
-        /* ---------------------------
-                   W&OP
-                --------------------------- */
-        setWopAndPayment({
-          wopNo: d.appointment?.w_op_no,
-          paySheetNo: d.appointment?.pay_sheet_no,
-        });
-
-        setQualifications([]);
-        setFamily({ spouses: [] });
-        setEditRequests([]);
+    getDecodedIDToken()
+      .then((token) => {
+        if (ignore) return;
+        const tokenRoles = token?.roles || token?.groups || token?.role || [];
+        const resolvedUserName =
+          token?.name ||
+          token?.full_name ||
+          token?.username ||
+          localStorage.getItem("name") ||
+          "";
+        const roles = [
+          ...(Array.isArray(tokenRoles) ? tokenRoles : [tokenRoles]),
+          ...getStoredRoles(),
+        ];
+        const normalizedRoles = [...new Set(roles)]
+          .filter(Boolean)
+          .map((role) => String(role).trim().toLowerCase());
+        setUserRoles(normalizedRoles);
+        setCurrentUserName(String(resolvedUserName).trim());
       })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [id]);
+      .catch(() => {
+        if (!ignore) {
+          const normalizedStoredRoles = getStoredRoles()
+            .filter(Boolean)
+            .map((role) => String(role).trim().toLowerCase());
+          setUserRoles(normalizedStoredRoles);
+          setCurrentUserName(String(localStorage.getItem("name") || "").trim());
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [authState.isAuthenticated, getDecodedIDToken]);
+
+  const isDevelopmentOfficer = userRoles.includes("development officer");
+  const isDevelopmentOfficerHead = userRoles.includes(
+    "development officer head",
+  );
+  const isPendingStatus =
+    !teacher?.confirmed && !teacher?.verified && !teacher?.rejected;
+  const shouldShowUpdateOnly = isDevelopmentOfficer && !!teacher?.rejected;
+  const shouldShowVerificationStrip = isDevelopmentOfficer
+    ? !!teacher?.rejected
+    : !teacher?.confirmed;
+
+  const handleVerify = async () => {
+    if (!teacher?.id || isVerifying) return;
+
+    const isUpdateStep = shouldShowUpdateOnly || showUpdateAction;
+    const isConfirmStep =
+      !isUpdateStep && !!teacher?.verified && !teacher?.rejected;
+
+    if (isUpdateStep) {
+      setUpdateComment("");
+      setIsUpdateModalOpen(true);
+      return;
+    }
+
+    setIsVerifying(true);
+    try {
+      const endpoint = isConfirmStep
+        ? `/teachers/${teacher.id}/confirm`
+        : `/teachers/${teacher.id}/verify`;
+
+      await api.patch(endpoint);
+      await loadTeacherProfile();
+      setShowUpdateAction(false);
+
+      toast.success(
+        isConfirmStep
+          ? "Teacher appointment confirmed successfully."
+          : "Teacher verified successfully.",
+      );
+    } catch (error) {
+      const message =
+        error?.response?.data?.message ||
+        (isConfirmStep
+          ? "Failed to confirm teacher appointment."
+          : "Failed to verify teacher profile.");
+      toast.error(message);
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const closeUpdateModal = (force = false) => {
+    if (isVerifying && !force) return;
+    setIsUpdateModalOpen(false);
+    setUpdateComment("");
+  };
+
+  const handleUpdateSubmit = async () => {
+    if (!teacher?.id || isVerifying) return;
+
+    const trimmedComment = updateComment.trim();
+    if (!trimmedComment) {
+      toast.error("Please enter an update comment.");
+      return;
+    }
+
+    if (!teacher?.rejectCommentId) {
+      toast.error("Reject comment record was not found.");
+      return;
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    const formattedComment = currentUserName
+      ? `[${currentUserName}] ${trimmedComment}`
+      : trimmedComment;
+
+    setIsVerifying(true);
+    try {
+      await api.patch(
+        `/employer-appointment-reject-comments/${teacher.rejectCommentId}`,
+        {
+          date: today,
+          reject_date: today,
+          reject_comment: formattedComment,
+          update_comments: formattedComment,
+          update_comments_date: today,
+          reason: formattedComment,
+          reject_reason: formattedComment,
+          people_id: teacher?.id,
+          comment_date: today,
+        },
+      );
+      await loadTeacherProfile();
+      setShowUpdateAction(false);
+      closeUpdateModal(true);
+      toast.success("Reject details updated successfully.");
+    } catch (error) {
+      const message =
+        error?.response?.data?.message || "Failed to update reject details.";
+      toast.error(message);
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const openRejectModal = () => {
+    if (isRejecting) return;
+    setIsRejectModalOpen(true);
+  };
+
+  const closeRejectModal = (force = false) => {
+    if (isRejecting && !force) return;
+    setIsRejectModalOpen(false);
+    setRejectReason("");
+  };
+
+  const handleReject = async () => {
+    if (!teacher?.id || isRejecting) return;
+
+    const trimmedReason = rejectReason.trim();
+    if (!trimmedReason) {
+      toast.error("Please enter a rejection reason.");
+      return;
+    }
+
+    setIsRejecting(true);
+    try {
+      await api.patch(`/teachers/${teacher.id}/reject`, {
+        reason: trimmedReason,
+        reject_reason: trimmedReason,
+      });
+      await loadTeacherProfile();
+      setShowUpdateAction(false);
+      closeRejectModal(true);
+      toast.success("Teacher profile rejected successfully.");
+    } catch (error) {
+      const message =
+        error?.response?.data?.message || "Failed to reject teacher profile.";
+      toast.error(message);
+    } finally {
+      setIsRejecting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -184,7 +548,23 @@ const TeacherProfile = () => {
       <HeaderStrip teacher={teacher} />
 
       {/* Verify alert strip */}
-      {!teacher.verified && <VerifyStrip onVerify={() => {}} />}
+      {shouldShowVerificationStrip && (
+        <VerifyStrip
+          onVerify={handleVerify}
+          onReject={openRejectModal}
+          isVerifying={isVerifying}
+          isRejecting={isRejecting}
+          isVerified={teacher.verified && !teacher.rejected}
+          isRejected={teacher.rejected}
+          rejectReason={teacher.rejectReason}
+          showUpdateAction={showUpdateAction || shouldShowUpdateOnly}
+          hideRejectAction={
+            isDevelopmentOfficer ||
+            (isDevelopmentOfficerHead && !isPendingStatus)
+          }
+          hideVerifyAction={isDevelopmentOfficerHead && !isPendingStatus}
+        />
+      )}
 
       {/* Layout: Left menu + Right content */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -254,7 +634,30 @@ const TeacherProfile = () => {
         section={modalSection}
         teacherId={teacher?.id}
         onClose={() => setModalSection(null)}
-        onSaved={() => window.location.reload()}
+        onSaved={async () => {
+          await loadTeacherProfile();
+          setModalSection(null);
+          setShowUpdateAction(false);
+        }}
+      />
+
+      <RejectReasonModal
+        isOpen={isRejectModalOpen}
+        reason={rejectReason}
+        isRejecting={isRejecting}
+        onChangeReason={setRejectReason}
+        onClose={closeRejectModal}
+        onSubmit={handleReject}
+      />
+
+      <UpdateCommentModal
+        isOpen={isUpdateModalOpen}
+        existingComment={teacher?.rejectReason}
+        comment={updateComment}
+        isSubmitting={isVerifying}
+        onChangeComment={setUpdateComment}
+        onClose={closeUpdateModal}
+        onSubmit={handleUpdateSubmit}
       />
     </div>
   );
@@ -284,7 +687,11 @@ function HeaderStrip({ teacher }) {
                 <div className="flex flex-wrap items-center gap-3">
                   <Badge
                     color={
-                      teacher.status === "Confirmed" ? "success" : "warning"
+                      teacher.status === "Confirmed"
+                        ? "success"
+                        : teacher.status === "Rejected"
+                          ? "failure"
+                          : "warning"
                     }
                     className="px-4 py-1 font-bold rounded-full text-xs"
                   >
@@ -348,7 +755,42 @@ function MiniKey({ label, value }) {
    Verify strip (premium styling)
 ========================================================= */
 
-function VerifyStrip({ onVerify }) {
+function VerifyStrip({
+  onVerify,
+  onReject,
+  isVerifying = false,
+  isRejecting = false,
+  isVerified = false,
+  isRejected = false,
+  rejectReason = "",
+  showUpdateAction = false,
+  hideRejectAction = false,
+  hideVerifyAction = false,
+}) {
+  const title = isRejected
+    ? "Profile Rejected"
+    : isVerified
+    ? "Profile Confirmation Required"
+    : "Profile Verification Required";
+  const description = isRejected
+    ? "This profile was rejected. Review the details and verify again to restart the approval process."
+    : isVerified
+    ? "Profile verified successfully. Continue with confirmation to complete the appointment process."
+    : "Ensure all details are accurate before proceeding with administration.";
+  const buttonLabel = isVerifying
+    ? showUpdateAction
+      ? "Updating..."
+      : isVerified
+        ? "Confirming..."
+        : "Verifying..."
+    : showUpdateAction
+      ? "Update"
+      : isVerified
+        ? "Confirm"
+        : "Verify Now";
+  const buttonClass =
+    "inline-flex items-center justify-center gap-2 rounded-xl bg-linear-to-r from-orange-500 to-amber-600 px-6 py-2 text-sm font-black text-white hover:from-orange-600 hover:to-amber-700 transition-all shadow-md shadow-orange-100 disabled:cursor-not-allowed disabled:opacity-70 dark:shadow-none";
+
   return (
     <div className="rounded-2xl border border-amber-100 dark:border-amber-900/30 bg-amber-50 dark:bg-amber-900/10 shadow-sm overflow-hidden">
       <div className="px-5 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -360,23 +802,167 @@ function VerifyStrip({ onVerify }) {
 
           <div className="min-w-0 italic">
             <div className="text-sm font-black text-amber-900 dark:text-amber-200">
-              Profile Verification Required
+              {title}
             </div>
             <div className="text-xs font-semibold text-amber-700 dark:text-amber-400/80">
-              Ensure all details are accurate before proceeding with
-              administration.
+              {description}
             </div>
+            {isRejected && rejectReason && (
+              <div className="mt-2 text-xs font-bold text-amber-900 dark:text-amber-200 not-italic whitespace-pre-wrap">
+                Reject Comment: {rejectReason}
+              </div>
+            )}
           </div>
         </div>
 
         {/* Right: Action */}
-        <button
-          onClick={onVerify}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-linear-to-r from-orange-500 to-amber-600 px-6 py-2 text-sm font-black text-white hover:from-orange-600 hover:to-amber-700 transition-all shadow-md shadow-orange-100 dark:shadow-none"
-        >
-          <HiCheckCircle className="h-4 w-4" />
-          Verify Now
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {!hideRejectAction && !isVerified && !showUpdateAction && (
+            <button
+              onClick={onReject}
+              type="button"
+              disabled={isRejecting}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-white px-5 py-2 text-sm font-black text-rose-700 hover:bg-rose-50 transition-all shadow-sm disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              <HiX className="h-4 w-4" />
+              {isRejecting ? "Rejecting..." : "Reject"}
+            </button>
+          )}
+
+          {!hideVerifyAction && (
+            <button
+              onClick={onVerify}
+              disabled={isVerifying}
+              className={buttonClass}
+            >
+              <HiCheckCircle className="h-4 w-4" />
+              {buttonLabel}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RejectReasonModal({
+  isOpen,
+  reason,
+  isRejecting = false,
+  onChangeReason,
+  onClose,
+  onSubmit,
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/40 px-4">
+      <div className="w-full max-w-lg rounded-3xl bg-white shadow-2xl">
+        <div className="border-b border-gray-100 px-6 py-5">
+          <h3 className="text-lg font-black text-gray-900">
+            Enter Rejection Reason
+          </h3>
+          <p className="mt-1 text-sm text-gray-500">
+            This reason will be sent with the reject action.
+          </p>
+        </div>
+
+        <div className="px-6 py-5">
+          <textarea
+            value={reason}
+            onChange={(e) => onChangeReason(e.target.value)}
+            rows={5}
+            placeholder="Type the reason for rejecting this profile..."
+            className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm text-gray-800 outline-none transition focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
+          />
+        </div>
+
+        <div className="flex justify-end gap-3 border-t border-gray-100 px-6 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isRejecting}
+            className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onSubmit}
+            disabled={isRejecting}
+            className="rounded-xl bg-rose-600 px-4 py-2 text-sm font-bold text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {isRejecting ? "Rejecting..." : "Submit Rejection"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function UpdateCommentModal({
+  isOpen,
+  existingComment = "",
+  comment,
+  isSubmitting = false,
+  onChangeComment,
+  onClose,
+  onSubmit,
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/40 px-4">
+      <div className="w-full max-w-lg rounded-3xl bg-white shadow-2xl">
+        <div className="border-b border-gray-100 px-6 py-5">
+          <h3 className="text-lg font-black text-gray-900">
+            Update Reject Details
+          </h3>
+          <p className="mt-1 text-sm text-gray-500">
+            Existing reject details are shown below as read-only. New comments
+            will be appended to the reject comment history.
+          </p>
+        </div>
+
+        <div className="px-6 py-5">
+          {existingComment && (
+            <div className="mb-4 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
+              <div className="text-xs font-bold uppercase tracking-wide text-gray-500">
+                Existing Reject Details
+              </div>
+              <p className="mt-2 whitespace-pre-wrap text-sm text-gray-700">
+                {existingComment}
+              </p>
+            </div>
+          )}
+
+          <textarea
+            value={comment}
+            onChange={(e) => onChangeComment(e.target.value)}
+            rows={5}
+            placeholder="Type the new update comment here..."
+            className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm text-gray-800 outline-none transition focus:border-amber-300 focus:ring-2 focus:ring-amber-100"
+          />
+        </div>
+
+        <div className="flex justify-end gap-3 border-t border-gray-100 px-6 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isSubmitting}
+            className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onSubmit}
+            disabled={isSubmitting}
+            className="rounded-xl bg-amber-600 px-4 py-2 text-sm font-bold text-white hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {isSubmitting ? "Updating..." : "Update Details"}
+          </button>
+        </div>
       </div>
     </div>
   );
