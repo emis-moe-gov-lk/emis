@@ -1,0 +1,187 @@
+import React, { useState } from "react";
+
+const HealthInformation = ({ employee, canEdit }) => {
+  const [showModal, setShowModal] = useState(false);
+  const [bloodGroup, setBloodGroup] = useState(employee?.bloodGroup || "");
+  const [healthStatus, setHealthStatus] = useState(
+    employee?.health_status || "",
+  );
+  const [healthProblem, setHealthProblem] = useState(
+    employee?.health_problem || "",
+  );
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    console.log({ bloodGroup, healthStatus, healthProblem });
+    setShowModal(false);
+  };
+
+  return (
+    <div>
+      <section>
+        {/* Header */}
+        <div className="flex items-center justify-between mb-5 px-1">
+          <div>
+            <h2 className="text-xl font-extrabold tracking-tight text-gray-900 dark:text-white">
+              Health Information
+            </h2>
+            <p className="text-sm text-gray-500">Medical overview and vitals</p>
+          </div>
+
+          {canEdit && (
+            <button
+              onClick={() => setShowModal(true)}
+              className="px-4 py-2 text-sm rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+            >
+              ✏ Edit Details
+            </button>
+          )}
+        </div>
+
+        <div className="space-y-4">
+          {/* Blood Group Card */}
+          <div className="bg-gradient-to-br from-white to-red-50/30 dark:from-gray-800 dark:to-red-900/10 p-5 rounded-2xl border border-red-100 dark:border-gray-700 shadow-sm relative overflow-hidden">
+            <div className="absolute -right-2 -top-2 opacity-5">
+              <div className="text-6xl text-red-600">🧪</div>
+            </div>
+
+            <div className="flex items-center gap-4 relative z-10">
+              <div className="p-3 bg-red-100 dark:bg-red-900/40 rounded-xl shadow-inner">
+                <span className="text-xl font-black text-red-600 dark:text-red-400">
+                  {employee?.blood_group?.blood_group}
+                </span>
+              </div>
+
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                  Blood Group Type
+                </p>
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  Emergency Vital Information
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Secondary Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Overall Condition */}
+            <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex items-start gap-3">
+              <div className="mt-1">
+                <div
+                  className={`size-2.5 rounded-full ${
+                    healthStatus === "Healthy"
+                      ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"
+                      : "bg-amber-500"
+                  }`}
+                ></div>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">
+                  Overall Condition
+                </p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wide">
+                  {healthStatus}
+                </p>
+              </div>
+            </div>
+
+            {/* Known Problems */}
+            <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">
+                    Known Problems
+                  </p>
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100 leading-tight">
+                    {healthProblem || "No reported medical conditions"}
+                  </p>
+                </div>
+                <span className="text-gray-300 dark:text-gray-600">🛡</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 w-full max-w-md rounded-2xl p-6 shadow-xl">
+            <h3 className="text-lg font-bold mb-4">Health Details</h3>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Blood Group */}
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Blood Group
+                </label>
+                <select
+                  value={bloodGroup}
+                  onChange={(e) => setBloodGroup(e.target.value)}
+                  className="w-full border rounded-lg p-2 dark:bg-gray-700"
+                >
+                  <option value="">Select</option>
+                  <option>A+</option>
+                  <option>A-</option>
+                  <option>B+</option>
+                  <option>O+</option>
+                </select>
+              </div>
+
+              {/* Health Status */}
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Current Health Status
+                </label>
+                <select
+                  value={healthStatus}
+                  onChange={(e) => setHealthStatus(e.target.value)}
+                  className="w-full border rounded-lg p-2 dark:bg-gray-700"
+                >
+                  <option value="">Select</option>
+                  <option value="Healthy">Healthy</option>
+                  <option value="Under Treatment">Under Treatment</option>
+                </select>
+              </div>
+
+              {/* Medical Details */}
+              {healthStatus !== "Healthy" && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Medical Details
+                  </label>
+                  <textarea
+                    rows="3"
+                    value={healthProblem}
+                    onChange={(e) => setHealthProblem(e.target.value)}
+                    className="w-full border rounded-lg p-2 dark:bg-gray-700"
+                    placeholder="Enter details..."
+                  />
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="flex-1 py-2 rounded-lg border"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2 rounded-lg bg-blue-600 text-white"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default HealthInformation;
