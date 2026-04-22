@@ -26,6 +26,7 @@ tmp/
 # IDE
 .idea/
 .vscode/
+.claude
 *.swp
 *.swo
 *~

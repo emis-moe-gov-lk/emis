@@ -1,0 +1,10 @@
+vendor/
+node_modules/
+.git/
+.env
+.env.backup
+storage/logs/*.log
+*.log
+.phpunit.cache/
+coverage/
+bootstrap/cache/*.php

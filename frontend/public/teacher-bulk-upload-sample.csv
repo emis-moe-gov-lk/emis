@@ -1,0 +1,3 @@
+employee_code,full_name,nic,email,phone,gender,date_of_birth,service_no,service_name,rank_name,appointment_date,institution_code,institution_name,address_line_1,city,postal_code,is_confirmed
+TCH-0001,Kasun Perera,199012345678,kasun.perera@example.com,0711234567,M,1990-05-12,SLAF-12345,Air Force,Flight Lieutenant,2023-01-15,INS-001,Air Force Primary School,No. 10 Main Road,Katunayake,11450,1
+TCH-0002,Nadeesha Fernando,198911112222,nadeesha.fernando@example.com,0779876543,F,1989-11-02,SLAF-67890,Air Force,Squadron Leader,2022-08-01,INS-014,Air Force Girls School,No. 24 Lake Road,Ratmalana,10390,0
