@@ -16,6 +16,7 @@ use App\Http\Controllers\API\ServiceRankController;
 use App\Http\Controllers\API\SubjectListController;
 use App\Http\Controllers\API\AuthIdentityController;
 use App\Http\Controllers\API\TeacherApiController;
+use App\Http\Controllers\API\PrincipalApiController;
 use App\Http\Controllers\API\VersionController;
 use App\Http\Controllers\API\ChangeLogController;
 use App\Http\Controllers\API\DashboardController;
@@ -119,6 +120,10 @@ Route::prefix('')->group(function () {
         Route::get('/teachers/personal-form-data', 'getPersonalFromData');
         Route::get('/teachers/appointment-form-data', 'getAppoinmentFromData');  // UPDATE
         Route::post('/teachers/check-contact', 'checkContact');                  // POST check email/phone
+    });
+
+    Route::controller(PrincipalApiController::class)->middleware('auth:jwt')->group(function () {
+        Route::get('/principals-list', 'principalList');  // GET all principals
     });
 
     Route::controller(EmployerAppointmentConfirmationController::class)->middleware('auth:jwt')->group(function () {
