@@ -124,6 +124,7 @@ Route::prefix('')->group(function () {
 
     Route::controller(PrincipalApiController::class)->middleware('auth:jwt')->group(function () {
         Route::get('/principals-list', 'principalList');  // GET all principals
+        Route::get('/principal/{people_id}', 'getPrincipal');
     });
 
     Route::controller(EmployerAppointmentConfirmationController::class)->middleware('auth:jwt')->group(function () {
@@ -132,6 +133,7 @@ Route::prefix('')->group(function () {
         Route::patch('/employer-appointment-reject-comments/{id}', 'updateRejectComment');
         Route::patch('/teachers/{people_id}/verify', 'verify');
         Route::patch('/teachers/{people_id}/confirm', 'confirm');
+        Route::patch('/teachers/{people_id}/promote', 'promote');
         Route::patch('/teachers/{people_id}/reject', 'reject');
         Route::patch('/teachers/{people_id}/update', 'updateRejectedStatus');
         Route::patch('/teachers/{people_id}/rejected-status', 'updateRejectedStatus');

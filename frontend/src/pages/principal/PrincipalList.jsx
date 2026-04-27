@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router";
 import { Badge, Button, Spinner, TextInput } from "flowbite-react";
 import {
   HiChevronLeft,
   HiChevronRight,
+  HiEye,
   HiLocationMarker,
   HiPhone,
   HiSearch,
@@ -11,6 +13,7 @@ import {
 import api from "@/api/axios";
 
 const PrincipalList = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [principals, setPrincipals] = useState([]);
   const [search, setSearch] = useState("");
@@ -175,6 +178,15 @@ const PrincipalList = () => {
                         <Badge color={appointmentStatus.color} className="px-3 py-1 whitespace-nowrap">
                           {appointmentStatus.label}
                         </Badge>
+                        <Button
+                          size="xs"
+                          color="light"
+                          onClick={() => navigate(`/employees/principal/${principal.people_id}`)}
+                          className="border-gray-200"
+                        >
+                          <HiEye className="mr-1 h-4 w-4" />
+                          View Profile
+                        </Button>
                       </div>
                     </div>
                   </div>

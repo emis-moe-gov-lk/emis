@@ -29,3 +29,14 @@ export const printTeacherId = async (id) => {
   const response = await api.get(`/pdf/id/${id}`, { responseType: "blob" });
   return response.data;
 };
+
+/**
+ * Promote a teacher profile to principle/principal workflow
+ * @param {string|number} id - The teacher's people_id
+ * @param {Object} payload - Optional payload fields like reason
+ * @returns {Promise} - Axios response payload
+ */
+export const promoteTeacher = async (id, payload = {}) => {
+  const response = await api.patch(`/teachers/${id}/promote`, payload);
+  return response.data;
+};

@@ -214,7 +214,11 @@ class TeacherApiController extends Controller
             $nic     = trim($request->get('nic'));
             $roles   = $this->resolvedRoles($request);
 
-            $baseQuery = People::query()->whereHas('teacher');
+            $baseQuery = People::query()
+                ->whereHas('teacher')
+                ->whereHas('appointment', function ($appointmentQuery) {
+                    $appointmentQuery->where('service_id', '!=', 'SER004');
+                });
             $query = clone $baseQuery;
 
             // Scope registration forms to the authenticated officer's zonal office.
@@ -567,6 +571,7 @@ class TeacherApiController extends Controller
             'teacher.currentTeachingSubject',
 
         ])
+            ->whereHas('appointment')
             ->where('people_id', $people_id)
             ->when($zonalWorkplaceId, function ($query) use ($zonalWorkplaceId) {
                 $this->applyTeacherZonalScope($query, $zonalWorkplaceId);
