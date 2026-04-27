@@ -143,9 +143,9 @@ export const menuItems = [
             roles: ["super admin"],
           },
           {
-            id: "eduDirectors",
-            label: "EduDirectors",
-            to: "/employees/edu-directors",
+            id: "zonalhead",
+            label: "Zonal Head",
+            to: "/employees/zonal-head",
             roles: ["super admin"],
           },
           {
