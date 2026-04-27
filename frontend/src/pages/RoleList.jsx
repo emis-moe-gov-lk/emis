@@ -11,6 +11,7 @@ import {
   FiTrash2,
 } from "react-icons/fi";
 import { deleteRole, getRoles, parseRoleApiError } from "@/api/roleService";
+import { useAuthUser } from "@/context/useAuthUser";
 
 const sortRolesById = (roles) =>
   [...roles].sort((a, b) => {
@@ -25,6 +26,7 @@ const sortRolesById = (roles) =>
   });
 
 const RolesList = () => {
+  const { hydrateIdentity } = useAuthUser();
   const [openRole, setOpenRole] = useState(null);
   const [openMenuRole, setOpenMenuRole] = useState(null);
   const [roles, setRoles] = useState([]);
@@ -72,6 +74,7 @@ const RolesList = () => {
 
     try {
       await deleteRole(roleId);
+      await hydrateIdentity().catch(() => {});
       setRoles((currentRoles) =>
         sortRolesById(currentRoles.filter((role) => role.id !== roleId)),
       );
