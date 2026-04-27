@@ -23,7 +23,11 @@ class UserApiController extends Controller
                 ], 401);
             }
 
-            $roles = $request->attributes->get('jwt_roles', []);
+            // Keep profile bootstrap tied to the authenticated user.
+            $people_id = $authPeopleId;
+
+            $user = User::with('roles:id,name')->where('people_id', $people_id)->first();
+            $roles = $user?->roles?->pluck('name')->values()->all() ?? [];
             $role  = $roles[0] ?? null;
 
             // If requesting someone else's profile, verify the token user
@@ -114,7 +118,6 @@ class UserApiController extends Controller
             }
 
             // Fetch roles and permissions from the User record
-            $user        = User::where('people_id', $people_id)->first();
             $permissions = $user
                 ? $user->getAllPermissions()->pluck('name')->values()->all()
                 : [];

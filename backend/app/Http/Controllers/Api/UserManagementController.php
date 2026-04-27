@@ -18,8 +18,7 @@ class UserManagementController extends Controller
 {
     private function isSuperAdmin(Request $request): bool
     {
-        $roles = $request->attributes->get('jwt_roles', []);
-        return in_array('super admin', $roles);
+        return (bool) $request->user()?->hasRole('super admin');
     }
 
     // -------------------------------------------------------

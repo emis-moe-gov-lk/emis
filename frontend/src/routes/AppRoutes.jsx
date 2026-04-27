@@ -52,6 +52,10 @@ import UserCreate from "@/pages/users/UserCreate";
 import UserEdit from "@/pages/users/UserEdit";
 import { TimetableProvider } from "../context/TimetableContext.jsx";
 import { TeacherFormProvider } from "../context/TeacherFormContext.jsx";
+import DosDirectory from "../pages/DosDirectory.jsx";
+import DosBulkUpload from "../pages/dos/DosBulkUpload.jsx";
+import RegDos from "../pages/dos/RegDos.jsx";
+import DosList from "../components/dos/DosList.jsx";
 
 export default function AppRoutes() {
   return (
@@ -100,7 +104,7 @@ export default function AppRoutes() {
             <Route path="/dashboard" element={<UpdateDashbord />} />
 
             <Route path="dashboard/VersionPage" element={<VersionPage />} />
-            <Route path="dashboard/profile" element={<MyProfileLayout />} />
+            <Route path="dashboard/profile/:id" element={<MyProfileLayout />} />
             <Route path="dashboard/Settings" element={<Settings />} />
 
             {/* Institution routes */}
@@ -111,16 +115,59 @@ export default function AppRoutes() {
             </Route>
 
             <Route path="alert" element={<Alert />} />
-            <Route path="roles/create" element={<CreateRole />} />
-            <Route path="roles" element={<RolesList />} />
+            <Route
+              path="roles/create"
+              element={
+                <ProtectedRoute permissions={["user.create"]}>
+                  <CreateRole />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="roles"
+              element={
+                <ProtectedRoute permissions={["user.create"]}>
+                  <RolesList />
+                </ProtectedRoute>
+              }
+            />
             <Route path="maintable" element={<MainTables />} />
-            <Route path="users" element={<UsersList />} />
-            <Route path="users/create" element={<UserCreate />} />
-            <Route path="users/edit" element={<UserEdit />} />
-            <Route path="users/:id/edit" element={<UserEdit />} />
+            <Route
+              path="users"
+              element={
+                <ProtectedRoute permissions={["user.list.view"]}>
+                  <UsersList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="users/create"
+              element={
+                <ProtectedRoute permissions={["user.create"]}>
+                  <UserCreate />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="users/edit"
+              element={
+                <ProtectedRoute permissions={["user.update"]}>
+                  <UserEdit />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="users/:id/edit"
+              element={
+                <ProtectedRoute permissions={["user.update"]}>
+                  <UserEdit />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Other protected routes */}
-            <Route path="employees/teacher"
+            <Route
+              path="employees/teacher"
               element={
                 <TeacherFormProvider>
                   <Outlet />
@@ -133,6 +180,16 @@ export default function AppRoutes() {
               <Route path="create" element={<RegTeacher />} />
               <Route path=":id" element={<TeacherProfile />} />
             </Route>
+
+            <Route path="employees/development-officers">
+              <Route index element={<DosDirectory />} />
+              <Route path="bulk-upload" element={<DosBulkUpload />} />
+              <Route path="create" element={<RegDos />} />
+            </Route>
+            <Route
+              path="employees/development-officers"
+              element={<DosDirectory />}
+            />
 
             <Route path="offices/moe" element={<MoeOfficeList />} />
             <Route path="offices/pmoe" element={<PmoeOfficeList />} />

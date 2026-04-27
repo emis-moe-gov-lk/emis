@@ -220,6 +220,11 @@ class People extends Model
         return $this->belongsTo(DistrictsList::class, 'district_id', 'district_id');
     }
 
+    public function dsOffice()
+    {
+        return $this->belongsTo(DivisionalSecretariatOffice::class, 'ds_office_id', 'id');
+    }
+
     public function gnDivision()
     {
         return $this->belongsTo(GnDivision::class, 'gn_division_id', 'gn_division_id');
