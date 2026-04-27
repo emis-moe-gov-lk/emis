@@ -3,7 +3,10 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import flowbiteReact from "flowbite-react/plugin/vite";
-//import { createRequire } from "module";
+import { createRequire } from "module";
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
 
 //const require = createRequire(import.meta.url);
 

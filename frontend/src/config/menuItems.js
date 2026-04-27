@@ -19,7 +19,7 @@ export const menuItems = [
         label: "Dashboard",
         icon: HiChartPie,
         to: "/dashboard",
-        roles: ["super admin", "admin", "teacher", "development officer"],
+        permission: "dashboard.main.view",
       },
 
       {
@@ -27,14 +27,14 @@ export const menuItems = [
         label: "Alerts",
         icon: HiShieldCheck,
         to: "/alert",
-        roles: ["super admin", "admin", "teacher", "development officer"],
+        permission: "alerts.overview.view",
       },
       {
         id: "institution",
         label: "Institution",
         icon: MdHomeWork,
         to: "/institution",
-        roles: ["super admin", "admin", "teacher", "development officer","development officer head"],
+        permission: "institution.list.view",
       },
     ],
   },
@@ -46,7 +46,7 @@ export const menuItems = [
         label: "Roles",
         icon: HiUser,
         to: "/roles",
-        roles: ["super admin"],
+        permission: "user.create",
       },
 
       {
@@ -54,21 +54,21 @@ export const menuItems = [
         label: "Main Table",
         icon: HiBuildingLibrary,
         to: "/maintable",
-        roles: ["super admin"],
+        permission: "user.create",
       },
       {
         id: "Users",
         label: "Users",
         icon: HiUserGroup,
         to: "/users",
-        roles: ["super admin", "development officer","development officer head"],
+        permission: "user.list.view",
       },
       {
         id: "DMSApprovedCader",
         label: "DMS Approved Cader",
         icon: HiUserGroup,
         to: "/dmsapprovedcader",
-        roles: ["super admin"],
+        permission: "cadre-dms-approved.index.view",
       },
     ],
   },
@@ -79,43 +79,48 @@ export const menuItems = [
         id: "offices",
         label: "Offices",
         icon: HiBuildingOffice,
-        roles: ["super admin", "development officer","development officer head"],
         children: [
           {
             id: "overview",
             label: "Overview",
             to: "/offices/overview",
-            roles: ["super admin", "development officer"],
+            anyPermissions: [
+              "office.moe.list.view",
+              "office.pmoe.list.view",
+              "office.peo.list.view",
+              "office.zeo.list.view",
+              "office.deo.list.view",
+            ],
           },
           {
             id: "ministry",
             label: "Ministry of Education",
             to: "/offices/moe",
-            roles: ["super admin", "development officer","development officer head"],
+            permission: "office.moe.list.view",
           },
           {
             id: "provincial",
             label: "Provincial Ministry",
             to: "/offices/pmoe",
-            roles: ["super admin", "development officer","development officer head"],
+            permission: "office.pmoe.list.view",
           },
           {
             id: "provincial_office",
             label: "Provincial Office",
             to: "/offices/peo",
-            roles: ["super admin", "development officer","development officer head"],
+            permission: "office.peo.list.view",
           },
           {
             id: "zonal",
             label: "Zonal Office",
             to: "/offices/zeo",
-            roles: ["super admin", "development officer","development officer head"],
+            permission: "office.zeo.list.view",
           },
           {
             id: "divisional",
             label: "Divisional Office",
             to: "/offices/deo",
-            roles: ["super admin", "development officer","development officer head"],
+            permission: "office.deo.list.view",
           },
         ],
       },
@@ -128,61 +133,60 @@ export const menuItems = [
         id: "employees",
         label: "Employees",
         icon: HiUserGroup,
-        roles: ["super admin", "development officer","development officer head"],
         children: [
           {
             id: "teacher",
             label: "Teachers",
             to: "/employees/teacher",
-            roles: ["development officer", "super admin","development officer head"],
+            permission: "teacher.list.view",
           },
           {
             id: "principal",
             label: "Principals",
             to: "/employees/principal",
-            roles: ["super admin"],
+            permission: "principal.list.view",
           },
           {
-            id: "zonalhead",
-            label: "Zonal Head",
-            to: "/employees/zonal-head",
-            roles: ["super admin"],
+            id: "eduDirectors",
+            label: "EduDirectors",
+            to: "/employees/edu-directors",
+            permission: "dos.list.view",
           },
           {
             id: "eduSecretaries",
             label: "EduSecretaries",
             to: "/employees/edu-secretaries",
-            roles: ["super admin"],
+            permission: "mso.list.view",
           },
           {
             id: "teacherEducators",
             label: "Teacher Educators",
             to: "/employees/teacher-educators",
-            roles: ["super admin"],
+            permission: "sltes.list.view",
           },
           {
             id: "teacherAdvisors",
             label: "Teacher Advisors",
             to: "/employees/teacher-advisors",
-            roles: ["super admin"],
+            permission: "sltas.list.view",
           },
           {
             id: "accountants",
             label: "Accountants",
             to: "/employees/accountants",
-            roles: ["super admin"],
+            permission: "slacs.list.view",
           },
           {
             id: "developmentOfficers",
             label: "Development Officers",
             to: "/employees/development-officers",
-            roles: ["super admin"],
+            permission: "dos.list.view",
           },
           {
             id: "managementAssistants",
             label: "Management Assistants",
             to: "/employees/management-assistants",
-            roles: ["super admin"],
+            permission: "mso.list.view",
           },
         ],
       },
@@ -197,14 +201,13 @@ export const menuItems = [
         label: "Inbox",
         icon: HiInbox,
         to: "/message",
-        roles: ["super admin", "admin", "teacher"],
       },
       {
         id: "admin",
         label: "Admin",
         icon: HiShieldCheck,
         to: "/admin",
-        roles: ["super admin"],
+        permission: "user.create",
       },
 
       {
@@ -212,8 +215,50 @@ export const menuItems = [
         label: "Time Table",
         icon: HiCalendar,
         to: "/timetable/weekly",
-        roles: ["super admin", "admin", "teacher"],
       },
     ],
   },
 ];
+
+const hasAccess = (item, canAccess) => {
+  if (Array.isArray(item?.anyPermissions) && item.anyPermissions.length > 0) {
+    return item.anyPermissions.some((permission) => canAccess(permission));
+  }
+
+  if (Array.isArray(item?.permissions) && item.permissions.length > 0) {
+    return item.permissions.every((permission) => canAccess(permission));
+  }
+
+  if (item?.permission) {
+    return canAccess(item.permission);
+  }
+
+  return true;
+};
+
+export const filterMenuItemsByPermissions = (sections, canAccess) =>
+  sections
+    .map((section) => ({
+      ...section,
+      items: section.items
+        .map((item) => {
+          const filteredChildren = item.children
+            ? item.children.filter((child) => hasAccess(child, canAccess))
+            : null;
+
+          if (filteredChildren && filteredChildren.length > 0) {
+            return {
+              ...item,
+              children: filteredChildren,
+            };
+          }
+
+          if (item.children) {
+            return hasAccess(item, canAccess) ? { ...item, children: [] } : null;
+          }
+
+          return hasAccess(item, canAccess) ? item : null;
+        })
+        .filter(Boolean),
+    }))
+    .filter((section) => section.items.length > 0);

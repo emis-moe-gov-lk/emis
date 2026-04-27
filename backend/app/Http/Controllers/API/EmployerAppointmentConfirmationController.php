@@ -304,7 +304,7 @@ class EmployerAppointmentConfirmationController extends Controller
     {
         try {
             $roles        = $this->resolvedRoles($request);
-            $allowedRoles = ['development officer', 'development officer head', 'super admin'];
+            $allowedRoles = ['development officer', 'development officer head', 'zonal deo', 'zonal deo head', 'super admin'];
             if (! $this->hasAnyRole($roles, $allowedRoles)) {
                 return response()->json([
                     'status'  => 'error',
@@ -378,7 +378,7 @@ public function confirm(Request $request, string $people_id)
 {
     try {
         $roles        = $this->resolvedRoles($request);
-        $allowedRoles = ['development officer', 'development officer head', 'super admin'];
+        $allowedRoles = ['development officer', 'development officer head', 'zonal deo', 'zonal deo head', 'zonal director', 'super admin'];
 
         if (! $this->hasAnyRole($roles, $allowedRoles)) {
             return response()->json([
@@ -416,7 +416,7 @@ public function confirm(Request $request, string $people_id)
             if (! $this->teacherBelongsToUserZonalArea($request, $currentAppointment)) {
                 return response()->json([
                     'status'  => 'error',
-                    'message' => 'Development officers can only confirm teacher profiles within their relevant zonal area',
+                    'message' => 'Authorized officers can only confirm teacher profiles within their relevant zonal area',
                 ], 403);
             }
         }
@@ -455,7 +455,7 @@ public function confirm(Request $request, string $people_id)
 {
     try {
         $roles        = $this->resolvedRoles($request);
-        $allowedRoles = ['development officer', 'development officer head', 'super admin'];
+        $allowedRoles = ['development officer', 'development officer head', 'zonal deo', 'zonal deo head', 'super admin'];
 
         // 🔒 Role check
         if (! $this->hasAnyRole($roles, $allowedRoles)) {
@@ -573,7 +573,7 @@ public function updateRejectedStatus(Request $request, string $people_id)
 {
     try {
         $roles        = $this->resolvedRoles($request);
-        $allowedRoles = ['development officer', 'development officer head', 'super admin'];
+        $allowedRoles = ['development officer', 'development officer head', 'zonal deo', 'zonal deo head', 'super admin'];
 
         if (! $this->hasAnyRole($roles, $allowedRoles)) {
             return response()->json([

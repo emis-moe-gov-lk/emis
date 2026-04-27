@@ -3,7 +3,8 @@ import { NavLink, useLocation } from "react-router-dom";
 import { Sidebar } from "flowbite-react";
 import { HiChevronDown } from "react-icons/hi";
 
-import { menuItems } from "../../config/menuItems";
+import { filterMenuItemsByPermissions, menuItems } from "../../config/menuItems";
+import { useAuthUser } from "../../context/useAuthUser";
 import LogoutButton2 from "../auth/LogoutButton2";
 import BrandIcon from "./BrandIcon";
 
@@ -16,6 +17,7 @@ const SideBar = ({
 }) => {
   const location = useLocation();
   const [openMenu, setOpenMenu] = useState(null);
+  const { hasPermission } = useAuthUser();
 
   const isParentActive = (children) =>
     children?.some((child) => location.pathname.startsWith(child.to));
@@ -24,48 +26,7 @@ const SideBar = ({
     setOpenMenu(openMenu === id ? null : id);
   };
 
-  const roles =
-    JSON.parse(localStorage.getItem("roles"))?.map((r) =>
-      r.toLowerCase().trim(),
-    ) || [];
-
-  const filteredMenu = menuItems
-    .map((section) => ({
-      ...section,
-      items: section.items
-        .map((item) => {
-          let filteredChildren = item.children;
-
-          if (filteredChildren) {
-            filteredChildren = filteredChildren.filter(
-              (child) =>
-                child.roles && child.roles.some((role) => roles.includes(role)),
-            );
-          }
-
-          const hasAccess =
-            item.roles && item.roles.some((role) => roles.includes(role));
-
-          if (filteredChildren && filteredChildren.length > 0) {
-            return {
-              ...item,
-              children: filteredChildren,
-            };
-          }
-
-          if (hasAccess) {
-            return {
-              ...item,
-              children: filteredChildren,
-            };
-          }
-
-          return null;
-        })
-        .filter(Boolean),
-    }))
-    .filter((section) => section.items.length > 0);
- console.log("Filtered Menu:", filteredMenu);
+  const filteredMenu = filterMenuItemsByPermissions(menuItems, hasPermission);
   return (
     <div
       className={`

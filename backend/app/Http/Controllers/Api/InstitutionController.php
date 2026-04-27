@@ -39,7 +39,10 @@ class InstitutionController extends Controller
         ];
 
         $isAdmin = in_array('super admin', $roles) || in_array('admin', $roles);
-        $isDeo   = in_array('development officer', $roles);
+        $isDeo = in_array('development officer', $roles)
+            || in_array('zonal deo', $roles)
+            || in_array('development officer head', $roles)
+            || in_array('zonal deo head', $roles);
 
         // DEO officer: return all institutions under their DEO division
         if ($isDeo) {

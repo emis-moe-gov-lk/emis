@@ -15,11 +15,12 @@ import {
   HiOutlineBell,
 } from "react-icons/hi";
 import TimetableWidget from "../components/TimetableWidget.jsx";
+import { useAuthUser } from "@/context/useAuthUser";
 
 export default function Dashboard() {
   const { state, getDecodedIDToken } = useAuthContext();
+  const { user, roles } = useAuthUser();
   const [userName, setUserName] = useState("User");
-  const [userRoles, setUserRoles] = useState([]);
   const [currentDate, setCurrentDate] = useState("");
   const ability = useContext(AbilityContext);
 
@@ -35,21 +36,12 @@ export default function Dashboard() {
 
     if (state.isAuthenticated) {
       getDecodedIDToken().then((token) => {
-        // Use name, family_name, or username
         setUserName(
-          token?.name || token?.family_name || token?.email || "User",
+          user?.name || token?.name || token?.family_name || token?.email || "User",
         );
-        console.log(token);
-
-        // Robust role extraction matching AbilityProvider.jsx
-        const roles = token?.roles || token?.groups || token?.role || [];
-        const rolesArray = Array.isArray(roles) ? roles : [roles];
-
-        // Filter out system roles if needed, like 'everyone'
-        setUserRoles(rolesArray.filter((r) => r !== "everyone"));
       });
     }
-  }, [state.isAuthenticated, getDecodedIDToken]);
+  }, [getDecodedIDToken, state.isAuthenticated, user?.name]);
 
   return (
     <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-6">
@@ -74,7 +66,7 @@ export default function Dashboard() {
             </p>
 
             <div className="flex flex-wrap gap-2 mt-2">
-              {userRoles.map((role, idx) => (
+              {roles.map((role, idx) => (
                 <Badge
                   key={idx}
                   color="warning"
