@@ -30,6 +30,31 @@ use App\Http\Controllers\Controller;
 
 class DeoOfficerController extends Controller
 {
+    private function resolveDsOffice(?string $value): ?DivisionalSecretariatOffice
+    {
+        $normalized = trim((string) $value);
+
+        if ($normalized === '') {
+            return null;
+        }
+
+        if (ctype_digit($normalized)) {
+            return DivisionalSecretariatOffice::find((int) $normalized);
+        }
+
+        return DivisionalSecretariatOffice::where('dso_id', $normalized)->first();
+    }
+
+    private function resolveDsOfficeDsoId(?string $value): ?string
+    {
+        return $this->resolveDsOffice($value)?->dso_id;
+    }
+
+    private function resolveDsOfficePrimaryKey(?string $value): ?int
+    {
+        return $this->resolveDsOffice($value)?->id;
+    }
+
     // ==========================================
     // FORM DATA
     // ==========================================
@@ -37,7 +62,7 @@ class DeoOfficerController extends Controller
     public function formData(Request $request)
     {
         $districtId = $request->query('district');
-        $dsOfficeId = $request->query('ds_office');
+        $dsOfficeDsoId = $this->resolveDsOfficeDsoId($request->query('ds_office'));
         $serviceId  = $request->query('service');
 
         return response()->json([
@@ -55,8 +80,8 @@ class DeoOfficerController extends Controller
                 ? DivisionalSecretariatOffice::where('district_id', $districtId)->active()->get()
                 : [],
 
-            'gnDivisions' => $dsOfficeId
-                ? GnDivision::where('dso_id', $dsOfficeId)->active()->get()
+            'gnDivisions' => $dsOfficeDsoId
+                ? GnDivision::where('dso_id', $dsOfficeDsoId)->active()->get()
                 : [],
 
             'services'     => Service::active()->get(),
@@ -82,7 +107,11 @@ class DeoOfficerController extends Controller
             $deoWpId = $request->get('deo_wp_id');
             $nic     = trim($request->get('nic'));
 
-            $deoOfficerPeopleIds = User::role('development officer')->pluck('people_id');
+            $deoOfficerPeopleIds = User::query()
+                ->whereHas('roles', function ($query) {
+                    $query->whereIn('name', ['development officer', 'Zonal DEO']);
+                })
+                ->pluck('people_id');
 
             
             $query = People::query()
@@ -146,6 +175,7 @@ class DeoOfficerController extends Controller
                 'civilStatus',
                 'bloodGroup',
                 'district',
+                'dsOffice',
                 'gnDivision.divisionalSecretariatOffice',
                 'appointment',
                 'currentAppointment',
@@ -253,7 +283,7 @@ class DeoOfficerController extends Controller
                     'health_problem'     => $validated['healthConditionDescription'],
                     'district_id'        => $validated['districtId'],
                     'gn_division_id'     => $validated['gnDivisionId'],
-                    'ds_office_id'       => $validated['dsOfficeId'],
+                    'ds_office_id'       => $this->resolveDsOfficePrimaryKey($validated['dsOfficeId']),
                     'email'              => strtolower($validated['email']),
                     'phone'              => $validated['contact'],
                     'address_line1'      => $validated['addressLine1'],
@@ -324,7 +354,7 @@ class DeoOfficerController extends Controller
                 'password' => Hash::make('password@123'),
             ]);
 
-            $user->assignRole('development officer');
+            $user->assignRole('Zonal DEO');
 
             DB::commit();
 
@@ -422,7 +452,9 @@ class DeoOfficerController extends Controller
                 'health_problem'  => $validated['healthConditionDescription'] ?? null,
                 'district_id'     => $validated['districtId'] ?? null,
                 'gn_division_id'  => $validated['gnDivisionId'] ?? null,
-                'ds_office_id'    => $validated['dsOfficeId'] ?? null,
+                'ds_office_id'    => isset($validated['dsOfficeId'])
+                    ? $this->resolveDsOfficePrimaryKey($validated['dsOfficeId'])
+                    : null,
                 'email'           => isset($validated['email']) ? strtolower($validated['email']) : null,
                 'phone'           => $validated['contact'] ?? null,
                 'address_line1'   => $validated['addressLine1'] ?? null,
