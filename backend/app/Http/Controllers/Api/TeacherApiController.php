@@ -45,6 +45,31 @@ use Illuminate\Validation\ValidationException;
 
 class TeacherApiController extends Controller
 {
+    private function resolveDsOffice(?string $value): ?DivisionalSecretariatOffice
+    {
+        $normalized = trim((string) $value);
+
+        if ($normalized === '') {
+            return null;
+        }
+
+        if (ctype_digit($normalized)) {
+            return DivisionalSecretariatOffice::find((int) $normalized);
+        }
+
+        return DivisionalSecretariatOffice::where('dso_id', $normalized)->first();
+    }
+
+    private function resolveDsOfficeDsoId(?string $value): ?string
+    {
+        return $this->resolveDsOffice($value)?->dso_id;
+    }
+
+    private function resolveDsOfficePrimaryKey(?string $value): ?int
+    {
+        return $this->resolveDsOffice($value)?->id;
+    }
+
     private function resolvedRoles(Request $request): array
     {
         $jwtRoles = (array) $request->attributes->get('jwt_roles', []);
@@ -154,8 +179,8 @@ class TeacherApiController extends Controller
 
     private function buildActionVisibility(array $roles, string $profileStatus): array
     {
-        $isDoHead = $this->hasAnyRole($roles, ['development officer head']);
-        $isDo = $this->hasAnyRole($roles, ['development officer']);
+        $isDoHead = $this->hasAnyRole($roles, ['development officer head', 'zonal deo head']);
+        $isDo = $this->hasAnyRole($roles, ['development officer', 'zonal deo']);
 
         $actions = [
             'show_update_button' => true,
@@ -218,7 +243,7 @@ class TeacherApiController extends Controller
             $query = clone $baseQuery;
 
             // Scope registration forms to the authenticated officer's zonal office.
-            if ($this->hasAnyRole($roles, ['development officer', 'development officer head'])) {
+            if ($this->hasAnyRole($roles, ['development officer', 'development officer head', 'zonal deo', 'zonal deo head'])) {
                 $zonalWorkplaceId = $this->resolveUserZonalWorkplaceId($request);
 
                 if (! $zonalWorkplaceId) {
@@ -376,7 +401,7 @@ class TeacherApiController extends Controller
                     'health_problem' => $validated['healthConditionDescription'],
                     'district_id' => $validated['districtId'],
                     'gn_division_id' => $validated['gnDivisionId'],
-                    'ds_office_id' => $validated['dsOfficeId'],
+                    'ds_office_id' => $this->resolveDsOfficePrimaryKey($validated['dsOfficeId']),
                     'email' => strtolower($validated['email']),
                     'phone' => $validated['contact'],
                     'address_line1' => $validated['addressLine1'],
@@ -521,7 +546,7 @@ class TeacherApiController extends Controller
         $roles = $this->resolvedRoles($request);
         $zonalWorkplaceId = null;
 
-        if ($this->hasAnyRole($roles, ['development officer', 'development officer head'])) {
+        if ($this->hasAnyRole($roles, ['development officer', 'development officer head', 'zonal deo', 'zonal deo head'])) {
             $zonalWorkplaceId = $this->resolveUserZonalWorkplaceId($request);
 
             if (! $zonalWorkplaceId) {
@@ -541,6 +566,7 @@ class TeacherApiController extends Controller
             'civilStatus',
             'bloodGroup',
             'district',
+            'dsOffice',
             'gnDivision',
             'gnDivision.divisionalSecretariatOffice',
 
@@ -607,7 +633,7 @@ class TeacherApiController extends Controller
         $profileStatus = $this->resolveProfileStatus((int) ($teacher?->currentAppointment?->appointment?->is_verified ?? 0));
         $teacherData['profile_status'] = $profileStatus;
         $teacherData['ui_actions'] = $this->buildActionVisibility($roles, $profileStatus);
-        $dsOfficeId = $teacher?->ds_office_id;
+        $dsOfficeDsoId = $teacher?->dsOffice?->dso_id ?? $this->resolveDsOfficeDsoId((string) $teacher?->ds_office_id);
 
         return response()->json([
             'status' => 'success',
@@ -617,8 +643,8 @@ class TeacherApiController extends Controller
                 ->active()
                 ->get()
                 : [],
-            'gnDivisions' => $dsOfficeId
-                ? GnDivision::where('dso_id', $dsOfficeId)
+            'gnDivisions' => $dsOfficeDsoId
+                ? GnDivision::where('dso_id', $dsOfficeDsoId)
                 ->active()
                 ->get()
                 : [],
@@ -631,7 +657,7 @@ class TeacherApiController extends Controller
             $roles = $this->resolvedRoles($request);
             $zonalWorkplaceId = null;
 
-            if ($this->hasAnyRole($roles, ['development officer', 'development officer head'])) {
+            if ($this->hasAnyRole($roles, ['development officer', 'development officer head', 'zonal deo', 'zonal deo head'])) {
                 $zonalWorkplaceId = $this->resolveUserZonalWorkplaceId($request);
 
                 if (! $zonalWorkplaceId) {
@@ -666,6 +692,7 @@ class TeacherApiController extends Controller
                     'civilStatus',
                     'bloodGroup',
                     'district',
+                    'dsOffice',
                     'gnDivision.divisionalSecretariatOffice',
                     'currentAppointment.workplace.institution',
                     'appointment',
@@ -717,7 +744,7 @@ class TeacherApiController extends Controller
     public function getPersonalFromData(Request $request)
     {
         $districtId = $request->query('district');
-        $dsOfficeId = $request->query('ds_office');
+        $dsOfficeDsoId = $this->resolveDsOfficeDsoId($request->query('ds_office'));
 
         return response()->json([
             'status' => 'success',
@@ -737,8 +764,8 @@ class TeacherApiController extends Controller
                 ->get()
                 : [],
 
-            'gnDivisions' => $dsOfficeId
-                ? GnDivision::where('dso_id', $dsOfficeId)
+            'gnDivisions' => $dsOfficeDsoId
+                ? GnDivision::where('dso_id', $dsOfficeDsoId)
                 ->active()
                 ->get()
                 : [],

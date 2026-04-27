@@ -4,10 +4,10 @@ import { useAuthContext } from "@asgardeo/auth-react";
 import { useAuthUser } from "../../context/useAuthUser.js";
 
 export default function OidcCallback() {
-  const { state, getAccessToken } = useAuthContext();
+  const { state } = useAuthContext();
   const navigate = useNavigate();
   const [hasRedirected, setHasRedirected] = useState(false);
-  const { setUser } = useAuthUser();
+  const { hydrateIdentity } = useAuthUser();
 
   useEffect(() => {
     if (state.isLoading) return;
@@ -16,39 +16,8 @@ export default function OidcCallback() {
     if (state.isAuthenticated) {
       const loadIdentity = async () => {
         try {
-          const token = await getAccessToken();
-
-          const response = await fetch(
-            `${import.meta.env.VITE_API_BASE_URL}/identity`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            },
-          );
-
-          const data = await response.json();
-
-          console.log("Identity Data:", data.data);
-
-          // store if needed
-          localStorage.setItem("peopleId", data.data.people_id);
-          localStorage.setItem("email", data.data.email);
-          localStorage.setItem("name", data.data.name);
-          localStorage.setItem(
-            "username",
-            data.data.username ||
-              data.data.preferred_username ||
-              data.data.user_name ||
-              "",
-          );
-          localStorage.setItem("gender", data.data.gender);
-          localStorage.setItem("roles", JSON.stringify(data.data.roles));
-          localStorage.setItem("identityData", JSON.stringify(data.data));
-
-          setUser(data);
+          await hydrateIdentity();
           setHasRedirected(true);
-
           navigate("/dashboard", { replace: true });
         } catch (error) {
           console.error("Identity fetch failed", error);
@@ -58,7 +27,7 @@ export default function OidcCallback() {
 
       loadIdentity();
     }
-  }, [state.isLoading, state.isAuthenticated]);
+  }, [hasRedirected, hydrateIdentity, navigate, state.isAuthenticated, state.isLoading]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">

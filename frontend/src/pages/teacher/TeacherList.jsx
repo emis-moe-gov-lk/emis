@@ -20,6 +20,7 @@ import api from "@/api/axios";
 import { printTeacherId } from "@/api/teacherService";
 import { NavLink } from "react-router-dom";
 import { TeacherFormContext } from "@/context/TeacherFormContext";
+import { useAuthUser } from "@/context/useAuthUser";
 
 /**
  * Teacher List Page
@@ -30,6 +31,7 @@ import { TeacherFormContext } from "@/context/TeacherFormContext";
 const TeacherList = () => {
   const navigate = useNavigate();
   const { dispatch } = useContext(TeacherFormContext);
+  const { identity, roles } = useAuthUser();
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState(null);
   const [teachers, setTeachers] = useState([]);
@@ -39,25 +41,6 @@ const TeacherList = () => {
   const [perPage, setPerPage] = useState(10);
   const [total, setTotal] = useState(0);
   const [openMenuId, setOpenMenuId] = useState(null);
-
-  const getStoredRoles = () => {
-    try {
-      const storedRoles = JSON.parse(localStorage.getItem("roles"));
-      return Array.isArray(storedRoles)
-        ? storedRoles.map((role) => String(role).trim().toLowerCase())
-        : [];
-    } catch {
-      return [];
-    }
-  };
-
-  const getIdentityData = () => {
-    try {
-      return JSON.parse(localStorage.getItem("identityData")) || null;
-    } catch {
-      return null;
-    }
-  };
 
   const normalizeValue = (value) => String(value ?? "").trim().toLowerCase();
 
@@ -225,18 +208,22 @@ const TeacherList = () => {
   };
 
   const filteredTeachers = useMemo(() => {
-    const roles = getStoredRoles();
+    const normalizedRoles = Array.isArray(roles)
+      ? roles.map((role) => String(role).trim().toLowerCase())
+      : [];
     const needsZoneFilter =
-      roles.includes("development officer") ||
-      roles.includes("development officer head");
+      normalizedRoles.includes("development officer") ||
+      normalizedRoles.includes("development officer head") ||
+      normalizedRoles.includes("zonal deo") ||
+      normalizedRoles.includes("zonal deo head");
 
     if (!needsZoneFilter) return teachers;
 
-    const officerZoneValues = getOfficerZoneValues(getIdentityData());
+    const officerZoneValues = getOfficerZoneValues(identity?.raw ?? identity);
     return teachers.filter((teacher) =>
       canViewTeacherByZone(teacher, officerZoneValues),
     );
-  }, [teachers]);
+  }, [identity, roles, teachers]);
 
   return (
     <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-6">

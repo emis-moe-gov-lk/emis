@@ -1,4 +1,5 @@
 import api from "./axios";
+import { getPermissionCatalog } from "./auth";
 
 const toNonEmptyString = (value) => (typeof value === "string" ? value.trim() : "");
 
@@ -87,6 +88,8 @@ export const getRoles = async () => {
 
   return roles.map(toRoleModel);
 };
+
+export const getPermissions = async () => getPermissionCatalog();
 
 export const getRolePermissions = async (roleId) => {
   const response = await api.get(`/permissions/${roleId}`);

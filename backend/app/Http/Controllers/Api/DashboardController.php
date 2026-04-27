@@ -67,7 +67,12 @@ class DashboardController extends Controller
 
         $workplace = Workplaces::where('workplace_id', $currentAppointment->workplace_id)->first();
 
-
+        if (! $workplace) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Workplace not found for current appointment',
+            ], 422);
+        }
 
         $base = [
             'people_id'    => $people_id,

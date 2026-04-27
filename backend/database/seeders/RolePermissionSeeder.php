@@ -800,5 +800,26 @@ class RolePermissionSeeder extends Seeder
             'resource.allocation.create',
             'resource.allocation.view',
         ]);
+
+        // Custom seeded roles used by the static user/appointment dataset.
+        foreach ([
+            'SSA',
+            'MOE Administrator',
+            'PSC Officer',
+            'Provincial Director',
+            'Provincial Deputy Director',
+            'Provincial Subject Head',
+            'Provincial Clerk (DEO)',
+            'Zonal Director',
+            'Zonal Deputy Director',
+            'Zonal DEO HEAD',
+            'Zonal DEO',
+            'Divisional Head',
+            'Divisional DEO',
+            'Vice Principal / Dep Principal',
+            'School DEO',
+        ] as $roleName) {
+            Role::firstOrCreate(['name' => $roleName])->syncPermissions(Permission::all());
+        }
     }
 }
