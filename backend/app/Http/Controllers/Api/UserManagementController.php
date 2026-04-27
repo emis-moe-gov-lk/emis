@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 use App\Helpers\NicHelper;
 use App\Http\Controllers\Controller;
 use App\Mail\ResetPasswordMail;
+use App\Services\TeacherToPrincipalPromotionService;
 use App\Models\User;
 use App\Models\Workplaces;
 use Illuminate\Http\Request;
@@ -253,7 +254,7 @@ class UserManagementController extends Controller
     // -------------------------------------------------------
     // PATCH /users/{id}
     // -------------------------------------------------------
-    public function update(Request $request, string $id)
+    public function update(Request $request, string $id, TeacherToPrincipalPromotionService $promotionService)
     {
         if (! $this->isSuperAdmin($request)) {
             return response()->json(['status' => 'error', 'message' => 'Forbidden'], 403);
@@ -272,7 +273,11 @@ class UserManagementController extends Controller
                 'nic'     => ['sometimes', 'string', 'regex:/^(\d{9}[vVxX]|\d{12})$/'],
                 'contact' => ['sometimes', 'digits:10', Rule::unique('users', 'contact')->ignore($user->id)],
                 'roles'   => 'sometimes|array|min:1',
+                'roles.*' => 'string|exists:roles,name',
+                'reason'  => 'sometimes|nullable|string|max:1000',
             ]);
+
+            $previousRoles = $user->roles()->pluck('name')->all();
 
             // Check NIC not taken by another user
             if (isset($validated['nic'])) {
@@ -297,6 +302,29 @@ class UserManagementController extends Controller
             }
 
             if (isset($validated['roles'])) {
+                $isTeacherToPrincipal = $promotionService->isTeacherToPrincipalTransition(
+                    $previousRoles,
+                    $validated['roles']
+                );
+
+                if ($isTeacherToPrincipal) {
+                    $changedByPeopleId = $request->attributes->get('jwt_people_id') ?? auth()->user()?->people_id;
+                    $promotionResult = $promotionService->promote(
+                        $user,
+                        $validated['roles'],
+                        $changedByPeopleId,
+                        $validated['reason'] ?? null
+                    );
+
+                    if ($promotionResult['promoted'] ?? false) {
+                        return response()->json([
+                            'status'  => 'success',
+                            'message' => 'User updated and promoted to principal successfully.',
+                            'data'    => $user->fresh()->load('roles'),
+                        ]);
+                    }
+                }
+
                 $user->syncRoles($validated['roles']);
             }
 
@@ -305,6 +333,11 @@ class UserManagementController extends Controller
                 'message' => 'User updated successfully.',
                 'data'    => $user->load('roles'),
             ]);
+        } catch (\RuntimeException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], 422);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json(['status' => 'validation_error', 'errors' => $e->errors()], 422);
         } catch (\Throwable $e) {

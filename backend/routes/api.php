@@ -16,6 +16,7 @@ use App\Http\Controllers\API\ServiceRankController;
 use App\Http\Controllers\API\SubjectListController;
 use App\Http\Controllers\API\AuthIdentityController;
 use App\Http\Controllers\API\TeacherApiController;
+use App\Http\Controllers\API\PrincipalApiController;
 use App\Http\Controllers\API\VersionController;
 use App\Http\Controllers\API\ChangeLogController;
 use App\Http\Controllers\API\DashboardController;
@@ -121,12 +122,18 @@ Route::prefix('')->group(function () {
         Route::post('/teachers/check-contact', 'checkContact');                  // POST check email/phone
     });
 
+    Route::controller(PrincipalApiController::class)->middleware('auth:jwt')->group(function () {
+        Route::get('/principals-list', 'principalList');  // GET all principals
+        Route::get('/principal/{people_id}', 'getPrincipal');
+    });
+
     Route::controller(EmployerAppointmentConfirmationController::class)->middleware('auth:jwt')->group(function () {
         Route::get('/employer-appointment-reject-comments', 'rejectComments');
         Route::get('/employer-appointment-reject-comments/profile/{people_id}', 'rejectCommentsByProfile');
         Route::patch('/employer-appointment-reject-comments/{id}', 'updateRejectComment');
         Route::patch('/teachers/{people_id}/verify', 'verify');
         Route::patch('/teachers/{people_id}/confirm', 'confirm');
+        Route::patch('/teachers/{people_id}/promote', 'promote');
         Route::patch('/teachers/{people_id}/reject', 'reject');
         Route::patch('/teachers/{people_id}/update', 'updateRejectedStatus');
         Route::patch('/teachers/{people_id}/rejected-status', 'updateRejectedStatus');
