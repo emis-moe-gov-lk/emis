@@ -10,9 +10,11 @@ import { useAuthContext } from "@asgardeo/auth-react";
 import Spinner from "../components/UiComponents/Spinner";
 import InstitutionCard from "../components/Dashbord/InstitutionCard";
 import FullCalendar from "./timetable/FullCalendar";
+import { useAuthUser } from "@/context/useAuthUser";
 
 const UpdateDashboard = () => {
   const { getAccessToken } = useAuthContext();
+  const { peopleId, isLoading: isAuthLoading } = useAuthUser();
   const [userData, setUserData] = useState(null);
   const [search, setSearch] = useState("");
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -21,8 +23,11 @@ const UpdateDashboard = () => {
 
   useEffect(() => {
     const fetchDashboard = async () => {
+      if (!peopleId) {
+        return;
+      }
+
       const token = await getAccessToken();
-      const peopleId = localStorage.getItem("peopleId");
       try {
         const res = await fetch(
           `${import.meta.env.VITE_API_BASE_URL}/dashboard/${peopleId}`,
@@ -46,10 +51,10 @@ const UpdateDashboard = () => {
     };
 
     fetchDashboard();
-  }, []);
+  }, [getAccessToken, peopleId]);
   // const permissions = user?.permissions;
 
-  if (!userData) {
+  if (isAuthLoading || !peopleId || !userData) {
     return <Spinner />;
   }
   const dynamicStats = getStats(userData?.summary);

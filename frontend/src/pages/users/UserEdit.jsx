@@ -3,6 +3,7 @@ import { Button, Checkbox, Label, Spinner, TextInput } from "flowbite-react";
 import { HiArrowLeft, HiEye, HiEyeOff, HiPencilAlt } from "react-icons/hi";
 import { toast } from "react-hot-toast";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useAuthUser } from "@/context/useAuthUser";
 import { getRoles } from "@/api/roleService";
 import { getUserById, parseUserApiError, updateUser } from "@/api/userService";
 
@@ -18,6 +19,7 @@ const initialForm = {
 
 const UserEdit = () => {
   const navigate = useNavigate();
+  const { hydrateIdentity, user: authUser } = useAuthUser();
   const location = useLocation();
   const { id } = useParams();
 
@@ -187,6 +189,9 @@ const UserEdit = () => {
     setSubmitting(true);
     try {
       await updateUser(userId, form);
+      if (String(authUser?.id ?? "") === String(userId)) {
+        await hydrateIdentity().catch(() => {});
+      }
       toast.success("User updated successfully.");
       navigate("/users");
     } catch (error) {
