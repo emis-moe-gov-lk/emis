@@ -678,10 +678,14 @@ class RolePermissionSeeder extends Seeder
 
         // Create Super Admin role and give all permissions
         $superAdminRole = Role::firstOrCreate(['name' => 'super admin']);
+        $superAdminRole->level = 1;
+        $superAdminRole->save();
         $superAdminRole->syncPermissions(Permission::all());
 
         // Create Teacher role and assign specific permissions
         $teacherRole = Role::firstOrCreate(['name' => 'teacher']);
+        $teacherRole->level = 9;
+        $teacherRole->save();
         $teacherRole->syncPermissions([
             'dashboard.main.view',
             'student.list.view',
@@ -697,6 +701,8 @@ class RolePermissionSeeder extends Seeder
 
         // Create principal role and assign specific permissions
         $principalRole = Role::firstOrCreate(['name' => 'principal']);
+        $principalRole->level = 7;
+        $principalRole->save();
         $principalRole->syncPermissions([
             'dashboard.main.view',
             'student.list.view',
@@ -712,6 +718,8 @@ class RolePermissionSeeder extends Seeder
 
         // Create Develoment Officer role and assign specific permissions
         $developmentOfficerRole = Role::firstOrCreate(['name' => 'development officer']);
+        $developmentOfficerRole->level = 2;
+        $developmentOfficerRole->save();
         $developmentOfficerRole->syncPermissions([
             'dashboard.main.view',
             'student.list.view',
@@ -727,6 +735,8 @@ class RolePermissionSeeder extends Seeder
 
         // Create Management Service Officer role and assign specific permissions
         $managementAssistantRole = Role::firstOrCreate(['name' => 'management assistant']);
+        $managementAssistantRole->level = 3;
+        $managementAssistantRole->save();
         $managementAssistantRole->syncPermissions([
             'dashboard.main.view',
             'student.list.view',
@@ -742,6 +752,8 @@ class RolePermissionSeeder extends Seeder
 
         // Create Sri Lanka Education Administrative Service Officer role and assign specific permissions
         $managementAssistantRole = Role::firstOrCreate(['name' => 'sleas officer']);
+        $managementAssistantRole->level = 4;
+        $managementAssistantRole->save();
         $managementAssistantRole->syncPermissions([
             'dashboard.main.view',
             'student.list.view',
@@ -757,6 +769,8 @@ class RolePermissionSeeder extends Seeder
 
         // Create Sri Lanka Teacher Advisor Service Officer role and assign specific permissions
         $managementAssistantRole = Role::firstOrCreate(['name' => 'Teacher Advisor']);
+        $managementAssistantRole->level = 5;
+        $managementAssistantRole->save();
         $managementAssistantRole->syncPermissions([
             'dashboard.main.view',
             'student.list.view',
@@ -773,6 +787,8 @@ class RolePermissionSeeder extends Seeder
 
         // Create Sri Lanka Administrative Service (SLAS) Officer role and assign specific permissions
         $slasRole = Role::firstOrCreate(['name' => 'Administrative Service']);
+        $slasRole->level = 6;
+        $slasRole->save();
         $slasRole->syncPermissions([
             'dashboard.main.view',
             'student.list.view',
@@ -788,6 +804,8 @@ class RolePermissionSeeder extends Seeder
 
         // Create Sri Lanka Accountancy Service (SLAcS) Officer role and assign specific permissions
         $slacsRole = Role::firstOrCreate(['name' => 'Accountancy Service']);
+        $slacsRole->level = 8;
+        $slacsRole->save();
         $slacsRole->syncPermissions([
             'dashboard.main.view',
             'student.list.view',

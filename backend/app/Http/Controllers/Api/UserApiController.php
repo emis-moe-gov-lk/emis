@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Log;
+use Spatie\Permission\Models\Role;
 
 class UserApiController extends Controller
 {
@@ -22,11 +23,32 @@ class UserApiController extends Controller
                 ], 401);
             }
 
-            // Keep profile bootstrap tied to the authenticated user.
-            $people_id = $authPeopleId;
-
             $roles = $request->attributes->get('jwt_roles', []);
             $role  = $roles[0] ?? null;
+
+            // If requesting someone else's profile, verify the token user
+            // has a higher hierarchy level than the target user.
+            if ($authPeopleId !== $people_id) {
+                $tokenUserRole = $role
+                    ? Role::where('name', $role)->first()
+                    : null;
+
+                $targetUser = User::where('people_id', $people_id)->first();
+                $targetRole = $targetUser
+                    ? $targetUser->roles()->first()
+                    : null;
+
+                $tokenLevel  = $tokenUserRole?->level;
+                $targetLevel = $targetRole?->level;
+
+                // Deny if hierarchy levels are missing or token user is not higher
+                if ($tokenLevel === null || $targetLevel === null || $tokenLevel >= $targetLevel) {
+                    return response()->json([
+                        'status'  => 'error',
+                        'message' => 'Forbidden',
+                    ], 403);
+                }
+            }
 
             // Base relations common to all user types
             $baseRelations = [
