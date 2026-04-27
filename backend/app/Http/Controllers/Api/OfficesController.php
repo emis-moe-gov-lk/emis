@@ -64,7 +64,12 @@ class OfficesController extends Controller
     {
         $roles = $request->attributes->get('jwt_roles', []);
 
-        if (in_array('development officer', $roles)) {
+        if (
+            in_array('development officer', $roles) ||
+            in_array('zonal deo', $roles) ||
+            in_array('development officer head', $roles) ||
+            in_array('zonal deo head', $roles)
+        ) {
             $zeoWpId = $this->deoZoneWpId($request);
 
             $query = ZonalEducationOffice::active()->where('workplace_id', $zeoWpId);
@@ -91,7 +96,12 @@ class OfficesController extends Controller
     {
         $roles = $request->attributes->get('jwt_roles', []);
 
-        if (in_array('development officer', $roles)) {
+        if (
+            in_array('development officer', $roles) ||
+            in_array('zonal deo', $roles) ||
+            in_array('development officer head', $roles) ||
+            in_array('zonal deo head', $roles)
+        ) {
             $zeoWpId = $this->deoZoneWpId($request);
 
             $query = DivisionalEducationOffice::active()->where('zeo_wp_id', $zeoWpId);

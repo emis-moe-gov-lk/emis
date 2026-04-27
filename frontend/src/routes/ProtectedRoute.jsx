@@ -1,36 +1,13 @@
-import { useState, useEffect } from "react";
 import { useAuthContext } from "@asgardeo/auth-react";
 import { Navigate, Outlet } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuthUser } from "@/context/useAuthUser";
 
-export default function ProtectedRoute({ roles }) {
-  const { state, getDecodedIDToken } = useAuthContext();
-  const [userRole, setUserRole] = useState(null);
-  const [loading, setLoading] = useState(true);
+export default function ProtectedRoute({ roles, permissions, anyPermissions, children }) {
+  const { state } = useAuthContext();
+  const { hasPermission, hasRole, isLoading } = useAuthUser();
 
-  useEffect(() => {
-    if (state.isAuthenticated) {
-      getDecodedIDToken()
-        .then((decodedToken) => {
-          // Robust role extraction matching AbilityProvider.jsx
-          const roles =
-            decodedToken?.roles ||
-            decodedToken?.groups ||
-            decodedToken?.role ||
-            [];
-          setUserRole(Array.isArray(roles) ? roles : [roles]);
-          setLoading(false);
-        })
-        .catch((error) => {
-          console.error("Error fetching user role:", error);
-          setLoading(false);
-        });
-    } else {
-      setLoading(false);
-    }
-  }, [state.isAuthenticated, getDecodedIDToken]);
-
-  if (state.isLoading || loading) {
+  if (state.isLoading || isLoading) {
     return (
       <AnimatePresence>
         <motion.div
@@ -78,10 +55,25 @@ export default function ProtectedRoute({ roles }) {
     return <Navigate to="/login" replace />;
   }
 
-  if (roles && !roles.some((role) => userRole?.includes(role))) {
+  if (Array.isArray(roles) && roles.length > 0 && !roles.some((role) => hasRole(role))) {
     return <Navigate to="/not-authorized" replace />;
   }
 
-  //Nested routes render here
-  return <Outlet />;
+  if (
+    Array.isArray(permissions) &&
+    permissions.length > 0 &&
+    !permissions.every((permission) => hasPermission(permission))
+  ) {
+    return <Navigate to="/not-authorized" replace />;
+  }
+
+  if (
+    Array.isArray(anyPermissions) &&
+    anyPermissions.length > 0 &&
+    !anyPermissions.some((permission) => hasPermission(permission))
+  ) {
+    return <Navigate to="/not-authorized" replace />;
+  }
+
+  return children ?? <Outlet />;
 }

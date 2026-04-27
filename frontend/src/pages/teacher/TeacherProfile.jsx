@@ -14,6 +14,7 @@ import api from "@/api/axios";
 import toast from "react-hot-toast";
 import { Badge, Spinner } from "flowbite-react";
 import TeacherUpdateModal from "@/components/teacher/TeacherUpdateModal";
+import { useAuthUser } from "@/context/useAuthUser";
 /**
  * Teacher Profile (Finalized Style)
  * - Professional, colorful, compact (less “cardy”), rounded corners everywhere
@@ -23,15 +24,7 @@ import TeacherUpdateModal from "@/components/teacher/TeacherUpdateModal";
 const TeacherProfile = () => {
   const { id } = useParams();
   const { state: authState, getDecodedIDToken } = useAuthContext();
-
-  const getStoredRoles = () => {
-    try {
-      const storedRoles = JSON.parse(localStorage.getItem("roles"));
-      return Array.isArray(storedRoles) ? storedRoles : [];
-    } catch {
-      return [];
-    }
-  };
+  const { roles: identityRoles, user: authUser } = useAuthUser();
 
   const findRejectCommentRecords = (payload, teacherId, appointmentId) => {
     const collectRecords = (value) => {
@@ -479,14 +472,14 @@ const TeacherProfile = () => {
           token?.preferred_username ||
           token?.username ||
           token?.user_name ||
-          localStorage.getItem("username") ||
+          authUser?.name ||
           token?.name ||
           token?.full_name ||
-          localStorage.getItem("name") ||
+          authUser?.email ||
           "";
         const roles = [
           ...(Array.isArray(tokenRoles) ? tokenRoles : [tokenRoles]),
-          ...getStoredRoles(),
+          ...identityRoles,
         ];
         const normalizedRoles = [...new Set(roles)]
           .filter(Boolean)
@@ -496,29 +489,26 @@ const TeacherProfile = () => {
       })
       .catch(() => {
         if (!ignore) {
-          const normalizedStoredRoles = getStoredRoles()
+          const normalizedStoredRoles = identityRoles
             .filter(Boolean)
             .map((role) => String(role).trim().toLowerCase());
           setUserRoles(normalizedStoredRoles);
-          setCurrentUserName(
-            String(
-              localStorage.getItem("username") ||
-                localStorage.getItem("name") ||
-                "",
-            ).trim(),
-          );
+          setCurrentUserName(String(authUser?.name || authUser?.email || "").trim());
         }
       });
 
     return () => {
       ignore = true;
     };
-  }, [authState.isAuthenticated, getDecodedIDToken]);
+  }, [authState.isAuthenticated, authUser?.email, authUser?.name, getDecodedIDToken, identityRoles]);
 
-  const isDevelopmentOfficer = userRoles.includes("development officer");
-  const isDevelopmentOfficerHead = userRoles.includes(
-    "development officer head",
-  );
+  const isDevelopmentOfficer =
+    userRoles.includes("development officer") ||
+    userRoles.includes("zonal deo");
+  const isDevelopmentOfficerHead =
+    userRoles.includes("development officer head") ||
+    userRoles.includes("zonal deo head");
+  const isZonalDirector = userRoles.includes("zonal director");
   const isPendingStatus =
     !teacher?.confirmed &&
     !teacher?.verified &&
@@ -526,9 +516,20 @@ const TeacherProfile = () => {
     !teacher?.revised;
   const shouldShowUpdateOnly =
     isDevelopmentOfficer && !!teacher?.rejected && !teacher?.revised;
+  const isVerifiedStatus =
+    !!teacher?.verified ||
+    String(teacher?.status ?? "").trim().toLowerCase() === "verified";
+  const shouldShowZonalDirectorConfirmOnly =
+    isZonalDirector &&
+    isVerifiedStatus &&
+    !teacher?.confirmed &&
+    !teacher?.rejected &&
+    !teacher?.revised;
   const shouldShowVerificationStrip = isDevelopmentOfficer
     ? !!teacher?.rejected || !!teacher?.revised
-    : !teacher?.confirmed;
+    : isZonalDirector
+      ? shouldShowZonalDirectorConfirmOnly
+      : !teacher?.confirmed;
   const isRevisedStatus = !!teacher?.revised;
 
   const handleVerify = async () => {
@@ -536,7 +537,7 @@ const TeacherProfile = () => {
 
     const isUpdateStep = shouldShowUpdateOnly || showUpdateAction;
     const isConfirmStep =
-      !isUpdateStep && !!teacher?.verified && !teacher?.rejected;
+      !isUpdateStep && isVerifiedStatus && !teacher?.rejected;
 
     if (isUpdateStep) {
       setUpdateComment("");
@@ -757,12 +758,16 @@ const TeacherProfile = () => {
           isRevised={teacher.revised}
           rejectReason={teacher.rejectReason}
           showUpdateAction={showUpdateAction || shouldShowUpdateOnly}
+          confirmOnly={isZonalDirector}
           hideRejectAction={
+            isZonalDirector ||
             isDevelopmentOfficer ||
             (isDevelopmentOfficerHead && !isPendingStatus && !isRevisedStatus)
           }
           hideVerifyAction={
-            isDevelopmentOfficer
+            isZonalDirector
+              ? false
+              : isDevelopmentOfficer
               ? isRevisedStatus
               : isDevelopmentOfficerHead && !isPendingStatus && !isRevisedStatus
           }
@@ -993,6 +998,7 @@ function VerifyStrip({
   isRevised = false,
   rejectReason = "",
   showUpdateAction = false,
+  confirmOnly = false,
   hideRejectAction = false,
   hideVerifyAction = false,
 }) {
@@ -1013,12 +1019,12 @@ function VerifyStrip({
   const buttonLabel = isVerifying
     ? showUpdateAction
       ? "Updating..."
-      : isVerified
+      : confirmOnly || isVerified
         ? "Confirming..."
         : "Verifying..."
     : showUpdateAction
       ? "Update"
-      : isVerified
+      : confirmOnly || isVerified
         ? "Confirm"
         : "Verify Now";
   const buttonClass =

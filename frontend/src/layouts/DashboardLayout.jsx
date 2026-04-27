@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuthContext } from "@asgardeo/auth-react";
+import { useAuthUser } from "@/context/useAuthUser";
 import NavBar from "../components/Layout/NavBar";
 import SideBar from "../components/Layout/SideBar";
 import MainContent from "../components/Layout/MainContent";
@@ -8,6 +9,7 @@ import RightSidebar from "../components/Layout/RightSidebar";
 const DashboardLayout = () => {
   // const location = useLocation();
   const { state, getBasicUserInfo, getDecodedIDToken } = useAuthContext();
+  const { user } = useAuthUser();
   const [userInfo, setUserInfo] = useState({ name: "User", email: "Email" });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -21,8 +23,13 @@ const DashboardLayout = () => {
     Promise.all([getBasicUserInfo(), getDecodedIDToken()])
       .then(([basic, decoded]) => {
         setUserInfo({
-          name: basic?.displayName || decoded?.name || state.username || "User",
-          email: basic?.email || decoded?.email || "Email",
+          name:
+            user?.name ||
+            basic?.displayName ||
+            decoded?.name ||
+            state.username ||
+            "User",
+          email: user?.email || basic?.email || decoded?.email || "Email",
         });
       })
       .catch(console.error);
@@ -31,6 +38,8 @@ const DashboardLayout = () => {
     getBasicUserInfo,
     getDecodedIDToken,
     state.username,
+    user?.email,
+    user?.name,
   ]);
 
   // Responsive detection

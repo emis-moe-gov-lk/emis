@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { NavLink, useNavigate, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
-import { PermissionGroups } from "../data/permissionGroups";
+import { useAuthUser } from "@/context/useAuthUser";
 import {
     createRole,
+    getPermissions,
     getRolePermissions,
     parseRoleApiError,
     updateRole,
@@ -11,6 +12,7 @@ import {
 
 const CreateRole = () => {
     const navigate = useNavigate();
+    const { hydrateIdentity } = useAuthUser();
     const [searchParams] = useSearchParams();
     const roleId = searchParams.get("roleId");
     const isEditMode = Boolean(roleId);
@@ -21,7 +23,22 @@ const CreateRole = () => {
     const [permissionError, setPermissionError] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isDetailsLoading, setIsDetailsLoading] = useState(false);
-    const permissionGroups = PermissionGroups;
+    const [permissionGroups, setPermissionGroups] = useState([]);
+
+    const loadPermissionCatalog = useCallback(async () => {
+        try {
+            const groupedPermissions = await getPermissions();
+            setPermissionGroups(
+                Object.entries(groupedPermissions).map(([title, permissions]) => ({
+                    title,
+                    permissions: permissions.map((permission) => `${title}.${permission}`),
+                }))
+            );
+        } catch (error) {
+            console.error("Error fetching permissions:", error);
+            toast.error("Unable to load permissions.");
+        }
+    }, []);
 
     const loadRoleDetails = useCallback(async () => {
         if (!roleId) {
@@ -46,6 +63,10 @@ const CreateRole = () => {
     useEffect(() => {
         loadRoleDetails();
     }, [loadRoleDetails]);
+
+    useEffect(() => {
+        loadPermissionCatalog();
+    }, [loadPermissionCatalog]);
 
     const selectedSet = useMemo(
         () => new Set(selectedPermissions),
@@ -140,6 +161,7 @@ const CreateRole = () => {
         try {
             if (isEditMode) {
                 await updateRole(roleId, roleName, selectedPermissions);
+                await hydrateIdentity().catch(() => {});
 
                 toast.success(`Role \"${roleName.trim()}\" updated successfully.`);
                 navigate("/roles");
@@ -147,6 +169,7 @@ const CreateRole = () => {
             }
 
             await createRole(roleName, selectedPermissions);
+            await hydrateIdentity().catch(() => {});
 
             toast.success(
                 `Role \"${roleName.trim()}\" created successfully.`

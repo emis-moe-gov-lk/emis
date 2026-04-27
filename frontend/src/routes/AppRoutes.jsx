@@ -115,13 +115,55 @@ export default function AppRoutes() {
             </Route>
 
             <Route path="alert" element={<Alert />} />
-            <Route path="roles/create" element={<CreateRole />} />
-            <Route path="roles" element={<RolesList />} />
+            <Route
+              path="roles/create"
+              element={
+                <ProtectedRoute permissions={["user.create"]}>
+                  <CreateRole />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="roles"
+              element={
+                <ProtectedRoute permissions={["user.create"]}>
+                  <RolesList />
+                </ProtectedRoute>
+              }
+            />
             <Route path="maintable" element={<MainTables />} />
-            <Route path="users" element={<UsersList />} />
-            <Route path="users/create" element={<UserCreate />} />
-            <Route path="users/edit" element={<UserEdit />} />
-            <Route path="users/:id/edit" element={<UserEdit />} />
+            <Route
+              path="users"
+              element={
+                <ProtectedRoute permissions={["user.list.view"]}>
+                  <UsersList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="users/create"
+              element={
+                <ProtectedRoute permissions={["user.create"]}>
+                  <UserCreate />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="users/edit"
+              element={
+                <ProtectedRoute permissions={["user.update"]}>
+                  <UserEdit />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="users/:id/edit"
+              element={
+                <ProtectedRoute permissions={["user.update"]}>
+                  <UserEdit />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Other protected routes */}
             <Route
