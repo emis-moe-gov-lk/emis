@@ -94,6 +94,11 @@ export const buildUpdateUserPayload = (formData) => {
     roles: toUniqueRoleNames(formData?.roles),
   };
 
+  const reason = toNonEmptyString(formData?.reason);
+  if (reason) {
+    basePayload.reason = reason;
+  }
+
   const password = formData?.password ?? "";
   const confirmPassword = formData?.confirmPassword ?? "";
 

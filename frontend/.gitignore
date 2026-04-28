@@ -24,3 +24,8 @@ dist-ssr
 *.sw?
 config.bat
 .env
+
+/storage/
+/bootstrap/cache/
+
+storage/framework/views/

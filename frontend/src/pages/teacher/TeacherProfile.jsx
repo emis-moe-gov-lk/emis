@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { NavLink, useParams } from "react-router-dom";
+import { NavLink, useParams, useNavigate } from "react-router-dom";
 import { useAuthContext } from "@asgardeo/auth-react";
 import {
   HiArrowLeft,
@@ -11,20 +11,37 @@ import {
   HiX,
 } from "react-icons/hi";
 import api from "@/api/axios";
+import { promoteTeacher } from "@/api/teacherService";
 import toast from "react-hot-toast";
-import { Badge, Spinner } from "flowbite-react";
+import { Badge, Spinner, Modal, Button } from "flowbite-react";
 import TeacherUpdateModal from "@/components/teacher/TeacherUpdateModal";
-import { useAuthUser } from "@/context/useAuthUser";
 /**
  * Teacher Profile (Finalized Style)
  * - Professional, colorful, compact (less “cardy”), rounded corners everywhere
  * - Keeps ALL information sections (General / Qualification / Employment / W&OP / Family / Edit Request)
  * - Ready for API integration later (just replace the dummy state + uncomment fetch section)
  */
-const TeacherProfile = () => {
+const TeacherProfile = ({
+  profileTitle = "Teacher Profile",
+  profileSubtitle = "Manage teacher profile and settings",
+  listPath = "/employees/teacher",
+  listLabel = "Back to Teacher List",
+  profileEndpointPrefix = "/teacher",
+  showApprovalActions = true,
+  enablePromotion = true,
+}) => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { state: authState, getDecodedIDToken } = useAuthContext();
-  const { roles: identityRoles, user: authUser } = useAuthUser();
+
+  const getStoredRoles = () => {
+    try {
+      const storedRoles = JSON.parse(localStorage.getItem("roles"));
+      return Array.isArray(storedRoles) ? storedRoles : [];
+    } catch {
+      return [];
+    }
+  };
 
   const findRejectCommentRecords = (payload, teacherId, appointmentId) => {
     const collectRecords = (value) => {
@@ -285,6 +302,7 @@ const TeacherProfile = () => {
   const [modalSection, setModalSection] = useState(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
+  const [isPromoting, setIsPromoting] = useState(false);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
@@ -292,6 +310,7 @@ const TeacherProfile = () => {
   const [userRoles, setUserRoles] = useState([]);
   const [currentUserName, setCurrentUserName] = useState("");
   const [showUpdateAction, setShowUpdateAction] = useState(false);
+  const [isPromotionConfirmOpen, setIsPromotionConfirmOpen] = useState(false);
 
   /**
    * API Integration Hook (later)
@@ -303,7 +322,7 @@ const TeacherProfile = () => {
 
     setLoading(true);
     try {
-      const res = await api.get(`/teacher/${id}`);
+      const res = await api.get(`${profileEndpointPrefix}/${id}`);
       if (res.data?.status !== "success") return;
 
       const d = res.data.data;
@@ -450,7 +469,7 @@ const TeacherProfile = () => {
     } finally {
       setLoading(false);
     }
-  }, [id, loadRejectComment]);
+  }, [id, loadRejectComment, profileEndpointPrefix]);
 
   useEffect(() => {
     loadTeacherProfile();
@@ -472,14 +491,14 @@ const TeacherProfile = () => {
           token?.preferred_username ||
           token?.username ||
           token?.user_name ||
-          authUser?.name ||
+          localStorage.getItem("username") ||
           token?.name ||
           token?.full_name ||
-          authUser?.email ||
+          localStorage.getItem("name") ||
           "";
         const roles = [
           ...(Array.isArray(tokenRoles) ? tokenRoles : [tokenRoles]),
-          ...identityRoles,
+          ...getStoredRoles(),
         ];
         const normalizedRoles = [...new Set(roles)]
           .filter(Boolean)
@@ -489,26 +508,41 @@ const TeacherProfile = () => {
       })
       .catch(() => {
         if (!ignore) {
-          const normalizedStoredRoles = identityRoles
+          const normalizedStoredRoles = getStoredRoles()
             .filter(Boolean)
             .map((role) => String(role).trim().toLowerCase());
           setUserRoles(normalizedStoredRoles);
-          setCurrentUserName(String(authUser?.name || authUser?.email || "").trim());
+          setCurrentUserName(
+            String(
+              localStorage.getItem("username") ||
+                localStorage.getItem("name") ||
+                "",
+            ).trim(),
+          );
         }
       });
 
     return () => {
       ignore = true;
     };
-  }, [authState.isAuthenticated, authUser?.email, authUser?.name, getDecodedIDToken, identityRoles]);
+  }, [authState.isAuthenticated, getDecodedIDToken]);
 
-  const isDevelopmentOfficer =
-    userRoles.includes("development officer") ||
-    userRoles.includes("zonal deo");
-  const isDevelopmentOfficerHead =
-    userRoles.includes("development officer head") ||
-    userRoles.includes("zonal deo head");
-  const isZonalDirector = userRoles.includes("zonal director");
+  const isDevelopmentOfficer = userRoles.includes("development officer");
+  const isDevelopmentOfficerHead = userRoles.includes(
+    "development officer head",
+  );
+  const isSuperAdmin = userRoles.includes("super admin");
+  const canPromoteTeacher =
+    isDevelopmentOfficer || isDevelopmentOfficerHead || isSuperAdmin;
+  const isTeacherServiceProfile =
+    String(teacher?.service ?? "").trim().toUpperCase() !== "SER004";
+  const canShowPromoteButton =
+    showApprovalActions &&
+    enablePromotion &&
+    canPromoteTeacher &&
+    isTeacherServiceProfile &&
+    !!teacher?.verified &&
+    !!teacher?.confirmed;
   const isPendingStatus =
     !teacher?.confirmed &&
     !teacher?.verified &&
@@ -516,20 +550,14 @@ const TeacherProfile = () => {
     !teacher?.revised;
   const shouldShowUpdateOnly =
     isDevelopmentOfficer && !!teacher?.rejected && !teacher?.revised;
-  const isVerifiedStatus =
-    !!teacher?.verified ||
-    String(teacher?.status ?? "").trim().toLowerCase() === "verified";
-  const shouldShowZonalDirectorConfirmOnly =
-    isZonalDirector &&
-    isVerifiedStatus &&
+  const shouldShowVerificationStrip =
+    showApprovalActions &&
+    !!teacher &&
     !teacher?.confirmed &&
-    !teacher?.rejected &&
-    !teacher?.revised;
-  const shouldShowVerificationStrip = isDevelopmentOfficer
-    ? !!teacher?.rejected || !!teacher?.revised
-    : isZonalDirector
-      ? shouldShowZonalDirectorConfirmOnly
-      : !teacher?.confirmed;
+    ((isDevelopmentOfficer
+      ? !!teacher?.rejected || !!teacher?.revised
+      : true) ||
+      canPromoteTeacher);
   const isRevisedStatus = !!teacher?.revised;
 
   const handleVerify = async () => {
@@ -537,7 +565,7 @@ const TeacherProfile = () => {
 
     const isUpdateStep = shouldShowUpdateOnly || showUpdateAction;
     const isConfirmStep =
-      !isUpdateStep && isVerifiedStatus && !teacher?.rejected;
+      !isUpdateStep && !!teacher?.verified && !teacher?.rejected;
 
     if (isUpdateStep) {
       setUpdateComment("");
@@ -719,6 +747,35 @@ const TeacherProfile = () => {
     }
   };
 
+  const handlePromote = () => {
+    if (!teacher?.id || isPromoting) return;
+    setIsPromotionConfirmOpen(true);
+  };
+
+  const confirmPromotion = async () => {
+    if (!teacher?.id || isPromoting) return;
+
+    setIsPromoting(true);
+    setIsPromotionConfirmOpen(false);
+    try {
+      await promoteTeacher(teacher.id, {
+        reason: "Promoted from Teacher to Principle",
+      });
+      toast.success(`${teacher.fullName} has been successfully promoted to Principal!`);
+      // Redirect to principal list after successful promotion
+      setTimeout(() => {
+        navigate("/employees/principal");
+      }, 1500);
+    } catch (error) {
+      const message =
+        error?.response?.data?.message ||
+        "Failed to promote teacher to Principal.";
+      toast.error(message);
+    } finally {
+      setIsPromoting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 m-6">
@@ -735,11 +792,11 @@ const TeacherProfile = () => {
       {/* Back link (top) */}
       <div className="pt-1">
         <NavLink
-          to="/employees/teacher"
+          to={listPath}
           className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50"
         >
           <HiArrowLeft className="h-4 w-4" />
-          Back to Teacher List
+          {listLabel}
         </NavLink>
       </div>
 
@@ -758,16 +815,12 @@ const TeacherProfile = () => {
           isRevised={teacher.revised}
           rejectReason={teacher.rejectReason}
           showUpdateAction={showUpdateAction || shouldShowUpdateOnly}
-          confirmOnly={isZonalDirector}
           hideRejectAction={
-            isZonalDirector ||
             isDevelopmentOfficer ||
             (isDevelopmentOfficerHead && !isPendingStatus && !isRevisedStatus)
           }
           hideVerifyAction={
-            isZonalDirector
-              ? false
-              : isDevelopmentOfficer
+            isDevelopmentOfficer
               ? isRevisedStatus
               : isDevelopmentOfficerHead && !isPendingStatus && !isRevisedStatus
           }
@@ -781,11 +834,22 @@ const TeacherProfile = () => {
           <div className="rounded-2xl border bg-white overflow-hidden">
             <div className="px-4 py-3 border-b bg-gray-50">
               <div className="text-sm font-semibold text-gray-800">
-                Teacher Profile
+                {profileTitle}
               </div>
               <div className="text-xs text-gray-500">
-                Manage teacher profile and settings
+                {profileSubtitle}
               </div>
+              {canShowPromoteButton && (
+                <button
+                  type="button"
+                  onClick={handlePromote}
+                  disabled={isPromoting}
+                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-white px-4 py-2 text-sm font-black text-indigo-700 transition-all hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  <HiPlus className="h-4 w-4" />
+                  {isPromoting ? "Promoting..." : "Promote to Principle"}
+                </button>
+              )}
             </div>
 
             <div className="p-2">
@@ -883,7 +947,7 @@ const TeacherProfile = () => {
         onSubmit={handleReject}
       />
 
-      <UpdateCommentModal
+      <TeacherUpdateModal
         isOpen={isUpdateModalOpen}
         existingComment={teacher?.rejectReason}
         comment={updateComment}
@@ -892,6 +956,38 @@ const TeacherProfile = () => {
         onClose={closeUpdateModal}
         onSubmit={handleUpdateSubmit}
       />
+
+      {/* Promotion Confirmation Modal */}
+      <Modal show={isPromotionConfirmOpen} onClose={() => setIsPromotionConfirmOpen(false)} size="md">
+        <div className="p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Confirm Promotion</h3>
+          <div className="space-y-4 mb-6">
+            <p className="text-base text-gray-700">
+              Are you sure you want to promote <span className="font-bold text-indigo-600">{teacher?.fullName}</span> to Principal?
+            </p>
+            <p className="text-sm text-gray-500">
+              This action will deactivate the current teacher appointment and create a new principal appointment with SLPS service.
+            </p>
+          </div>
+          <div className="flex gap-3 justify-end">
+            <Button
+              color="gray"
+              onClick={() => setIsPromotionConfirmOpen(false)}
+              disabled={isPromoting}
+            >
+              No, Cancel
+            </Button>
+            <Button
+              color="indigo"
+              onClick={confirmPromotion}
+              isProcessing={isPromoting}
+              disabled={isPromoting}
+            >
+              Yes, Promote
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
@@ -998,7 +1094,6 @@ function VerifyStrip({
   isRevised = false,
   rejectReason = "",
   showUpdateAction = false,
-  confirmOnly = false,
   hideRejectAction = false,
   hideVerifyAction = false,
 }) {
@@ -1019,12 +1114,12 @@ function VerifyStrip({
   const buttonLabel = isVerifying
     ? showUpdateAction
       ? "Updating..."
-      : confirmOnly || isVerified
+      : isVerified
         ? "Confirming..."
         : "Verifying..."
     : showUpdateAction
       ? "Update"
-      : confirmOnly || isVerified
+      : isVerified
         ? "Confirm"
         : "Verify Now";
   const buttonClass =
