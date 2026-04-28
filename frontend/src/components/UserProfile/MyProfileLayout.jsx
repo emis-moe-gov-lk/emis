@@ -17,12 +17,13 @@ import EditRequestTimeline from "./ProfileSections/EditRequestTimeline";
 import axios from "axios";
 import Spinner from "../UiComponents/Spinner";
 import { useAuthContext } from "@asgardeo/auth-react";
+import { useParams } from "react-router-dom";
 
 const MyProfileLayout = () => {
   const [activeTab, setActiveTab] = useState("General");
   const [profileData, setProfileData] = useState(null);
   const { getAccessToken } = useAuthContext();
-  const peopleId = localStorage.getItem("peopleId");
+  const { id: peopleId } = useParams();
 
   useEffect(() => {
     const fetchProfile = async () => {
