@@ -21,6 +21,8 @@ import RegTeacher from "@/pages/teacher/RegTeacher";
 import TeacherBulkUpload from "@/pages/teacher/TeacherBulkUpload";
 import TeacherList from "@/pages/teacher/TeacherList";
 import TeacherProfile from "@/pages/teacher/TeacherProfile";
+import PrincipalList from "@/pages/principal/PrincipalList";
+import PrincipalProfile from "@/pages/principal/PrincipalProfile";
 
 import OfficesOverview from "@/pages/offices/OfficesOverview";
 import MoeOfficeList from "@/pages/offices/MoeOfficeList";
@@ -165,6 +167,15 @@ export default function AppRoutes() {
               }
             />
 
+            <Route
+              path="teacher/:id"
+              element={
+                <TeacherFormProvider>
+                  <TeacherProfile />
+                </TeacherFormProvider>
+              }
+            />
+
             {/* Other protected routes */}
             <Route
               path="employees/teacher"
@@ -190,6 +201,8 @@ export default function AppRoutes() {
               path="employees/development-officers"
               element={<DosDirectory />}
             />
+            <Route path="employees/principal" element={<PrincipalList />} />
+            <Route path="employees/principal/:id" element={<PrincipalProfile />} />
 
             <Route path="offices/moe" element={<MoeOfficeList />} />
             <Route path="offices/pmoe" element={<PmoeOfficeList />} />
