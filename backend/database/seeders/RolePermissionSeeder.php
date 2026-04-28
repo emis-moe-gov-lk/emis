@@ -684,7 +684,7 @@ class RolePermissionSeeder extends Seeder
 
         // Create Teacher role and assign specific permissions
         $teacherRole = Role::firstOrCreate(['name' => 'teacher']);
-        $teacherRole->level = 9;
+        $teacherRole->level = 16;
         $teacherRole->save();
         $teacherRole->syncPermissions([
             'dashboard.main.view',
@@ -701,7 +701,7 @@ class RolePermissionSeeder extends Seeder
 
         // Create principal role and assign specific permissions
         $principalRole = Role::firstOrCreate(['name' => 'principal']);
-        $principalRole->level = 7;
+        $principalRole->level = 14;
         $principalRole->save();
         $principalRole->syncPermissions([
             'dashboard.main.view',
@@ -716,128 +716,35 @@ class RolePermissionSeeder extends Seeder
             'resource.allocation.view',
         ]);
 
-        // Create Develoment Officer role and assign specific permissions
-        $developmentOfficerRole = Role::firstOrCreate(['name' => 'development officer']);
-        $developmentOfficerRole->level = 2;
-        $developmentOfficerRole->save();
-        $developmentOfficerRole->syncPermissions([
-            'dashboard.main.view',
-            'student.list.view',
-            'attendance.list.view',
-            'attendance.manage.update',
-            'exam.result.view',
-            'exam.term_test.manage',
-            'resource.list.view',
-            'resource.manage.update',
-            'resource.allocation.create',
-            'resource.allocation.view',
-        ]);
-
-        // Create Management Service Officer role and assign specific permissions
-        $managementAssistantRole = Role::firstOrCreate(['name' => 'management assistant']);
-        $managementAssistantRole->level = 3;
-        $managementAssistantRole->save();
-        $managementAssistantRole->syncPermissions([
-            'dashboard.main.view',
-            'student.list.view',
-            'attendance.list.view',
-            'attendance.manage.update',
-            'exam.result.view',
-            'exam.term_test.manage',
-            'resource.list.view',
-            'resource.manage.update',
-            'resource.allocation.create',
-            'resource.allocation.view',
-        ]);
-
-        // Create Sri Lanka Education Administrative Service Officer role and assign specific permissions
-        $managementAssistantRole = Role::firstOrCreate(['name' => 'sleas officer']);
-        $managementAssistantRole->level = 4;
-        $managementAssistantRole->save();
-        $managementAssistantRole->syncPermissions([
-            'dashboard.main.view',
-            'student.list.view',
-            'attendance.list.view',
-            'attendance.manage.update',
-            'exam.result.view',
-            'exam.term_test.manage',
-            'resource.list.view',
-            'resource.manage.update',
-            'resource.allocation.create',
-            'resource.allocation.view',
-        ]);
-
-        // Create Sri Lanka Teacher Advisor Service Officer role and assign specific permissions
-        $managementAssistantRole = Role::firstOrCreate(['name' => 'Teacher Advisor']);
-        $managementAssistantRole->level = 5;
-        $managementAssistantRole->save();
-        $managementAssistantRole->syncPermissions([
-            'dashboard.main.view',
-            'student.list.view',
-            'attendance.list.view',
-            'attendance.manage.update',
-            'exam.result.view',
-            'exam.term_test.manage',
-            'resource.list.view',
-            'resource.manage.update',
-            'resource.allocation.create',
-            'resource.allocation.view',
-        ]);
-
-
-        // Create Sri Lanka Administrative Service (SLAS) Officer role and assign specific permissions
-        $slasRole = Role::firstOrCreate(['name' => 'Administrative Service']);
-        $slasRole->level = 6;
-        $slasRole->save();
-        $slasRole->syncPermissions([
-            'dashboard.main.view',
-            'student.list.view',
-            'attendance.list.view',
-            'attendance.manage.update',
-            'exam.result.view',
-            'exam.term_test.manage',
-            'resource.list.view',
-            'resource.manage.update',
-            'resource.allocation.create',
-            'resource.allocation.view',
-        ]);
-
-        // Create Sri Lanka Accountancy Service (SLAcS) Officer role and assign specific permissions
-        $slacsRole = Role::firstOrCreate(['name' => 'Accountancy Service']);
-        $slacsRole->level = 8;
-        $slacsRole->save();
-        $slacsRole->syncPermissions([
-            'dashboard.main.view',
-            'student.list.view',
-            'attendance.list.view',
-            'attendance.manage.update',
-            'exam.result.view',
-            'exam.term_test.manage',
-            'resource.list.view',
-            'resource.manage.update',
-            'resource.allocation.create',
-            'resource.allocation.view',
-        ]);
+        // Remove old/unused roles from the DB
+        Role::whereIn('name', ['Vice Principal / Dep Principal', 'development officer'])->delete();
 
         // Custom seeded roles used by the static user/appointment dataset.
-        foreach ([
-            'SSA',
-            'MOE Administrator',
-            'PSC Officer',
-            'Provincial Director',
-            'Provincial Deputy Director',
-            'Provincial Subject Head',
-            'Provincial Clerk (DEO)',
-            'Zonal Director',
-            'Zonal Deputy Director',
-            'Zonal DEO HEAD',
-            'Zonal DEO',
-            'Divisional Head',
-            'Divisional DEO',
-            'Vice Principal / Dep Principal',
-            'School DEO',
-        ] as $roleName) {
-            Role::firstOrCreate(['name' => $roleName])->syncPermissions(Permission::all());
+        $hierarchyRoles = [
+            'SSA'                        => 1,
+            'MOE Administrator'          => 2,
+            'PSC Officer'                => 3,
+            'Provincial Director'        => 4,
+            'Provincial Deputy Director' => 5,
+            'Provincial Subject Head'    => 6,
+            'Provincial Clerk (DEO)'     => 7,
+            'Zonal Director'             => 8,
+            'Zonal Deputy Director'      => 9,
+            'Zonal DEO HEAD'             => 10,
+            'Zonal DEO'                  => 11,
+            'Divisional Head'            => 12,
+            'Divisional DEO'             => 13,
+            'Vice Principal'             => 15,
+            'Deputy Principal'           => 16,
+            'development officer'        => 15,
+            'School DEO'                 => 17,
+        ];
+
+        foreach ($hierarchyRoles as $roleName => $level) {
+            $role        = Role::firstOrCreate(['name' => $roleName]);
+            $role->level = $level;
+            $role->save();
+            $role->syncPermissions(Permission::all());
         }
     }
 }

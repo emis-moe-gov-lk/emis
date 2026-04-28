@@ -23,24 +23,14 @@ class UserApiController extends Controller
                 ], 401);
             }
 
-            // Keep profile bootstrap tied to the authenticated user.
-            $people_id = $authPeopleId;
-
-            $user = User::with('roles:id,name')->where('people_id', $people_id)->first();
-            $roles = $user?->roles?->pluck('name')->values()->all() ?? [];
-            $role  = $roles[0] ?? null;
-
             // If requesting someone else's profile, verify the token user
             // has a higher hierarchy level than the target user.
             if ($authPeopleId !== $people_id) {
-                $tokenUserRole = $role
-                    ? Role::where('name', $role)->first()
-                    : null;
+                $tokenUser     = User::where('people_id', $authPeopleId)->first();
+                $tokenUserRole = $tokenUser?->roles()->first();
 
                 $targetUser = User::where('people_id', $people_id)->first();
-                $targetRole = $targetUser
-                    ? $targetUser->roles()->first()
-                    : null;
+                $targetRole = $targetUser?->roles()->first();
 
                 $tokenLevel  = $tokenUserRole?->level;
                 $targetLevel = $targetRole?->level;
@@ -52,6 +42,15 @@ class UserApiController extends Controller
                         'message' => 'Forbidden',
                     ], 403);
                 }
+
+                // Use the target user's roles for relations and response
+                $user  = $targetUser;
+                $roles = $targetUser->roles->pluck('name')->all();
+                $role  = $roles[0] ?? null;
+            } else {
+                $user  = User::with('roles')->where('people_id', $people_id)->first();
+                $roles = $user?->roles->pluck('name')->all() ?? [];
+                $role  = $roles[0] ?? null;
             }
 
             // Base relations common to all user types
