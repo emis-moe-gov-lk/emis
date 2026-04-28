@@ -15,6 +15,7 @@ const initialForm = {
   password: "",
   confirmPassword: "",
   roles: [],
+  reason: "",
 };
 
 const UserEdit = () => {
@@ -33,6 +34,7 @@ const UserEdit = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState({});
+  const [initialRoles, setInitialRoles] = useState([]);
 
   useEffect(() => {
     if (!userId) return;
@@ -77,7 +79,9 @@ const UserEdit = () => {
             password: "",
             confirmPassword: "",
             roles: roleNames,
+            reason: "",
           });
+          setInitialRoles(roleNames);
         }
       } catch (error) {
         console.error("Failed to load user details:", error);
@@ -124,6 +128,26 @@ const UserEdit = () => {
   }, []);
 
   const selectedRoleSet = useMemo(() => new Set(form.roles), [form.roles]);
+
+  const normalizeRole = (value) => String(value ?? "").trim().toLowerCase();
+
+  const hasPrincipalSelected = useMemo(
+    () => form.roles.some((role) => normalizeRole(role) === "principal"),
+    [form.roles],
+  );
+
+  const hadPrincipalInitially = useMemo(
+    () => initialRoles.some((role) => normalizeRole(role) === "principal"),
+    [initialRoles],
+  );
+
+  const hadTeacherInitially = useMemo(
+    () => initialRoles.some((role) => normalizeRole(role) === "teacher"),
+    [initialRoles],
+  );
+
+  const isTeacherToPrincipalPromotion =
+    hasPrincipalSelected && hadTeacherInitially && !hadPrincipalInitially;
 
   const setField = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -172,6 +196,10 @@ const UserEdit = () => {
       nextErrors.roles = "Select at least one role.";
     }
 
+    if (isTeacherToPrincipalPromotion && !form.reason.trim()) {
+      nextErrors.reason = "Reason is required when promoting teacher to principal.";
+    }
+
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   };
@@ -214,6 +242,7 @@ const UserEdit = () => {
           fieldErrors?.confirmPassword?.[0] ??
           prev.confirmPassword,
         roles: fieldErrors?.roles?.[0] ?? prev.roles,
+        reason: fieldErrors?.reason?.[0] ?? prev.reason,
       }));
 
       toast.error(message);
@@ -381,6 +410,32 @@ const UserEdit = () => {
             )}
 
             {errors.roles && <p className="text-sm text-red-600 mt-2">{errors.roles}</p>}
+
+            {isTeacherToPrincipalPromotion && (
+              <div className="mt-4 space-y-2">
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                  This change will promote a teacher to principal and update service to SLPS.
+                </div>
+                <div>
+                  <div className="mb-2 block">
+                    <Label htmlFor="reason" value="Promotion Reason" />
+                  </div>
+                  <textarea
+                    id="reason"
+                    rows={3}
+                    value={form.reason}
+                    onChange={(event) => setField("reason", event.target.value)}
+                    placeholder="Why is this user being promoted to principal?"
+                    className={`block w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+                      errors.reason
+                        ? "border-red-500 bg-red-50 focus:ring-red-200 dark:border-red-500 dark:bg-red-900/10"
+                        : "border-gray-300 bg-white focus:ring-sky-200 dark:border-gray-600 dark:bg-gray-900"
+                    }`}
+                  />
+                  {errors.reason && <p className="text-sm text-red-600 mt-1">{errors.reason}</p>}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-3 pt-2">
