@@ -7,6 +7,9 @@ on:
     branches:
       - '**'
 
+permissions:
+  contents: write
+
 jobs:
   check-branch-name:
     runs-on: ubuntu-latest
