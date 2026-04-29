@@ -1,0 +1,28 @@
+---
+- name: Configure MySQL Database and User
+  hosts: mysql
+  become: true 
+  vars_files:
+    - "{{ playbook_dir }}/vars_files/vars.yml"
+
+  tasks:
+    - name: Create the Emis database
+      community.mysql.mysql_db:
+        name: "{{ varsfl_mysql_emis_dbname }}"
+        state: present
+        login_user: "{{ varsfl_mysql_root_user}}"
+        login_password: "{{ varsfl_mysql_root_password }}"
+        login_host: "{{ varsfl_mysql_host }}"
+      register: db_creation
+
+    - name: Create MySQL user for any host (%)
+      community.mysql.mysql_user:
+        name: "{{ varsfl_mysql_emis_user }}"
+        password: "{{ varsfl_mysql_emis_password }}"
+        priv: "{{ varsfl_mysql_emis_dbname }}.*:ALL"
+        host: "%"
+        state: present
+        login_user: "{{ varsfl_mysql_root_user}}"
+        login_password: "{{ varsfl_mysql_root_password }}"
+        login_host: "{{ varsfl_mysql_host }}"
+      # This task handles both user creation and the "Grant" requirement

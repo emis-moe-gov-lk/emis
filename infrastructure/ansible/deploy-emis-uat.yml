@@ -4,15 +4,10 @@
   become: true
   vars:
     remote_project_path: "/opt/emis-uat"
-    local_project_root: "{{  playbook_dir | dirname | dirname }}"
-    env_path: "{{ local_project_root }}/docker/uat-test"
-    
-    # env files
-    frontend_env_file: "{{ env_path }}/frontend.env"
-    backend_env_file: "{{ env_path }}/backend.env"
-    docker_compose_env_file: "{{ env_path }}/.env"
-    # docker compose file
-    docker_compose_file: "{{local_project_root}}/docker/uat-test/docker-compose.yml"
+    docker_compose_file: "{{ playbook_dir | dirname }}/docker/docker-compose.yml"
+  vars_files:
+    - vars_files/vars.yml
+
   tasks:
     - name: Ensure project directory exists
       ansible.builtin.file:
@@ -20,15 +15,15 @@
         state: directory
         mode: '0755'
 
-    - name: Copy environment files to target
-      ansible.builtin.copy:
-        src: "{{ item }}"
-        dest: "{{ remote_project_path }}/{{ item | basename }}"
+    - name: Render and copy environment files from templates
+      ansible.builtin.template:
+        src: "{{ item.src }}"
+        dest: "{{ remote_project_path }}/{{ item.dest }}"
         mode: '0600'
       loop:
-        - "{{  frontend_env_file }}"
-        - "{{  backend_env_file }}"
-        - "{{  docker_compose_env_file }}"
+        - { src: "templates/frontend.env.j2",  dest: "frontend.env" }
+        - { src: "templates/backend.env.j2",   dest: "backend.env" }
+        - { src: "templates/docker.env.j2",    dest: ".env" }
 
     - name: Copy Docker Compose file
       ansible.builtin.copy:

@@ -1,30 +1,33 @@
 - name: Setup MySQL databases for WSO2
   hosts: mysql
+  become: yes
+  vars_files:
+    - "{{ playbook_dir }}/vars_files/vars.yml"
   gather_facts: false
   collections:
     - community.mysql
   vars:
-    mysql_host: "{{ hostvars[inventory_hostname].mysql_host | default('127.0.0.1', true) }}"
-    mysql_port: "{{ hostvars[inventory_hostname].mysql_port | default(3307, true) }}"
-    mysql_user: "{{ hostvars[inventory_hostname].mysql_user | default('nemis', true) }}"
-    mysql_password: "{{ hostvars[inventory_hostname].mysql_password | default('nemis1234', true) }}"
-    mysql_user_configured: "{{ hostvars[inventory_hostname].mysql_user_configured | default('wso2user', true) }}"
-    mysql_user_configured_password: "{{ hostvars[inventory_hostname].mysql_user_configured_password | default('wso2pass', true) }}"
-    # Database names from inventory
-    mysql_apim_db: "{{ hostvars[inventory_hostname].mysql_apim_db | default('wso2_apim_db', true) }}"
-    mysql_apim_shared_db: "{{ hostvars[inventory_hostname].mysql_apim_shared_db | default('wso2_apim_shared_db', true) }}"
-    mysql_is_db: "{{ hostvars[inventory_hostname].mysql_is_db | default('wso2_is_db', true) }}"
-    mysql_is_shared_db: "{{ hostvars[inventory_hostname].mysql_is_shared_db | default('wso2_is_shared_db', true) }}"
+    mysql_host: "{{ varsfl_myql_host  | default('127.0.0.1', true) }}"
+    mysql_port: "{{ varsfl_mysql_port | default(3306, true) }}"
+    mysql_user: "{{ varsfl_mysql_root_user }}"
+    mysql_password: "{{ varsfl_mysql_root_password }}"
+    mysql_user_configured: "{{ varsfl_mysql_user_configured | default('wso2user', true) }}"
+    mysql_user_configured_password: "{{ varsfl_mysql_user_configured_password | default('wso2pass', true) }}"
+    # Database names from vars_files/vars.yml
+    mysql_apim_db: "{{ varsfl_mysql_apim_db | default('wso2_apim_db', true) }}"
+    mysql_apim_shared_db: "{{ varsfl_mysql_apim_shared_db | default('wso2_apim_shared_db', true) }}"
+    mysql_is_db: "{{ varsfl_mysql_is_db | default('wso2_is_db', true) }}"
+    mysql_is_shared_db: "{{ varsfl_mysql_is_shared_db | default('wso2_is_shared_db', true) }}"
     # Paths
     resources_dir: "{{ playbook_dir }}/resources"
     remote_tmp_dir: "/tmp/sql_imports"
     # APIM scripts
-    apim_db_script: "{{ remote_tmp_dir }}/wso2_apim_db_script.sql"
-    apim_shared_db_script: "{{ remote_tmp_dir }}/wso2_apim_shared_db_script.sql"
+    apim_db_script: "{{ remote_tmp_dir }}/wso2_apim_4.6.0_db_script.sql"
+    apim_shared_db_script: "{{ remote_tmp_dir }}/wso2_apim_4.6.0_shared_db_script.sql"
     # IS scripts
-    is_identity_db_script: "{{ remote_tmp_dir }}/wso2_is_identity_db_script.sql"
-    is_consent_db_script: "{{ remote_tmp_dir }}/wso2_is_consent_db_script.sql"
-    is_shared_db_script: "{{ remote_tmp_dir }}/wso2_is_shared_db_script.sql"
+    is_identity_db_script: "{{ remote_tmp_dir }}/wso2_is_7.2.0_identity_db_script.sql"
+    is_consent_db_script: "{{ remote_tmp_dir }}/wso2_is_7.2.0_consent_db_script.sql"
+    is_shared_db_script: "{{ remote_tmp_dir }}/wso2_is_7.2.0_shared_db_script.sql"
 
     
 
@@ -35,36 +38,12 @@
         state: present
       run_once: true
 
-    - name: Ensure workspace exists
-      ansible.builtin.file:
-        path: "{{ work_dir }}"
-        state: directory
-        mode: "0755"
-      run_once: true
-      when: false
-
-    - name: Unarchive WSO2 APIM artifacts locally
-      ansible.builtin.unarchive:
-        src: "{{ wso2am_zip }}"
-        dest: "{{ work_dir }}"
-        remote_src: false
-      run_once: true
-      when: false
-
-    - name: Unarchive WSO2 IS artifacts locally
-      ansible.builtin.unarchive:
-        src: "{{ wso2is_zip }}"
-        dest: "{{ work_dir }}"
-        remote_src: false
-      run_once: true
-      when: false
-
     # create /temp/sql_imports directory on remote
     - name: Create a temporary directory on the remote host
       ansible.builtin.file:
         path: "{{ remote_tmp_dir }}"
         state: directory
-        mode: '0755'
+        mode: '0777'
 
     # upload all *.sql scripts from resources/ to remote_tmp_dir
     - name: Upload all SQL scripts to the remote host
