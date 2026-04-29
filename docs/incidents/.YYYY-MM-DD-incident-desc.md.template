@@ -1,0 +1,18 @@
+## [Issue Title: Docker Hub DNS Resolution Timeout]
+
+**Date:** 2026-04-05
+**Environment:** UAT-TEST-ENV / Ubuntu / Docker Compose
+
+###  Symptom
+> `Error: dial tcp: lookup auth.docker.io on 127.0.0.53:53: i/o timeout`
+
+###  Cause
+Explain *why* it happened (e.g., Local systemd-resolved failing to forward requests to external DNS).
+
+###  Resolution
+Provide the exact commands to fix it.
+1. Restart the resolver: `sudo systemctl restart systemd-resolved`
+2. If persistent, update `/etc/docker/daemon.json` with Google DNS (`8.8.8.8`).
+
+###  Prevention
+How to avoid this in the future (e.g., "Add DNS checks to the deployment script").
