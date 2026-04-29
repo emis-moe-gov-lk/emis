@@ -236,7 +236,7 @@ class TeacherApiController extends Controller
     {
         try {
             $perPage = (int) $request->get('per_page', 20);
-            $nic     = trim($request->get('nic'));
+            $search  = trim($request->get('search', $request->get('nic', '')));
             $roles   = $this->resolvedRoles($request);
 
             $baseQuery = People::query()
@@ -262,16 +262,32 @@ class TeacherApiController extends Controller
 
             
 
-            // NIC is encrypted at rest; do partial matching against decrypted model values.
-            if ($nic !== '') {
-                $matchedPeopleIds = (clone $baseQuery)
-                    ->select(['people_id', 'nic'])
-                    ->get()
-                    ->filter(function (People $person) use ($nic) {
-                        return str_contains((string) $person->nic, $nic);
-                    })
-                    ->pluck('people_id')
-                    ->values();
+            // Both NIC and name fields are encrypted at rest; do partial matching against decrypted model values.
+            // Detect search type: numeric first char → NIC search, alphabetic → name search.
+            if ($search !== '') {
+                $isNicSearch = is_numeric(substr($search, 0, 1));
+
+                if ($isNicSearch) {
+                    $matchedPeopleIds = (clone $baseQuery)
+                        ->select(['people_id', 'nic'])
+                        ->get()
+                        ->filter(function (People $person) use ($search) {
+                            return str_contains((string) $person->nic, $search);
+                        })
+                        ->pluck('people_id')
+                        ->values();
+                } else {
+                    $searchLower = strtolower($search);
+                    $matchedPeopleIds = (clone $baseQuery)
+                        ->select(['people_id', 'full_name', 'name_with_initials'])
+                        ->get()
+                        ->filter(function (People $person) use ($searchLower) {
+                            return str_contains(strtolower((string) $person->full_name), $searchLower)
+                                || str_contains(strtolower((string) $person->name_with_initials), $searchLower);
+                        })
+                        ->pluck('people_id')
+                        ->values();
+                }
 
                 $query->whereIn('people_id', $matchedPeopleIds);
             }
