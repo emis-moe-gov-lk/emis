@@ -16,10 +16,6 @@ storage/framework/views/*
 bootstrap/cache/*
 .phpunit.result.cache
 
-# WSO2 distribution zips and JARs (large binaries)
-ansible/resources/*.zip
-ansible/resources/*.jar
-
 # Tmp directory (user workspace)
 tmp/
 
@@ -39,13 +35,5 @@ Thumbs.db
 docker-compose.override.yml
 
 # Ansible
+vars.yml
 *.retry
-
-# Playwright
-playwright/.env
-playwright/test-results/
-
-# Hurl
-hurl/vars.env
-temp_auto_push.bat
-temp_interactive_push.bat
