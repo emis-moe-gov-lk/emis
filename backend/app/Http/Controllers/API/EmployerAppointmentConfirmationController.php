@@ -40,7 +40,6 @@ use App\Models\ZonalEducationOffice;
 use Illuminate\Support\Facades\Hash;
 use App\Models\EmployerCurrentAppointment;
 use App\Models\DivisionalSecretariatOffice;
-use App\Services\TeacherToPrincipalPromotionService;
 
 
 class EmployerAppointmentConfirmationController extends Controller
@@ -448,97 +447,6 @@ public function confirm(Request $request, string $people_id)
         return response()->json([
             'status'  => 'error',
             'message' => 'Failed to confirm teacher appointment',
-        ], 500);
-    }
-}
-
-public function promote(Request $request, string $people_id, TeacherToPrincipalPromotionService $promotionService)
-{
-    try {
-        $roles        = $this->resolvedRoles($request);
-        $allowedRoles = ['development officer', 'development officer head', 'super admin'];
-
-        if (! $this->hasAnyRole($roles, $allowedRoles)) {
-            return response()->json([
-                'status'  => 'error',
-                'message' => 'Unauthorized',
-            ], 403);
-        }
-
-        $currentAppointment = EmployerCurrentAppointment::where('employee_id', $people_id)->first();
-
-        if (! $currentAppointment) {
-            return response()->json([
-                'status'  => 'error',
-                'message' => 'No active appointment found for this teacher',
-            ], 404);
-        }
-
-        if (! $this->hasRole($roles, 'super admin')) {
-            if (! $this->teacherBelongsToUserZonalArea($request, $currentAppointment)) {
-                return response()->json([
-                    'status'  => 'error',
-                    'message' => 'Development officers can only promote teacher profiles within their relevant zonal area',
-                ], 403);
-            }
-        }
-
-        $user = User::query()->where('people_id', $people_id)->first();
-        if (! $user) {
-            return response()->json([
-                'status'  => 'error',
-                'message' => 'Linked system user not found for this teacher',
-            ], 404);
-        }
-
-        $changedByPeopleId = $request->attributes->get('jwt_people_id') ?? $request->user()?->people_id;
-        $promotionResult = $promotionService->promoteWithAppointmentTransition(
-            $user,
-            $changedByPeopleId,
-            (string) $request->input('reason', 'Promoted from Teacher to Principal')
-        );
-
-        if (! ($promotionResult['promoted'] ?? false)) {
-            $reason = $promotionResult['reason'] ?? 'promotion_not_completed';
-
-            return response()->json([
-                'status'  => 'error',
-                'message' => match ($reason) {
-                    'already_principal_service' => 'Teacher is already in principal service',
-                    'principal_service_appointment_exists' => 'A principal service appointment already exists for this teacher',
-                    default => 'Teacher promotion cannot be completed',
-                },
-            ], 409);
-        }
-
-        return response()->json([
-            'status'  => 'success',
-            'message' => 'Teacher promoted to principal successfully',
-            'data'    => [
-                'employee_id' => $people_id,
-                'old_appointment_id' => $promotionResult['old_appointment_id'] ?? null,
-                'new_appointment_id' => $promotionResult['new_appointment_id'] ?? null,
-                'service_id' => 'SER004',
-                'rank_id' => 'RANK010',
-                'position_id' => 'POS006',
-            ],
-        ], 200);
-    } catch (\RuntimeException $e) {
-        return response()->json([
-            'status' => 'error',
-            'message' => $e->getMessage(),
-        ], 422);
-    } catch (\Throwable $e) {
-        Log::error('Teacher Promote Error', [
-            'people_id' => $people_id,
-            'message'   => $e->getMessage(),
-            'file'      => $e->getFile(),
-            'line'      => $e->getLine(),
-        ]);
-
-        return response()->json([
-            'status'  => 'error',
-            'message' => 'Failed to promote teacher profile',
         ], 500);
     }
 }
