@@ -54,6 +54,10 @@ import UserCreate from "@/pages/users/UserCreate";
 import UserEdit from "@/pages/users/UserEdit";
 import { TimetableProvider } from "../context/TimetableContext.jsx";
 import { TeacherFormProvider } from "../context/TeacherFormContext.jsx";
+import DosDirectory from "../pages/DosDirectory.jsx";
+import DosBulkUpload from "../pages/dos/DosBulkUpload.jsx";
+import RegDos from "../pages/dos/RegDos.jsx";
+import DosList from "../components/dos/DosList.jsx";
 
 export default function AppRoutes() {
   return (
@@ -102,7 +106,7 @@ export default function AppRoutes() {
             <Route path="/dashboard" element={<UpdateDashbord />} />
 
             <Route path="dashboard/VersionPage" element={<VersionPage />} />
-            <Route path="dashboard/profile" element={<MyProfileLayout />} />
+            <Route path="dashboard/profile/:id" element={<MyProfileLayout />} />
             <Route path="dashboard/Settings" element={<Settings />} />
 
             {/* Institution routes */}
@@ -173,7 +177,8 @@ export default function AppRoutes() {
             />
 
             {/* Other protected routes */}
-            <Route path="employees/teacher"
+            <Route
+              path="employees/teacher"
               element={
                 <TeacherFormProvider>
                   <Outlet />
@@ -187,6 +192,15 @@ export default function AppRoutes() {
               <Route path=":id" element={<TeacherProfile />} />
             </Route>
 
+            <Route path="employees/development-officers">
+              <Route index element={<DosDirectory />} />
+              <Route path="bulk-upload" element={<DosBulkUpload />} />
+              <Route path="create" element={<RegDos />} />
+            </Route>
+            <Route
+              path="employees/development-officers"
+              element={<DosDirectory />}
+            />
             <Route path="employees/principal" element={<PrincipalList />} />
             <Route path="employees/principal/:id" element={<PrincipalProfile />} />
 

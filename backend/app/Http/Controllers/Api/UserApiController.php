@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Log;
+use Spatie\Permission\Models\Role;
 
 class UserApiController extends Controller
 {
@@ -22,12 +23,35 @@ class UserApiController extends Controller
                 ], 401);
             }
 
-            // Keep profile bootstrap tied to the authenticated user.
-            $people_id = $authPeopleId;
+            // If requesting someone else's profile, verify the token user
+            // has a higher hierarchy level than the target user.
+            if ($authPeopleId !== $people_id) {
+                $tokenUser     = User::where('people_id', $authPeopleId)->first();
+                $tokenUserRole = $tokenUser?->roles()->first();
 
-            $user = User::with('roles:id,name')->where('people_id', $people_id)->first();
-            $roles = $user?->roles?->pluck('name')->values()->all() ?? [];
-            $role  = $roles[0] ?? null;
+                $targetUser = User::where('people_id', $people_id)->first();
+                $targetRole = $targetUser?->roles()->first();
+
+                $tokenLevel  = $tokenUserRole?->level;
+                $targetLevel = $targetRole?->level;
+
+                // Deny if hierarchy levels are missing or token user is not higher
+                if ($tokenLevel === null || $targetLevel === null || $tokenLevel >= $targetLevel) {
+                    return response()->json([
+                        'status'  => 'error',
+                        'message' => 'Forbidden',
+                    ], 403);
+                }
+
+                // Use the target user's roles for relations and response
+                $user  = $targetUser;
+                $roles = $targetUser->roles->pluck('name')->all();
+                $role  = $roles[0] ?? null;
+            } else {
+                $user  = User::with('roles')->where('people_id', $people_id)->first();
+                $roles = $user?->roles->pluck('name')->all() ?? [];
+                $role  = $roles[0] ?? null;
+            }
 
             // Base relations common to all user types
             $baseRelations = [
