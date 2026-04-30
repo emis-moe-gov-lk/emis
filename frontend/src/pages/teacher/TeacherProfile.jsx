@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { NavLink, useParams } from "react-router-dom";
+import { NavLink, useParams, useNavigate } from "react-router-dom";
 import { useAuthContext } from "@asgardeo/auth-react";
 import {
   HiArrowLeft,
@@ -11,8 +11,10 @@ import {
   HiX,
 } from "react-icons/hi";
 import api from "@/api/axios";
+import { promoteTeacher } from "@/api/teacherService";
 import toast from "react-hot-toast";
-import { Badge, Spinner } from "flowbite-react";
+import { Badge, Spinner, Modal, ModalBody, ModalHeader, Button } from "flowbite-react";
+import { HiOutlineExclamationCircle } from "react-icons/hi";
 import TeacherUpdateModal from "@/components/teacher/TeacherUpdateModal";
 import { useAuthUser } from "@/context/useAuthUser";
 /**
@@ -285,6 +287,8 @@ const TeacherProfile = () => {
   const [modalSection, setModalSection] = useState(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
+  const [isPromoting, setIsPromoting] = useState(false);
+  const [openPromoteModal, setOpenPromoteModal] = useState(false);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
@@ -508,6 +512,7 @@ const TeacherProfile = () => {
   const isDevelopmentOfficerHead =
     userRoles.includes("development officer head") ||
     userRoles.includes("zonal deo head");
+  const isSuperAdmin = userRoles.includes("super admin");
   const isZonalDirector = userRoles.includes("zonal director");
   const isPendingStatus =
     !teacher?.confirmed &&
@@ -531,6 +536,13 @@ const TeacherProfile = () => {
       ? shouldShowZonalDirectorConfirmOnly
       : !teacher?.confirmed;
   const isRevisedStatus = !!teacher?.revised;
+  const canPromoteToPrincipal =
+    (isSuperAdmin || isZonalDirector) &&
+    !!teacher?.verified &&
+    !!teacher?.confirmed &&
+    !teacher?.rejected &&
+    !teacher?.revised &&
+    String(teacher?.service ?? "").trim() !== "SER004";
 
   const handleVerify = async () => {
     if (!teacher?.id || isVerifying) return;
@@ -719,6 +731,33 @@ const TeacherProfile = () => {
     }
   };
 
+  const navigate = useNavigate();
+
+  const openPromoteDialog = () => {
+    if (!canPromoteToPrincipal) return;
+    setOpenPromoteModal(true);
+  };
+
+  const confirmPromote = async () => {
+    if (!teacher?.id || isPromoting) return;
+
+    setIsPromoting(true);
+    try {
+      const res = await promoteTeacher(teacher.id);
+      await loadTeacherProfile();
+      setOpenPromoteModal(false);
+      toast.success("Teacher promoted to principal successfully.");
+      navigate(`/employees/principal/${teacher.id}`);
+    } catch (error) {
+      const message =
+        error?.response?.data?.message ||
+        "Failed to promote teacher to principal.";
+      toast.error(message);
+    } finally {
+      setIsPromoting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 m-6">
@@ -745,6 +784,8 @@ const TeacherProfile = () => {
 
       {/* Header strip (finalized style) */}
       <HeaderStrip teacher={teacher} />
+
+      {/* promote button moved into left menu as a tab-style button */}
 
       {/* Verify alert strip */}
       {shouldShowVerificationStrip && (
@@ -774,6 +815,40 @@ const TeacherProfile = () => {
         />
       )}
 
+      <Modal show={openPromoteModal} size="md" popup onClose={() => setOpenPromoteModal(false)}>
+        <ModalHeader />
+        <ModalBody>
+          <div className="text-center">
+            <HiOutlineExclamationCircle className="mx-auto mb-4 h-14 w-14 text-emerald-500" />
+
+            <h3 className="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-200">
+              Promote to Principal
+            </h3>
+
+            <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">
+              Are you sure you want to promote this teacher to principal?
+            </p>
+
+            <div className="flex justify-center gap-4">
+              <Button
+                onClick={confirmPromote}
+                className="rounded-full px-5 py-2 bg-emerald-600 text-white shadow-md hover:bg-emerald-700"
+              >
+                Yes, promote
+              </Button>
+
+              <Button
+                color="alternative"
+                onClick={() => setOpenPromoteModal(false)}
+                className="rounded-full px-5 py-2"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </ModalBody>
+      </Modal>
+
       {/* Layout: Left menu + Right content */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left menu */}
@@ -786,6 +861,25 @@ const TeacherProfile = () => {
               <div className="text-xs text-gray-500">
                 Manage teacher profile and settings
               </div>
+            </div>
+
+            <div className="px-4 py-3">
+              {canPromoteToPrincipal && (
+                <button
+                  onClick={openPromoteDialog}
+                  disabled={isPromoting}
+                  className={[
+                    "w-full text-left px-4 py-3 rounded-xl text-sm transition flex items-center justify-between group",
+                    isPromoting
+                      ? "bg-white-500 text-white shadow-md"
+                      : "bg-white-600 text-black hover:bg-emerald-700 shadow-md",
+                  ].join(" ")}
+                >
+                  <span className="font-semibold">+ Promote to Principal</span>
+                  {/* <span className="h-2 w-2 rounded-full bg-white/90" /> */}
+                </button>
+              )}
+
             </div>
 
             <div className="p-2">
