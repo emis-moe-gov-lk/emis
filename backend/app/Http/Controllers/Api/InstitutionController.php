@@ -68,7 +68,8 @@ class InstitutionController extends Controller
         if (! $isAdmin) {
             $workplaceId = $authed?->currentAppointment?->workplace_id;
 
-            $query = Institution::with($with);
+            $query = Institution::with($with)
+                ->withCount('teachers');
 
             if ($workplaceId) {
                 $query->where('workplace_id', $workplaceId);
