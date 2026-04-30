@@ -12,9 +12,9 @@ varsfl_mysql_root_allowedhost: 127.0.0.1 # Only from local env
 varsfl_mysql_emis_dbname: [XXX EMIS DB NAME XXX]
 varsfl_mysql_emis_user: [XXX EMIS DB USER XXX]
 varsfl_mysql_emis_password: [XXX EMIS DB USER PASSWORD XXX]
-varsfl_mysql_emis_allowedhost: [XXX DOCKER NAT GTW IP XXX] # docker internal network gateway ip
+varsfl_mysql_emis_allowedhost: [XXX DOCKER NAT GTW IP XXX] # docker internal network gateway ip. Value from docker-compose.yml
 
-# emis dev vars
+# emis dev vars (Optional)
 varsfl_mysql_devemis_user: [XXX EMIS DEV USER NAME XXX]
 varsfl_mysql_devemis_password: [XXX EMIS DEV USER PASSWORD XXX]
 varsfl_mysql_devemis_allowedhost: 0.0.0.0 # Any Host %
