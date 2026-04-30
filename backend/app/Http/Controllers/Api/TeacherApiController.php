@@ -521,9 +521,28 @@ class TeacherApiController extends Controller
 
             DB::commit();
 
+            // Resolve human-readable current appointment position name (if available)
+            $positionName = null;
+            try {
+                $positionName = Position::where('position_id', $validated['currentAppointmentPosition'])->value('position_name');
+            } catch (\Throwable $ex) {
+                // swallow - not critical for response
+                Log::warning('Failed to resolve position name for response', ['error' => $ex->getMessage()]);
+            }
+
+            $responseData = [
+                'name' => $people->full_name,
+                'fullName' => $people->full_name,
+                'nic' => $people->nic,
+                'email' => $people->email,
+                'contact' => $people->phone,
+                'currentAppointmentPositionName' => $positionName,
+            ];
+
             return response()->json([
                 'status' => 'success',
                 'message' => 'Teacher created successfully',
+                'data' => $responseData,
                 'people_id' => $people->people_id,
                 'default_password' => 'password@123',
             ], 201);
