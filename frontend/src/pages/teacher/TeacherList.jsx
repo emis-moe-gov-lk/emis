@@ -21,6 +21,7 @@ import { printTeacherId } from "@/api/teacherService";
 import { NavLink } from "react-router-dom";
 import { TeacherFormContext } from "@/context/TeacherFormContext";
 import { useAuthUser } from "@/context/useAuthUser";
+import { PermissionGroups } from "@/data/permissionGroups";
 
 /**
  * Teacher List Page
@@ -42,10 +43,14 @@ const TeacherList = () => {
   const [total, setTotal] = useState(0);
   const [openMenuId, setOpenMenuId] = useState(null);
 
-  const normalizeValue = (value) => String(value ?? "").trim().toLowerCase();
+  const normalizeValue = (value) =>
+    String(value ?? "")
+      .trim()
+      .toLowerCase();
 
-  const getRelevantValues = (sources = []) =>
-    [...new Set(sources.map(normalizeValue).filter(Boolean))];
+  const getRelevantValues = (sources = []) => [
+    ...new Set(sources.map(normalizeValue).filter(Boolean)),
+  ];
 
   const getOfficerZoneValues = (identity) =>
     getRelevantValues([
@@ -185,8 +190,9 @@ const TeacherList = () => {
 
   const getAppointmentStatus = (appointment) => {
     if (
-      String(appointment?.profile_status ?? "").trim().toLowerCase() ===
-        "revised" ||
+      String(appointment?.profile_status ?? "")
+        .trim()
+        .toLowerCase() === "revised" ||
       appointment?.is_verified === 3
     ) {
       return { label: "Revised", color: "purple" };
@@ -225,6 +231,11 @@ const TeacherList = () => {
     );
   }, [identity, roles, teachers]);
 
+  const hasPermission = (permission) => {
+    const userPermissions = identity?.permissions || [];
+    return userPermissions.includes(permission);
+  };
+
   return (
     <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-6">
       {/* ================= HEADER ================= */}
@@ -258,21 +269,24 @@ const TeacherList = () => {
         </div>
 
         <div className="flex items-center gap-3">
-          <NavLink
-            to="/employees/teacher/bulk-upload"
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
-          >
-            <HiUpload className="h-4 w-4" />
-            Bulk Upload
-          </NavLink>
-
-          <button
-            onClick={handleCreateTeacher}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors shadow-sm"
-          >
-            <HiPlus />
-            Create Teacher
-          </button>
+          {hasPermission("teacher.bulk.upload") && (
+            <NavLink
+              to="/employees/teacher/bulk-upload"
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+            >
+              <HiUpload className="h-4 w-4" />
+              Bulk Upload
+            </NavLink>
+          )}
+          {hasPermission("teacher.create") && (
+            <button
+              onClick={handleCreateTeacher}
+              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors shadow-sm"
+            >
+              <HiPlus />
+              Create Teacher
+            </button>
+          )}
         </div>
       </div>
 
@@ -292,90 +306,93 @@ const TeacherList = () => {
                 const appointmentStatus = getAppointmentStatus(t.appointment);
 
                 return (
-                <div
-                  key={t.people_id}
-                  onClick={() => navigate(`/employees/teacher/${t.people_id}`)}
-                  className="group flex flex-col md:flex-row md:items-center gap-4 p-5 bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-md border border-gray-100 dark:border-gray-700 transition-all duration-200 hover:border-blue-100 dark:hover:border-blue-900/30 cursor-pointer"
-                >
-                  {/* Icon & Index */}
-                  <div className="flex items-center gap-4 min-w-[60px]">
-                    {/* <span className="text-xs font-mono text-gray-400 w-6">
+                  <div
+                    key={t.people_id}
+                    onClick={() =>
+                      navigate(`/employees/teacher/${t.people_id}`)
+                    }
+                    className="group flex flex-col md:flex-row md:items-center gap-4 p-5 bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-md border border-gray-100 dark:border-gray-700 transition-all duration-200 hover:border-blue-100 dark:hover:border-blue-900/30 cursor-pointer"
+                  >
+                    {/* Icon & Index */}
+                    <div className="flex items-center gap-4 min-w-[60px]">
+                      {/* <span className="text-xs font-mono text-gray-400 w-6">
                       #
                       {((page - 1) * perPage + index + 1)
                         .toString()
                         .padStart(2, "0")}
                     </span> */}
-                    <div className="p-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
-                      <HiUser className="w-6 h-6" />
-                    </div>
-                    {/* after impliment image remove above code section and uncoment this code section */}
-                    {/* <img
+                      <div className="p-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
+                        <HiUser className="w-6 h-6" />
+                      </div>
+                      {/* after impliment image remove above code section and uncoment this code section */}
+                      {/* <img
                       src={t.profile_picture || "/default-profile.png"}
                       alt="profile"
                       className="h-14 w-14 rounded-full object-cover border-2 border-white dark:border-slate-800 shadow-md"
                     /> */}
-                  </div>
-
-                  {/* Main Info */}
-                  <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-                    {/* Name */}
-                    <div className="md:col-span-3">
-                      <h3 className="text-lg font-bold text-gray-900 dark:text-white truncate group-hover:text-blue-600 transition-colors">
-                        {t.full_name}
-                      </h3>
-                      <p className="text-xs font-bold text-blue-600 cursor-pointer mt-0.5">
-                        {/* NIC:  */}
-                        {t.nic}
-                      </p>
                     </div>
 
-                    {/* Designation */}
-                    <div className="md:col-span-2">
-                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
-                        Position & Service
-                      </p>
-                      <div className="text-sm font-semibold text-gray-700 dark:text-gray-200 truncate">
-                        {rankMap[t.appointment?.rank_id] ||
-                          t.appointment?.rank_id ||
-                          "-"}
+                    {/* Main Info */}
+                    <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                      {/* Name */}
+                      <div className="md:col-span-3">
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white truncate group-hover:text-blue-600 transition-colors">
+                          {t.full_name}
+                        </h3>
+                        <p className="text-xs font-bold text-blue-600 cursor-pointer mt-0.5">
+                          {/* NIC:  */}
+                          {t.nic}
+                        </p>
                       </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                        {serviceMap[t.appointment?.service_id] ||
-                          t.appointment?.service_id ||
-                          "-"}
-                      </div>
-                    </div>
 
-                    {/* Workplace */}
-                    <div className="md:col-span-3">
-                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
-                        Workplace Address
-                      </p>
-                      <div className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300">
-                        <HiLocationMarker className="w-4 h-4 text-gray-400 shrink-0" />
-                        <span className="truncate">
+                      {/* Designation */}
+                      <div className="md:col-span-2">
+                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
+                          Position & Service
+                        </p>
+                        <div className="text-sm font-semibold text-gray-700 dark:text-gray-200 truncate">
+                          {rankMap[t.appointment?.rank_id] ||
+                            t.appointment?.rank_id ||
+                            "-"}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                          {serviceMap[t.appointment?.service_id] ||
+                            t.appointment?.service_id ||
+                            "-"}
+                        </div>
+                      </div>
+
+                      {/* Workplace */}
+                      <div className="md:col-span-3">
+                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
+                          Workplace Address
+                        </p>
+                        <div className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300">
+                          <HiLocationMarker className="w-4 h-4 text-gray-400 shrink-0" />
+                          <span className="truncate">
+                            {t.current_appointment?.workplace?.institution
+                              ?.name || "No Workplace"}
+                          </span>
+                        </div>
+                        <div className="text-xs text-blue-600 dark:text-gray-400 truncate">
                           {t.current_appointment?.workplace?.institution
-                            ?.name || "No Workplace"}
-                        </span>
+                            ?.address || "-"}
+                        </div>
                       </div>
-                      <div className="text-xs text-blue-600 dark:text-gray-400 truncate">
-                        {t.current_appointment?.workplace?.institution?.address || "-"}
-                      </div>
-                    </div>
 
-                    {/* Contact */}
-                    <div className="md:col-span-2">
-                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
-                        Contact
-                      </p>
-                      <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
-                        <HiPhone className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                        <span className="truncate">{t.phone || "-"}</span>
+                      {/* Contact */}
+                      <div className="md:col-span-2">
+                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
+                          Contact
+                        </p>
+                        <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                          <HiPhone className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                          <span className="truncate">{t.phone || "-"}</span>
+                        </div>
                       </div>
-                    </div>
 
-                    {/* Status */}
-                    {/* <div className="md:col-span-2 flex md:justify-end gap-2">
+                      {/* Status */}
+                      {/* <div className="md:col-span-2 flex md:justify-end gap-2">
                       <Badge
                         color={
                           t.appointment?.is_confirmed ? "success" : "warning"
@@ -385,86 +402,84 @@ const TeacherList = () => {
                         {t.appointment?.is_confirmed ? "Confirmed" : "Pending"}
                       </Badge>
                     </div> */}
-                    {/* Status + Actions */}
-                    <div className="md:col-span-2 flex items-center justify-end gap-2 flex-nowrap">
+                      {/* Status + Actions */}
+                      <div className="md:col-span-2 flex items-center justify-end gap-2 flex-nowrap">
+                        <Badge
+                          color={appointmentStatus.color}
+                          className="px-3 py-1 whitespace-nowrap"
+                        >
+                          {appointmentStatus.label}
+                        </Badge>
 
-                      <Badge
-                        color={appointmentStatus.color}
-                        className="px-3 py-1 whitespace-nowrap"
-                      >
-                        {appointmentStatus.label}
-                      </Badge>
-
-                      {/* View Button */}
-                      <Button
-                        size="xs"
-                        color="dark"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/employees/teacher/${t.people_id}`);
-                        }}
-                        className="flex items-center gap-1"
-                      >
-                        <HiEye className="w-4 h-4" />
-                        View
-                      </Button>
-
-                      {/* 3 Dot Menu */}
-                      <div className="relative">
-                        <button
+                        {/* View Button */}
+                        <Button
+                          size="xs"
+                          color="dark"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setOpenMenuId(
-                              openMenuId === t.people_id ? null : t.people_id,
-                            );
+                            navigate(`/employees/teacher/${t.people_id}`);
                           }}
-                          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                          className="flex items-center gap-1"
                         >
-                          <HiDotsVertical className="w-5 h-5 text-gray-500" />
-                        </button>
+                          <HiEye className="w-4 h-4" />
+                          View
+                        </Button>
 
-                        {openMenuId === t.people_id && (
-                          <div
-                            onClick={(e) => e.stopPropagation()}
-                            className="absolute right-0 top-9 z-50 w-44 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 py-1"
+                        {/* 3 Dot Menu */}
+                        <div className="relative">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenMenuId(
+                                openMenuId === t.people_id ? null : t.people_id,
+                              );
+                            }}
+                            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
                           >
-                            <button
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                setOpenMenuId(null);
-                                const blob = await printTeacherId(t.id);
-                                const url = URL.createObjectURL(blob);
-                                window.open(url, "_blank");
-                              }}
-                              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                            <HiDotsVertical className="w-5 h-5 text-gray-500" />
+                          </button>
+
+                          {openMenuId === t.people_id && (
+                            <div
+                              onClick={(e) => e.stopPropagation()}
+                              className="absolute right-0 top-9 z-50 w-44 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 py-1"
                             >
-                              <HiIdentification className="w-4 h-4 text-gray-400" />
-                              Print ID
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setOpenMenuId(null);
-                              }}
-                              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50"
-                            >
-                              <HiDocumentText className="w-4 h-4 text-gray-400" />
-                              Export PDF
-                            </button>
-                          </div>
-                        )}
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  setOpenMenuId(null);
+                                  const blob = await printTeacherId(t.id);
+                                  const url = URL.createObjectURL(blob);
+                                  window.open(url, "_blank");
+                                }}
+                                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                              >
+                                <HiIdentification className="w-4 h-4 text-gray-400" />
+                                Print ID
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenMenuId(null);
+                                }}
+                                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                              >
+                                <HiDocumentText className="w-4 h-4 text-gray-400" />
+                                Export PDF
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
+                    </div>
 
+                    {/* Actions (Standalone PDF for example) */}
+                    <div className="md:hidden flex items-center gap-3 border-t border-gray-100 dark:border-gray-700 pt-3 mt-1">
+                      <div className="text-blue-600 text-sm flex items-center gap-1">
+                        <HiEye /> View Profile
+                      </div>
                     </div>
                   </div>
-
-                  {/* Actions (Standalone PDF for example) */}
-                  <div className="md:hidden flex items-center gap-3 border-t border-gray-100 dark:border-gray-700 pt-3 mt-1">
-                    <div className="text-blue-600 text-sm flex items-center gap-1">
-                      <HiEye /> View Profile
-                    </div>
-                  </div>
-                </div>
                 );
               })}
 

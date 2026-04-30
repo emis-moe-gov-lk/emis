@@ -28,6 +28,7 @@ const MyProfileLayout = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
+        const peopleId = localStorage.getItem("peopleId"); // Get the ID from local storage
         if (!peopleId) return;
 
         const token = await getAccessToken();
@@ -49,7 +50,7 @@ const MyProfileLayout = () => {
     };
 
     fetchProfile();
-  }, []);
+  }, [peopleId, getAccessToken]);
 
   if (!profileData) {
     <Spinner />;
