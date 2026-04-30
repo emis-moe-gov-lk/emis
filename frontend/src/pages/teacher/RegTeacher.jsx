@@ -29,6 +29,7 @@ function RegTeacherInner() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [contactApiErrors, setContactApiErrors] = useState({});
   const [isRegistrationComplete, setIsRegistrationComplete] = useState(false);
+  const [registrationSummary, setRegistrationSummary] = useState(null);
   const isPopNavigationRef = useRef(false);
   const lastHistoryStepRef = useRef(null);
   const currentStepRef = useRef(1);
@@ -399,6 +400,28 @@ function RegTeacherInner() {
         const result = await registerTeacher(formData);
 
         if (result.status === "success") {
+          const responseData = result.data || {};
+          const summary = {
+            name:
+              responseData.name ||
+              responseData.fullName ||
+              responseData.full_name ||
+              formData.fullName,
+            nic: responseData.nic || responseData.NIC || responseData.nic_no || formData.nic,
+            email: responseData.email || responseData.email_address || formData.email,
+            contact: responseData.contact || responseData.phone || responseData.phone_no || formData.contact,
+            currentAppointmentPositionName:
+              responseData.currentAppointmentPositionName ||
+              responseData.current_appointment_position_name ||
+              responseData.currentAppointmentPositionLabel ||
+              responseData.currentAppointmentPosition ||
+              formData.currentAppointmentPositionName ||
+              formData.currentAppointmentPositionLabel ||
+              formData.currentAppointmentPosition,
+          };
+
+          setRegistrationSummary(summary);
+          dispatch({ type: "UPDATE_FORM_DATA", payload: summary });
           dispatch({ type: "COMPLETE_REGISTRATION" });
           setIsRegistrationComplete(true);
           showSuccessToast("Teacher registered successfully", "teacher-registration-success");
@@ -549,21 +572,20 @@ function RegTeacherInner() {
 
               <div className="bg-gray-50 rounded-2xl p-6 space-y-2 text-sm">
                 <p>
-                  <strong>Name:</strong> {formData.fullName}
+                  <strong>Name:</strong> {registrationSummary?.name || "-"}
                 </p>
                 <p>
-                  <strong>NIC:</strong> {formData.nic}
+                  <strong>NIC:</strong> {registrationSummary?.nic || "-"}
                 </p>
                 <p>
-                  <strong>Email:</strong> {formData.email}
+                  <strong>Email:</strong> {registrationSummary?.email || "-"}
                 </p>
                 <p>
-                  <strong>Contact Number:</strong> {formData.contact}
+                  <strong>Contact Number:</strong> {registrationSummary?.contact || "-"}
                 </p>
                 <p>
                   <strong>Current Appointed Position:</strong>{" "}
-                  {formData.currentAppointmentPositionLabel ||
-                    formData.currentAppointmentPosition}
+                  {registrationSummary?.currentAppointmentPositionName || "-"}
                 </p>
               </div>
 
