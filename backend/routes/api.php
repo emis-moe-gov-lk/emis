@@ -118,8 +118,9 @@ Route::prefix('')->group(function () {
         Route::get('/teacher/{people_id}', 'getTeacher');
         Route::get('/teachers/check-nic/{nic}', 'getTeacherWithNIC');
         Route::get('/teachers/personal-form-data', 'getPersonalFromData');
-        Route::get('/teachers/appointment-form-data', 'getAppoinmentFromData');  // UPDATE
-        Route::post('/teachers/check-contact', 'checkContact');                  // POST check email/phone
+        Route::get('/teachers/appointment-form-data', 'getAppoinmentFromData');                         // first appointment
+        Route::get('/teachers/current-appointment-form-data', 'getCurrentAppointmentFormData');      // current appointment (role-filtered)
+        Route::post('/teachers/check-contact', 'checkContact');                                       // POST check email/phone
     });
 
     Route::controller(PrincipalApiController::class)->middleware('auth:jwt')->group(function () {

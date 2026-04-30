@@ -836,6 +836,46 @@ class TeacherApiController extends Controller
         ]);
     }
 
+    public function getCurrentAppointmentFormData(Request $request)
+    {
+        $service = $request->query('service');
+        $institutionCategory = $request->query('ins_cat');
+        $zone = $request->query('zone');
+
+        $roles = $request->attributes->get('jwt_roles', []);
+        $isSuperAdmin = in_array('super admin', $roles);
+
+        if ($isSuperAdmin) {
+            $zonalOffices = ZonalEducationOffice::active()->get();
+        } else {
+            $workplaceId = auth()->user()?->currentAppointment?->workplace_id;
+
+            // Check if the user works directly at a ZEO (zonal deo)
+            $zeo = ZonalEducationOffice::where('workplace_id', $workplaceId)->active()->first();
+
+            if ($zeo) {
+                $zonalOffices = collect([$zeo]);
+            } else {
+                // Development officer — find their parent ZEO via their divisional office
+                $zeoWpId = DivisionalEducationOffice::where('workplace_id', $workplaceId)->value('zeo_wp_id');
+                $zonalOffices = $zeoWpId
+                    ? ZonalEducationOffice::where('workplace_id', $zeoWpId)->active()->get()
+                    : collect();
+            }
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'service' => Service::active()->get(),
+            'serviceRanks' => $service ? ServiceRank::where('service_id', $service)->active()->get() : [],
+            'positions' => $service ? Position::where('service_id', $service)->active()->get() : [],
+            'mainTeachingSubjects' => SubjectList::active()->orderBy('name_en')->get(),
+            'institutionCategory' => InstitutionCategory::active()->get(),
+            'zonalEducationOffices' => $zonalOffices,
+            'institutions' => $zone && $institutionCategory ? Institution::where('zeo_wp_id', $zone)->where('institution_category_id', $institutionCategory)->get() : [],
+        ]);
+    }
+
     public function checkContact(Request $request)
     {
         $request->validate([

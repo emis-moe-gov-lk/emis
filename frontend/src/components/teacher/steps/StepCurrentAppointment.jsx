@@ -46,7 +46,7 @@ export default function StepCurrentAppointment({
     const fetchData = async () => {
       try {
         const res = await api.get(
-          `/teachers/appointment-form-data?service=${formData.currentAppointmentService || ""}&ins_cat=${formData.currentAppointmentInstCategory || ""}&zone=${formData.currentAppointmentZone || ""}`,
+          `/teachers/current-appointment-form-data?service=${formData.currentAppointmentService || ""}&ins_cat=${formData.currentAppointmentInstCategory || ""}&zone=${formData.currentAppointmentZone || ""}`,
         );
 
         const data = res.data;
