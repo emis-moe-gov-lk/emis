@@ -21,6 +21,11 @@ import { useAuthUser } from "@/context/useAuthUser";
  * - Keeps ALL information sections (General / Qualification / Employment / W&OP / Family / Edit Request)
  * - Ready for API integration later (just replace the dummy state + uncomment fetch section)
  */
+const formatDate = (value) => {
+  if (!value) return null;
+  return String(value).slice(0, 10);
+};
+
 const TeacherProfile = () => {
   const { id } = useParams();
   const { state: authState, getDecodedIDToken } = useAuthContext();
@@ -372,7 +377,7 @@ const TeacherProfile = () => {
             latestRejectCommentRecord?.created_at ||
             null,
 
-          dob: d.date_of_birth,
+          dob: formatDate(d.date_of_birth),
           gender: d.gender?.gender_name,
           religion: d.religion?.religion_name,
           ethnicity: d.ethnicity?.ethnicity_name,
@@ -405,23 +410,27 @@ const TeacherProfile = () => {
         appointmentCurrentStatus: {
           service: d.current_appointment?.service?.service_name ?? d.current_appointment?.service_id,
           currentServiceRank: d.current_appointment?.rank?.name ?? d.current_appointment?.rank?.rank_name ?? d.current_appointment?.rank_id,
-          appointmentDate: d.current_appointment?.appoint_date,
+          appointmentDate: formatDate(d.current_appointment?.appoint_date),
           positionDesignation: d.current_appointment?.position?.position_name ?? d.current_appointment?.position_id,
           workplaceNameAddress: d.current_appointment?.workplace?.institution
             ? `[${d.current_appointment.workplace.institution.census_no}] ${d.current_appointment.workplace.institution.name}\n${d.current_appointment.workplace.institution.address}`
             : "",
+             lastUpdated: formatDate(d.appointment?.updated_at),
+             appointmentNumber: d.appointment?.appointment_letter_no,
         },
         myAppointment: {
           service: d.appointment?.service?.service_name ?? d.appointment?.service_id,
           serviceRank: d.appointment?.rank?.name ?? d.appointment?.rank?.rank_name ?? d.appointment?.rank_id,
-          appointmentDate: d.appointment?.first_appointment_date,
+          appointmentDate: formatDate(d.appointment?.first_appointment_date),
           appointmentNumber: d.appointment?.appointment_letter_no,
           positionDesignation: d.appointment?.position?.position_name ?? d.appointment?.position_id,
+          createdAt: formatDate(d.appointment?.created_at),
+         
         },
         teachingInfo: {
           teacherCategory: d.teacher?.teacher_category?.name,
           teacherAppointmentType: d.teacher?.teacher_type?.type_name,
-          medium: d.teacher?.appointment_medium?.name,
+          medium: d.teacher?.medium?.name,
           appointmentSubject: d.teacher?.appointment_subject?.name_en,
           mainTeachingSubject: d.teacher?.main_subject?.name_en,
           secondarySubjectOptional: d.teacher?.secondary_subject?.name_en,
@@ -1504,13 +1513,16 @@ function EmploymentTab({ employment }) {
           <FieldCell label="Appointment Date" value={ecs.appointmentDate} />
           <FieldCell
             label="Appointment/Transfer Letter No"
-            value={ecs.transferLetterNo}
+            value={ecs.appointmentNumber}
           />
           <FieldCell
             label="Position / Designation"
             value={ecs.positionDesignation}
           />
-          <FieldCell label="Last Updated" value={ecs.lastUpdated} />
+          <FieldCell label="Last Updated"
+           value={ecs.lastUpdated} 
+           />
+
           <div className="md:col-span-2">
             <FieldCell
               label="Workplace name and address"
@@ -1545,7 +1557,7 @@ function EmploymentTab({ employment }) {
             label="Position / Designation"
             value={ma.positionDesignation}
           />
-          <FieldCell label="Created" value={ma.created} />
+          <FieldCell label="Created" value={ma.createdAt} />
           <div className="md:col-span-2">
             <FieldCell
               label="Workplace name and address"

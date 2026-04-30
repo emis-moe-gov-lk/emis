@@ -628,6 +628,8 @@ class TeacherApiController extends Controller
             'appointment.service',
             'appointment.rank',
             'appointment.position',
+            'appointment.workplace',
+            'appointment.workplace.institution',
 
             // Current appointment resolved fields
             'currentAppointment.service',
@@ -643,6 +645,7 @@ class TeacherApiController extends Controller
             'teacher.mainSubject',
             'teacher.secondarySubject',
             'teacher.currentTeachingSubject',
+           
 
         ])
             ->whereHas('appointment')
