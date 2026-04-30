@@ -106,7 +106,7 @@ export default function AppRoutes() {
             <Route path="/dashboard" element={<UpdateDashbord />} />
 
             <Route path="dashboard/VersionPage" element={<VersionPage />} />
-            <Route path="dashboard/profile/:id" element={<MyProfileLayout />} />
+            <Route path="dashboard/profile" element={<MyProfileLayout />} />
             <Route path="dashboard/Settings" element={<Settings />} />
 
             {/* Institution routes */}
@@ -202,7 +202,10 @@ export default function AppRoutes() {
               element={<DosDirectory />}
             />
             <Route path="employees/principal" element={<PrincipalList />} />
-            <Route path="employees/principal/:id" element={<PrincipalProfile />} />
+            <Route
+              path="employees/principal/:id"
+              element={<PrincipalProfile />}
+            />
 
             <Route path="offices/moe" element={<MoeOfficeList />} />
             <Route path="offices/pmoe" element={<PmoeOfficeList />} />

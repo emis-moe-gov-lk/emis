@@ -77,7 +77,7 @@ const UserProfile = ({ userInfo, placement = "bottom" }) => {
               <button
                 className="w-full text-left px-4 py-2 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 dark:hover:text-gray-300 hover:rounded-lg flex items-center gap-2"
                 onClick={() => {
-                  navigate("/dashboard/profile");
+                  navigate("/dashboard/profile/");
                   setOpen(false); // close dropdown
                 }}
               >
