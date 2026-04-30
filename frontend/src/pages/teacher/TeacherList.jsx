@@ -239,7 +239,7 @@ const TeacherList = () => {
         </div>
         <div className="flex items-center gap-2">
           <Badge color="blue" size="lg">
-            Total: {filteredTeachers.length}
+            Total: {total || 0}
           </Badge>
         </div>
       </div>
