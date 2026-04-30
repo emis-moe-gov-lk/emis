@@ -349,7 +349,7 @@ const TeacherProfile = () => {
           employeeId: d.people_id,
           wopNo: d.appointment?.w_op_no,
           paySheetNo: d.appointment?.pay_sheet_no,
-          service: d.appointment?.service_id,
+          service: d.appointment?.service?.service_name ?? d.appointment?.service_id,
           status: resolvedStatus.status,
           profileStatus:
             d.profile_status ?? d.appointment?.profile_status ?? null,
@@ -403,25 +403,25 @@ const TeacherProfile = () => {
               --------------------------- */
       setEmployment({
         appointmentCurrentStatus: {
-          service: d.current_appointment?.service_id,
-          currentServiceRank: d.current_appointment?.rank_id,
+          service: d.current_appointment?.service?.service_name ?? d.current_appointment?.service_id,
+          currentServiceRank: d.current_appointment?.rank?.name ?? d.current_appointment?.rank?.rank_name ?? d.current_appointment?.rank_id,
           appointmentDate: d.current_appointment?.appoint_date,
-          positionDesignation: d.current_appointment?.position_id,
+          positionDesignation: d.current_appointment?.position?.position_name ?? d.current_appointment?.position_id,
           workplaceNameAddress: d.current_appointment?.workplace?.institution
             ? `[${d.current_appointment.workplace.institution.census_no}] ${d.current_appointment.workplace.institution.name}\n${d.current_appointment.workplace.institution.address}`
             : "",
         },
         myAppointment: {
-          service: d.appointment?.service_id,
-          serviceRank: d.appointment?.rank_id,
+          service: d.appointment?.service?.service_name ?? d.appointment?.service_id,
+          serviceRank: d.appointment?.rank?.name ?? d.appointment?.rank?.rank_name ?? d.appointment?.rank_id,
           appointmentDate: d.appointment?.first_appointment_date,
           appointmentNumber: d.appointment?.appointment_letter_no,
-          positionDesignation: d.appointment?.position_id,
+          positionDesignation: d.appointment?.position?.position_name ?? d.appointment?.position_id,
         },
         teachingInfo: {
-          teacherCategory: d.teacher?.teacher_category,
-          teacherAppointmentType: d.teacher?.teacher_type,
-          medium: d.teacher?.appointment_medium,
+          teacherCategory: d.teacher?.teacher_category?.name,
+          teacherAppointmentType: d.teacher?.teacher_type?.type_name,
+          medium: d.teacher?.appointment_medium?.name,
           appointmentSubject: d.teacher?.appointment_subject?.name_en,
           mainTeachingSubject: d.teacher?.main_subject?.name_en,
           secondarySubjectOptional: d.teacher?.secondary_subject?.name_en,

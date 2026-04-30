@@ -624,8 +624,21 @@ class TeacherApiController extends Controller
             'currentAppointment.workplace.divisional',
             'currentAppointment.workplace.institution',
 
+            // First appointment resolved fields
+            'appointment.service',
+            'appointment.rank',
+            'appointment.position',
+
+            // Current appointment resolved fields
+            'currentAppointment.service',
+            'currentAppointment.rank',
+            'currentAppointment.position',
+
             // Teacher relationships (if exist)
             'teacher',
+            'teacher.teacherCategory',
+            'teacher.teacherType',
+            'teacher.medium',
             'teacher.appointmentSubject',
             'teacher.mainSubject',
             'teacher.secondarySubject',
