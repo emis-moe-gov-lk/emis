@@ -126,7 +126,7 @@ export default function StepFinishing({ formData }) {
                         onClick={handleDownloadProfile}
                         className="rounded-full bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 transition"
                     >
-                        Download Profileaaaaaaaa
+                        Download Profile
                     </button>
                 </div>
             </div>
