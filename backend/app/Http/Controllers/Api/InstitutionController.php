@@ -39,10 +39,28 @@ class InstitutionController extends Controller
         ];
 
         $isAdmin = in_array('super admin', $roles) || in_array('admin', $roles);
-        $isDeo = in_array('development officer', $roles)
-            || in_array('zonal deo', $roles)
-            || in_array('development officer head', $roles)
-            || in_array('zonal deo head', $roles);
+        $isZonalDeo = in_array('Zonal DEO', $roles) || in_array('zonal deo head', $roles);
+        $isDeo = in_array('development officer', $roles) || in_array('development officer head', $roles);
+
+        // Zonal DEO: return all institutions under their ZEO zone
+        if ($isZonalDeo) {
+            $workplaceId = $authed?->currentAppointment?->workplace_id;
+
+            $query = Institution::with($with);
+
+            if ($workplaceId) {
+                $query->where('zeo_wp_id', $workplaceId);
+            } else {
+                $query->whereRaw('0 = 1');
+            }
+
+            $institutions = $query->orderBy('name')->paginate(20)->withQueryString();
+
+            return response()->json([
+                'status' => 'success',
+                'data'   => $institutions,
+            ]);
+        }
 
         // DEO officer: return all institutions under their DEO division
         if ($isDeo) {
