@@ -1,5 +1,7 @@
 import { HiCheckCircle } from "react-icons/hi";
 import { useNavigate } from "react-router-dom";
+import { downloadTeacherProfileDocument } from "@/api/teacherService";
+import toast from "react-hot-toast";
 
 export default function StepFinishing({ formData }) {
     const navigate = useNavigate();
@@ -8,6 +10,37 @@ export default function StepFinishing({ formData }) {
         // 🔴 Force full reset of RegTeacher state
         navigate("/teacher/create", { replace: true });
         window.location.reload();
+    };
+
+    const handleDownloadProfile = async () => {
+        const peopleId = formData?.people_id || formData?.peopleId || formData?.peopleId;
+        if (!peopleId) {
+            toast.error("Missing people id for download.");
+            return;
+        }
+
+        try {
+            const response = await downloadTeacherProfileDocument(peopleId);
+            const contentType = response.headers?.['content-type'] || 'application/pdf';
+            const filenameHeader = response.headers?.['content-disposition'] || '';
+            const match = filenameHeader.match(/filename="?([^";]+)"?/i);
+            const filename = (match && match[1]) ? match[1] : `teacher-profile-${peopleId}.pdf`;
+
+            const blob = new Blob([response.data], { type: contentType });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+                window.URL.revokeObjectURL(url);
+                a.remove();
+            }, 3000);
+        } catch (err) {
+            console.error(err);
+            toast.error('Unable to download profile PDF');
+        }
     };
 
     return (
@@ -90,6 +123,7 @@ export default function StepFinishing({ formData }) {
 
                     <button
                         type="button"
+                        onClick={handleDownloadProfile}
                         className="rounded-full bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 transition"
                     >
                         Download Profile
