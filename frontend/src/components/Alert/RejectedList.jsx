@@ -1,355 +1,229 @@
-import React, { useState } from "react";
-import { MdCancel, MdRestore, MdDelete, MdInfo, MdComment } from "react-icons/md";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Badge, Button, Spinner, TextInput } from "flowbite-react";
+import { HiUser, HiLocationMarker, HiSearch, HiEye, HiChevronLeft, HiChevronRight, HiX } from "react-icons/hi";
+import { MdComment } from "react-icons/md";
+import api from "@/api/axios";
 
-const RejectedList = ({
-  rejectedItems = [],
-  workplaceName = "All Workplaces",
-}) => {
+const RejectedList = () => {
+  const navigate = useNavigate();
+  const [teachers, setTeachers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
   const [selectedItem, setSelectedItem] = useState(null);
   const [showReasonModal, setShowReasonModal] = useState(false);
-  const [alerts, setAlerts] = useState({
-    success: "",
-    error: "",
-    warning: "",
-    info: "",
-  });
 
-  // Filter rejected items based on search query
-  const filteredItems = rejectedItems.filter((item) =>
-    [item.nic, item.name, item.position, item.service, item.rejectionReason, item.rejectedBy].some((field) =>
+  useEffect(() => {
+    setLoading(true);
+    api.get(`/alerts/rejected?per_page=20&page=${currentPage}`)
+      .then((res) => {
+        if (res.data?.status === "success") {
+          setTeachers(res.data.data.data ?? []);
+          setLastPage(res.data.data.last_page ?? 1);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [currentPage]);
+
+  const filteredTeachers = teachers.filter((t) =>
+    [t.full_name, t.name_with_initials].some((field) =>
       field?.toLowerCase().includes(searchQuery.toLowerCase()),
     ),
   );
 
-  // Handle restore action (move back to pending)
-  const handleRestore = async (item) => {
-    if (window.confirm(`Are you sure you want to restore ${item.name} for re-verification?`)) {
-      try {
-        setAlerts({
-          ...alerts,
-          success: `${item.name} has been restored to pending verification list.`,
-        });
-        setTimeout(() => setAlerts({ ...alerts, success: "" }), 3000);
-      } catch (error) {
-        setAlerts({
-          ...alerts,
-          error: `Failed to restore ${item.name}. Please try again.`,
-        });
-        setTimeout(() => setAlerts({ ...alerts, error: "" }), 3000);
-      }
-    }
-  };
-
-  // Handle permanent delete
-  const handleDelete = async (item) => {
-    if (window.confirm(`Are you sure you want to permanently delete ${item.name}? This action cannot be undone.`)) {
-      try {
-        setAlerts({
-          ...alerts,
-          success: `${item.name} has been permanently deleted.`,
-        });
-        setTimeout(() => setAlerts({ ...alerts, success: "" }), 3000);
-      } catch (error) {
-        setAlerts({
-          ...alerts,
-          error: `Failed to delete ${item.name}. Please try again.`,
-        });
-        setTimeout(() => setAlerts({ ...alerts, error: "" }), 3000);
-      }
-    }
-  };
-
-  // Handle view rejection reason
-  const handleViewReason = (item) => {
-    setSelectedItem(item);
+  const handleViewReason = (teacher) => {
+    setSelectedItem(teacher);
     setShowReasonModal(true);
   };
 
-  // Clear alert
-  const clearAlert = (type) => {
-    setAlerts({ ...alerts, [type]: "" });
-  };
-
   return (
-    <div className="w-full relative mb-6">
-      {/* Heading */}
-      <h1 className="text-xl font-bold mb-2">
-        Rejected Items List for {workplaceName}
-      </h1>
-      <h2 className="text-sm font-semibold mb-6 text-slate-600">
-        Manage rejected profiles, verification requests, and account approvals
-      </h2>
-      <hr className="border-t border-slate-200 mb-6" />
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Rejected</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Teacher profiles that have been rejected</p>
+        </div>
+        <Badge color="failure" size="lg">Rejected</Badge>
+      </div>
 
-      {/* Alerts */}
-      {Object.entries(alerts).map(
-        ([type, message]) =>
-          message && (
-            <div
-              key={type}
-              className={`mb-4 px-4 py-2 rounded border relative ${
-                type === "success"
-                  ? "bg-green-50 border-green-200 text-green-700"
-                  : type === "error"
-                    ? "bg-red-50 border-red-200 text-red-700"
-                    : type === "warning"
-                      ? "bg-yellow-50 border-yellow-200 text-yellow-700"
-                      : "bg-blue-50 border-blue-200 text-blue-700"
-              }`}
-            >
-              <span>{message}</span>
-              <button
-                onClick={() => clearAlert(type)}
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
-                ×
-              </button>
-            </div>
-          ),
-      )}
-
-      
-      {/* Search Input */}
-      <div className="my-6 flex justify-end">
-        <input
+      <div className="w-full sm:max-w-md">
+        <TextInput
           type="text"
-          placeholder="Search by name, NIC, rejection reason, or rejected by..."
+          icon={HiSearch}
+          placeholder="Search by name..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-60 md:w-80 px-4 py-2 border rounded-xl focus:ring-2 focus:ring-red-500 shadow-sm"
         />
       </div>
 
-      {/* Rejected Items Table */}
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200 border rounded-lg shadow-sm">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                Name
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                Designation
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                Rejection Reason
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                Rejected By
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                Rejected Date
-              </th>
-              
-            </tr>
-          </thead>
-
-          <tbody className="bg-white divide-y divide-gray-200">
-            {filteredItems.length > 0 ? (
-              filteredItems.map((item) => (
-                <tr
-                  key={item.id}
-                  className="hover:bg-gray-50 transition-colors duration-150"
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700">
+          <Spinner size="xl" color="info" />
+          <p className="mt-4 text-gray-500 dark:text-gray-400 animate-pulse font-medium">Loading...</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {filteredTeachers.length > 0 ? (
+            <>
+              {filteredTeachers.map((teacher) => (
+                <div
+                  key={teacher.people_id}
+                  onClick={() => navigate(`/employees/teacher/${teacher.people_id}`)}
+                  className="group flex flex-col md:flex-row md:items-center gap-4 p-5 bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-md border border-gray-100 dark:border-gray-700 transition-all duration-200 hover:border-red-100 dark:hover:border-red-900/30 cursor-pointer"
                 >
-                  {/* Name */}
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center gap-4">
-                      <div className="h-11 w-11 rounded-full overflow-hidden border">
-                        <img
-                          className="h-full w-full object-cover"
-                          src={
-                            item.gender === "F"
-                              ? "/images/profile_f.png"
-                              : "/images/profile_m.png"
-                          }
-                          alt="Profile"
-                        />
+                  <div className="flex items-center gap-4 min-w-[60px]">
+                    <div className="p-2.5 bg-red-50 dark:bg-red-900/20 rounded-xl text-red-600 dark:text-red-400 group-hover:scale-110 transition-transform">
+                      <HiUser className="w-6 h-6" />
+                    </div>
+                  </div>
+
+                  <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                    <div className="md:col-span-4">
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-white truncate group-hover:text-red-600 transition-colors">
+                        {teacher.full_name}
+                      </h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{teacher.name_with_initials}</p>
+                    </div>
+
+                    <div className="md:col-span-4">
+                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">School</p>
+                      <div className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300">
+                        <HiLocationMarker className="w-4 h-4 text-gray-400 shrink-0" />
+                        <span className="truncate">
+                          {teacher.current_appointment?.workplace?.institution?.name ?? "—"}
+                        </span>
                       </div>
-                      <div>
-                        <div className="text-sm font-semibold text-gray-900">
-                          {item.title} {item.name}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          NIC:{" "}
-                          <span className="font-medium">{item.nic}</span>
-                        </div>
+                      <div className="text-xs text-blue-600 dark:text-gray-400 truncate">
+                        {teacher.current_appointment?.workplace?.institution?.census_no ?? ""}
                       </div>
                     </div>
-                   </td>
 
-                  {/* Designation */}
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
-                      {item.position}
+                    <div className="md:col-span-2">
+                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Appointment Date</p>
+                      <div className="text-sm text-gray-700 dark:text-gray-200">
+                        {teacher.appointment?.first_appointment_date?.slice(0, 10) ?? "—"}
+                      </div>
                     </div>
-                    <div className="text-xs text-gray-500">
-                      {item.service}
-                    </div>
-                   </td>
 
-                  {/* Rejection Reason - Truncated */}
-                  <td className="px-6 py-4 max-w-xs">
-                    <div className="text-sm text-gray-700 truncate">
-                      {item.rejectionReason || "No reason provided"}
+                    <div className="md:col-span-2 flex items-center justify-end gap-2">
+                      <Badge color="failure" className="px-3 py-1 whitespace-nowrap">Rejected</Badge>
+                      <Button
+                        size="xs"
+                        color="failure"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleViewReason(teacher);
+                        }}
+                        className="flex items-center gap-1"
+                      >
+                        Reason
+                      </Button>
+                      <Button
+                        size="xs"
+                        color="dark"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/employees/teacher/${teacher.people_id}`);
+                        }}
+                        className="flex items-center gap-1"
+                      >
+                        <HiEye className="w-4 h-4" />
+                        View
+                      </Button>
                     </div>
-                    <button
-                      onClick={() => handleViewReason(item)}
-                      className="text-xs text-red-600 hover:text-red-800 mt-1 inline-flex items-center gap-1"
-                    >
-                      <MdInfo size={12} />
-                      View full reason
-                    </button>
-                   </td>
+                  </div>
+                </div>
+              ))}
 
-                  {/* Rejected By */}
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {item.rejectedBy || "System"}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {item.rejectedRole || "Admin"}
-                    </div>
-                   </td>
-
-                  {/* Rejected Date */}
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {item.rejectedAt}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {item.rejectedDaysAgo ? `${item.rejectedDaysAgo} days ago` : ""}
-                    </div>
-                   </td>
-
-                  
-                 </tr>
-              ))
-            ) : (
-              <tr>
-                  <td
-                    colSpan={6}
-                    className="text-center py-8 text-gray-400 text-sm"
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+                <span className="text-sm text-gray-500 dark:text-gray-400 order-2 sm:order-1">
+                  Showing page <span className="font-semibold text-gray-900 dark:text-white">{currentPage}</span> of{" "}
+                  <span className="font-semibold text-gray-900 dark:text-white">{lastPage}</span>
+                </span>
+                <div className="flex gap-2 order-1 sm:order-2 w-full sm:w-auto">
+                  <Button
+                    color="gray"
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    className="flex-1 sm:flex-none border-gray-200 dark:border-gray-700 shadow-sm enabled:hover:text-blue-600"
                   >
-                    <div className="flex flex-col items-center gap-2">
-                      <p>No rejected items found</p>
-                      
-                    </div>
-                  </td>
-               </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+                    <HiChevronLeft className="w-5 h-5 mr-1" />
+                    Previous
+                  </Button>
+                  <Button
+                    color="gray"
+                    disabled={currentPage === lastPage}
+                    onClick={() => setCurrentPage((p) => Math.min(lastPage, p + 1))}
+                    className="flex-1 sm:flex-none border-gray-200 dark:border-gray-700 shadow-sm enabled:hover:text-blue-600"
+                  >
+                    Next
+                    <HiChevronRight className="w-5 h-5 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700">
+              <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-full w-fit mx-auto mb-4">
+                <HiUser className="w-8 h-8 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">No records found</h3>
+              <p className="text-gray-500 max-w-sm mx-auto mt-2">No rejected teacher profiles.</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Reason Modal */}
       {showReasonModal && selectedItem && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-lg w-full max-h-[80vh] overflow-y-auto">
-            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white">
-              <h3 className="text-lg font-semibold text-gray-900">Rejection Details</h3>
-              <button
-                onClick={() => setShowReasonModal(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <MdCancel size={24} />
+          <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-lg w-full max-h-[80vh] overflow-y-auto shadow-xl">
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center sticky top-0 bg-white dark:bg-gray-800">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Rejection Details</h3>
+              <button onClick={() => setShowReasonModal(false)} className="text-gray-400 hover:text-gray-600">
+                <HiX className="w-6 h-6" />
               </button>
             </div>
-            
+
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">
-                    Full Name
-                  </label>
-                  <p className="text-gray-900 font-semibold mt-1">
-                    {selectedItem.title} {selectedItem.name}
-                  </p>
+                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Full Name</label>
+                  <p className="text-gray-900 dark:text-white font-semibold mt-1">{selectedItem.full_name}</p>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">
-                    NIC
-                  </label>
-                  <p className="text-gray-900 font-semibold mt-1">{selectedItem.nic}</p>
+                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Name with Initials</label>
+                  <p className="text-gray-900 dark:text-white mt-1">{selectedItem.name_with_initials}</p>
                 </div>
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">
-                    Position
-                  </label>
-                  <p className="text-gray-900 mt-1">{selectedItem.position}</p>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">
-                    Service
-                  </label>
-                  <p className="text-gray-900 mt-1">{selectedItem.service}</p>
-                </div>
-              </div>
-
-              <hr className="border-t border-gray-200" />
 
               <div>
-                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">
-                  Rejected By
-                </label>
-                <p className="text-gray-900 mt-1">
-                  {selectedItem.rejectedBy} ({selectedItem.rejectedRole || "Admin"})
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">School</label>
+                <p className="text-gray-900 dark:text-white mt-1">
+                  {selectedItem.current_appointment?.workplace?.institution?.name ?? "—"}
                 </p>
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">
-                  Rejected Date
-                </label>
-                <p className="text-gray-900 mt-1">{selectedItem.rejectedAt}</p>
-              </div>
+              <hr className="border-t border-gray-200 dark:border-gray-700" />
 
               <div>
-                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
-                  Rejection Reason
-                </label>
-                <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Rejection Reason</label>
+                <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-xl border border-red-200 dark:border-red-800">
                   <div className="flex gap-2">
                     <MdComment className="text-red-500 mt-0.5 flex-shrink-0" />
-                    <p className="text-gray-800 whitespace-pre-wrap">
-                      {selectedItem.rejectionReason || "No specific reason provided."}
+                    <p className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
+                      No specific reason available at this time.
                     </p>
                   </div>
                 </div>
               </div>
-
-              {selectedItem.additionalComments && (
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
-                    Additional Comments
-                  </label>
-                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                    <p className="text-gray-700">{selectedItem.additionalComments}</p>
-                  </div>
-                </div>
-              )}
             </div>
 
-            <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3 sticky bottom-0 bg-white">
-              <button
-                onClick={() => setShowReasonModal(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                Close
-              </button>
-              <button
-                onClick={() => {
-                  handleRestore(selectedItem);
-                  setShowReasonModal(false);
-                }}
-                className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors inline-flex items-center gap-2"
-              >
-                <MdRestore size={16} />
-                Restore Item
-              </button>
+            <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end sticky bottom-0 bg-white dark:bg-gray-800">
+              <Button color="gray" onClick={() => setShowReasonModal(false)}>Close</Button>
             </div>
           </div>
         </div>

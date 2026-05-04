@@ -41,34 +41,12 @@ use Illuminate\Support\Facades\Hash;
 use App\Models\EmployerCurrentAppointment;
 use App\Models\DivisionalSecretariatOffice;
 use App\Services\TeacherToPrincipalPromotionService;
+use App\Traits\ResolvesZonalScope;
 
 
 class EmployerAppointmentConfirmationController extends Controller
 {
-    private function resolveUserZonalWorkplaceId(Request $request): ?string
-    {
-        $appointment = $request->user()?->currentAppointment;
-
-        if (! $appointment?->workplace_id) {
-            return null;
-        }
-
-        $workplaceId = $appointment->workplace_id;
-
-        if (ZonalEducationOffice::where('workplace_id', $workplaceId)->exists()) {
-            return $workplaceId;
-        }
-
-        $deoZonalWorkplaceId = DivisionalEducationOffice::where('workplace_id', $workplaceId)
-            ->value('zeo_wp_id');
-
-        if ($deoZonalWorkplaceId) {
-            return $deoZonalWorkplaceId;
-        }
-
-        return Institution::where('workplace_id', $workplaceId)
-            ->value('zeo_wp_id');
-    }
+    use ResolvesZonalScope;
 
     private function teacherBelongsToUserZonalArea(Request $request, EmployerCurrentAppointment $currentAppointment): bool
     {
@@ -748,30 +726,8 @@ public function updateRejectedStatus(Request $request, string $people_id)
         }
     }
 
-private function resolvedRoles(Request $request): array
-{
-    $jwtRoles = (array) $request->attributes->get('jwt_roles', []);
-    $dbRoles = $request->user()?->getRoleNames()?->all() ?? [];
-
-    return collect(array_merge($jwtRoles, $dbRoles))
-        ->filter(fn ($role) => is_string($role) && trim($role) !== '')
-        ->map(fn (string $role) => strtolower(trim(preg_replace('/\s+/', ' ', $role) ?? $role)))
-        ->unique()
-        ->values()
-        ->all();
-}
-
-private function hasAnyRole(array $roles, array $allowedRoles): bool
-{
-    $allowed = collect($allowedRoles)
-        ->map(fn (string $role) => strtolower(trim($role)))
-        ->all();
-
-    return ! empty(array_intersect($roles, $allowed));
-}
-
-private function hasRole(array $roles, string $role): bool
-{
-    return in_array(strtolower(trim($role)), $roles, true);
-}
+    private function hasRole(array $roles, string $role): bool
+    {
+        return in_array(strtolower(trim($role)), $roles, true);
+    }
 }
