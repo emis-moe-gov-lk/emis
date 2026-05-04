@@ -112,17 +112,6 @@ const RejectedList = () => {
                       <Badge color="failure" className="px-3 py-1 whitespace-nowrap">Rejected</Badge>
                       <Button
                         size="xs"
-                        color="failure"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleViewReason(teacher);
-                        }}
-                        className="flex items-center gap-1"
-                      >
-                        Reason
-                      </Button>
-                      <Button
-                        size="xs"
                         color="dark"
                         onClick={(e) => {
                           e.stopPropagation();

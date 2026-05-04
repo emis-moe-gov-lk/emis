@@ -39,6 +39,7 @@ class AlertController extends Controller
 
     public function counts(Request $request)
     {
+        $roles = $this->resolvedRoles($request);
         $query = $this->baseQuery($request);
 
         if ($query === null) {
@@ -53,9 +54,21 @@ class AlertController extends Controller
             ->whereHas('appointment', fn ($q) => $q->where('is_verified', 1)->where('is_confirmed', 0))
             ->count();
 
-        $rejected = (clone $query)
-            ->whereHas('appointment', fn ($q) => $q->where('is_verified', 2))
-            ->count();
+        $rejectedQuery = (clone $query)
+            ->whereHas('appointment', fn ($q) => $q->where('is_verified', 2));
+
+        // DEO only counts rejected teachers they personally created
+        $isDeo = $this->hasAnyRole($roles, ['development officer', 'Zonal DEO']);
+
+        if ($isDeo && ! $this->isSuperAdmin($roles)) {
+            $peopleId = $request->user()?->people_id;
+
+            if ($peopleId) {
+                $rejectedQuery->whereHas('appointment', fn ($q) => $q->where('created_by', $peopleId));
+            }
+        }
+
+        $rejected = $rejectedQuery->count();
 
         return response()->json([
             'status' => 'success',
@@ -111,16 +124,29 @@ class AlertController extends Controller
 
     public function rejected(Request $request)
     {
+        $roles = $this->resolvedRoles($request);
         $query = $this->baseQuery($request);
 
         if ($query === null) {
             return response()->json(['status' => 'error', 'message' => 'No zonal workplace mapped for this user.'], 403);
         }
 
+        $query->whereHas('appointment', fn ($q) => $q->where('is_verified', 2));
+
+        // DEO roles only see rejected teachers they personally created
+        $isDeo = $this->hasAnyRole($roles, ['development officer', 'Zonal DEO']);
+
+        if ($isDeo && ! $this->isSuperAdmin($roles)) {
+            $peopleId = $request->user()?->people_id;
+
+            if ($peopleId) {
+                $query->whereHas('appointment', fn ($q) => $q->where('created_by', $peopleId));
+            }
+        }
+
         $teachers = $query
-            ->whereHas('appointment', fn ($q) => $q->where('is_verified', 2))
             ->with([
-                'appointment:appointment_id,employee_id,is_verified,is_confirmed,first_appointment_date,appointment_letter_no',
+                'appointment:appointment_id,employee_id,is_verified,is_confirmed,first_appointment_date,appointment_letter_no,created_by',
                 'currentAppointment.workplace.institution:workplace_id,census_no,name',
             ])
             ->select('people_id', 'full_name', 'name_with_initials', 'nic_hash')
