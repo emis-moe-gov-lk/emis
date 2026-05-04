@@ -553,7 +553,7 @@ function RegTeacherInner() {
       >
         <HiArrowLeft /> Back To List
       </Button>
-      <div className="bg-gray-50 border border-gray-200 overflow-hidden">
+      <div className="border border-gray-200 overflow-hidden">
         {/* STEP HEADER */}
         <StepperHeader
           steps={steps}
@@ -622,32 +622,32 @@ function RegTeacherInner() {
           {/* ================= STEP 06 – FINISHING ================= */}
           {currentStep === 6 && (
             <div className="space-y-8">
-              <div className="flex items-start gap-4 bg-green-50 border border-green-200 rounded-2xl p-6">
-                <HiCheckCircle className="text-green-600 w-8 h-8 mt-1" />
+              <div className="flex items-start gap-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900/40 rounded-2xl p-6">
+                <HiCheckCircle className="text-green-600 dark:text-green-500 w-8 h-8 mt-1" />
                 <div>
-                  <h3 className="font-semibold text-green-800">
+                  <h3 className="font-semibold text-green-800 dark:text-green-300">
                     Teacher Registration Successfully
                   </h3>
-                  <p className="text-sm text-green-700 mt-1">
+                  <p className="text-sm text-green-700 dark:text-green-400 mt-1">
                     Registration has been completed successfully.
                   </p>
                 </div>
               </div>
 
-              <div className="bg-gray-50 rounded-2xl p-6 space-y-2 text-sm">
-                <p>
+              <div className="surface rounded-2xl p-6 space-y-2 text-sm">
+                <p className="text-gray-900 dark:text-gray-100">
                   <strong>Name:</strong> {registrationSummary?.name || "-"}
                 </p>
-                <p>
+                <p className="text-gray-900 dark:text-gray-100">
                   <strong>NIC:</strong> {registrationSummary?.nic || "-"}
                 </p>
-                <p>
+                <p className="text-gray-900 dark:text-gray-100">
                   <strong>Email:</strong> {registrationSummary?.email || "-"}
                 </p>
-                <p>
+                <p className="text-gray-900 dark:text-gray-100">
                   <strong>Contact Number:</strong> {registrationSummary?.contact || "-"}
                 </p>
-                <p>
+                <p className="text-gray-900 dark:text-gray-100">
                   <strong>Current Appointed Position:</strong>{" "}
                   {registrationSummary?.currentAppointmentPositionName || "-"}
                 </p>
@@ -655,14 +655,14 @@ function RegTeacherInner() {
 
               <div className="flex justify-center gap-4 pt-4">
                 <button
-                  className="px-6 py-2 rounded-full bg-gray-600 text-white"
+                  className="px-6 py-2 rounded-full bg-gray-600 dark:bg-gray-700 text-white hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors font-semibold"
                   onClick={resetRegistration}
                 >
                   New Registration
                 </button>
 
                 <button
-                  className="px-6 py-2 rounded-full bg-blue-600 text-white"
+                  className="px-6 py-2 rounded-full bg-blue-600 dark:bg-blue-700 text-white hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-semibold"
                   onClick={handleDownloadProfile}
                 >
                   Download Profile

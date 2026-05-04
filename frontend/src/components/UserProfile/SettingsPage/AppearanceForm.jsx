@@ -1,44 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { FiSun, FiMoon, FiMonitor, FiCheck } from "react-icons/fi";
+import { getTheme, setTheme as applyTheme } from "../../../lib/theme";
 
 const AppearanceForm = () => {
-  const [theme, setTheme] = useState("system");
-
-  // Load saved theme from localStorage on mount
-  useEffect(() => {
-    const savedTheme = localStorage.getItem("theme");
-    if (savedTheme) {
-      setTheme(savedTheme);
-    }
-  }, []);
-
-  // Apply theme whenever it changes
-  useEffect(() => {
-    const root = document.documentElement;
-
-    if (theme === "dark") {
-      root.classList.add("dark");
-      root.classList.remove("light");
-    } else if (theme === "light") {
-      root.classList.add("light");
-      root.classList.remove("dark");
-    } else {
-      // system default
-      const prefersDark = window.matchMedia(
-        "(prefers-color-scheme: dark)",
-      ).matches;
-      if (prefersDark) {
-        root.classList.add("dark");
-        root.classList.remove("light");
-      } else {
-        root.classList.add("light");
-        root.classList.remove("dark");
-      }
-    }
-
-    // Save theme to localStorage
-    localStorage.setItem("theme", theme);
-  }, [theme]);
+  const [theme, setTheme] = useState(() => getTheme());
 
   const themeOptions = [
     {
@@ -84,9 +49,12 @@ const AppearanceForm = () => {
             const isActive = theme === option.id;
 
             return (
-              <button
+                <button
                 key={option.id}
-                onClick={() => setTheme(option.id)}
+                onClick={() => {
+                  setTheme(option.id);
+                  applyTheme(option.id);
+                }}
                 className={`
                   w-full p-4 rounded-xl transition-all duration-200
                   flex items-center justify-between

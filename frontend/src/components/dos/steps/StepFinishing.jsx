@@ -39,36 +39,36 @@ export default function StepFinishing({ formData }) {
                 </div>
 
                 {/* Summary Card */}
-                <div className="rounded-2xl bg-white border shadow-sm p-6 space-y-3">
-                    <p className="text-sm font-medium text-gray-900">
+                <div className="rounded-2xl surface p-6 space-y-3">
+                    <p className="text-sm font-medium">
                         Name:{" "}
                         <span className="font-semibold">
                             {formData.fullName || "-"}
                         </span>
                     </p>
 
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="text-sm font-medium">
                         NIC:{" "}
                         <span className="font-semibold">
                             {formData.nic || "-"}
                         </span>
                     </p>
 
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="text-sm font-medium">
                         Email:{" "}
                         <span className="font-semibold">
                             {formData.email || "-"}
                         </span>
                     </p>
 
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="text-sm font-medium">
                         Contact Number:{" "}
                         <span className="font-semibold">
                             {formData.contact || "-"}
                         </span>
                     </p>
 
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="text-sm font-medium">
                         Current Appointed Position:{" "}
                         <span className="font-semibold">
                             {formData.currentAppointmentPositionName ||

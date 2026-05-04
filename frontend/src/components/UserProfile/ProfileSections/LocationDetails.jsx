@@ -78,7 +78,7 @@ const LocationDetails = ({ employee, canEdit }) => {
 
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-start">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                  <p className="text-[10px] font-bold uppercase tracking-widest">
                     Permanent Address
                   </p>
                   <span className="text-orange-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs">

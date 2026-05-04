@@ -12,8 +12,8 @@ function Dashboard() {
             {info ? (
                 <ClassTimeCard info={info} />
             ) : (
-                <div className="w-[280px] rounded-2xl bg-white border border-gray-200/80 shadow-sm p-6 text-center">
-                    <p className="text-sm text-gray-500">No upcoming classes</p>
+                <div className="w-[280px] rounded-2xl bg-white dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700 shadow-sm dark:shadow-gray-900/20 p-6 text-center">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">No upcoming classes</p>
                 </div>
             )}
         </div>

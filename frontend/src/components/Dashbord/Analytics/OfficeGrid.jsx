@@ -16,20 +16,20 @@ const OfficeGrid = ({ workplaceLevel, officeLists, search }) => {
     if (workplaceLevel === "OLID001" || workplaceLevel === "OLID002") {
       return (
         <div className="grid grid-cols-2 gap-4">
-          <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-            <div className="text-[10px] font-black text-slate-400 uppercase">
+          <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-slate-100 dark:border-gray-700 shadow-sm">
+            <div className="text-[10px] font-black text-slate-400 dark:text-gray-500 uppercase">
               Zonal (ZEO)
             </div>
-            <div className="text-2xl font-black text-slate-800">
+            <div className="text-2xl font-black text-slate-800 dark:text-white">
               {region.total_zeo}
             </div>
           </div>
 
-          <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-            <div className="text-[10px] font-black text-slate-400 uppercase">
+          <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-slate-100 dark:border-gray-700 shadow-sm">
+            <div className="text-[10px] font-black text-slate-400 dark:text-gray-500 uppercase">
               Divisional (DEO)
             </div>
-            <div className="text-2xl font-black text-slate-800">
+            <div className="text-2xl font-black text-slate-800 dark:text-white">
               {region.total_deo}
             </div>
           </div>
@@ -40,11 +40,11 @@ const OfficeGrid = ({ workplaceLevel, officeLists, search }) => {
     if (workplaceLevel === "OLID003") {
       return (
         <div className="grid grid-cols-1 gap-4">
-          <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-            <div className="text-[10px] font-black text-slate-400 uppercase">
+          <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-slate-100 dark:border-gray-700 shadow-sm">
+            <div className="text-[10px] font-black text-slate-400 dark:text-gray-500 uppercase">
               Divisional (DEO)
             </div>
-            <div className="text-2xl font-black text-slate-800">
+            <div className="text-2xl font-black text-slate-800 dark:text-white">
               {region.total_deo}
             </div>
           </div>
@@ -87,31 +87,31 @@ const OfficeGrid = ({ workplaceLevel, officeLists, search }) => {
       {filteredOffices.map((region, index) => (
         <div
           key={index}
-          className="group bg-white border border-slate-200 rounded-3xl transition-all duration-300 hover:shadow-xl hover:border-indigo-300"
+          className="group bg-white dark:bg-gray-800/40 border border-slate-200 dark:border-gray-700 rounded-3xl transition-all duration-300 hover:shadow-xl dark:hover:shadow-indigo-900/30 hover:border-indigo-300 dark:hover:border-indigo-700"
         >
           {/* Header */}
-          <div className="p-6 border-b border-slate-50">
-            <h4 className="text-lg font-bold text-slate-800">
+          <div className="p-6 border-b border-slate-50 dark:border-gray-700">
+            <h4 className="text-lg font-bold text-slate-800 dark:text-white">
               {region.short_name || region.name}
             </h4>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-400 dark:text-gray-500">
               Region ID #{String(index + 1).padStart(2, "0")}
             </p>
           </div>
 
           {/* Stats */}
-          <div className="p-6 bg-slate-50/50">{renderStatsCards(region)}</div>
+          <div className="p-6 bg-slate-50/50 dark:bg-gray-700/20">{renderStatsCards(region)}</div>
 
           {/* Total Institutions / Staff */}
           <div className="p-6">
             <div className="flex justify-between mb-6">
-              <span className="text-sm font-bold text-slate-700">
+              <span className="text-sm font-bold text-slate-700 dark:text-gray-300">
                 {workplaceLevel === "OLID005" || workplaceLevel === "OLID006"
                   ? "Total Staff"
                   : "Total Institutions"}
               </span>
 
-              <span className="text-xl font-black text-indigo-600">
+              <span className="text-xl font-black text-indigo-600 dark:text-indigo-400">
                 {workplaceLevel === "OLID005" || workplaceLevel === "OLID006"
                   ? region.total_staff?.toLocaleString()
                   : region.total_institutions?.toLocaleString()}

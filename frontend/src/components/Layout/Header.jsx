@@ -6,9 +6,9 @@ import { FiGrid } from "react-icons/fi";
 
 const Header = ({ isCollapsed }) => {
   return (
-    <header className="sticky top-0 z-20 hidden lg:flex h-16 items-center justify-between bg-gray-100  ">
+    <header className="sticky top-0 z-20 hidden lg:flex h-16 items-center justify-between surface-shell border-b">
       <div className="flex items-center gap-3">
-        <div className="w-8 h-8 lg:w-10 lg:h-10 flex items-center justify-center rounded-xl shadow-sm bg-white dark:bg-gray-800  dark:border-gray-700">
+        <div className="w-8 h-8 lg:w-10 lg:h-10 flex items-center justify-center rounded-xl shadow-sm surface border">
           <img
             src={Logo}
             alt="Emblem"
@@ -29,7 +29,7 @@ const Header = ({ isCollapsed }) => {
             type="search"
             icon={HiSearch}
             placeholder="Search..."
-            className="w-64 [&_input]:bg-white [&_input]:rounded-full [&_input]:border-transparent [&_input]:focus:border-blue-500 [&_input]:focus:ring-blue-500/20"
+            className="w-64 [&_input]:bg-white dark:[&_input]:bg-gray-800 [&_input]:rounded-full [&_input]:border-transparent [&_input]:focus:border-blue-500 [&_input]:focus:ring-blue-500/20"
           />
         </div>
       </div>
@@ -38,14 +38,14 @@ const Header = ({ isCollapsed }) => {
         </h1> */}
 
       <div className="flex items-center gap-2">
-        <Tooltip content="Notifications">
-          <button className="relative p-3 rounded-xl hover:cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-300 text-foreground transition-colors">
+          <Tooltip content="Notifications">
+          <button className="relative p-3 rounded-xl hover:cursor-pointer hover:bg-gray-200 dark:hover:bg-white/5 text-foreground transition-colors focus-ring">
             <HiBell className="w-5 h-5 opacity-70" />
             <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full ring-2 ring-background"></span>
           </button>
         </Tooltip>
         {/* Divider */}
-        <button className="p-3 rounded-xl hover:bg-gray-300 dark:hover:bg-gray-300 text-foreground transition-colors">
+        <button className="p-3 rounded-xl hover:bg-gray-200 dark:hover:bg-white/5 text-foreground transition-colors focus-ring">
           <FiGrid
             className="text-gray-500 hover:text-gray-700 cursor-pointer"
             size={18}

@@ -211,7 +211,7 @@ export default function StepNICVerification({
         <div className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-600 text-xs font-bold text-white">
           01
         </div>
-        <h2 className="text-lg font-semibold text-gray-800">
+        <h2 className="text-lg font-semibold">
           Identity Verification
         </h2>
       </div>
@@ -228,7 +228,7 @@ export default function StepNICVerification({
           <Label value="NIC Number" className="mb-1 block" />
           <div className="flex items-center gap-4">
             <TextInput
-              className="flex-1 [&_input]:bg-white"
+              className="flex-1 [&_input]:bg-white dark:[&_input]:bg-gray-800"
               placeholder="Enter NIC number"
               value={nic}
               onChange={(e) => {
