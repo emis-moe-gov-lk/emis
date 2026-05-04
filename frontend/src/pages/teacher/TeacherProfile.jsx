@@ -11,7 +11,10 @@ import {
   HiX,
 } from "react-icons/hi";
 import api from "@/api/axios";
-import { promoteTeacher } from "@/api/teacherService";
+import {
+  downloadTeacherProfileDocument,
+  promoteTeacher,
+} from "@/api/teacherService";
 import toast from "react-hot-toast";
 import { Badge, Spinner, Modal, ModalBody, ModalHeader, Button } from "flowbite-react";
 import { HiOutlineExclamationCircle } from "react-icons/hi";
@@ -301,6 +304,7 @@ const TeacherProfile = () => {
   const [userRoles, setUserRoles] = useState([]);
   const [currentUserName, setCurrentUserName] = useState("");
   const [showUpdateAction, setShowUpdateAction] = useState(false);
+  const [isDownloadingDocument, setIsDownloadingDocument] = useState(false);
 
   /**
    * API Integration Hook (later)
@@ -464,6 +468,31 @@ const TeacherProfile = () => {
       setLoading(false);
     }
   }, [id, loadRejectComment]);
+
+  const handleDownloadDocument = useCallback(async () => {
+    if (!teacher?.id) return;
+
+    setIsDownloadingDocument(true);
+    try {
+      const response = await downloadTeacherProfileDocument(teacher.id);
+      const blob = new Blob([response.data], {
+        type: response.headers?.["content-type"] || "application/pdf",
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `teacher-profile-${teacher.nic || teacher.id}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      console.error("Failed to download teacher profile document:", error);
+      toast.error("Unable to download the teacher document.");
+    } finally {
+      setIsDownloadingDocument(false);
+    }
+  }, [teacher?.id, teacher?.nic]);
 
   useEffect(() => {
     loadTeacherProfile();
@@ -792,7 +821,11 @@ const TeacherProfile = () => {
       </div>
 
       {/* Header strip (finalized style) */}
-      <HeaderStrip teacher={teacher} />
+      <HeaderStrip
+        teacher={teacher}
+        onDownloadDocument={handleDownloadDocument}
+        isDownloadingDocument={isDownloadingDocument}
+      />
 
       {/* promote button moved into left menu as a tab-style button */}
 
@@ -1005,7 +1038,7 @@ export default TeacherProfile;
    Header strip (premium blue style)
 ========================================================= */
 
-function HeaderStrip({ teacher }) {
+function HeaderStrip({ teacher, onDownloadDocument, isDownloadingDocument }) {
   return (
     <div className="rounded-2xl overflow-hidden border border-blue-100 dark:border-blue-900/30 shadow-sm bg-white dark:bg-gray-800">
       <div className="bg-linear-to-r from-blue-50 to-indigo-50/30 dark:from-blue-900/10 dark:to-indigo-900/5">
@@ -1063,9 +1096,13 @@ function HeaderStrip({ teacher }) {
               Send Edit Request
             </button>
 
-            <button className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-md shadow-blue-200 dark:shadow-none">
+            <button
+              onClick={onDownloadDocument}
+              disabled={isDownloadingDocument}
+              className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed transition-all shadow-md shadow-blue-200 dark:shadow-none"
+            >
               <HiDocumentText className="h-4 w-4" />
-              Get Document
+              {isDownloadingDocument ? "Preparing PDF..." : "Get Document"}
             </button>
           </div>
         </div>

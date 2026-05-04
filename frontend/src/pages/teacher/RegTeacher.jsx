@@ -14,7 +14,11 @@ import StepContactDetails from "@/components/teacher/steps/StepContactDetails";
 import StepFirstAppointment from "@/components/teacher/steps/StepFirstAppointment";
 import StepCurrentAppointment from "@/components/teacher/steps/StepCurrentAppointment";
 
-import { checkTeacherContact, registerTeacher } from "@/api/teacherService";
+import {
+  checkTeacherContact,
+  downloadTeacherProfileDocument,
+  registerTeacher,
+} from "@/api/teacherService";
 import toast from "react-hot-toast";
 import { HiCheckCircle, HiArrowLeft } from "react-icons/hi";
 
@@ -309,6 +313,42 @@ function RegTeacherInner() {
     toast.success(message, { id });
   };
 
+  const handleDownloadProfile = async () => {
+    const peopleId =
+      registrationSummary?.people_id ||
+      formData?.people_id ||
+      formData?.peopleId;
+
+    if (!peopleId) {
+      showErrorToast("Missing people id for PDF download.", "teacher-profile-download-missing-id");
+      return;
+    }
+
+    try {
+      const response = await downloadTeacherProfileDocument(peopleId);
+      const contentType = response.headers?.["content-type"] || "application/pdf";
+      const disposition = response.headers?.["content-disposition"] || "";
+      const filenameMatch = disposition.match(/filename="?([^";]+)"?/i);
+      const filename = filenameMatch?.[1] || `teacher-profile-${peopleId}.pdf`;
+
+      const blob = new Blob([response.data], { type: contentType });
+      const url = window.URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+
+      anchor.href = url;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+
+      window.setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+        anchor.remove();
+      }, 3000);
+    } catch (_error) {
+      showErrorToast("Unable to download profile PDF.", "teacher-profile-download-failed");
+    }
+  };
+
   const handleStepClick = async (stepId) => {
     if (stepId < currentStep) {
       if (stepId === 1 && currentStep > 1) {
@@ -399,7 +439,7 @@ function RegTeacherInner() {
 
         const result = await registerTeacher(formData);
 
-        if (result.status === "success") {
+          if (result.status === "success") {
           const responseData = result.data || {};
           const summary = {
             name:
@@ -418,6 +458,8 @@ function RegTeacherInner() {
               formData.currentAppointmentPositionName ||
               formData.currentAppointmentPositionLabel ||
               formData.currentAppointmentPosition,
+            // Persist people_id returned from API for subsequent actions (download)
+            people_id: result.people_id || responseData.people_id || null,
           };
 
           setRegistrationSummary(summary);
@@ -597,7 +639,10 @@ function RegTeacherInner() {
                   New Registration
                 </button>
 
-                <button className="px-6 py-2 rounded-full bg-blue-600 text-white">
+                <button
+                  className="px-6 py-2 rounded-full bg-blue-600 text-white"
+                  onClick={handleDownloadProfile}
+                >
                   Download Profile
                 </button>
               </div>

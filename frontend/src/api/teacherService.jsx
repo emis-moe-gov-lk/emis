@@ -31,6 +31,18 @@ export const printTeacherId = async (id) => {
 };
 
 /**
+ * Download the full teacher profile document as PDF
+ * @param {string|number} id - The teacher's people_id
+ * @returns {Promise} - Axios promise with blob response
+ */
+export const downloadTeacherProfileDocument = async (id) => {
+  const response = await api.get(`/pdf/teacher/${id}`, {
+    responseType: "arraybuffer",
+  });
+  return response;
+};
+
+/**
  * Promote a teacher profile to principle/principal workflow
  * @param {string|number} id - The teacher's people_id
  * @param {Object} payload - Optional payload fields like reason
