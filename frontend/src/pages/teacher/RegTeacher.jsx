@@ -21,6 +21,7 @@ import {
 } from "@/api/teacherService";
 import toast from "react-hot-toast";
 import { HiCheckCircle, HiArrowLeft } from "react-icons/hi";
+import { useAuthUser } from "@/context/useAuthUser";
 
 const REG_TEACHER_HISTORY_OWNER = "regTeacherCreate";
 const REG_TEACHER_HISTORY_STEP_KEY = "regTeacherStep";
@@ -29,6 +30,12 @@ const REG_TEACHER_TOTAL_STEPS = 6;
 function RegTeacherInner() {
   const navigate = useNavigate();
   const { state, dispatch } = useContext(TeacherFormContext);
+  const {
+    identity,
+    hasRole,
+    isAuthenticated,
+    isLoading: isAuthLoading,
+  } = useAuthUser();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [contactApiErrors, setContactApiErrors] = useState({});
@@ -56,6 +63,9 @@ function RegTeacherInner() {
   const hasDraftData =
     !isRegistrationComplete &&
     (currentStep > 1 || Object.keys(formData || {}).length > 0);
+  const canCreateTeacher = hasRole("super admin") || hasRole("zonal deo");
+  const isTeacherCreateAuthLoading =
+    isAuthLoading || (isAuthenticated && !identity);
 
   const clampStep = (value) => {
     const parsed = Number(value);
@@ -82,6 +92,16 @@ function RegTeacherInner() {
   useEffect(() => {
     currentStepRef.current = clampStep(currentStep);
   }, [currentStep]);
+
+  useEffect(() => {
+    if (isTeacherCreateAuthLoading || canCreateTeacher) return;
+
+    dispatch({ type: "CLEAR" });
+    toast.error("Only Super Admin and Zonal DEO can create teacher profiles.", {
+      id: "teacher-create-unauthorized",
+    });
+    navigate("/employees/teacher", { replace: true });
+  }, [canCreateTeacher, dispatch, isTeacherCreateAuthLoading, navigate]);
 
   useEffect(() => {
     if (!isRestored) return;
@@ -273,11 +293,13 @@ function RegTeacherInner() {
   }, [hasDraftData]);
 
   // Wait for state restoration from sessionStorage
-  if (!isRestored) {
+  if (!isRestored || isTeacherCreateAuthLoading || !canCreateTeacher) {
     return (
       <div className="p-6 lg:p-10 max-w-5xl mx-auto">
         <div className="text-center py-12">
-          <p className="text-gray-600">Loading form...</p>
+          <p className="text-gray-600">
+            {isTeacherCreateAuthLoading ? "Loading form..." : "Redirecting..."}
+          </p>
         </div>
       </div>
     );
@@ -414,7 +436,7 @@ function RegTeacherInner() {
             showErrorToast("Email or phone number already exists.", "contact-exists");
             return;
           }
-        } catch (_err) {
+        } catch {
           showErrorToast("Unable to verify contact details. Please try again.", "contact-verify-failed");
           return;
         } finally {
@@ -474,7 +496,7 @@ function RegTeacherInner() {
             payload: result.message || "Failed to register teacher",
           });
         }
-      } catch (_err) {
+      } catch {
         dispatch({
           type: "SET_ERROR",
           payload: "Unable to complete registration. Please try again.",

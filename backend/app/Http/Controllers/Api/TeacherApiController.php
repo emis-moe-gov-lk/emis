@@ -323,6 +323,14 @@ class TeacherApiController extends Controller
     public function store(Request $request)
     {
         try {
+            $roles = $this->resolvedRoles($request);
+            if (! $this->hasAnyRole($roles, ['super admin', 'zonal deo'])) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Only Super Admin and Zonal DEO users can create teacher profiles.',
+                ], 403);
+            }
+
             // ==============================
             // BASIC VALIDATION
             // ==============================
