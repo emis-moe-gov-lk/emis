@@ -21,6 +21,8 @@ import { printTeacherId } from "@/api/teacherService";
 import { NavLink } from "react-router-dom";
 import { TeacherFormContext } from "@/context/TeacherFormContext";
 import { useAuthUser } from "@/context/useAuthUser";
+// ✅ NEW IMPORTS
+import Can from "@/components/common/Can";
 import { PermissionGroups } from "@/data/permissionGroups";
 
 /**
@@ -269,7 +271,7 @@ const TeacherList = () => {
         </div>
 
         <div className="flex items-center gap-3">
-          {hasPermission("teacher.bulk.upload") && (
+          <Can permission={PermissionGroups.SCHOOLS.BULK_UPLOAD}>
             <NavLink
               to="/employees/teacher/bulk-upload"
               className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
@@ -277,8 +279,9 @@ const TeacherList = () => {
               <HiUpload className="h-4 w-4" />
               Bulk Upload
             </NavLink>
-          )}
-          {hasPermission("teacher.create") && (
+          </Can>
+
+          <Can permission={PermissionGroups.SCHOOLS.CREATE}>
             <button
               onClick={handleCreateTeacher}
               className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors shadow-sm"
@@ -286,7 +289,7 @@ const TeacherList = () => {
               <HiPlus />
               Create Teacher
             </button>
-          )}
+          </Can>
         </div>
       </div>
 
@@ -307,10 +310,10 @@ const TeacherList = () => {
 
                 return (
                   <div
-                    key={t.people_id}
-                    onClick={() =>
-                      navigate(`/employees/teacher/${t.people_id}`)
-                    }
+                    // key={t.people_id}
+                    // onClick={() =>
+                    //   navigate(`/employees/teacher/${t.people_id}`)
+                    // }
                     className="group flex flex-col md:flex-row md:items-center gap-4 p-5 bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-md border border-gray-100 dark:border-gray-700 transition-all duration-200 hover:border-blue-100 dark:hover:border-blue-900/30 cursor-pointer"
                   >
                     {/* Icon & Index */}
@@ -412,18 +415,20 @@ const TeacherList = () => {
                         </Badge>
 
                         {/* View Button */}
-                        <Button
-                          size="xs"
-                          color="dark"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/employees/teacher/${t.people_id}`);
-                          }}
-                          className="flex items-center gap-1"
-                        >
-                          <HiEye className="w-4 h-4" />
-                          View
-                        </Button>
+                        <Can permission={PermissionGroups.SCHOOLS.VIEW_PROFILE}>
+                          <Button
+                            size="xs"
+                            color="dark"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/employees/teacher/${t.people_id}`);
+                            }}
+                            className="flex items-center gap-1"
+                          >
+                            <HiEye className="w-4 h-4" />
+                            View
+                          </Button>
+                        </Can>
 
                         {/* 3 Dot Menu */}
                         <div className="relative">
@@ -444,29 +449,40 @@ const TeacherList = () => {
                               onClick={(e) => e.stopPropagation()}
                               className="absolute right-0 top-9 z-50 w-44 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 py-1"
                             >
-                              <button
-                                onClick={async (e) => {
-                                  e.stopPropagation();
-                                  setOpenMenuId(null);
-                                  const blob = await printTeacherId(t.id);
-                                  const url = URL.createObjectURL(blob);
-                                  window.open(url, "_blank");
-                                }}
-                                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                              <Can
+                                permission={PermissionGroups.SCHOOLS.PRINT_ID}
                               >
-                                <HiIdentification className="w-4 h-4 text-gray-400" />
-                                Print ID
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setOpenMenuId(null);
-                                }}
-                                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                                <button
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    setOpenMenuId(null);
+                                    const blob = await printTeacherId(t.id);
+                                    const url = URL.createObjectURL(blob);
+                                    window.open(url, "_blank");
+                                  }}
+                                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                                >
+                                  <HiIdentification className="w-4 h-4 text-gray-400" />
+                                  Print ID
+                                </button>
+                              </Can>
+
+                              <Can
+                                permission={
+                                  PermissionGroups.SCHOOLS.EXPORT_PDF
+                                }
                               >
-                                <HiDocumentText className="w-4 h-4 text-gray-400" />
-                                Export PDF
-                              </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setOpenMenuId(null);
+                                  }}
+                                  className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                                >
+                                  <HiDocumentText className="w-4 h-4 text-gray-400" />
+                                  Export PDF
+                                </button>
+                              </Can>
                             </div>
                           )}
                         </div>
