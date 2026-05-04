@@ -21,7 +21,6 @@ import { printTeacherId } from "@/api/teacherService";
 import { NavLink } from "react-router-dom";
 import { TeacherFormContext } from "@/context/TeacherFormContext";
 import { useAuthUser } from "@/context/useAuthUser";
-import { PermissionGroups } from "@/data/permissionGroups";
 
 /**
  * Teacher List Page
@@ -32,14 +31,14 @@ import { PermissionGroups } from "@/data/permissionGroups";
 const TeacherList = () => {
   const navigate = useNavigate();
   const { dispatch } = useContext(TeacherFormContext);
-  const { identity, roles } = useAuthUser();
+  const { identity, roles, hasRole } = useAuthUser();
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState(null);
   const [teachers, setTeachers] = useState([]);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
-  const [perPage, setPerPage] = useState(10);
+  const [, setPerPage] = useState(10);
   const [total, setTotal] = useState(0);
   const [openMenuId, setOpenMenuId] = useState(null);
 
@@ -236,6 +235,9 @@ const TeacherList = () => {
     return userPermissions.includes(permission);
   };
 
+  const canCreateTeacher =
+    hasRole("super admin") || hasRole("zonal deo");
+
   return (
     <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-6">
       {/* ================= HEADER ================= */}
@@ -278,7 +280,7 @@ const TeacherList = () => {
               Bulk Upload
             </NavLink>
           )}
-          {hasPermission("teacher.create") && (
+          {canCreateTeacher && (
             <button
               onClick={handleCreateTeacher}
               className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors shadow-sm"
@@ -302,7 +304,7 @@ const TeacherList = () => {
         <div className="space-y-4">
           {filteredTeachers.length > 0 ? (
             <>
-              {filteredTeachers.map((t, index) => {
+              {filteredTeachers.map((t) => {
                 const appointmentStatus = getAppointmentStatus(t.appointment);
 
                 return (
