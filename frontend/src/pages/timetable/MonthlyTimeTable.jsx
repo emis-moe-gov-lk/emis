@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useTimetable } from "../../context/TimetableContext";
+import { useTimetable } from "../../context/TimeTableContext";
 import { fetchMonthSlots, fetchHolidays } from "../../api/timetableApi";
 import {
   getCalendarGrid,

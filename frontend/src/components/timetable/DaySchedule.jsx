@@ -1,4 +1,4 @@
-import { useTimetable } from "../../context/TimetableContext";
+import { useTimetable } from "../../context/TimeTableContext";
 import { getDisplayItems } from "../../utils/getDisplayPeriods";
 import { timeToMinutes, toLocalISO } from "../../utils/time";
 

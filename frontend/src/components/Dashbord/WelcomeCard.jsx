@@ -1,5 +1,8 @@
 import welcomeImage from "/welcome.png";
 
+import Can from "@/components/common/Can";
+import { PermissionGroups } from "@/data/permissionGroups";
+
 const WelcomeCard = ({ user, people }) => {
   console.log("WelcomeCard received user:", user);
   const today = new Date().toLocaleDateString("en-US", {
@@ -33,12 +36,14 @@ const WelcomeCard = ({ user, people }) => {
           </p>
 
           {/* Button */}
-          <a
-            href="/dashboard/profile"
-            className="bg-white text-indigo-600 px-6 py-3 rounded-xl font-bold text-sm hover:bg-indigo-50 transition-colors shadow-lg"
-          >
-            👤 My Profile
-          </a>
+          <Can permission={PermissionGroups.DASHBOARD.VIEW_MYPROFILE}>
+            <a
+              href="/dashboard/profile"
+              className="bg-white text-indigo-600 px-6 py-3 rounded-xl font-bold text-sm hover:bg-indigo-50 transition-colors shadow-lg"
+            >
+              👤 My Profile
+            </a>
+          </Can>
         </div>
 
         {/* Image */}

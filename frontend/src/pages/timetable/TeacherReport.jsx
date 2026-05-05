@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useTimetable } from "../../context/TimetableContext";
+import { useTimetable } from "../../context/TimeTableContext";
 import { fetchReport } from "../../api/timetableApi";
 import { toLocalISO, formatDateShort, splitIntoMonths } from "../../utils/time";
 

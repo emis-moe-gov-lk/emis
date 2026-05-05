@@ -53,7 +53,7 @@ import MainTables from "../pages/MainTables.jsx";
 import UsersList from "@/pages/users/UsersList";
 import UserCreate from "@/pages/users/UserCreate";
 import UserEdit from "@/pages/users/UserEdit";
-import { TimetableProvider } from "../context/TimetableContext.jsx";
+import { TimetableProvider } from "../context/TimeTableContext.jsx";
 import { TeacherFormProvider } from "../context/TeacherFormContext.jsx";
 import DosDirectory from "../pages/DosDirectory.jsx";
 import DosBulkUpload from "../pages/dos/DosBulkUpload.jsx";
