@@ -20,29 +20,29 @@ const ProfileHeader = () => {
   const [activeTab, setActiveTab] = useState("general");
 
   return (
-    <div className="relative w-full rounded-t-4xl overflow-hidden border bg-gray-100">
+    <div className="relative w-full rounded-t-4xl overflow-hidden border surface">
       {/* Top cover */}
-      <div className="h-32 bg-gray-100"></div>
+      <div className="h-32 bg-gray-100 dark:bg-gray-900/70"></div>
 
       {/* Avatar */}
       <div className="absolute left-12 top-16 z-20">
-        <div className="rounded-full border-4 border-white shadow-lg bg-white p-1">
+        <div className="rounded-full border-4 border-white dark:border-gray-800 shadow-lg surface p-1">
           <AvatarUploader />
         </div>
       </div>
 
       {/* Content */}
-      <div className="bg-white pt-5 pb-3 px-6 rounded-t-4xl m-4">
+      <div className="surface pt-5 pb-3 px-6 rounded-t-4xl m-4">
         {/* Name */}
         <div className="ml-40">
-          <h1 className="text-3xl font-semibold text-gray-800">
+          <h1 className="text-3xl font-semibold text-gray-800 dark:text-gray-100">
             Mohammed Shadhir
           </h1>
-          <p className="text-2xl text-gray-500">SLTS</p>
+          <p className="text-2xl text-gray-500 dark:text-gray-400">SLTS</p>
         </div>
 
         {/* Tabs */}
-        <div className="mt-4 flex gap-2 border-b border-gray-200 justify-between">
+        <div className="mt-4 flex gap-2 border-b border-gray-200 dark:border-gray-800 justify-between">
           {tabs.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -52,8 +52,8 @@ const ProfileHeader = () => {
                 border border-b-0
                 ${
                   activeTab === id
-                    ? "bg-white text-gray-800 border-gray-300 shadow-sm"
-                    : "bg-gray-100 text-gray-500 border-transparent hover:text-gray-700"
+                    ? "bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border-gray-300 dark:border-gray-700 shadow-sm"
+                      : "bg-gray-100 dark:bg-gray-900/60 text-gray-500 dark:text-gray-400 border-transparent hover:text-gray-700 dark:hover:text-gray-200"
                 }
               `}
             >

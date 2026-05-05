@@ -252,7 +252,7 @@ function RegTeacherInner() {
       >
         <HiArrowLeft /> Back To List
       </Button>
-      <div className="bg-gray-50 border border-gray-200 overflow-hidden">
+      <div className="border border-gray-200 overflow-hidden">
         {/* STEP HEADER */}
         <StepperHeader
           steps={steps}

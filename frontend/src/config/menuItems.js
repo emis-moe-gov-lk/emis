@@ -19,7 +19,7 @@ export const menuItems = [
         label: "Dashboard",
         icon: HiChartPie,
         to: "/dashboard",
-        permission: "dashboard.main.view",
+        permission: "dashboard.view",
       },
 
       {
@@ -27,14 +27,14 @@ export const menuItems = [
         label: "Alerts",
         icon: HiShieldCheck,
         to: "/alert",
-        permission: "alerts.overview.view",
+        permission: "alerts.view",
       },
       {
         id: "institution",
         label: "Institution",
         icon: MdHomeWork,
         to: "/institution",
-        permission: "institution.list.view",
+        permission: "institution.view",
       },
     ],
   },
@@ -46,7 +46,7 @@ export const menuItems = [
         label: "Roles",
         icon: HiUser,
         to: "/roles",
-        permission: "user.create",
+        permission: "roles.view",
       },
 
       {
@@ -54,21 +54,21 @@ export const menuItems = [
         label: "Main Table",
         icon: HiBuildingLibrary,
         to: "/maintable",
-        permission: "user.create",
+        permission: "maintable.view",
       },
       {
         id: "Users",
         label: "Users",
         icon: HiUserGroup,
         to: "/users",
-        permission: "user.list.view",
+        permission: "users.view",
       },
       {
         id: "DMSApprovedCader",
         label: "DMS Approved Cader",
         icon: HiUserGroup,
         to: "/dmsapprovedcader",
-        permission: "cadre-dms-approved.index.view",
+        permission: "cader.view",
       },
     ],
   },
@@ -85,42 +85,42 @@ export const menuItems = [
             label: "Overview",
             to: "/offices/overview",
             anyPermissions: [
-              "office.moe.list.view",
-              "office.pmoe.list.view",
-              "office.peo.list.view",
-              "office.zeo.list.view",
-              "office.deo.list.view",
+              "office.overview",
+              // "office.pmoe.list.view",
+              // "office.peo.list.view",
+              // "office.zeo.list.view",
+              // "office.deo.list.view",
             ],
           },
           {
             id: "ministry",
             label: "Ministry of Education",
             to: "/offices/moe",
-            permission: "office.moe.list.view",
+            permission: "office.moe",
           },
           {
             id: "provincial",
             label: "Provincial Ministry",
             to: "/offices/pmoe",
-            permission: "office.pmoe.list.view",
+            permission: "office.pmoe",
           },
           {
             id: "provincial_office",
             label: "Provincial Office",
             to: "/offices/peo",
-            permission: "office.peo.list.view",
+            permission: "office.peo",
           },
           {
             id: "zonal",
             label: "Zonal Office",
             to: "/offices/zeo",
-            permission: "office.zeo.list.view",
+            permission: "office.zeo",
           },
           {
             id: "divisional",
             label: "Divisional Office",
             to: "/offices/deo",
-            permission: "office.deo.list.view",
+            permission: "office.deo",
           },
         ],
       },
@@ -130,66 +130,139 @@ export const menuItems = [
     section: "EMPLOYEES",
     items: [
       {
-        id: "employees",
-        label: "Employees",
+        id: "schools",
+        label: "Schools",
         icon: HiUserGroup,
+        permission: "school.view",
         children: [
           {
             id: "teacher",
             label: "Teachers",
             to: "/employees/teacher",
-            permission: "teacher.list.view",
+            permission: "teacher.view",
           },
           {
             id: "principal",
             label: "Principals",
-            to: "/employees/principal",
-            permission: "principal.list.view",
+              to: "/employees/principal",
+              permission: "principal.view",
           },
           {
-            id: "eduDirectors",
-            label: "EduDirectors",
-            to: "/employees/edu-directors",
-            permission: "dos.list.view",
+            id: "schooldeo",
+            label: "School DEO",
+            to: "/schools/schooldeo",
+            permission: "schooldeo.view",
           },
           {
-            id: "eduSecretaries",
-            label: "EduSecretaries",
-            to: "/employees/edu-secretaries",
-            permission: "mso.list.view",
+            id: "schoolclerks",
+            label: "School Clerks",
+            to: "/schools/schoolclerks",
+            permission: "schoolclerk.view",
           },
+
+        ],
+
+      },
+      {
+        id: "division",
+        label: "Division",
+        icon: HiUserGroup,
+        permission: "division.view",
+        children: [
           {
-            id: "teacherEducators",
-            label: "Teacher Educators",
-            to: "/employees/teacher-educators",
-            permission: "sltes.list.view",
+            id: "divisiondirector",
+            label: "Division Director",
+            to: "/employees/divisiondirector",
+            permission: "divisiondirector.view",
           },
-          {
-            id: "teacherAdvisors",
-            label: "Teacher Advisors",
-            to: "/employees/teacher-advisors",
-            permission: "sltas.list.view",
-          },
-          {
-            id: "accountants",
-            label: "Accountants",
-            to: "/employees/accountants",
-            permission: "slacs.list.view",
-          },
-          {
-            id: "developmentOfficers",
-            label: "Development Officers",
-            to: "/employees/development-officers",
-            permission: "dos.list.view",
-          },
-          {
-            id: "managementAssistants",
-            label: "Management Assistants",
-            to: "/employees/management-assistants",
-            permission: "mso.list.view",
-          },
+          // {
+          //   id: "divisionhead",
+          //   label: "Division Head",
+          //   to: "/employees/divisionhead",
+          //   permission: "divisionhead.list.view",
+          // },
+          // {
+          //   id: "divisionclerk",
+          //   label: "Division Clerk",
+          //   to: "/employees/divisionclerk",
+          //   permission: "divisionclerk.list.view",
+          // },
+          
         ],
       },
+
+      {
+        id: "zonal",
+        label: "Zonal",
+        icon: HiUserGroup,
+        permission: "zonal.view",
+        children: [
+          {
+            id: "zonaldirector",
+            label: "Zonal Administrators",
+            to: "/employees/zonaldirector",
+            permission: "zonaladmin.view",
+          },
+          {
+            id: "zonaldeo",
+            label: "Zonal Deo",
+            to: "/employees/development-officers",
+            permission: "zonaldeo.view",
+          },
+          // {
+          //   id: "zonalclerk",
+          //   label: "Zonal Clerk",
+          //   to: "/employees/zonalclerk",
+          //   permission: "zonalclerk.list.view",
+          // },
+          
+        ],
+      },
+
+      {
+        id: "provincial",
+        label: "Provincial",
+        icon: HiUserGroup,
+        permission: "provincial.view",
+        children: [
+          {
+            id: "provincialdirector",
+            label: "Provincial Director",
+            to: "/employees/provincialdirector",
+            permission: "provincialdirector.view",
+          },
+          // {
+          //   id: "provincialhead",
+          //   label: "Provincial Head",
+          //   to: "/employees/provincialhead",
+          //   permission: "provincialhead.list.view",
+          // },
+          // {
+          //   id: "provincialclerk",
+          //   label: "Provincial Clerk",
+          //   to: "/employees/provincialclerk",
+          //   permission: "provincialclerk.list.view",
+          // },
+          
+        ],
+      },
+
+      {
+        id: "moe",
+        label: "MOE",
+        icon: HiUserGroup,
+        permission: "moe.view",
+        children: [
+          {
+            id: "moedirector",
+            label: "MOE Director",
+            to: "/employees/moedirector",
+            permission: "moedirector.view",
+          },
+          
+        ],
+      },
+
     ],
   },
 
@@ -201,13 +274,14 @@ export const menuItems = [
         label: "Inbox",
         icon: HiInbox,
         to: "/message",
+        permission: "inbox.overview.view",
       },
       {
         id: "admin",
         label: "Admin",
         icon: HiShieldCheck,
         to: "/admin",
-        permission: "user.create",
+        permission: "admin.overview.view",
       },
 
       {
@@ -215,6 +289,7 @@ export const menuItems = [
         label: "Time Table",
         icon: HiCalendar,
         to: "/timetable/weekly",
+        permission: "timetable.overview.view",
       },
     ],
   },

@@ -40,7 +40,7 @@ const HealthInformation = ({ employee, canEdit }) => {
 
         <div className="space-y-4">
           {/* Blood Group Card */}
-          <div className="bg-gradient-to-br from-white to-red-50/30 dark:from-gray-800 dark:to-red-900/10 p-5 rounded-2xl border border-red-100 dark:border-gray-700 shadow-sm relative overflow-hidden">
+          <div className="surface-muted bg-gradient-to-br from-white to-red-50/30 dark:from-gray-800 dark:to-red-900/10 p-5 rounded-2xl border border-red-100 dark:border-gray-700 shadow-sm relative overflow-hidden">
             <div className="absolute -right-2 -top-2 opacity-5">
               <div className="text-6xl text-red-600">🧪</div>
             </div>
@@ -53,7 +53,7 @@ const HealthInformation = ({ employee, canEdit }) => {
               </div>
 
               <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">
                   Blood Group Type
                 </p>
                 <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
@@ -66,7 +66,7 @@ const HealthInformation = ({ employee, canEdit }) => {
           {/* Secondary Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* Overall Condition */}
-            <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex items-start gap-3">
+            <div className="surface p-4 rounded-2xl flex items-start gap-3">
               <div className="mt-1">
                 <div
                   className={`size-2.5 rounded-full ${
@@ -77,7 +77,7 @@ const HealthInformation = ({ employee, canEdit }) => {
                 ></div>
               </div>
               <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">
+                <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">
                   Overall Condition
                 </p>
                 <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wide">
@@ -87,10 +87,10 @@ const HealthInformation = ({ employee, canEdit }) => {
             </div>
 
             {/* Known Problems */}
-            <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
+            <div className="surface p-4 rounded-2xl">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">
+                  <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">
                     Known Problems
                   </p>
                   <p className="text-sm font-medium text-gray-900 dark:text-gray-100 leading-tight">
@@ -107,13 +107,13 @@ const HealthInformation = ({ employee, canEdit }) => {
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 w-full max-w-md rounded-2xl p-6 shadow-xl">
+            <div className="surface w-full max-w-md rounded-2xl p-6 shadow-xl">
             <h3 className="text-lg font-bold mb-4">Health Details</h3>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Blood Group */}
               <div>
-                <label className="block text-sm font-medium mb-1">
+                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
                   Blood Group
                 </label>
                 <select
@@ -131,7 +131,7 @@ const HealthInformation = ({ employee, canEdit }) => {
 
               {/* Health Status */}
               <div>
-                <label className="block text-sm font-medium mb-1">
+                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
                   Current Health Status
                 </label>
                 <select
@@ -148,7 +148,7 @@ const HealthInformation = ({ employee, canEdit }) => {
               {/* Medical Details */}
               {healthStatus !== "Healthy" && (
                 <div>
-                  <label className="block text-sm font-medium mb-1">
+                  <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
                     Medical Details
                   </label>
                   <textarea

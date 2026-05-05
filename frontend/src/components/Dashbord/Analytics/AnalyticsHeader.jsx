@@ -9,14 +9,14 @@ const AnalyticsHeader = () => {
       <div className="flex flex-col md:flex-row md:items-end justify-between mb-10">
         <div>
           <div className="flex items-center space-x-2 mb-2">
-            <span className="px-2 py-0.5 rounded bg-indigo-100 text-indigo-700 text-[10px] font-black uppercase">
+            <span className="px-2 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-[10px] font-black uppercase">
               Live Data
             </span>
-            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-gray-500">
               Office distribution analytics
             </h3>
           </div>
-          <h2 className="text-4xl font-black text-slate-900 tracking-tight">
+          <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">
             Geographic Distribution
           </h2>
         </div>
@@ -29,10 +29,10 @@ const AnalyticsHeader = () => {
               placeholder="Search ..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-12 pr-4 py-3 bg-white border-0 ring-1 ring-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 transition-all w-72 shadow-sm"
+              className="pl-12 pr-4 py-3 bg-white dark:bg-gray-800 border-0 ring-1 ring-slate-200 dark:ring-gray-700 rounded-2xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 transition-all w-72 shadow-sm"
             />
             <svg
-              className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+              className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -48,10 +48,10 @@ const AnalyticsHeader = () => {
 
           <button
             type="button"
-            className="p-3 bg-white ring-1 ring-slate-200 rounded-2xl hover:bg-slate-50 transition-all shadow-sm"
+            className="p-3 bg-white dark:bg-gray-800 ring-1 ring-slate-200 dark:ring-gray-700 rounded-2xl hover:bg-slate-50 dark:hover:bg-gray-700 transition-all shadow-sm"
           >
             <svg
-              className="w-5 h-5 text-slate-600"
+              className="w-5 h-5 text-slate-600 dark:text-gray-300"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -70,7 +70,7 @@ const AnalyticsHeader = () => {
       {/* Search Result */}
       {search.trim().length > 0 && (
         <div className="mb-6 px-2">
-          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-sm text-slate-600">
+          <div className="bg-slate-50 dark:bg-gray-700 border border-slate-200 dark:border-gray-600 rounded-2xl p-4 text-sm text-slate-600 dark:text-gray-300">
             Search result found for: <span className="font-bold">{search}</span>
           </div>
         </div>

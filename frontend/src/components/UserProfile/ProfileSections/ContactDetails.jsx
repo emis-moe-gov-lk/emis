@@ -17,7 +17,7 @@ const ContactDetails = ({ employee, canEdit }) => {
         {/* Header */}
         <div className="flex items-center justify-between mb-5 px-1">
           <div>
-            <h2 className="text-xl font-extrabold tracking-tight text-gray-900 dark:text-white">
+            <h2 className="text-xl font-extrabold tracking-tight dark:text-white">
               Contact Details
             </h2>
             <p className="text-sm text-gray-500">Communication channels</p>

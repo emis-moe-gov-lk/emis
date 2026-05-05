@@ -42,17 +42,17 @@ const fadeUp = {
 
 /* UI helpers */
 function EmptyText({ children = "Not available" }) {
-  return <span className="text-gray-400 italic">{children}</span>;
+  return <span className="text-gray-400 dark:text-gray-500 italic">{children}</span>;
 }
 
 function MiniChip({ children, tone = "neutral" }) {
   const tones = {
-    neutral: "bg-white/80 text-gray-700 ring-1 ring-gray-200",
-    blue: "bg-blue-100 text-blue-700 ring-1 ring-blue-200",
-    indigo: "bg-indigo-100 text-indigo-700 ring-1 ring-indigo-200",
-    purple: "bg-purple-100 text-purple-700 ring-1 ring-purple-200",
-    green: "bg-green-100 text-green-700 ring-1 ring-green-200",
-    yellow: "bg-yellow-100 text-yellow-800 ring-1 ring-yellow-200",
+    neutral: "bg-white/80 dark:bg-gray-800/50 text-gray-700 dark:text-gray-200 ring-1 ring-gray-200 dark:ring-gray-700",
+    blue: "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 ring-1 ring-blue-200 dark:ring-blue-800",
+    indigo: "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 ring-1 ring-indigo-200 dark:ring-indigo-800",
+    purple: "bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 ring-1 ring-purple-200 dark:ring-purple-800",
+    green: "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 ring-1 ring-green-200 dark:ring-green-800",
+    yellow: "bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-200 ring-1 ring-yellow-200 dark:ring-yellow-800",
   };
   return (
     <span
@@ -66,10 +66,10 @@ function MiniChip({ children, tone = "neutral" }) {
 function InfoField({ label, value }) {
   return (
     <div className="space-y-1">
-      <div className="text-[11px] uppercase tracking-wider text-gray-400">
+      <div className="text-[11px] uppercase tracking-wider text-gray-400 dark:text-gray-500">
         {label}
       </div>
-      <div className="text-sm font-medium text-gray-900">
+      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
         {value ? value : <EmptyText />}
       </div>
     </div>
@@ -81,9 +81,9 @@ function ContactRow({ icon: Icon, value, href }) {
   return (
     <a
       href={href}
-      className="inline-flex items-center gap-2 text-sm font-medium text-gray-900 hover:text-blue-600 transition-colors"
+      className="inline-flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
     >
-      <Icon className="h-4 w-4 text-gray-400" />
+      <Icon className="h-4 w-4 text-gray-400 dark:text-gray-500" />
       {value}
     </a>
   );
@@ -99,27 +99,27 @@ function SoftCard({
 }) {
   const accentRing =
     accent === "blue"
-      ? "ring-blue-200"
+      ? "ring-blue-200 dark:ring-blue-800"
       : accent === "purple"
-        ? "ring-purple-200"
+        ? "ring-purple-200 dark:ring-purple-800"
         : accent === "indigo"
-          ? "ring-indigo-200"
-          : "ring-gray-200";
+          ? "ring-indigo-200 dark:ring-indigo-800"
+          : "ring-gray-200 dark:ring-gray-700";
 
   const accentIconBg =
     accent === "blue"
-      ? "bg-blue-100 text-blue-700"
+      ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300"
       : accent === "purple"
-        ? "bg-purple-100 text-purple-700"
+        ? "bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300"
         : accent === "indigo"
-          ? "bg-indigo-100 text-indigo-700"
-          : "bg-gray-100 text-gray-700";
+          ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300"
+          : "bg-gray-100 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300";
 
   return (
     <motion.div
       variants={fadeUp}
       whileHover={{ y: -2 }}
-      className={`rounded-3xl bg-white/80 backdrop-blur ring-1 ${accentRing} shadow-sm hover:shadow-md transition-all ${className}`}
+      className={`rounded-3xl bg-white/80 dark:bg-gray-800/50 backdrop-blur ring-1 ${accentRing} shadow-sm hover:shadow-md transition-all ${className}`}
     >
       <div className="p-6">
         <div className="flex items-start gap-4">
@@ -129,10 +129,10 @@ function SoftCard({
             <Icon className="h-5 w-5" />
           </div>
           <div className="flex-1">
-            <div className="text-[11px] uppercase tracking-wider text-gray-500">
+            <div className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400">
               {subtitle}
             </div>
-            <div className="text-base font-extrabold text-gray-900">
+            <div className="text-base font-extrabold text-gray-900 dark:text-gray-100">
               {title}
             </div>
             <div className="mt-4">{children}</div>
@@ -256,7 +256,7 @@ export default function InstitutionProfile() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
         <Spinner size="xl" />
-        <p className="mt-4 text-gray-500 animate-pulse">Loading profile…</p>
+        <p className="mt-4 text-gray-500 dark:text-gray-400 animate-pulse">Loading profile…</p>
       </div>
     );
   }
@@ -264,7 +264,7 @@ export default function InstitutionProfile() {
   if (!institution) {
     return (
       <div className="p-10 text-center">
-        <h2 className="text-xl font-bold text-gray-700">School not found</h2>
+        <h2 className="text-xl font-bold text-gray-700 dark:text-gray-300">School not found</h2>
         <Button className="mt-4 rounded-full" onClick={() => navigate(-1)}>
           Go Back
         </Button>
@@ -294,7 +294,7 @@ export default function InstitutionProfile() {
 
       {/* HEADER (match your sample: light, no black) */}
       <motion.div variants={fadeUp}>
-        <div className="rounded-[28px] bg-gradient-to-r from-blue-50 via-sky-50 to-indigo-50 ring-1 ring-blue-200 shadow-sm">
+        <div className="rounded-[28px] bg-gradient-to-r from-blue-50 dark:from-blue-950/30 via-sky-50 dark:via-slate-900/20 to-indigo-50 dark:to-indigo-950/30 ring-1 ring-blue-200 dark:ring-blue-800 shadow-sm">
           <div className="p-8 lg:p-10 flex flex-col lg:flex-row gap-8 items-center">
             {/* Avatar */}
             <motion.div
@@ -307,7 +307,7 @@ export default function InstitutionProfile() {
             {/* Identity */}
             <div className="flex-1 space-y-2">
               <div className="flex flex-wrap items-center gap-3">
-                <h1 className="text-3xl font-extrabold text-gray-900">
+                <h1 className="text-3xl font-extrabold text-gray-900 dark:text-gray-100">
                   {institution.name}
                 </h1>
 
@@ -315,7 +315,7 @@ export default function InstitutionProfile() {
                   {isActive ? "Active" : "Inactive"}
                 </Badge>
 
-                <span className="text-xs px-3 py-1 rounded-full bg-white/80 ring-1 ring-gray-200 font-mono">
+                <span className="text-xs px-3 py-1 rounded-full bg-white/80 dark:bg-gray-800/50 ring-1 ring-gray-200 dark:ring-gray-700 font-mono">
                   #{institution.census_no ?? "—"}
                 </span>
               </div>
@@ -355,7 +355,7 @@ export default function InstitutionProfile() {
 
 
               {/* Meta row */}
-              <div className="flex flex-wrap gap-6 text-sm text-gray-600">
+              <div className="flex flex-wrap gap-6 text-sm text-gray-600 dark:text-gray-400">
                 <span className="flex items-center gap-2">
                   <HiLocationMarker className="h-5 w-5 text-gray-400" />
                   {institution.address ?? <EmptyText />}
@@ -383,12 +383,12 @@ export default function InstitutionProfile() {
                 <motion.div
                   key={m.label}
                   whileHover={{ y: -2 }}
-                  className="w-24 h-20 rounded-2xl bg-white/80 ring-1 ring-gray-200 shadow-sm flex flex-col items-center justify-center"
+                  className="w-24 h-20 rounded-2xl bg-white/80 dark:bg-gray-800/50 ring-1 ring-gray-200 dark:ring-gray-700 shadow-sm flex flex-col items-center justify-center"
                 >
-                  <div className="text-lg font-extrabold text-indigo-600">
+                  <div className="text-lg font-extrabold text-indigo-600 dark:text-indigo-400">
                     {m.value}
                   </div>
-                  <div className="text-[11px] text-gray-500 mt-0.5">
+                  <div className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
                     {m.label}
                   </div>
                 </motion.div>
@@ -407,7 +407,7 @@ export default function InstitutionProfile() {
             title={institution.zonal_education_office?.name ?? "—"}
             accent="blue"
           >
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-gray-600 dark:text-gray-400">
               {institution.zonal_education_office?.short_name ?? <EmptyText />}
             </div>
           </SoftCard>
@@ -418,7 +418,7 @@ export default function InstitutionProfile() {
             title={institution.divisional_education_office?.name ?? "—"}
             accent="purple"
           >
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-gray-600 dark:text-gray-400">
               {institution.divisional_education_office?.short_name ?? (
                 <EmptyText />
               )}
@@ -429,30 +429,30 @@ export default function InstitutionProfile() {
         {/* Vision / Mission + Category / Type */}
         <motion.div
           variants={fadeUp}
-          className="rounded-3xl bg-blue-50/70 ring-1 ring-blue-200 p-8 space-y-8"
+          className="rounded-3xl bg-blue-50/70 dark:bg-blue-950/20 ring-1 ring-blue-200 dark:ring-blue-800 p-8 space-y-8"
         >
           {/* Vision & Mission */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <HiInformationCircle className="text-blue-600 h-5 w-5" />
-                <h3 className="text-lg font-bold">Vision</h3>
+                <HiInformationCircle className="text-blue-600 dark:text-blue-400 h-5 w-5" />
+                <h3 className="text-lg font-bold dark:text-gray-100">Vision</h3>
               </div>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 {institution.vision || (
-                  <span className="text-gray-400 italic">Not available</span>
+                  <span className="text-gray-400 dark:text-gray-500 italic">Not available</span>
                 )}
               </p>
             </div>
 
-            <div className="md:border-l md:pl-8 border-blue-200">
+            <div className="md:border-l md:pl-8 border-blue-200 dark:border-blue-800">
               <div className="flex items-center gap-2 mb-2">
-                <HiInformationCircle className="text-blue-600 h-5 w-5" />
-                <h3 className="text-lg font-bold">Mission</h3>
+                <HiInformationCircle className="text-blue-600 dark:text-blue-400 h-5 w-5" />
+                <h3 className="text-lg font-bold dark:text-gray-100">Mission</h3>
               </div>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 {institution.mission || (
-                  <span className="text-gray-400 italic">Not available</span>
+                  <span className="text-gray-400 dark:text-gray-500 italic">Not available</span>
                 )}
               </p>
             </div>
@@ -460,30 +460,30 @@ export default function InstitutionProfile() {
 
           {/* Institution Category & Type */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="rounded-2xl bg-white p-6 ring-1 ring-blue-100">
-              <div className="text-xs uppercase tracking-wider text-gray-400 mb-1">
+            <div className="rounded-2xl bg-white dark:bg-gray-800/50 p-6 ring-1 ring-blue-100 dark:ring-blue-800/50">
+              <div className="text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">
                 Institution Category
               </div>
-              <div className="text-lg font-bold text-gray-900">
+              <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
                 {institution.institution_category?.institution_category_name || "—"}
               </div>
-              <p className="text-sm text-gray-600 mt-2">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
                 {institution.institution_category?.description || (
-                  <span className="text-gray-400 italic">Not available</span>
+                  <span className="text-gray-400 dark:text-gray-500 italic">Not available</span>
                 )}
               </p>
             </div>
 
-            <div className="rounded-2xl bg-white p-6 ring-1 ring-blue-100">
-              <div className="text-xs uppercase tracking-wider text-gray-400 mb-1">
+            <div className="rounded-2xl bg-white dark:bg-gray-800/50 p-6 ring-1 ring-blue-100 dark:ring-blue-800/50">
+              <div className="text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">
                 Institution Type
               </div>
-              <div className="text-lg font-bold text-gray-900">
+              <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
                 {institution.institution_type?.institution_types_name || "—"}
               </div>
-              <p className="text-sm text-gray-600 mt-2">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
                 {institution.institution_type?.description || (
-                  <span className="text-gray-400 italic">Not available</span>
+                  <span className="text-gray-400 dark:text-gray-500 italic">Not available</span>
                 )}
               </p>
             </div>
@@ -510,7 +510,7 @@ export default function InstitutionProfile() {
               value={institution.police_station?.postal_code}
             />
             <div className="space-y-1">
-              <div className="text-[11px] uppercase tracking-wider text-gray-400">
+              <div className="text-[11px] uppercase tracking-wider text-gray-400 dark:text-gray-500">
                 Phone
               </div>
               <div>
@@ -526,7 +526,7 @@ export default function InstitutionProfile() {
               </div>
             </div>
             <div className="space-y-1">
-              <div className="text-[11px] uppercase tracking-wider text-gray-400">
+              <div className="text-[11px] uppercase tracking-wider text-gray-400 dark:text-gray-500">
                 Email
               </div>
               <div className="truncate">
@@ -557,7 +557,7 @@ export default function InstitutionProfile() {
               value={institution.moh_area?.postal_code}
             />
             <div className="space-y-1">
-              <div className="text-[11px] uppercase tracking-wider text-gray-400">
+              <div className="text-[11px] uppercase tracking-wider text-gray-400 dark:text-gray-500">
                 Phone
               </div>
               <div>
@@ -573,7 +573,7 @@ export default function InstitutionProfile() {
               </div>
             </div>
             <div className="space-y-1">
-              <div className="text-[11px] uppercase tracking-wider text-gray-400">
+              <div className="text-[11px] uppercase tracking-wider text-gray-400 dark:text-gray-500">
                 Email
               </div>
               <div className="truncate">
@@ -594,11 +594,11 @@ export default function InstitutionProfile() {
 
       {/* Row: Location (left) + Map (right) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <motion.div variants={fadeUp} className="rounded-3xl bg-blue-50/30 ring-1 ring-blue-200 shadow-sm">
+        <motion.div variants={fadeUp} className="rounded-3xl bg-blue-50/30 dark:bg-blue-950/20 ring-1 ring-blue-200 dark:ring-blue-800 shadow-sm">
           <div className="p-6 space-y-5">
             <div className="flex items-center gap-2">
-              <HiLocationMarker className="h-5 w-5 text-blue-700" />
-              <div className="font-extrabold text-gray-900">Location Details</div>
+              <HiLocationMarker className="h-5 w-5 text-blue-700 dark:text-blue-400" />
+              <div className="font-extrabold text-gray-900 dark:text-gray-100">Location Details</div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -635,7 +635,7 @@ export default function InstitutionProfile() {
           </div>
         </motion.div>
 
-        <motion.div variants={fadeUp} className="rounded-3xl overflow-hidden ring-1 ring-blue-200 shadow-sm">
+        <motion.div variants={fadeUp} className="rounded-3xl overflow-hidden ring-1 ring-blue-200 dark:ring-blue-800 shadow-sm">
           {lat && lng ? (
             <MapContainer center={[lng, lat]} zoom={14} className="h-[320px] w-full">
               <TileLayer
@@ -647,7 +647,7 @@ export default function InstitutionProfile() {
               </Marker>
             </MapContainer>
           ) : (
-            <div className="h-[320px] flex items-center justify-center text-gray-400 bg-white">
+            <div className="h-[320px] flex items-center justify-center text-gray-400 dark:text-gray-500 bg-white dark:bg-gray-800/50">
               Map not available
             </div>
           )}
@@ -657,9 +657,9 @@ export default function InstitutionProfile() {
       {/* Footer: updated + actions (match sample style; no black) */}
       <motion.div
         variants={fadeUp}
-        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t pt-6"
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-gray-200 dark:border-gray-700 pt-6"
       >
-        <div className="text-sm text-gray-400">
+        <div className="text-sm text-gray-400 dark:text-gray-500">
           Last updated: {updatedDate ?? "—"}
         </div>
 

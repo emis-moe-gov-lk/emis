@@ -47,7 +47,7 @@ const EducationalQualifications = ({
           <h2 className="text-xl font-extrabold tracking-tight text-gray-900 dark:text-white">
             Educational Qualifications
           </h2>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             Academic background and certifications
           </p>
         </div>
@@ -66,7 +66,7 @@ const EducationalQualifications = ({
       {/* QUALIFICATIONS LIST */}
       <div className="space-y-4">
         {qualificationList.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-12 bg-gray-50 dark:bg-gray-900/20 rounded-3xl border border-dashed border-gray-200 dark:border-gray-800">
+          <div className="flex flex-col items-center justify-center p-12 surface-muted rounded-3xl border border-dashed border-gray-200 dark:border-gray-800">
             <HiAcademicCap className="w-10 h-10 text-gray-300 dark:text-gray-600 mb-4" />
             <p className="text-sm text-gray-500 font-medium">
               No qualifications listed yet.
@@ -76,7 +76,7 @@ const EducationalQualifications = ({
           qualificationList.map((data) => (
             <div
               key={data.id}
-              className="group relative bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all"
+              className="group relative surface p-5 rounded-2xl hover:shadow-md transition-all"
             >
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-start gap-4">
@@ -89,13 +89,13 @@ const EducationalQualifications = ({
                     <h3 className="text-sm sm:text-base font-bold text-gray-900 dark:text-gray-100 leading-snug">
                       {data.qualification?.qualification}
                     </h3>
-                    <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 flex items-center gap-1">
                       <HiBuildingLibrary className="w-3 h-3" />
                       {data.institution}
                     </p>
 
                     {data.description && (
-                      <p className="mt-2 text-xs text-gray-400 italic line-clamp-2">
+                      <p className="mt-2 text-xs text-gray-400 dark:text-gray-500 italic line-clamp-2">
                         {data.description}
                       </p>
                     )}
@@ -105,7 +105,7 @@ const EducationalQualifications = ({
                 {/* Metadata & Actions */}
                 <div className="flex items-center justify-between md:justify-end gap-6 border-t md:border-t-0 pt-3 md:pt-0 mt-1 md:mt-0">
                   <div className="text-left md:text-right">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                    <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">
                       Completed
                     </p>
                     <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">
@@ -116,7 +116,7 @@ const EducationalQualifications = ({
                   </div>
 
                   <div className="text-left md:text-right">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                    <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">
                       Grade
                     </p>
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400">

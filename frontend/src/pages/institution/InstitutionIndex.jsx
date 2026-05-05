@@ -89,7 +89,7 @@ export default function InstitutionIndex() {
 
         <NavLink
           to="/institution/create"
-          className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium hover:bg-gray-50"
+          className="inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
         >
           <HiPlus />
           Create Institution

@@ -38,7 +38,7 @@ const SideBar = ({
         pt-16 lg:pt-0
       `}
     >
-      <Sidebar className="h-full w-full bg-gray-100 dark:bg-gray-900 [&>div]:bg-transparent [&>div]:p-0">
+      <Sidebar className="h-full w-full surface-shell [&>div]:bg-transparent [&>div]:p-0">
         <div className="flex flex-col h-full">
           {/* Brand */}
           <div className="hidden lg:flex h-14 items-center px-3">
@@ -46,12 +46,12 @@ const SideBar = ({
           </div>
 
           {/* Menu */}
-          <div className="flex-1 overflow-y-auto px-2 py-3">
+          <div className="flex-1 overflow-y-auto px-2 py-3 text-gray-900 dark:text-gray-100 scrollbar-theme">
             {filteredMenu.map((section, sectionIndex) => (
               <div key={`${section.section}-${sectionIndex}`} className="mb-4">
                 {/* Section title */}
                 {!isCollapsed && (
-                  <p className="px-3 mb-2 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                  <p className="px-3 mb-2 text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
                     {section.section}
                   </p>
                 )}
@@ -68,7 +68,7 @@ const SideBar = ({
                           {/* COLLAPSED */}
                           {isCollapsed ? (
                             <div
-                              className="flex justify-center items-center py-2 rounded-lg cursor-pointer text-gray-700 hover:bg-gray-300"
+                              className="flex justify-center items-center py-2 rounded-lg cursor-pointer text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-white/5 focus-ring"
                               onClick={() => {
                                 onToggle();
                                 setOpenMenu(item.id);
@@ -81,14 +81,14 @@ const SideBar = ({
                               {/* Parent */}
                               <div
                                 onClick={() => toggleMenu(item.id)}
-                                className={`flex items-center px-3 py-2 rounded-lg cursor-pointer text-xs transition
+                                className={`flex items-center px-3 py-2 rounded-lg cursor-pointer text-xs transition focus-ring
                                 ${
                                   isParentActive(item.children)
                                     ? "bg-blue-600 text-white"
-                                    : "text-gray-700 hover:bg-gray-300"
+                                    : "text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-white/5"
                                 }`}
                               >
-                                {item.icon && (
+                                  {item.icon && (
                                   <item.icon className="w-4 h-4 mr-2" />
                                 )}
 
@@ -102,18 +102,18 @@ const SideBar = ({
                               </div>
 
                               {/* Children */}
-                              {openMenu === item.id && (
+                                  {openMenu === item.id && (
                                 <div className="ml-6 mt-1 space-y-1">
                                   {item.children.map((child, childIndex) => (
                                     <NavLink
                                       key={`${child.id}-${childIndex}`}
                                       to={child.to}
                                       className={({ isActive }) =>
-                                        `block px-2 py-1.5 text-xs rounded-md transition
+                                        `block px-2 py-1.5 text-xs rounded-md transition focus-ring
                                         ${
                                           isActive
-                                            ? "bg-gray-200 text-blue-600 font-semibold"
-                                            : "text-gray-600 hover:bg-gray-300"
+                                            ? "bg-gray-200 dark:bg-gray-800 text-blue-600 dark:text-blue-300 font-semibold"
+                                            : "text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-white/5"
                                         }`
                                       }
                                     >
@@ -138,14 +138,14 @@ const SideBar = ({
                         to={item.to}
                         onClick={() => isMobile && setIsSidebarOpen(false)}
                         className={({ isActive }) =>
-                          `flex items-center rounded-lg text-xs transition
-                          ${isCollapsed ? "justify-center py-2" : "px-3 py-2"}
-                          ${
-                            isActive
-                              ? "bg-blue-600 text-white"
-                              : "text-gray-700 hover:bg-gray-300"
-                          }`
-                        }
+                            `flex items-center rounded-lg text-xs transition focus-ring
+                            ${isCollapsed ? "justify-center py-2" : "px-3 py-2"}
+                            ${
+                              isActive
+                                ? "bg-blue-600 text-white"
+                                : "text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-white/5"
+                            }`
+                          }
                       >
                         {item.icon && (
                           <item.icon
@@ -163,7 +163,7 @@ const SideBar = ({
           </div>
 
           {/* Logout */}
-          <div className="p-2 border-t border-gray-200">
+          <div className="p-2 border-t border-gray-200 dark:border-gray-800">
             <LogoutButton2 isCollapsed={isCollapsed} />
           </div>
         </div>
