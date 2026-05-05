@@ -133,6 +133,9 @@ class RolePermissionSeeder extends Seeder
             'teacher.profile.family.create',
             'teacher.profile.family.delete',
 
+            'teacher.profile.promote',
+            'teacher.profile.edit.view',
+
 
             /*
             |--------------------------------------------------------------------------
