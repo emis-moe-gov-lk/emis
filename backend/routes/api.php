@@ -134,6 +134,7 @@ Route::prefix('')->group(function () {
     Route::controller(\App\Http\Controllers\API\AlertController::class)->middleware('auth:jwt')->group(function () {
         Route::get('/alerts/counts', 'counts');
         Route::get('/alerts/pending-verification', 'pendingVerification');
+        Route::get('/alerts/revised', 'revised');
         Route::get('/alerts/pending-confirmation', 'pendingConfirmation');
         Route::get('/alerts/rejected', 'rejected');
     });

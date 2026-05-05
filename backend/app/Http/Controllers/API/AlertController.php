@@ -70,10 +70,15 @@ class AlertController extends Controller
 
         $rejected = $rejectedQuery->count();
 
+        $revised = (clone $query)
+            ->whereHas('appointment', fn ($q) => $q->where('is_verified', 3))
+            ->count();
+
         return response()->json([
             'status' => 'success',
             'data' => [
                 'pending_verification' => $pendingVerification,
+                'revised'              => $revised,
                 'pending_confirmation' => $pendingConfirmation,
                 'rejected'             => $rejected,
             ],
@@ -111,6 +116,27 @@ class AlertController extends Controller
 
         $teachers = $query
             ->whereHas('appointment', fn ($q) => $q->where('is_verified', 1)->where('is_confirmed', 0))
+            ->with([
+                'appointment:appointment_id,employee_id,is_verified,is_confirmed,first_appointment_date,appointment_letter_no',
+                'currentAppointment.workplace.institution:workplace_id,census_no,name',
+            ])
+            ->select('people_id', 'full_name', 'name_with_initials', 'nic_hash')
+            ->paginate((int) $request->get('per_page', 20))
+            ->withQueryString();
+
+        return response()->json(['status' => 'success', 'data' => $teachers]);
+    }
+
+    public function revised(Request $request)
+    {
+        $query = $this->baseQuery($request);
+
+        if ($query === null) {
+            return response()->json(['status' => 'error', 'message' => 'No zonal workplace mapped for this user.'], 403);
+        }
+
+        $teachers = $query
+            ->whereHas('appointment', fn ($q) => $q->where('is_verified', 3))
             ->with([
                 'appointment:appointment_id,employee_id,is_verified,is_confirmed,first_appointment_date,appointment_letter_no',
                 'currentAppointment.workplace.institution:workplace_id,census_no,name',

@@ -3,11 +3,12 @@ import React from "react";
 const AlertsOverview = ({
   pendingConfirmationCount = 0,
   pendingVerificationCount = 0,
+  revisedCount = 0,
   rejectedCount = 0,
 }) => {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-      {/* Pending Verification - NOW FIRST */}
+      {/* Pending Verification */}
       {pendingVerificationCount > 0 && (
         <div className="aspect-square flex flex-col items-center justify-center rounded-xl bg-yellow-50 border border-yellow-200 shadow-sm transition hover:shadow-md">
           <div className="mt-3 p-2 bg-yellow-200 rounded-full mb-10">
@@ -36,6 +37,41 @@ const AlertsOverview = ({
             className="mt-2 w-full flex justify-center"
           >
             <button className="bg-yellow-500 hover:bg-yellow-600 text-white py-1 px-4 rounded text-sm font-bold">
+              View
+            </button>
+          </a>
+        </div>
+      )}
+
+      {/* Revised */}
+      {revisedCount > 0 && (
+        <div className="aspect-square flex flex-col items-center justify-center rounded-xl bg-purple-50 border border-purple-200 shadow-sm transition hover:shadow-md">
+          <div className="mt-3 p-2 bg-purple-200 rounded-full mb-10">
+            <svg
+              className="w-6 h-6 text-purple-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              ></path>
+            </svg>
+          </div>
+          <span className="text-4xl font-bold text-purple-600">
+            {revisedCount}
+          </span>
+          <span className="text-sm font-semibold text-purple-700 mt-2 mb-2">
+            Revised
+          </span>
+          <a
+            href="/alerts/revised"
+            className="mt-2 w-full flex justify-center"
+          >
+            <button className="bg-purple-500 hover:bg-purple-600 text-white py-1 px-4 rounded text-sm font-bold">
               View
             </button>
           </a>
