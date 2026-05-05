@@ -58,9 +58,18 @@ class AuthenticationController extends Controller
         ]);
 
         try {
+            $user = User::where('email', $request->email)->first();
+
+            if (! $user || ! $user->active_status) {
+                return response()->json([
+                    'response_code' => 401,
+                    'status'        => 'error',
+                    'message'       => 'Unauthorized',
+                ], 401);
+            }
+
             if (Auth::attempt(['email' => $request->email, 'password' => $request->password])) {
-                $user        = Auth::user();
-                $accessToken = $user->createToken('authToken')->plainTextToken;
+                $user = Auth::user();
 
                 return response()->json([
                     'response_code' => 200,
@@ -70,8 +79,11 @@ class AuthenticationController extends Controller
                         'id'    => $user->id,
                         'name'  => $user->name,
                         'email' => $user->email,
+                        'must_change_password' => (bool) $user->must_change_password,
                     ],
-                    'token'         => $accessToken,
+                    'must_change_password' => (bool) $user->must_change_password,
+                    'password_change_required_reason' => $user->must_change_password ? 'default_password' : null,
+                    'token'         => null,
                 ]);
             }
 

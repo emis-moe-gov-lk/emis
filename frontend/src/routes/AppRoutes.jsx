@@ -5,6 +5,7 @@ import App from "@/App";
 import HelpCenter from "@/HelpCenter";
 import { Login } from "@/pages/auth/Login";
 import Logout from "@/pages/auth/Logout";
+import ForcePasswordChange from "@/pages/auth/ForcePasswordChange";
 import { AdminDashboard } from "@/pages/admin/AdminDashboard";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import ProtectedRoute from "@/routes/ProtectedRoute";
@@ -68,6 +69,14 @@ export default function AppRoutes() {
         <Route path="/help-center" element={<HelpCenter />} />
         <Route path="/login" element={<Login />} />
         <Route path="/logout" element={<Logout />} />
+        <Route
+          path="/force-password-change"
+          element={
+            <ProtectedRoute roles={["teacher"]}>
+              <ForcePasswordChange />
+            </ProtectedRoute>
+          }
+        />
 
         {/* OIDC Callback Route */}
         <Route path="/authentication/callback" element={<OidcCallback />} />

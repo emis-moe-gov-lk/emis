@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Auth\JwtGuard;
+use App\Contracts\IdentityProvisioningServiceInterface;
+use App\Services\AsgardeoIdentityProvisioningService;
 use Illuminate\Support\Facades\Auth;
 use Spatie\Activitylog\Models\Activity;
 use Illuminate\Support\ServiceProvider;
@@ -16,7 +18,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(
+            IdentityProvisioningServiceInterface::class,
+            AsgardeoIdentityProvisioningService::class
+        );
     }
 
     /**

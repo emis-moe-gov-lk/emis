@@ -49,4 +49,14 @@ return [
         'post_logout_redirect_uri' => env('OIDC_POST_LOGOUT_REDIRECT_URI'),
     ],
 
+    'asgardeo' => [
+        'enabled' => env('WSO2_ENABLED', true),
+        'client_id' => env('ASGARDEO_MGMT_CLIENT_ID'),
+        'client_secret' => env('ASGARDEO_MGMT_CLIENT_SECRET'),
+        'token_url' => env('ASGARDEO_MGMT_TOKEN_URL'),
+        'scim_base_url' => env('ASGARDEO_SCIM_BASE_URL'),
+        'scopes' => env('ASGARDEO_MGMT_SCOPES', 'internal_user_mgt_create internal_user_mgt_update internal_user_mgt_view'),
+        'myaccount_url' => env('ASGARDEO_MYACCOUNT_URL', 'https://myaccount.asgardeo.io'),
+    ],
+
 ];
