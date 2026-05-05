@@ -40,6 +40,7 @@ use App\Models\ZonalEducationOffice;
 use Illuminate\Support\Facades\Hash;
 use App\Models\EmployerCurrentAppointment;
 use App\Models\DivisionalSecretariatOffice;
+use App\Services\TeacherToPrincipalPromotionService;
 
 
 class EmployerAppointmentConfirmationController extends Controller
@@ -646,6 +647,106 @@ public function updateRejectedStatus(Request $request, string $people_id)
         ], 500);
     }
 }
+
+    public function promote(Request $request, string $people_id, TeacherToPrincipalPromotionService $promotionService)
+    {
+        try {
+            $roles = $this->resolvedRoles($request);
+
+            $allowedRoles = ['super admin', 'zonal director'];
+            if (! $this->hasAnyRole($roles, $allowedRoles)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Unauthorized',
+                ], 403);
+            }
+
+            $user = User::query()
+                ->where('people_id', $people_id)
+                ->with(['people', 'currentAppointment', 'roles'])
+                ->first();
+
+            if (! $user) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Teacher user not found',
+                ], 404);
+            }
+
+            $appointment = $user->currentAppointment?->appointment;
+
+            if (! $appointment) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'No active appointment found for this teacher',
+                ], 404);
+            }
+
+            // If the caller is not super admin, enforce zonal area restriction
+            if (! $this->hasRole($roles, 'super admin')) {
+                $currentAppointment = $user->currentAppointment;
+                if (! $currentAppointment) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'No active appointment found for this teacher',
+                    ], 404);
+                }
+
+                if (! $this->teacherBelongsToUserZonalArea($request, $currentAppointment)) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Zonal directors can only promote teacher profiles within their relevant zonal area',
+                    ], 403);
+                }
+            }
+
+            if ((int) $appointment->is_verified !== 1 || (int) $appointment->is_confirmed !== 1) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Teacher must be verified and confirmed before promotion',
+                ], 409);
+            }
+
+            $changedByPeopleId = $request->attributes->get('jwt_people_id') ?? $request->user()?->people_id;
+            $reason = $request->input('reason');
+
+            $promotionResult = $promotionService->promoteWithAppointmentTransition(
+                $user,
+                $changedByPeopleId,
+                $reason
+            );
+
+            if (! ($promotionResult['promoted'] ?? false)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $promotionResult['reason'] ?? 'Teacher could not be promoted',
+                ], 409);
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Teacher promoted to principal successfully',
+                'data' => $promotionResult,
+            ], 200);
+        } catch (\RuntimeException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], 422);
+        } catch (\Throwable $e) {
+            Log::error('Teacher Promote Error', [
+                'people_id' => $people_id,
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to promote teacher to principal',
+            ], 500);
+        }
+    }
 
 private function resolvedRoles(Request $request): array
 {

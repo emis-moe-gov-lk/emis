@@ -14,9 +14,14 @@ import StepContactDetails from "@/components/teacher/steps/StepContactDetails";
 import StepFirstAppointment from "@/components/teacher/steps/StepFirstAppointment";
 import StepCurrentAppointment from "@/components/teacher/steps/StepCurrentAppointment";
 
-import { checkTeacherContact, registerTeacher } from "@/api/teacherService";
+import {
+  checkTeacherContact,
+  downloadTeacherProfileDocument,
+  registerTeacher,
+} from "@/api/teacherService";
 import toast from "react-hot-toast";
 import { HiCheckCircle, HiArrowLeft } from "react-icons/hi";
+import { useAuthUser } from "@/context/useAuthUser";
 
 const REG_TEACHER_HISTORY_OWNER = "regTeacherCreate";
 const REG_TEACHER_HISTORY_STEP_KEY = "regTeacherStep";
@@ -25,6 +30,12 @@ const REG_TEACHER_TOTAL_STEPS = 6;
 function RegTeacherInner() {
   const navigate = useNavigate();
   const { state, dispatch } = useContext(TeacherFormContext);
+  const {
+    identity,
+    hasRole,
+    isAuthenticated,
+    isLoading: isAuthLoading,
+  } = useAuthUser();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [contactApiErrors, setContactApiErrors] = useState({});
@@ -52,6 +63,9 @@ function RegTeacherInner() {
   const hasDraftData =
     !isRegistrationComplete &&
     (currentStep > 1 || Object.keys(formData || {}).length > 0);
+  const canCreateTeacher = hasRole("super admin") || hasRole("zonal deo");
+  const isTeacherCreateAuthLoading =
+    isAuthLoading || (isAuthenticated && !identity);
 
   const clampStep = (value) => {
     const parsed = Number(value);
@@ -78,6 +92,16 @@ function RegTeacherInner() {
   useEffect(() => {
     currentStepRef.current = clampStep(currentStep);
   }, [currentStep]);
+
+  useEffect(() => {
+    if (isTeacherCreateAuthLoading || canCreateTeacher) return;
+
+    dispatch({ type: "CLEAR" });
+    toast.error("Only Super Admin and Zonal DEO can create teacher profiles.", {
+      id: "teacher-create-unauthorized",
+    });
+    navigate("/employees/teacher", { replace: true });
+  }, [canCreateTeacher, dispatch, isTeacherCreateAuthLoading, navigate]);
 
   useEffect(() => {
     if (!isRestored) return;
@@ -269,11 +293,13 @@ function RegTeacherInner() {
   }, [hasDraftData]);
 
   // Wait for state restoration from sessionStorage
-  if (!isRestored) {
+  if (!isRestored || isTeacherCreateAuthLoading || !canCreateTeacher) {
     return (
       <div className="p-6 lg:p-10 max-w-5xl mx-auto">
         <div className="text-center py-12">
-          <p className="text-gray-600">Loading form...</p>
+          <p className="text-gray-600">
+            {isTeacherCreateAuthLoading ? "Loading form..." : "Redirecting..."}
+          </p>
         </div>
       </div>
     );
@@ -307,6 +333,42 @@ function RegTeacherInner() {
 
   const showSuccessToast = (message, id) => {
     toast.success(message, { id });
+  };
+
+  const handleDownloadProfile = async () => {
+    const peopleId =
+      registrationSummary?.people_id ||
+      formData?.people_id ||
+      formData?.peopleId;
+
+    if (!peopleId) {
+      showErrorToast("Missing people id for PDF download.", "teacher-profile-download-missing-id");
+      return;
+    }
+
+    try {
+      const response = await downloadTeacherProfileDocument(peopleId);
+      const contentType = response.headers?.["content-type"] || "application/pdf";
+      const disposition = response.headers?.["content-disposition"] || "";
+      const filenameMatch = disposition.match(/filename="?([^";]+)"?/i);
+      const filename = filenameMatch?.[1] || `teacher-profile-${peopleId}.pdf`;
+
+      const blob = new Blob([response.data], { type: contentType });
+      const url = window.URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+
+      anchor.href = url;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+
+      window.setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+        anchor.remove();
+      }, 3000);
+    } catch (_error) {
+      showErrorToast("Unable to download profile PDF.", "teacher-profile-download-failed");
+    }
   };
 
   const handleStepClick = async (stepId) => {
@@ -374,7 +436,7 @@ function RegTeacherInner() {
             showErrorToast("Email or phone number already exists.", "contact-exists");
             return;
           }
-        } catch (_err) {
+        } catch {
           showErrorToast("Unable to verify contact details. Please try again.", "contact-verify-failed");
           return;
         } finally {
@@ -399,7 +461,7 @@ function RegTeacherInner() {
 
         const result = await registerTeacher(formData);
 
-        if (result.status === "success") {
+          if (result.status === "success") {
           const responseData = result.data || {};
           const summary = {
             name:
@@ -418,6 +480,8 @@ function RegTeacherInner() {
               formData.currentAppointmentPositionName ||
               formData.currentAppointmentPositionLabel ||
               formData.currentAppointmentPosition,
+            // Persist people_id returned from API for subsequent actions (download)
+            people_id: result.people_id || responseData.people_id || null,
           };
 
           setRegistrationSummary(summary);
@@ -432,7 +496,7 @@ function RegTeacherInner() {
             payload: result.message || "Failed to register teacher",
           });
         }
-      } catch (_err) {
+      } catch {
         dispatch({
           type: "SET_ERROR",
           payload: "Unable to complete registration. Please try again.",
@@ -597,7 +661,10 @@ function RegTeacherInner() {
                   New Registration
                 </button>
 
-                <button className="px-6 py-2 rounded-full bg-blue-600 text-white">
+                <button
+                  className="px-6 py-2 rounded-full bg-blue-600 text-white"
+                  onClick={handleDownloadProfile}
+                >
                   Download Profile
                 </button>
               </div>

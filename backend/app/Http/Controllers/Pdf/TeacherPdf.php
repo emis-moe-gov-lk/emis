@@ -2,9 +2,7 @@
 
 namespace App\Http\Controllers\Pdf;
 
-use App\Models\Family;
 use App\Models\People;
-use App\Models\FamilyMember;
 use App\Http\Controllers\Controller;
 use misterspelik\LaravelPdf\Facades\Pdf;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
@@ -12,10 +10,54 @@ use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class TeacherPdf extends Controller
 {
-    public function generateSimplePdf($id)
+    public function generateSimplePdf($peopleId)
     {
-        $people = People::find($id);
-        //dd($teacher->families);
+        $people = People::with([
+            'title',
+            'gender',
+            'religion',
+            'ethnicity',
+            'civilStatus',
+            'bloodGroup',
+            'district',
+            'gnDivision',
+
+            'myAppointments',
+            'appointment',
+            'currentAppointment',
+            'appointmentHistory',
+
+            'currentAppointment.workplace',
+            'currentAppointment.workplace.ministry',
+            'currentAppointment.workplace.provincial',
+            'currentAppointment.workplace.zonal',
+            'currentAppointment.workplace.divisional',
+            'currentAppointment.workplace.institution',
+
+            'teacher',
+            'teacher',
+            'teacher.teacherCategory',
+            'teacher.teacherType',
+            'teacher.medium',
+            'teacher.appointmentSubject',
+            'teacher.mainSubject',
+            'teacher.secondarySubject',
+            'teacher.currentTeachingSubject',
+
+            'educationQualifications',
+            'educationQualifications.qualification',
+            'educationQualifications.qualificationGrade',
+
+            'familiesAsHusband',
+            'familiesAsHusband.memberB',
+            'familiesAsHusband.children',
+            'familiesAsWife',
+            'familiesAsWife.memberA',
+            'familiesAsWife.children',
+        ])
+            ->where('people_id', $peopleId)
+            ->firstOrFail();
+
         // Generate QR
         $svg = QrCode::format('svg')
             ->size(120)
@@ -33,6 +75,15 @@ class TeacherPdf extends Controller
 
         $pdf->SetProtection(['copy', 'print'], '', 'pass');
 
-        return $pdf->stream($people->nic . '.pdf');
+        $fileName = 'teacher-profile-' . ($people->nic ?: $people->people_id) . '.pdf';
+        $origin = request()->headers->get('Origin', '*');
+
+        return response($pdf->output(), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $fileName . '"',
+            'Access-Control-Allow-Origin' => $origin,
+            'Access-Control-Expose-Headers' => 'Content-Disposition, Content-Length, Content-Type',
+            'Vary' => 'Origin',
+        ]);
     }
 }

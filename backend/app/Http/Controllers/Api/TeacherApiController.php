@@ -323,6 +323,14 @@ class TeacherApiController extends Controller
     public function store(Request $request)
     {
         try {
+            $roles = $this->resolvedRoles($request);
+            if (! $this->hasAnyRole($roles, ['super admin', 'zonal deo'])) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Only Super Admin and Zonal DEO users can create teacher profiles.',
+                ], 403);
+            }
+
             // ==============================
             // BASIC VALIDATION
             // ==============================
@@ -624,12 +632,28 @@ class TeacherApiController extends Controller
             'currentAppointment.workplace.divisional',
             'currentAppointment.workplace.institution',
 
+            // First appointment resolved fields
+            'appointment.service',
+            'appointment.rank',
+            'appointment.position',
+            'appointment.workplace',
+            'appointment.workplace.institution',
+
+            // Current appointment resolved fields
+            'currentAppointment.service',
+            'currentAppointment.rank',
+            'currentAppointment.position',
+
             // Teacher relationships (if exist)
             'teacher',
+            'teacher.teacherCategory',
+            'teacher.teacherType',
+            'teacher.medium',
             'teacher.appointmentSubject',
             'teacher.mainSubject',
             'teacher.secondarySubject',
             'teacher.currentTeachingSubject',
+           
 
         ])
             ->whereHas('appointment')

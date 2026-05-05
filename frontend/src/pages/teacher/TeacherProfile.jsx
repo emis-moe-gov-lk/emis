@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { NavLink, useParams } from "react-router-dom";
+import { NavLink, useParams, useNavigate } from "react-router-dom";
 import { useAuthContext } from "@asgardeo/auth-react";
 import {
   HiArrowLeft,
@@ -11,8 +11,13 @@ import {
   HiX,
 } from "react-icons/hi";
 import api from "@/api/axios";
+import {
+  downloadTeacherProfileDocument,
+  promoteTeacher,
+} from "@/api/teacherService";
 import toast from "react-hot-toast";
-import { Badge, Spinner } from "flowbite-react";
+import { Badge, Spinner, Modal, ModalBody, ModalHeader, Button } from "flowbite-react";
+import { HiOutlineExclamationCircle } from "react-icons/hi";
 import TeacherUpdateModal from "@/components/teacher/TeacherUpdateModal";
 import { useAuthUser } from "@/context/useAuthUser";
 /**
@@ -21,6 +26,11 @@ import { useAuthUser } from "@/context/useAuthUser";
  * - Keeps ALL information sections (General / Qualification / Employment / W&OP / Family / Edit Request)
  * - Ready for API integration later (just replace the dummy state + uncomment fetch section)
  */
+const formatDate = (value) => {
+  if (!value) return null;
+  return String(value).slice(0, 10);
+};
+
 const TeacherProfile = () => {
   const { id } = useParams();
   const { state: authState, getDecodedIDToken } = useAuthContext();
@@ -285,6 +295,8 @@ const TeacherProfile = () => {
   const [modalSection, setModalSection] = useState(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
+  const [isPromoting, setIsPromoting] = useState(false);
+  const [openPromoteModal, setOpenPromoteModal] = useState(false);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
@@ -292,6 +304,7 @@ const TeacherProfile = () => {
   const [userRoles, setUserRoles] = useState([]);
   const [currentUserName, setCurrentUserName] = useState("");
   const [showUpdateAction, setShowUpdateAction] = useState(false);
+  const [isDownloadingDocument, setIsDownloadingDocument] = useState(false);
 
   /**
    * API Integration Hook (later)
@@ -349,7 +362,7 @@ const TeacherProfile = () => {
           employeeId: d.people_id,
           wopNo: d.appointment?.w_op_no,
           paySheetNo: d.appointment?.pay_sheet_no,
-          service: d.appointment?.service_id,
+          service: d.appointment?.service?.service_name ?? d.appointment?.service_id,
           status: resolvedStatus.status,
           profileStatus:
             d.profile_status ?? d.appointment?.profile_status ?? null,
@@ -372,7 +385,7 @@ const TeacherProfile = () => {
             latestRejectCommentRecord?.created_at ||
             null,
 
-          dob: d.date_of_birth,
+          dob: formatDate(d.date_of_birth),
           gender: d.gender?.gender_name,
           religion: d.religion?.religion_name,
           ethnicity: d.ethnicity?.ethnicity_name,
@@ -403,25 +416,29 @@ const TeacherProfile = () => {
               --------------------------- */
       setEmployment({
         appointmentCurrentStatus: {
-          service: d.current_appointment?.service_id,
-          currentServiceRank: d.current_appointment?.rank_id,
-          appointmentDate: d.current_appointment?.appoint_date,
-          positionDesignation: d.current_appointment?.position_id,
+          service: d.current_appointment?.service?.service_name ?? d.current_appointment?.service_id,
+          currentServiceRank: d.current_appointment?.rank?.name ?? d.current_appointment?.rank?.rank_name ?? d.current_appointment?.rank_id,
+          appointmentDate: formatDate(d.current_appointment?.appoint_date),
+          positionDesignation: d.current_appointment?.position?.position_name ?? d.current_appointment?.position_id,
           workplaceNameAddress: d.current_appointment?.workplace?.institution
             ? `[${d.current_appointment.workplace.institution.census_no}] ${d.current_appointment.workplace.institution.name}\n${d.current_appointment.workplace.institution.address}`
             : "",
+             lastUpdated: formatDate(d.appointment?.updated_at),
+             appointmentNumber: d.appointment?.appointment_letter_no,
         },
         myAppointment: {
-          service: d.appointment?.service_id,
-          serviceRank: d.appointment?.rank_id,
-          appointmentDate: d.appointment?.first_appointment_date,
+          service: d.appointment?.service?.service_name ?? d.appointment?.service_id,
+          serviceRank: d.appointment?.rank?.name ?? d.appointment?.rank?.rank_name ?? d.appointment?.rank_id,
+          appointmentDate: formatDate(d.appointment?.first_appointment_date),
           appointmentNumber: d.appointment?.appointment_letter_no,
-          positionDesignation: d.appointment?.position_id,
+          positionDesignation: d.appointment?.position?.position_name ?? d.appointment?.position_id,
+          createdAt: formatDate(d.appointment?.created_at),
+         
         },
         teachingInfo: {
-          teacherCategory: d.teacher?.teacher_category,
-          teacherAppointmentType: d.teacher?.teacher_type,
-          medium: d.teacher?.appointment_medium,
+          teacherCategory: d.teacher?.teacher_category?.name,
+          teacherAppointmentType: d.teacher?.teacher_type?.type_name,
+          medium: d.teacher?.medium?.name,
           appointmentSubject: d.teacher?.appointment_subject?.name_en,
           mainTeachingSubject: d.teacher?.main_subject?.name_en,
           secondarySubjectOptional: d.teacher?.secondary_subject?.name_en,
@@ -451,6 +468,31 @@ const TeacherProfile = () => {
       setLoading(false);
     }
   }, [id, loadRejectComment]);
+
+  const handleDownloadDocument = useCallback(async () => {
+    if (!teacher?.id) return;
+
+    setIsDownloadingDocument(true);
+    try {
+      const response = await downloadTeacherProfileDocument(teacher.id);
+      const blob = new Blob([response.data], {
+        type: response.headers?.["content-type"] || "application/pdf",
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `teacher-profile-${teacher.nic || teacher.id}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      console.error("Failed to download teacher profile document:", error);
+      toast.error("Unable to download the teacher document.");
+    } finally {
+      setIsDownloadingDocument(false);
+    }
+  }, [teacher?.id, teacher?.nic]);
 
   useEffect(() => {
     loadTeacherProfile();
@@ -508,6 +550,7 @@ const TeacherProfile = () => {
   const isDevelopmentOfficerHead =
     userRoles.includes("development officer head") ||
     userRoles.includes("zonal deo head");
+  const isSuperAdmin = userRoles.includes("super admin");
   const isZonalDirector = userRoles.includes("zonal director");
   const isPendingStatus =
     !teacher?.confirmed &&
@@ -531,6 +574,13 @@ const TeacherProfile = () => {
       ? shouldShowZonalDirectorConfirmOnly
       : !teacher?.confirmed;
   const isRevisedStatus = !!teacher?.revised;
+  const canPromoteToPrincipal =
+    (isSuperAdmin || isZonalDirector) &&
+    !!teacher?.verified &&
+    !!teacher?.confirmed &&
+    !teacher?.rejected &&
+    !teacher?.revised &&
+    String(teacher?.service ?? "").trim() !== "SER004";
 
   const handleVerify = async () => {
     if (!teacher?.id || isVerifying) return;
@@ -719,6 +769,33 @@ const TeacherProfile = () => {
     }
   };
 
+  const navigate = useNavigate();
+
+  const openPromoteDialog = () => {
+    if (!canPromoteToPrincipal) return;
+    setOpenPromoteModal(true);
+  };
+
+  const confirmPromote = async () => {
+    if (!teacher?.id || isPromoting) return;
+
+    setIsPromoting(true);
+    try {
+      const res = await promoteTeacher(teacher.id);
+      await loadTeacherProfile();
+      setOpenPromoteModal(false);
+      toast.success("Teacher promoted to principal successfully.");
+      navigate(`/employees/principal/${teacher.id}`);
+    } catch (error) {
+      const message =
+        error?.response?.data?.message ||
+        "Failed to promote teacher to principal.";
+      toast.error(message);
+    } finally {
+      setIsPromoting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 m-6">
@@ -744,7 +821,13 @@ const TeacherProfile = () => {
       </div>
 
       {/* Header strip (finalized style) */}
-      <HeaderStrip teacher={teacher} />
+      <HeaderStrip
+        teacher={teacher}
+        onDownloadDocument={handleDownloadDocument}
+        isDownloadingDocument={isDownloadingDocument}
+      />
+
+      {/* promote button moved into left menu as a tab-style button */}
 
       {/* Verify alert strip */}
       {shouldShowVerificationStrip && (
@@ -774,6 +857,40 @@ const TeacherProfile = () => {
         />
       )}
 
+      <Modal show={openPromoteModal} size="md" popup onClose={() => setOpenPromoteModal(false)}>
+        <ModalHeader />
+        <ModalBody>
+          <div className="text-center">
+            <HiOutlineExclamationCircle className="mx-auto mb-4 h-14 w-14 text-emerald-500" />
+
+            <h3 className="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-200">
+              Promote to Principal
+            </h3>
+
+            <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">
+              Are you sure you want to promote this teacher to principal?
+            </p>
+
+            <div className="flex justify-center gap-4">
+              <Button
+                onClick={confirmPromote}
+                className="rounded-full px-5 py-2 bg-emerald-600 text-white shadow-md hover:bg-emerald-700"
+              >
+                Yes, promote
+              </Button>
+
+              <Button
+                color="alternative"
+                onClick={() => setOpenPromoteModal(false)}
+                className="rounded-full px-5 py-2"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </ModalBody>
+      </Modal>
+
       {/* Layout: Left menu + Right content */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left menu */}
@@ -786,6 +903,25 @@ const TeacherProfile = () => {
               <div className="text-xs text-gray-500">
                 Manage teacher profile and settings
               </div>
+            </div>
+
+            <div className="px-4 py-3">
+              {canPromoteToPrincipal && (
+                <button
+                  onClick={openPromoteDialog}
+                  disabled={isPromoting}
+                  className={[
+                    "w-full text-left px-4 py-3 rounded-xl text-sm transition flex items-center justify-between group",
+                    isPromoting
+                      ? "bg-white-500 text-white shadow-md"
+                      : "bg-white-600 text-black hover:bg-emerald-700 shadow-md",
+                  ].join(" ")}
+                >
+                  <span className="font-semibold">+ Promote to Principal</span>
+                  {/* <span className="h-2 w-2 rounded-full bg-white/90" /> */}
+                </button>
+              )}
+
             </div>
 
             <div className="p-2">
@@ -902,7 +1038,7 @@ export default TeacherProfile;
    Header strip (premium blue style)
 ========================================================= */
 
-function HeaderStrip({ teacher }) {
+function HeaderStrip({ teacher, onDownloadDocument, isDownloadingDocument }) {
   return (
     <div className="rounded-2xl overflow-hidden border border-blue-100 dark:border-blue-900/30 shadow-sm bg-white dark:bg-gray-800">
       <div className="bg-linear-to-r from-blue-50 to-indigo-50/30 dark:from-blue-900/10 dark:to-indigo-900/5">
@@ -960,9 +1096,13 @@ function HeaderStrip({ teacher }) {
               Send Edit Request
             </button>
 
-            <button className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-md shadow-blue-200 dark:shadow-none">
+            <button
+              onClick={onDownloadDocument}
+              disabled={isDownloadingDocument}
+              className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed transition-all shadow-md shadow-blue-200 dark:shadow-none"
+            >
               <HiDocumentText className="h-4 w-4" />
-              Get Document
+              {isDownloadingDocument ? "Preparing PDF..." : "Get Document"}
             </button>
           </div>
         </div>
@@ -1504,13 +1644,16 @@ function EmploymentTab({ employment }) {
           <FieldCell label="Appointment Date" value={ecs.appointmentDate} />
           <FieldCell
             label="Appointment/Transfer Letter No"
-            value={ecs.transferLetterNo}
+            value={ecs.appointmentNumber}
           />
           <FieldCell
             label="Position / Designation"
             value={ecs.positionDesignation}
           />
-          <FieldCell label="Last Updated" value={ecs.lastUpdated} />
+          <FieldCell label="Last Updated"
+           value={ecs.lastUpdated} 
+           />
+
           <div className="md:col-span-2">
             <FieldCell
               label="Workplace name and address"
@@ -1545,7 +1688,7 @@ function EmploymentTab({ employment }) {
             label="Position / Designation"
             value={ma.positionDesignation}
           />
-          <FieldCell label="Created" value={ma.created} />
+          <FieldCell label="Created" value={ma.createdAt} />
           <div className="md:col-span-2">
             <FieldCell
               label="Workplace name and address"

@@ -26,6 +26,7 @@ use App\Http\Controllers\API\RoleController;
 use App\Http\Controllers\API\DeoOfficerController;
 use App\Http\Controllers\API\MobileTeacherProfileController;
 use App\Http\Controllers\API\EmployerAppointmentConfirmationController;
+use App\Http\Controllers\Pdf\TeacherPdf;
 
 // Route::get('/user', function (Request $request) {
 //     return $request->user();
@@ -154,6 +155,7 @@ Route::prefix('')->group(function () {
     Route::get('/mobile/identity', MobileTeacherProfileController::class)->middleware('auth:jwt');
     Route::get('/user/{people_id}', UserApiController::class)->middleware('auth:jwt');
     Route::get('/dashboard/{people_id}', DashboardController::class)->middleware('auth:jwt');
+    Route::get('/pdf/teacher/{people_id}', [TeacherPdf::class, 'generateSimplePdf'])->middleware('auth:jwt');
 
 
     Route::middleware('auth:jwt')->group(function () {

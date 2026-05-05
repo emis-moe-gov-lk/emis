@@ -1,6 +1,8 @@
 import React, { useState } from "react";
+import toast from "react-hot-toast";
 import profileMale from "../../../assets/images/profile_m.png";
 import profileFemale from "../../../assets/images/profile_f.png";
+import { downloadTeacherProfileDocument } from "@/api/teacherService";
 
 const tabs = [
   "General",
@@ -14,11 +16,38 @@ const tabs = [
 const MyProfileHeader = ({ myprofile, permissions, onTabChange }) => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [activeTab, setActiveTab] = useState("General"); // default tab
+  const [isDownloadingDocument, setIsDownloadingDocument] = useState(false);
   const isConfirmed = myprofile?.appointment?.is_confirmed;
 
   const handleTabClick = (tab) => {
     setActiveTab(tab);
     if (onTabChange) onTabChange(tab); // optional callback to parent
+  };
+
+  const handleDownloadDocument = async () => {
+    const peopleId = myprofile?.people_id ?? myprofile?.id;
+    if (!peopleId) return;
+
+    setIsDownloadingDocument(true);
+    try {
+      const response = await downloadTeacherProfileDocument(peopleId);
+      const blob = new Blob([response.data], {
+        type: response.headers?.["content-type"] || "application/pdf",
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `teacher-profile-${myprofile?.nic || peopleId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      console.error("Failed to download teacher document:", error);
+      toast.error("Unable to download the teacher document.");
+    } finally {
+      setIsDownloadingDocument(false);
+    }
   };
 
   return (
@@ -74,8 +103,12 @@ const MyProfileHeader = ({ myprofile, permissions, onTabChange }) => {
               )}
 
               {permissions?.canDownload && (
-                <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                  Get Document
+                <button
+                  onClick={handleDownloadDocument}
+                  disabled={isDownloadingDocument}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  {isDownloadingDocument ? "Preparing PDF..." : "Get Document"}
                 </button>
               )}
             </div>
