@@ -1,5 +1,8 @@
 import React from "react";
 
+import Can from "@/components/common/Can";
+import { PermissionGroups } from "@/data/permissionGroups";
+
 const WeeklySchedule = ({
   monthLabel,
   weekDays,
@@ -32,8 +35,12 @@ const WeeklySchedule = ({
       {/* HEADER */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h3 className="text-xl font-black text-slate-800 dark:text-white">Weekly Schedule</h3>
-          <p className="text-sm text-slate-400 dark:text-gray-500 font-medium">{monthLabel}</p>
+          <h3 className="text-xl font-black text-slate-800 dark:text-white">
+            Weekly Schedule
+          </h3>
+          <p className="text-sm text-slate-400 dark:text-gray-500 font-medium">
+            {monthLabel}
+          </p>
         </div>
 
         <div className="flex gap-2">
@@ -153,12 +160,15 @@ const WeeklySchedule = ({
       </div>
 
       {/* BUTTON */}
-      <button
-        onClick={onViewFullCalendar}
-        className="mt-8 w-full py-4 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-indigo-600 transition-all"
-      >
-        View Full Calendar
-      </button>
+
+      <Can permission={PermissionGroups.DASHBOARD.VIEW_CALENDAR}>
+        <button
+          onClick={onViewFullCalendar}
+          className="mt-8 w-full py-4 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-indigo-600 transition-all"
+        >
+          View Full Calendar
+        </button>
+      </Can>
     </div>
   );
 };

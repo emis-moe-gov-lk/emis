@@ -158,6 +158,9 @@ export const PermissionGroups = {
     UPDATE: "teacher.update",
     PRINT_ID: "teacher.profile.printid",
     EXPORT_PDF: "teacher.profile.exportpdf",
+    PROMOTE: "teacher.profile.promote",
+    EDIT_REQUEST: "teacher.profile.edit-request.view",
+    PROFILE_EDIT: "teacher.profile.edit.view"
 
   },
 

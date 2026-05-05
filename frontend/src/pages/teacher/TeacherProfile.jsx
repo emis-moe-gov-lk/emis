@@ -16,7 +16,14 @@ import {
   promoteTeacher,
 } from "@/api/teacherService";
 import toast from "react-hot-toast";
-import { Badge, Spinner, Modal, ModalBody, ModalHeader, Button } from "flowbite-react";
+import {
+  Badge,
+  Spinner,
+  Modal,
+  ModalBody,
+  ModalHeader,
+  Button,
+} from "flowbite-react";
 import { HiOutlineExclamationCircle } from "react-icons/hi";
 import TeacherUpdateModal from "@/components/teacher/TeacherUpdateModal";
 import { useAuthUser } from "@/context/useAuthUser";
@@ -26,6 +33,9 @@ import DarkSafeModal, {
   darkSafeButtonClasses,
   darkSafeTextareaClass,
 } from "@/components/common/DarkSafeModal";
+
+import Can from "@/components/common/Can";
+import { PermissionGroups } from "@/data/permissionGroups";
 /**
  * Teacher Profile (Finalized Style)
  * - Professional, colorful, compact (less “cardy”), rounded corners everywhere
@@ -77,9 +87,7 @@ const TeacherProfile = () => {
         item?.employee_id,
         item?.teacher_id,
         item?.teacher_people_id,
-      ].some(
-        (value) => String(value ?? "") === String(teacherId ?? ""),
-      );
+      ].some((value) => String(value ?? "") === String(teacherId ?? ""));
 
     const matchesAppointment = (item) =>
       appointmentId &&
@@ -157,21 +165,24 @@ const TeacherProfile = () => {
   };
 
   const mergeCommentHistory = (...comments) =>
-    [...new Set(
-      comments
-        .flatMap((comment) => String(comment || "").split(/\n\s*\n/))
-        .map((comment) => String(comment || "").trim())
-        .filter(Boolean),
-    )].join("\n\n");
+    [
+      ...new Set(
+        comments
+          .flatMap((comment) => String(comment || "").split(/\n\s*\n/))
+          .map((comment) => String(comment || "").trim())
+          .filter(Boolean),
+      ),
+    ].join("\n\n");
 
-  const getUniqueCommentEntries = (...comments) =>
-    [...new Set(
+  const getUniqueCommentEntries = (...comments) => [
+    ...new Set(
       comments
         .flatMap((comment) => String(comment || "").split(/\n\s*\n/))
         .map((comment) => formatCommentDisplay(comment))
         .map((comment) => String(comment || "").trim())
         .filter(Boolean),
-    )];
+    ),
+  ];
 
   const buildCommentHistory = (records = [], fallbackComments = []) => {
     const recordComments = records.flatMap((record) => {
@@ -215,7 +226,10 @@ const TeacherProfile = () => {
       .trim()
       .toLowerCase();
 
-    if (profileStatus === "revised" || payload?.appointment?.is_verified === 3) {
+    if (
+      profileStatus === "revised" ||
+      payload?.appointment?.is_verified === 3
+    ) {
       return {
         status: "Revised",
         revised: true,
@@ -360,86 +374,101 @@ const TeacherProfile = () => {
                  GENERAL
               --------------------------- */
       setTeacher({
-          id: d.people_id,
-          appointmentId,
-          fullName: d.full_name,
-          initialsName: d.name_with_initials,
-          nic: d.nic,
-          employeeId: d.people_id,
-          wopNo: d.appointment?.w_op_no,
-          paySheetNo: d.appointment?.pay_sheet_no,
-          service: d.appointment?.service?.service_name ?? d.appointment?.service_id,
-          status: resolvedStatus.status,
-          profileStatus:
-            d.profile_status ?? d.appointment?.profile_status ?? null,
-          confirmed: d.appointment?.is_confirmed === 1,
-          rejected: d.appointment?.is_verified === 2,
-          verified: d.appointment?.is_verified === 1,
-          revised: resolvedStatus.revised,
-          rejectReason: mergeCommentHistory(...getUniqueCommentEntries(resolvedRejectReason)),
-          rejectCommentId:
-            latestRejectCommentRecord?.id ||
-            latestRejectCommentRecord?.comment_id ||
-            latestRejectCommentRecord?.reject_comment_id ||
-            null,
-          rejectCommentDate:
-            latestRejectCommentRecord?.update_comments_date ||
-            latestRejectCommentRecord?.date ||
-            latestRejectCommentRecord?.reject_date ||
-            latestRejectCommentRecord?.comment_date ||
-            latestRejectCommentRecord?.updated_at ||
-            latestRejectCommentRecord?.created_at ||
-            null,
+        id: d.people_id,
+        appointmentId,
+        fullName: d.full_name,
+        initialsName: d.name_with_initials,
+        nic: d.nic,
+        employeeId: d.people_id,
+        wopNo: d.appointment?.w_op_no,
+        paySheetNo: d.appointment?.pay_sheet_no,
+        service:
+          d.appointment?.service?.service_name ?? d.appointment?.service_id,
+        status: resolvedStatus.status,
+        profileStatus:
+          d.profile_status ?? d.appointment?.profile_status ?? null,
+        confirmed: d.appointment?.is_confirmed === 1,
+        rejected: d.appointment?.is_verified === 2,
+        verified: d.appointment?.is_verified === 1,
+        revised: resolvedStatus.revised,
+        rejectReason: mergeCommentHistory(
+          ...getUniqueCommentEntries(resolvedRejectReason),
+        ),
+        rejectCommentId:
+          latestRejectCommentRecord?.id ||
+          latestRejectCommentRecord?.comment_id ||
+          latestRejectCommentRecord?.reject_comment_id ||
+          null,
+        rejectCommentDate:
+          latestRejectCommentRecord?.update_comments_date ||
+          latestRejectCommentRecord?.date ||
+          latestRejectCommentRecord?.reject_date ||
+          latestRejectCommentRecord?.comment_date ||
+          latestRejectCommentRecord?.updated_at ||
+          latestRejectCommentRecord?.created_at ||
+          null,
 
-          dob: formatDate(d.date_of_birth),
-          gender: d.gender?.gender_name,
-          religion: d.religion?.religion_name,
-          ethnicity: d.ethnicity?.ethnicity_name,
-          civilStatus: d.civil_status?.civil_status_name,
+        dob: formatDate(d.date_of_birth),
+        gender: d.gender?.gender_name,
+        religion: d.religion?.religion_name,
+        ethnicity: d.ethnicity?.ethnicity_name,
+        civilStatus: d.civil_status?.civil_status_name,
 
-          bloodGroup: d.blood_group?.blood_group,
-          overallCondition: d.health_condition ? "Good" : "Issue",
-          knownProblems: d.health_problem,
+        bloodGroup: d.blood_group?.blood_group,
+        overallCondition: d.health_condition ? "Good" : "Issue",
+        knownProblems: d.health_problem,
 
-          email: d.email,
-          phone: d.phone,
+        email: d.email,
+        phone: d.phone,
 
-          district: d.district?.district_name,
-          gnDivision: d.gn_division?.gn_division_name,
-          permanentAddress: [d.address_line1, d.address_line2, d.address_line3]
-            .filter(Boolean)
-            .join("\n"),
+        district: d.district?.district_name,
+        gnDivision: d.gn_division?.gn_division_name,
+        permanentAddress: [d.address_line1, d.address_line2, d.address_line3]
+          .filter(Boolean)
+          .join("\n"),
 
-          latitude: d.latitude,
-          longitude: d.longitude,
-          tempAddress: [d.t_address_line1, d.t_address_line2, d.t_address_line3]
-            .filter(Boolean)
-            .join("\n"),
-        });
+        latitude: d.latitude,
+        longitude: d.longitude,
+        tempAddress: [d.t_address_line1, d.t_address_line2, d.t_address_line3]
+          .filter(Boolean)
+          .join("\n"),
+      });
 
       /* ---------------------------
                  EMPLOYMENT
               --------------------------- */
       setEmployment({
         appointmentCurrentStatus: {
-          service: d.current_appointment?.service?.service_name ?? d.current_appointment?.service_id,
-          currentServiceRank: d.current_appointment?.rank?.name ?? d.current_appointment?.rank?.rank_name ?? d.current_appointment?.rank_id,
+          service:
+            d.current_appointment?.service?.service_name ??
+            d.current_appointment?.service_id,
+          currentServiceRank:
+            d.current_appointment?.rank?.name ??
+            d.current_appointment?.rank?.rank_name ??
+            d.current_appointment?.rank_id,
           appointmentDate: formatDate(d.current_appointment?.appoint_date),
-          positionDesignation: d.current_appointment?.position?.position_name ?? d.current_appointment?.position_id,
+          positionDesignation:
+            d.current_appointment?.position?.position_name ??
+            d.current_appointment?.position_id,
           workplaceNameAddress: d.current_appointment?.workplace?.institution
             ? `[${d.current_appointment.workplace.institution.census_no}] ${d.current_appointment.workplace.institution.name}\n${d.current_appointment.workplace.institution.address}`
             : "",
-             lastUpdated: formatDate(d.appointment?.updated_at),
-             appointmentNumber: d.appointment?.appointment_letter_no,
+          lastUpdated: formatDate(d.appointment?.updated_at),
+          appointmentNumber: d.appointment?.appointment_letter_no,
         },
         myAppointment: {
-          service: d.appointment?.service?.service_name ?? d.appointment?.service_id,
-          serviceRank: d.appointment?.rank?.name ?? d.appointment?.rank?.rank_name ?? d.appointment?.rank_id,
+          service:
+            d.appointment?.service?.service_name ?? d.appointment?.service_id,
+          serviceRank:
+            d.appointment?.rank?.name ??
+            d.appointment?.rank?.rank_name ??
+            d.appointment?.rank_id,
           appointmentDate: formatDate(d.appointment?.first_appointment_date),
           appointmentNumber: d.appointment?.appointment_letter_no,
-          positionDesignation: d.appointment?.position?.position_name ?? d.appointment?.position_id,
+          positionDesignation:
+            d.appointment?.position?.position_name ??
+            d.appointment?.position_id,
           createdAt: formatDate(d.appointment?.created_at),
-         
         },
         teachingInfo: {
           teacherCategory: d.teacher?.teacher_category?.name,
@@ -541,14 +570,22 @@ const TeacherProfile = () => {
             .filter(Boolean)
             .map((role) => String(role).trim().toLowerCase());
           setUserRoles(normalizedStoredRoles);
-          setCurrentUserName(String(authUser?.name || authUser?.email || "").trim());
+          setCurrentUserName(
+            String(authUser?.name || authUser?.email || "").trim(),
+          );
         }
       });
 
     return () => {
       ignore = true;
     };
-  }, [authState.isAuthenticated, authUser?.email, authUser?.name, getDecodedIDToken, identityRoles]);
+  }, [
+    authState.isAuthenticated,
+    authUser?.email,
+    authUser?.name,
+    getDecodedIDToken,
+    identityRoles,
+  ]);
 
   const isDevelopmentOfficer =
     userRoles.includes("development officer") ||
@@ -567,7 +604,9 @@ const TeacherProfile = () => {
     isDevelopmentOfficer && !!teacher?.rejected && !teacher?.revised;
   const isVerifiedStatus =
     !!teacher?.verified ||
-    String(teacher?.status ?? "").trim().toLowerCase() === "verified";
+    String(teacher?.status ?? "")
+      .trim()
+      .toLowerCase() === "verified";
   const shouldShowZonalDirectorConfirmOnly =
     isZonalDirector &&
     isVerifiedStatus &&
@@ -703,7 +742,10 @@ const TeacherProfile = () => {
         statusResponse?.data?.data?.is_verified ??
         statusResponse?.data?.is_verified;
 
-      if (updatedProfileStatus === "revised" || Number(updatedVerifiedFlag) === 3) {
+      if (
+        updatedProfileStatus === "revised" ||
+        Number(updatedVerifiedFlag) === 3
+      ) {
         setTeacher((prev) =>
           prev
             ? {
@@ -857,13 +899,20 @@ const TeacherProfile = () => {
             isZonalDirector
               ? false
               : isDevelopmentOfficer
-              ? isRevisedStatus
-              : isDevelopmentOfficerHead && !isPendingStatus && !isRevisedStatus
+                ? isRevisedStatus
+                : isDevelopmentOfficerHead &&
+                  !isPendingStatus &&
+                  !isRevisedStatus
           }
         />
       )}
 
-      <Modal show={openPromoteModal} size="md" popup onClose={() => setOpenPromoteModal(false)}>
+      <Modal
+        show={openPromoteModal}
+        size="md"
+        popup
+        onClose={() => setOpenPromoteModal(false)}
+      >
         <ModalHeader />
         <ModalBody>
           <div className="text-center">
@@ -912,7 +961,7 @@ const TeacherProfile = () => {
             </div>
 
             <div className="px-4 py-3">
-              {canPromoteToPrincipal && (
+              <Can permission={PermissionGroups.SCHOOLS.PROMOTE}>
                 <button
                   onClick={openPromoteDialog}
                   disabled={isPromoting}
@@ -926,8 +975,7 @@ const TeacherProfile = () => {
                   <span className="font-semibold">+ Promote to Principal</span>
                   {/* <span className="h-2 w-2 rounded-full bg-white/90" /> */}
                 </button>
-              )}
-
+              </Can>
             </div>
 
             <div className="p-2">
@@ -1097,10 +1145,12 @@ function HeaderStrip({ teacher, onDownloadDocument, isDownloadingDocument }) {
 
           {/* RIGHT: Actions */}
           <div className="flex flex-col sm:flex-row xl:flex-col gap-3 min-w-[200px]">
-            <button className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm font-bold text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm">
-              <HiPencilAlt className="h-4 w-4 text-blue-600" />
-              Send Edit Request
-            </button>
+            <Can permission={PermissionGroups.SCHOOLS.EDIT_REQUEST}>
+              <button className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm font-bold text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm">
+                <HiPencilAlt className="h-4 w-4 text-blue-600" />
+                Send Edit Request
+              </button>
+            </Can>
 
             <button
               onClick={onDownloadDocument}
@@ -1151,17 +1201,17 @@ function VerifyStrip({
   const title = isRevised
     ? "Profile Revised"
     : isRejected
-    ? "Profile Rejected"
-    : isVerified
-    ? "Profile Confirmation Required"
-    : "Profile Verification Required";
+      ? "Profile Rejected"
+      : isVerified
+        ? "Profile Confirmation Required"
+        : "Profile Verification Required";
   const description = isRevised
     ? "This profile has been revised after rejection. Review the full comment history and continue the approval flow."
     : isRejected
-    ? "This profile was rejected. Review the details and verify again to restart the approval process."
-    : isVerified
-    ? "Profile verified successfully. Continue with confirmation to complete the appointment process."
-    : "Ensure all details are accurate before proceeding with administration.";
+      ? "This profile was rejected. Review the details and verify again to restart the approval process."
+      : isVerified
+        ? "Profile verified successfully. Continue with confirmation to complete the appointment process."
+        : "Ensure all details are accurate before proceeding with administration.";
   const buttonLabel = isVerifying
     ? showUpdateAction
       ? "Updating..."
@@ -1175,12 +1225,14 @@ function VerifyStrip({
         : "Verify Now";
   const buttonClass =
     "inline-flex items-center justify-center gap-2 rounded-xl bg-linear-to-r from-orange-500 to-amber-600 px-6 py-2 text-sm font-black text-white hover:from-orange-600 hover:to-amber-700 transition-all shadow-md shadow-orange-100 disabled:cursor-not-allowed disabled:opacity-70 dark:shadow-none";
-  const commentEntries = [...new Set(
-    String(rejectReason || "")
-      .split(/\n\s*\n/)
-      .map((comment) => String(comment || "").trim())
-      .filter(Boolean),
-  )];
+  const commentEntries = [
+    ...new Set(
+      String(rejectReason || "")
+        .split(/\n\s*\n/)
+        .map((comment) => String(comment || "").trim())
+        .filter(Boolean),
+    ),
+  ];
 
   return (
     <div className="rounded-2xl border border-amber-100 dark:border-amber-900/30 bg-amber-50 dark:bg-amber-900/10 shadow-sm overflow-hidden">
@@ -1434,9 +1486,11 @@ function RoundedActionButton({ icon, children, onClick, variant = "outline" }) {
   );
 }
 
-const tablePrimaryCellClass = "px-5 py-4 font-semibold text-gray-900 dark:text-gray-100";
+const tablePrimaryCellClass =
+  "px-5 py-4 font-semibold text-gray-900 dark:text-gray-100";
 const tableCellClass = "px-5 py-4 text-gray-700 dark:text-gray-300";
-const tableActionButtonClass = "rounded-full border border-gray-300 dark:border-gray-700 px-4 py-2 text-xs font-extrabold hover:bg-gray-50 dark:hover:bg-gray-800";
+const tableActionButtonClass =
+  "rounded-full border border-gray-300 dark:border-gray-700 px-4 py-2 text-xs font-extrabold hover:bg-gray-50 dark:hover:bg-gray-800";
 
 /* =========================================================
    TAB: General (ALL details kept)
@@ -1449,12 +1503,14 @@ function GeneralTab({ teacher, onEdit }) {
         title="Personal & Cultural"
         color="slate"
         right={
-          <RoundedActionButton
-            onClick={() => onEdit("personal")}
-            variant="outline"
-          >
-            Edit
-          </RoundedActionButton>
+          <Can permission={PermissionGroups.SCHOOLS.PROFILE_EDIT}>
+            <RoundedActionButton
+              onClick={() => onEdit("personal")}
+              variant="outline"
+            >
+              Edit
+            </RoundedActionButton>
+          </Can>
         }
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1472,11 +1528,23 @@ function GeneralTab({ teacher, onEdit }) {
         title="Health Information"
         color="teal"
         right={
-          <RoundedActionButton
-            onClick={() => onEdit("health")}
-            variant="outline"
-          >
-            Edit
+          <Can permission={PermissionGroups.SCHOOLS.PROFILE_EDIT}>
+            <RoundedActionButton
+              onClick={() => onEdit("health")}
+              variant="outline"
+            >
+              Edit
+            </RoundedActionButton>
+          </Can>
+        }
+      >
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {/* <div className="rounded-2xl border px-4 py-3 ">
+            <div className="text-[11px] font-semibold uppercase tracking-wide ">
+              Blood Group
+            </div>
+            <div className="mt-0.5 text-sm font-extrabold text-rose-700">
+              {teacher.bloodGroup || "—"}
           </RoundedActionButton>
         }
       >
@@ -1489,10 +1557,7 @@ function GeneralTab({ teacher, onEdit }) {
               {teacher.bloodGroup || "—"}
             </div>
           </div> */}
-          <FieldCell
-            label="Blood Group"
-            value={teacher.bloodGroup || "—"}
-          />
+          <FieldCell label="Blood Group" value={teacher.bloodGroup || "—"} />
           <FieldCell
             label="Overall Condition"
             value={teacher.overallCondition}
@@ -1505,12 +1570,14 @@ function GeneralTab({ teacher, onEdit }) {
         title="Contact & Location"
         color="indigo"
         right={
-          <RoundedActionButton
-            onClick={() => onEdit("contact")}
-            variant="outline"
-          >
-            Edit
-          </RoundedActionButton>
+          <Can permission={PermissionGroups.SCHOOLS.PROFILE_EDIT}>
+            <RoundedActionButton
+              onClick={() => onEdit("contact")}
+              variant="outline"
+            >
+              Edit
+            </RoundedActionButton>
+          </Can>
         }
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1536,11 +1603,23 @@ function GeneralTab({ teacher, onEdit }) {
         title="Temporary Location"
         color="blue"
         right={
-          <RoundedActionButton
-            onClick={() => onEdit("temporary")}
-            variant="outline"
-          >
-            Edit
+          <Can permission={PermissionGroups.SCHOOLS.PROFILE_EDIT}>
+            <RoundedActionButton
+              onClick={() => onEdit("temporary")}
+              variant="outline"
+            >
+              Edit
+            </RoundedActionButton>
+          </Can>
+        }
+      >
+        <div className="grid grid-cols-1 gap-3">
+          {/* <div className="rounded-2xl border px-4 py-3 bg-white">
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+              Residential Address
+            </div>
+            <div className="mt-0.5 text-sm font-extrabold text-gray-900 whitespace-pre-line">
+              {teacher.tempAddress || "—"}
           </RoundedActionButton>
         }
       >
@@ -1553,7 +1632,10 @@ function GeneralTab({ teacher, onEdit }) {
               {teacher.tempAddress || "—"}
             </div>
           </div> */}
-          <FieldCell label=" Residential Address" value={teacher.tempAddress || "—"} />
+          <FieldCell
+            label=" Residential Address"
+            value={teacher.tempAddress || "—"}
+          />
         </div>
       </ColorSection>
     </div>
@@ -1647,9 +1729,7 @@ function EmploymentTab({ employment }) {
             label="Position / Designation"
             value={ecs.positionDesignation}
           />
-          <FieldCell label="Last Updated"
-           value={ecs.lastUpdated} 
-           />
+          <FieldCell label="Last Updated" value={ecs.lastUpdated} />
 
           <div className="md:col-span-2">
             <FieldCell
@@ -1884,7 +1964,9 @@ function FamilyTab({ family }) {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">Spouse List</h2>
+        <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
+          Spouse List
+        </h2>
         <RoundedActionButton onClick={() => {}} variant="outline">
           Add spouse
         </RoundedActionButton>
@@ -1931,7 +2013,9 @@ function EditRequestTab({ editRequests }) {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">Edit Requests</h2>
+        <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
+          Edit Requests
+        </h2>
       </div>
 
       <div className="rounded-2xl overflow-hidden border surface">
@@ -1939,14 +2023,23 @@ function EditRequestTab({ editRequests }) {
           {editRequests?.length ? (
             <ul className="space-y-3">
               {editRequests.map((r) => (
-                <li key={r.id} className="rounded-2xl border border-gray-200 dark:border-gray-700 px-4 py-3">
-                  <div className="font-extrabold text-gray-900 dark:text-gray-100">{r.title}</div>
-                  <div className="text-gray-600 dark:text-gray-400">{r.note}</div>
+                <li
+                  key={r.id}
+                  className="rounded-2xl border border-gray-200 dark:border-gray-700 px-4 py-3"
+                >
+                  <div className="font-extrabold text-gray-900 dark:text-gray-100">
+                    {r.title}
+                  </div>
+                  <div className="text-gray-600 dark:text-gray-400">
+                    {r.note}
+                  </div>
                 </li>
               ))}
             </ul>
           ) : (
-            <div className="text-gray-600 dark:text-gray-400">No edit requests found.</div>
+            <div className="text-gray-600 dark:text-gray-400">
+              No edit requests found.
+            </div>
           )}
         </div>
       </div>
