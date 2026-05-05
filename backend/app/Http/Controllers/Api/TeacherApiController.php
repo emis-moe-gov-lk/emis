@@ -194,7 +194,7 @@ class TeacherApiController extends Controller
             $query = clone $baseQuery;
 
             // Scope registration forms to the authenticated officer's zonal office.
-            if ($this->hasAnyRole($roles, ['development officer', 'development officer head', 'zonal deo', 'zonal deo head'])) {
+            if ($this->hasAnyRole($roles, ['development officer', 'development officer head', 'zonal deo', 'zonal deo head', 'zonal director'])) {
                 $zonalWorkplaceId = $this->resolveUserZonalWorkplaceId($request);
 
                 if (! $zonalWorkplaceId) {
