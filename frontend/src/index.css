@@ -11,3 +11,87 @@
 .font-jakarta {
   font-family: "Plus Jakarta Sans", sans-serif;
 }
+
+:root {
+  --surface-bg: #ffffff;
+  --surface-fg: #111827;
+  --surface-border: #e5e7eb;
+  --surface-muted-bg: #f8fafc;
+  --surface-muted-border: #e6eef8;
+  --surface-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --scrollbar-track: #f3f4f6;
+  --scrollbar-thumb: #cbd5e1;
+  --scrollbar-track-dark: #0f1724;
+  --scrollbar-thumb-dark: #4b5563;
+}
+
+.dark {
+  --surface-bg: #0f1724;
+  --surface-fg: #f3f4f6;
+  --surface-border: #1f2937;
+  --surface-muted-bg: #0b1220;
+  --surface-muted-border: #17202a;
+  --surface-shadow: 0 1px 2px rgba(0, 0, 0, 0.24);
+}
+
+/* Themed scrollbar for containers that need a visible scrollbar */
+.scrollbar-theme {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track); /* thumb, track for Firefox */
+}
+
+.scrollbar-theme::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scrollbar-theme::-webkit-scrollbar-track {
+  background: var(--scrollbar-track); /* light track */
+}
+
+.scrollbar-theme::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb); /* light thumb */
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+/* Dark mode variants */
+.dark .scrollbar-theme {
+  scrollbar-color: var(--scrollbar-thumb-dark) var(--scrollbar-track-dark); /* thumb, track */
+}
+
+.dark .scrollbar-theme::-webkit-scrollbar-track {
+  background: var(--scrollbar-track-dark); /* dark track */
+}
+
+.dark .scrollbar-theme::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb-dark); /* dark thumb */
+}
+
+/* Shell surfaces for app chrome and fixed panels */
+.surface-shell {
+  background-color: var(--surface-bg);
+  color: var(--surface-fg);
+  border-color: var(--surface-border);
+}
+
+/* Reusable surface utility for cards/popovers */
+.surface {
+  background-color: var(--surface-bg);
+  color: var(--surface-fg);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--surface-shadow);
+}
+
+/* Variation for subtle surfaces (panels with slight tint) */
+.surface-muted {
+  background-color: var(--surface-muted-bg);
+  border: 1px solid var(--surface-muted-border);
+}
+
+/* Accessible focus ring for interactive elements */
+.focus-ring:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}

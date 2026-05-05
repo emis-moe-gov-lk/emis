@@ -120,14 +120,14 @@ export default function StepFirstAppointment({
 
   return (
     <div className="flex justify-center px-4 py-2">
-      <div className="w-full max-w-4xl rounded-2xl px-6 py-0 space-y-2 [&_input]:bg-white [&_select]:bg-white [&_textarea]:bg-white [&_label]:text-xs [&_label]:font-bold [&_label]:text-gray-700">
+      <div className="w-full max-w-4xl rounded-2xl px-6 py-0 space-y-2 [&_input]:bg-white dark:[&_input]:bg-gray-800 [&_select]:bg-white dark:[&_select]:bg-gray-800 [&_textarea]:bg-white dark:[&_textarea]:bg-gray-800 [&_label]:text-xs [&_label]:font-bold [&_label]:text-gray-700 dark:[&_label]:text-gray-300">
 
         {/* STEP TITLE */}
         <div className="mb-3 flex items-center gap-3">
           <div className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-600 text-xs font-bold text-white">
             04
           </div>
-          <h2 className="text-lg font-semibold text-gray-800">
+          <h2 className="text-lg font-semibold">
             First Appointment Details
           </h2>
         </div>

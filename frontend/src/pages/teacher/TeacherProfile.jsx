@@ -20,6 +20,12 @@ import { Badge, Spinner, Modal, ModalBody, ModalHeader, Button } from "flowbite-
 import { HiOutlineExclamationCircle } from "react-icons/hi";
 import TeacherUpdateModal from "@/components/teacher/TeacherUpdateModal";
 import { useAuthUser } from "@/context/useAuthUser";
+import ProfileDataTable from "@/components/common/ProfileDataTable";
+import DarkSafeModal, {
+  darkSafeInputClass,
+  darkSafeButtonClasses,
+  darkSafeTextareaClass,
+} from "@/components/common/DarkSafeModal";
 /**
  * Teacher Profile (Finalized Style)
  * - Professional, colorful, compact (less “cardy”), rounded corners everywhere
@@ -895,12 +901,12 @@ const TeacherProfile = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left menu */}
         <aside className="lg:col-span-3">
-          <div className="rounded-2xl border bg-white overflow-hidden">
-            <div className="px-4 py-3 border-b bg-gray-50">
-              <div className="text-sm font-semibold text-gray-800">
+          <div className="rounded-2xl surface overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/70">
+              <div className="text-sm font-semibold text-gray-800 dark:text-gray-100">
                 Teacher Profile
               </div>
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-gray-500 dark:text-gray-400">
                 Manage teacher profile and settings
               </div>
             </div>
@@ -935,7 +941,7 @@ const TeacherProfile = () => {
                       "w-full text-left px-4 py-3 rounded-xl text-sm transition flex items-center justify-between group",
                       active
                         ? "bg-blue-600 dark:bg-blue-700 text-white shadow-md shadow-blue-200 dark:shadow-none"
-                        : "text-gray-700 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50",
+                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50",
                     ].join(" ")}
                   >
                     <span className={active ? "font-semibold" : "font-medium"}>
@@ -1247,48 +1253,49 @@ function RejectReasonModal({
 }) {
   if (!isOpen) return null;
 
+  const footerContent = (
+    <>
+      <button
+        type="button"
+        onClick={onClose}
+        disabled={isRejecting}
+        className={darkSafeButtonClasses.cancel}
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        onClick={onSubmit}
+        disabled={isRejecting}
+        className={darkSafeButtonClasses.danger}
+      >
+        {isRejecting ? "Rejecting..." : "Submit Rejection"}
+      </button>
+    </>
+  );
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/40 px-4">
-      <div className="w-full max-w-lg rounded-3xl bg-white shadow-2xl">
-        <div className="border-b border-gray-100 px-6 py-5">
-          <h3 className="text-lg font-black text-gray-900">
-            Enter Rejection Reason
-          </h3>
-          <p className="mt-1 text-sm text-gray-500">
-            This reason will be sent with the reject action.
-          </p>
-        </div>
-
-        <div className="px-6 py-5">
-          <textarea
-            value={reason}
-            onChange={(e) => onChangeReason(e.target.value)}
-            rows={5}
-            placeholder="Type the reason for rejecting this profile..."
-            className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm text-gray-800 outline-none transition focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
-          />
-        </div>
-
-        <div className="flex justify-end gap-3 border-t border-gray-100 px-6 py-4">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isRejecting}
-            className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-70"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={onSubmit}
-            disabled={isRejecting}
-            className="rounded-xl bg-rose-600 px-4 py-2 text-sm font-bold text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-70"
-          >
-            {isRejecting ? "Rejecting..." : "Submit Rejection"}
-          </button>
-        </div>
+    <DarkSafeModal
+      isOpen={isOpen}
+      title="Enter Rejection Reason"
+      subtitle="Provide feedback"
+      onClose={onClose}
+      maxWidth="md"
+      footer={footerContent}
+    >
+      <div className="space-y-3">
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          This reason will be sent with the reject action.
+        </p>
+        <textarea
+          value={reason}
+          onChange={(e) => onChangeReason(e.target.value)}
+          rows={5}
+          placeholder="Type the reason for rejecting this profile..."
+          className={darkSafeTextareaClass}
+        />
       </div>
-    </div>
+    </DarkSafeModal>
   );
 }
 
@@ -1303,60 +1310,62 @@ function UpdateCommentModal({
 }) {
   if (!isOpen) return null;
 
+  const footerContent = (
+    <>
+      <button
+        type="button"
+        onClick={onClose}
+        disabled={isSubmitting}
+        className={darkSafeButtonClasses.cancel}
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        onClick={onSubmit}
+        disabled={isSubmitting}
+        className={darkSafeButtonClasses.warning}
+      >
+        {isSubmitting ? "Updating..." : "Update Details"}
+      </button>
+    </>
+  );
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/40 px-4">
-      <div className="w-full max-w-lg rounded-3xl bg-white shadow-2xl">
-        <div className="border-b border-gray-100 px-6 py-5">
-          <h3 className="text-lg font-black text-gray-900">
-            Update Reject Details
-          </h3>
-          <p className="mt-1 text-sm text-gray-500">
-            Existing reject details are shown below as read-only. New comments
-            will be appended to the reject comment history.
-          </p>
-        </div>
+    <DarkSafeModal
+      isOpen={isOpen}
+      title="Update Reject Details"
+      subtitle="Add feedback"
+      onClose={onClose}
+      maxWidth="md"
+      footer={footerContent}
+    >
+      <div className="space-y-4">
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          Existing reject details are shown below as read-only. New comments
+          will be appended to the reject comment history.
+        </p>
 
-        <div className="px-6 py-5">
-          {existingComment && (
-            <div className="mb-4 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
-              <div className="text-xs font-bold uppercase tracking-wide text-gray-500">
-                Existing Reject Details
-              </div>
-              <p className="mt-2 whitespace-pre-wrap text-sm text-gray-700">
-                {existingComment}
-              </p>
+        {existingComment && (
+          <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30 px-4 py-3">
+            <div className="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+              Existing Reject Details
             </div>
-          )}
+            <p className="mt-2 whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300">
+              {existingComment}
+            </p>
+          </div>
+        )}
 
-          <textarea
-            value={comment}
-            onChange={(e) => onChangeComment(e.target.value)}
-            rows={5}
-            placeholder="Type the new update comment here..."
-            className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm text-gray-800 outline-none transition focus:border-amber-300 focus:ring-2 focus:ring-amber-100"
-          />
-        </div>
-
-        <div className="flex justify-end gap-3 border-t border-gray-100 px-6 py-4">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isSubmitting}
-            className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-70"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={onSubmit}
-            disabled={isSubmitting}
-            className="rounded-xl bg-amber-600 px-4 py-2 text-sm font-bold text-white hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-70"
-          >
-            {isSubmitting ? "Updating..." : "Update Details"}
-          </button>
-        </div>
+        <textarea
+          value={comment}
+          onChange={(e) => onChangeComment(e.target.value)}
+          rows={5}
+          placeholder="Type the new update comment here..."
+          className={darkSafeTextareaClass}
+        />
       </div>
-    </div>
+    </DarkSafeModal>
   );
 }
 
@@ -1425,6 +1434,10 @@ function RoundedActionButton({ icon, children, onClick, variant = "outline" }) {
   );
 }
 
+const tablePrimaryCellClass = "px-5 py-4 font-semibold text-gray-900 dark:text-gray-100";
+const tableCellClass = "px-5 py-4 text-gray-700 dark:text-gray-300";
+const tableActionButtonClass = "rounded-full border border-gray-300 dark:border-gray-700 px-4 py-2 text-xs font-extrabold hover:bg-gray-50 dark:hover:bg-gray-800";
+
 /* =========================================================
    TAB: General (ALL details kept)
 ========================================================= */
@@ -1468,14 +1481,18 @@ function GeneralTab({ teacher, onEdit }) {
         }
       >
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="rounded-2xl border px-4 py-3 bg-rose-50">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-600">
+          {/* <div className="rounded-2xl border px-4 py-3 ">
+            <div className="text-[11px] font-semibold uppercase tracking-wide ">
               Blood Group
             </div>
             <div className="mt-0.5 text-sm font-extrabold text-rose-700">
               {teacher.bloodGroup || "—"}
             </div>
-          </div>
+          </div> */}
+          <FieldCell
+            label="Blood Group"
+            value={teacher.bloodGroup || "—"}
+          />
           <FieldCell
             label="Overall Condition"
             value={teacher.overallCondition}
@@ -1528,14 +1545,15 @@ function GeneralTab({ teacher, onEdit }) {
         }
       >
         <div className="grid grid-cols-1 gap-3">
-          <div className="rounded-2xl border px-4 py-3 bg-white">
+          {/* <div className="rounded-2xl border px-4 py-3 bg-white">
             <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
               Residential Address
             </div>
             <div className="mt-0.5 text-sm font-extrabold text-gray-900 whitespace-pre-line">
               {teacher.tempAddress || "—"}
             </div>
-          </div>
+          </div> */}
+          <FieldCell label=" Residential Address" value={teacher.tempAddress || "—"} />
         </div>
       </ColorSection>
     </div>
@@ -1550,7 +1568,7 @@ function QualificationTab({ qualifications }) {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-xl font-extrabold text-gray-900">
+        <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
           Educational qualification
         </h2>
         <RoundedActionButton icon={HiPlus} onClick={() => {}} variant="outline">
@@ -1558,49 +1576,28 @@ function QualificationTab({ qualifications }) {
         </RoundedActionButton>
       </div>
 
-      <div className="rounded-2xl overflow-hidden border bg-white">
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-gray-50 text-left">
-              <tr className="text-xs font-extrabold uppercase tracking-wide text-gray-600">
-                <th className="px-5 py-4">Degree / Certificate</th>
-                <th className="px-5 py-4">Institution</th>
-                <th className="px-5 py-4">Date of Completion</th>
-                <th className="px-5 py-4">Grade</th>
-                <th className="px-5 py-4">Action</th>
-              </tr>
-            </thead>
-
-            <tbody className="divide-y">
-              {qualifications?.length ? (
-                qualifications.map((q) => (
-                  <tr key={q.id}>
-                    <td className="px-5 py-4 font-semibold text-gray-900">
-                      {q.degree}
-                    </td>
-                    <td className="px-5 py-4 text-gray-700">{q.institution}</td>
-                    <td className="px-5 py-4 text-gray-700">
-                      {q.completionDate}
-                    </td>
-                    <td className="px-5 py-4 text-gray-700">{q.grade}</td>
-                    <td className="px-5 py-4">
-                      <button className="rounded-full border px-4 py-2 text-xs font-extrabold hover:bg-gray-50">
-                        Edit
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td className="px-5 py-6 text-gray-600" colSpan={5}>
-                    No data
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <ProfileDataTable
+        columns={[
+          { key: "degree", label: "Degree / Certificate" },
+          { key: "institution", label: "Institution" },
+          { key: "completionDate", label: "Date of Completion" },
+          { key: "grade", label: "Grade" },
+          { key: "action", label: "Action" },
+        ]}
+        rows={qualifications}
+        emptyMessage="No data"
+        renderRow={(q) => (
+          <tr key={q.id}>
+            <td className={tablePrimaryCellClass}>{q.degree}</td>
+            <td className={tableCellClass}>{q.institution}</td>
+            <td className={tableCellClass}>{q.completionDate}</td>
+            <td className={tableCellClass}>{q.grade}</td>
+            <td className="px-5 py-4">
+              <button className={tableActionButtonClass}>Edit</button>
+            </td>
+          </tr>
+        )}
+      />
     </div>
   );
 }
@@ -1744,7 +1741,7 @@ function EmploymentTab({ employment }) {
 
       {/* Previous Service */}
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-xl font-extrabold text-gray-900">
+        <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
           Previous Service
         </h2>
         <RoundedActionButton icon={HiPlus} onClick={() => {}} variant="outline">
@@ -1752,61 +1749,38 @@ function EmploymentTab({ employment }) {
         </RoundedActionButton>
       </div>
 
-      <div className="rounded-2xl overflow-hidden border bg-white">
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-gray-50 text-left">
-              <tr className="text-xs font-extrabold uppercase tracking-wide text-gray-600">
-                <th className="px-5 py-4">Service</th>
-                <th className="px-5 py-4">Grade/Rank</th>
-                <th className="px-5 py-4">Appointment Date</th>
-                <th className="px-5 py-4">Retainment Date</th>
-                <th className="px-5 py-4">Status</th>
-                <th className="px-5 py-4">Action</th>
-              </tr>
-            </thead>
-
-            <tbody className="divide-y">
-              {prevService?.length ? (
-                prevService.map((row) => (
-                  <tr key={row.id}>
-                    <td className="px-5 py-4 font-semibold text-gray-900">
-                      {row.service}
-                    </td>
-                    <td className="px-5 py-4 text-gray-700">{row.gradeRank}</td>
-                    <td className="px-5 py-4 text-gray-700">
-                      {row.appointmentDate}
-                    </td>
-                    <td className="px-5 py-4 text-gray-700">
-                      {row.retainmentDate}
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-extrabold text-green-800">
-                        ✓ {row.status}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4">
-                      <button className="rounded-full border px-3 py-2 text-xs font-extrabold hover:bg-gray-50">
-                        🗑
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td className="px-5 py-6 text-gray-600" colSpan={6}>
-                    No previous service records found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <ProfileDataTable
+        columns={[
+          { key: "service", label: "Service" },
+          { key: "gradeRank", label: "Grade/Rank" },
+          { key: "appointmentDate", label: "Appointment Date" },
+          { key: "retainmentDate", label: "Retainment Date" },
+          { key: "status", label: "Status" },
+          { key: "action", label: "Action" },
+        ]}
+        rows={prevService}
+        emptyMessage="No previous service records found."
+        renderRow={(row) => (
+          <tr key={row.id}>
+            <td className={tablePrimaryCellClass}>{row.service}</td>
+            <td className={tableCellClass}>{row.gradeRank}</td>
+            <td className={tableCellClass}>{row.appointmentDate}</td>
+            <td className={tableCellClass}>{row.retainmentDate}</td>
+            <td className="px-5 py-4">
+              <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-extrabold text-green-800">
+                ✓ {row.status}
+              </span>
+            </td>
+            <td className="px-5 py-4">
+              <button className={tableActionButtonClass}>🗑</button>
+            </td>
+          </tr>
+        )}
+      />
 
       {/* Previous Service-related information */}
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-xl font-extrabold text-gray-900">
+        <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
           Previous Service-related information
         </h2>
         <RoundedActionButton icon={HiPlus} onClick={() => {}} variant="outline">
@@ -1814,104 +1788,62 @@ function EmploymentTab({ employment }) {
         </RoundedActionButton>
       </div>
 
-      <div className="rounded-2xl overflow-hidden border bg-white">
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-gray-50 text-left">
-              <tr className="text-xs font-extrabold uppercase tracking-wide text-gray-600">
-                <th className="px-5 py-4">Position</th>
-                <th className="px-5 py-4">Service</th>
-                <th className="px-5 py-4">Grade/Rank</th>
-                <th className="px-5 py-4">Start Date</th>
-                <th className="px-5 py-4">End Date</th>
-                <th className="px-5 py-4">Action</th>
-              </tr>
-            </thead>
-
-            <tbody className="divide-y">
-              {prevServiceInfo?.length ? (
-                prevServiceInfo.map((row) => (
-                  <tr key={row.id}>
-                    <td className="px-5 py-4 font-semibold text-gray-900">
-                      {row.position}
-                    </td>
-                    <td className="px-5 py-4 text-gray-700">{row.service}</td>
-                    <td className="px-5 py-4 text-gray-700">{row.gradeRank}</td>
-                    <td className="px-5 py-4 text-gray-700">{row.startDate}</td>
-                    <td className="px-5 py-4 text-gray-700">{row.endDate}</td>
-                    <td className="px-5 py-4">
-                      <button className="rounded-full border px-3 py-2 text-xs font-extrabold hover:bg-gray-50">
-                        🗑
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td className="px-5 py-6 text-gray-600" colSpan={6}>
-                    No previous service records found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <ProfileDataTable
+        columns={[
+          { key: "position", label: "Position" },
+          { key: "service", label: "Service" },
+          { key: "gradeRank", label: "Grade/Rank" },
+          { key: "startDate", label: "Start Date" },
+          { key: "endDate", label: "End Date" },
+          { key: "action", label: "Action" },
+        ]}
+        rows={prevServiceInfo}
+        emptyMessage="No previous service records found."
+        renderRow={(row) => (
+          <tr key={row.id}>
+            <td className={tablePrimaryCellClass}>{row.position}</td>
+            <td className={tableCellClass}>{row.service}</td>
+            <td className={tableCellClass}>{row.gradeRank}</td>
+            <td className={tableCellClass}>{row.startDate}</td>
+            <td className={tableCellClass}>{row.endDate}</td>
+            <td className="px-5 py-4">
+              <button className={tableActionButtonClass}>🗑</button>
+            </td>
+          </tr>
+        )}
+      />
 
       {/* Previous working place */}
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-xl font-extrabold text-gray-900">
+        <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
           Previous working place
         </h2>
       </div>
 
-      <div className="rounded-2xl overflow-hidden border bg-white">
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-gray-50 text-left">
-              <tr className="text-xs font-extrabold uppercase tracking-wide text-gray-600">
-                <th className="px-5 py-4">Working Place & Address</th>
-                <th className="px-5 py-4">Appointed Date</th>
-                <th className="px-5 py-4">Release Date</th>
-                <th className="px-5 py-4">Service Period</th>
-                <th className="px-5 py-4">Action</th>
-              </tr>
-            </thead>
-
-            <tbody className="divide-y">
-              {prevWork?.length ? (
-                prevWork.map((row) => (
-                  <tr key={row.id}>
-                    <td className="px-5 py-4 font-semibold text-gray-900 whitespace-pre-line">
-                      {row.workingPlaceAddress}
-                    </td>
-                    <td className="px-5 py-4 text-gray-700">
-                      {row.appointedDate}
-                    </td>
-                    <td className="px-5 py-4 text-gray-700">
-                      {row.releaseDate}
-                    </td>
-                    <td className="px-5 py-4 text-gray-700">
-                      {row.servicePeriod}
-                    </td>
-                    <td className="px-5 py-4">
-                      <button className="rounded-full border px-3 py-2 text-xs font-extrabold hover:bg-gray-50">
-                        🗑
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td className="px-5 py-6 text-gray-600" colSpan={5}>
-                    No previous working place records found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <ProfileDataTable
+        columns={[
+          { key: "workingPlaceAddress", label: "Working Place & Address" },
+          { key: "appointedDate", label: "Appointed Date" },
+          { key: "releaseDate", label: "Release Date" },
+          { key: "servicePeriod", label: "Service Period" },
+          { key: "action", label: "Action" },
+        ]}
+        rows={prevWork}
+        emptyMessage="No previous working place records found."
+        renderRow={(row) => (
+          <tr key={row.id}>
+            <td className={`${tablePrimaryCellClass} whitespace-pre-line`}>
+              {row.workingPlaceAddress}
+            </td>
+            <td className={tableCellClass}>{row.appointedDate}</td>
+            <td className={tableCellClass}>{row.releaseDate}</td>
+            <td className={tableCellClass}>{row.servicePeriod}</td>
+            <td className="px-5 py-4">
+              <button className={tableActionButtonClass}>🗑</button>
+            </td>
+          </tr>
+        )}
+      />
     </div>
   );
 }
@@ -1924,7 +1856,7 @@ function WopTab({ wopAndPayment }) {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-xl font-extrabold text-gray-900">
+        <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
           W&OP & Payment Details
         </h2>
         <RoundedActionButton onClick={() => {}} variant="outline">
@@ -1932,7 +1864,7 @@ function WopTab({ wopAndPayment }) {
         </RoundedActionButton>
       </div>
 
-      <div className="rounded-2xl overflow-hidden border bg-white">
+      <div className="rounded-2xl overflow-hidden border surface">
         <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-3">
           <FieldCell label="W&OP No" value={wopAndPayment?.wopNo} />
           <FieldCell label="Pay Sheet No" value={wopAndPayment?.paySheetNo} />
@@ -1952,62 +1884,41 @@ function FamilyTab({ family }) {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-xl font-extrabold text-gray-900">Spouse List</h2>
+        <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">Spouse List</h2>
         <RoundedActionButton onClick={() => {}} variant="outline">
           Add spouse
         </RoundedActionButton>
       </div>
 
-      <div className="rounded-2xl overflow-hidden border bg-white">
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-gray-50 text-left">
-              <tr className="text-xs font-extrabold uppercase tracking-wide text-gray-600">
-                <th className="px-5 py-4">Spouse Names</th>
-                <th className="px-5 py-4">Date of Birth</th>
-                <th className="px-5 py-4">Married Date</th>
-                <th className="px-5 py-4">Married CF No.</th>
-                <th className="px-5 py-4">Status</th>
-                <th className="px-5 py-4">Action</th>
-              </tr>
-            </thead>
-
-            <tbody className="divide-y">
-              {spouses?.length ? (
-                spouses.map((s) => (
-                  <tr key={s.id}>
-                    <td className="px-5 py-4 font-semibold text-gray-900">
-                      {s.spouseName}
-                    </td>
-                    <td className="px-5 py-4 text-gray-700">{s.dob}</td>
-                    <td className="px-5 py-4 text-gray-700">{s.marriedDate}</td>
-                    <td className="px-5 py-4 text-gray-700">{s.marriedCfNo}</td>
-                    <td className="px-5 py-4">
-                      <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-extrabold text-green-800">
-                        {s.status || "—"}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4">
-                      <button className="rounded-full border px-3 py-2 text-xs font-extrabold hover:bg-gray-50">
-                        🗑
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td
-                    className="px-5 py-10 text-center text-gray-600"
-                    colSpan={6}
-                  >
-                    No spouses have been added yet.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <ProfileDataTable
+        columns={[
+          { key: "spouseName", label: "Spouse Names" },
+          { key: "dob", label: "Date of Birth" },
+          { key: "marriedDate", label: "Married Date" },
+          { key: "marriedCfNo", label: "Married CF No." },
+          { key: "status", label: "Status" },
+          { key: "action", label: "Action" },
+        ]}
+        rows={spouses}
+        emptyMessage="No spouses have been added yet."
+        emptyCellClassName="px-5 py-10 text-center text-gray-600 dark:text-gray-400"
+        renderRow={(s) => (
+          <tr key={s.id}>
+            <td className={tablePrimaryCellClass}>{s.spouseName}</td>
+            <td className={tableCellClass}>{s.dob}</td>
+            <td className={tableCellClass}>{s.marriedDate}</td>
+            <td className={tableCellClass}>{s.marriedCfNo}</td>
+            <td className="px-5 py-4">
+              <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-extrabold text-green-800">
+                {s.status || "—"}
+              </span>
+            </td>
+            <td className="px-5 py-4">
+              <button className={tableActionButtonClass}>🗑</button>
+            </td>
+          </tr>
+        )}
+      />
     </div>
   );
 }
@@ -2020,22 +1931,22 @@ function EditRequestTab({ editRequests }) {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-xl font-extrabold text-gray-900">Edit Requests</h2>
+        <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">Edit Requests</h2>
       </div>
 
-      <div className="rounded-2xl overflow-hidden border bg-white">
-        <div className="p-6 text-sm text-gray-700">
+      <div className="rounded-2xl overflow-hidden border surface">
+        <div className="p-6 text-sm text-gray-700 dark:text-gray-300">
           {editRequests?.length ? (
             <ul className="space-y-3">
               {editRequests.map((r) => (
-                <li key={r.id} className="rounded-2xl border px-4 py-3">
-                  <div className="font-extrabold text-gray-900">{r.title}</div>
-                  <div className="text-gray-600">{r.note}</div>
+                <li key={r.id} className="rounded-2xl border border-gray-200 dark:border-gray-700 px-4 py-3">
+                  <div className="font-extrabold text-gray-900 dark:text-gray-100">{r.title}</div>
+                  <div className="text-gray-600 dark:text-gray-400">{r.note}</div>
                 </li>
               ))}
             </ul>
           ) : (
-            <div className="text-gray-600">No edit requests found.</div>
+            <div className="text-gray-600 dark:text-gray-400">No edit requests found.</div>
           )}
         </div>
       </div>

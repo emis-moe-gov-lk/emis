@@ -53,7 +53,7 @@ const MyProfileHeader = ({ myprofile, permissions, onTabChange }) => {
   return (
     <div className="max-w-7xl mx-auto pb-10 mt-10">
       {/* PROFILE HEADER */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border shadow-sm overflow-hidden">
+      <div className="surface rounded-2xl overflow-hidden">
         {/* Cover */}
         <div className="h-32 md:h-52 bg-gradient-to-r from-blue-600 to-indigo-600"></div>
 
@@ -66,7 +66,7 @@ const MyProfileHeader = ({ myprofile, permissions, onTabChange }) => {
                   myprofile?.gender_id === "G02" ? profileFemale : profileMale
                 }
                 alt="Profile"
-                className="w-28 h-28 md:w-40 md:h-40 rounded-full border-4 border-white shadow-lg object-cover bg-white"
+                className="w-28 h-28 md:w-40 md:h-40 rounded-full border-4 border-white dark:border-gray-800 shadow-lg object-cover bg-white dark:bg-gray-800"
               />
               <span
                 className={`absolute bottom-3 right-3 h-4 w-4 rounded-full border-2 border-white ${
@@ -85,7 +85,7 @@ const MyProfileHeader = ({ myprofile, permissions, onTabChange }) => {
                 {myprofile?.current_appointment?.service?.service_name}
               </p>
 
-              <p className="text-gray-500 text-sm mt-1">
+              <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
                 {myprofile?.current_appointment?.workplace?.institution?.name ||
                   "No Workplace Assigned"}
               </p>
@@ -96,7 +96,7 @@ const MyProfileHeader = ({ myprofile, permissions, onTabChange }) => {
               {permissions?.canEdit && (
                 <button
                   onClick={() => setShowEditModal(true)}
-                  className="px-4 py-2 bg-white border rounded-lg text-sm hover:bg-gray-50"
+                  className="px-4 py-2 bg-white dark:bg-gray-800 border rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200"
                 >
                   Send Edit Request
                 </button>
@@ -115,7 +115,7 @@ const MyProfileHeader = ({ myprofile, permissions, onTabChange }) => {
           </div>
 
           {/* NAVIGATION TABS */}
-          <div className="mt-6 flex gap-3 bg-gray-100 dark:bg-gray-800 p-2 rounded-xl">
+          <div className="mt-6 flex gap-3 surface-muted p-2 rounded-xl">
             {tabs.map((tab) => (
               <button
                 key={tab}
@@ -123,8 +123,8 @@ const MyProfileHeader = ({ myprofile, permissions, onTabChange }) => {
                 className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all
                   ${
                     activeTab === tab
-                      ? "bg-white dark:bg-gray-700 text-indigo-600"
-                      : "text-gray-500 hover:bg-white dark:hover:bg-gray-700"
+                      ? "bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-300"
+                      : "text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700"
                   }`}
               >
                 {tab}
@@ -148,12 +148,12 @@ const MyProfileHeader = ({ myprofile, permissions, onTabChange }) => {
 function Modal({ title, children, onClose }) {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl p-6 w-96 shadow-lg">
-        <h2 className="text-lg font-bold mb-4">{title}</h2>
+      <div className="surface rounded-xl p-6 w-96 shadow-lg">
+        <h2 className="text-lg font-bold mb-4 text-gray-900 dark:text-gray-100">{title}</h2>
         {children}
         <button
           onClick={onClose}
-          className="mt-4 px-4 py-2 bg-gray-200 rounded-lg"
+          className="mt-4 px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg text-gray-800 dark:text-gray-100"
         >
           Close
         </button>

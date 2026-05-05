@@ -25,11 +25,13 @@ const RightSidebar = () => {
 
   return (
     <div className="relative hidden lg:block">
-      <div className="top-0 right-0 h-screen my-4 w-14 bg-gray-100 flex flex-col justify-end items-center py-4">
+      <div className="top-0 right-0 h-screen my-4 w-14 surface-shell flex flex-col justify-end items-center py-4 border-l">
         <div className="flex flex-col gap-4 my-4">
           {/* Profile Circle */}
-          <div
-            className="w-10 h-10 rounded-full overflow-hidden cursor-pointer border-2 border-blue-500"
+          <button
+            type="button"
+            aria-label="Open profile panel"
+            className="w-10 h-10 rounded-full overflow-hidden cursor-pointer border-2 border-blue-500 focus-ring"
             onClick={() => {
               setIsSettingsOpen(false);
               setIsProfileOpen(true);
@@ -40,29 +42,37 @@ const RightSidebar = () => {
               alt="Profile"
               className="w-full h-full object-cover"
             />
-          </div>
+          </button>
 
           {/* Help Icon */}
-          <div className="w-10 h-10 rounded-full bg-white text-gray-500 flex items-center justify-center text-sm font-semibold cursor-pointer">
+          <button
+            type="button"
+            aria-label="Help"
+            className="w-10 h-10 rounded-full surface text-gray-500 dark:text-gray-300 flex items-center justify-center text-sm font-semibold cursor-pointer focus-ring"
+          >
             <IoMdHelp
-              className="text-gray-500 hover:text-gray-700 cursor-pointer"
+              className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white cursor-pointer"
               size={18}
             />
-          </div>
+          </button>
 
           {/* Settings Icon */}
-          <div
-            className="w-10 h-10 rounded-full bg-white text-gray-500 flex items-center justify-center text-sm font-semibold cursor-pointer relative"
+          <button
+            type="button"
+            aria-label="Open settings popover"
+            aria-expanded={isSettingsOpen}
+            aria-controls="settings-popover"
+            className="w-10 h-10 rounded-full surface text-gray-500 dark:text-gray-300 flex items-center justify-center text-sm font-semibold cursor-pointer relative focus-ring"
             onClick={() => {
               setIsProfileOpen(false);
               setIsSettingsOpen(true);
             }}
           >
             <IoMdSettings
-              className="text-gray-500 hover:text-gray-700 cursor-pointer"
+              className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white cursor-pointer"
               size={18}
             />
-          </div>
+          </button>
         </div>
       </div>
 

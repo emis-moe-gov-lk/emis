@@ -7,6 +7,10 @@ import { asgardeoConfig } from "./authConfig.js";
 import "./index.css";
 import "leaflet/dist/leaflet.css";
 import { AuthUserProvider } from "./context/AuthUserContext.jsx";
+import { initTheme } from "./lib/theme";
+
+// initialize theme runtime (also handled by inline boot script for first paint)
+initTheme();
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>

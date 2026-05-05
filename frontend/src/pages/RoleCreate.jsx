@@ -211,13 +211,13 @@ const CreateRole = () => {
     };
 
     return (
-        <div className="w-full bg-white px-4 py-6 sm:px-6 lg:px-8">
+        <div className="w-full bg-white dark:bg-gray-800 px-4 py-6 sm:px-6 lg:px-8">
             <div className="w-full">
                 <div className="pb-6">
-                    <h1 className="text-[18px] font-semibold text-slate-900">
+                    <h1 className="text-[18px] font-semibold text-slate-900 dark:text-white">
                         {isEditMode ? "Edit Role" : "Create Role"}
                     </h1>
-                    <p className="mt-2 text-[14px] text-slate-500">
+                    <p className="mt-2 text-[14px] text-slate-500 dark:text-slate-400">
                         {isEditMode
                             ? "Update role profile and assigned permissions"
                             : "Create role profile and permissions"}
@@ -225,19 +225,19 @@ const CreateRole = () => {
                 </div>
 
                 {isEditMode && isDetailsLoading ? (
-                    <div className="mb-4 rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                    <div className="mb-4 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-gray-700/50 px-4 py-3 text-sm text-slate-600 dark:text-slate-400">
                         Loading role details...
                     </div>
                 ) : null}
 
-                <div className="border-t border-slate-200" />
+                <div className="border-t border-slate-200 dark:border-slate-700" />
 
                 <form onSubmit={handleSubmit} className="w-full">
                     <fieldset disabled={isSubmitting || (isEditMode && isDetailsLoading)}>
                     <section className="py-6">
                         <label
                             htmlFor="role-name"
-                            className="block text-[14px] font-semibold text-slate-800"
+                            className="block text-[14px] font-semibold text-slate-800 dark:text-slate-200"
                         >
                             Role Name
                         </label>
@@ -247,22 +247,22 @@ const CreateRole = () => {
                             onChange={handleRoleNameChange}
                             placeholder="Enter role name"
                             aria-invalid={Boolean(nameError)}
-                            className={`mt-3 h-10 w-full max-w-[440px] rounded-md border px-4 text-[14px] text-slate-700 outline-none placeholder:text-slate-400 focus:border-slate-400 ${
-                                nameError ? "border-rose-400" : "border-slate-300"
+                            className={`mt-3 h-10 w-full max-w-[440px] rounded-md border px-4 text-[14px] text-slate-700 dark:text-slate-200 outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-slate-400 dark:focus:border-slate-600 bg-white dark:bg-gray-700 ${
+                                nameError ? "border-rose-400 dark:border-rose-500" : "border-slate-300 dark:border-slate-600"
                             }`}
                         />
                         {nameError ? (
-                            <p className="mt-2 text-xs text-rose-600">{nameError}</p>
+                            <p className="mt-2 text-xs text-rose-600 dark:text-rose-400">{nameError}</p>
                         ) : null}
                     </section>
 
-                    <div className="border-t border-slate-200" />
+                    <div className="border-t border-slate-200 dark:border-slate-700" />
 
                     <section className="py-6">
                         <div className="space-y-3">
                             <div className="flex items-center gap-3">
-                                <h2 className="text-[14px] font-semibold text-slate-800">Permissions</h2>
-                                <p className="text-xs text-slate-500">
+                                <h2 className="text-[14px] font-semibold text-slate-800 dark:text-slate-200">Permissions</h2>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">
                                     Selected {permissionStats.selected} of {permissionStats.total}
                                 </p>
                             </div>
@@ -276,29 +276,29 @@ const CreateRole = () => {
                                     value={search}
                                     onChange={(event) => setSearch(event.target.value)}
                                     placeholder="Search permission"
-                                    className="h-10 w-full rounded-md border border-slate-300 px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400"
+                                    className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-600 px-3 text-sm text-slate-700 dark:text-slate-200 outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 bg-white dark:bg-gray-700"
                                 />
                             </div>
                         </div>
                         {permissionError ? (
-                            <p className="mt-3 text-xs text-rose-600">{permissionError}</p>
+                            <p className="mt-3 text-xs text-rose-600 dark:text-rose-400">{permissionError}</p>
                         ) : null}
 
                         <div className="mt-6 space-y-6">
                             {filteredPermissionGroups.map((group) => (
                                 <div key={group.title}>
                                     <div className="mb-3 flex items-center justify-between gap-4">
-                                        <h3 className="text-[12px] font-medium uppercase tracking-normal text-slate-500">
+                                        <h3 className="text-[12px] font-medium uppercase tracking-normal text-slate-500 dark:text-slate-400">
                                             {group.title}
                                         </h3>
-                                        <label className="flex items-center gap-2 text-xs font-medium text-slate-600">
+                                        <label className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-400">
                                             <input
                                                 type="checkbox"
                                                 checked={group.permissions.every((permission) =>
                                                     selectedSet.has(permission)
                                                 )}
                                                 onChange={() => toggleGroup(group.permissions)}
-                                                className="h-4 w-4 rounded border-slate-300 accent-black focus:ring-0"
+                                                className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 accent-slate-900 dark:accent-slate-400 focus:ring-0"
                                             />
                                             Select group
                                         </label>
@@ -311,13 +311,13 @@ const CreateRole = () => {
                                             return (
                                                 <label
                                                     key={permission}
-                                                    className="flex items-center gap-2 text-[14px] text-slate-700"
+                                                    className="flex items-center gap-2 text-[14px] text-slate-700 dark:text-slate-300"
                                                 >
                                                     <input
                                                         type="checkbox"
                                                         checked={checked}
                                                         onChange={() => togglePermission(permission)}
-                                                        className="h-4 w-4 rounded border-slate-300 accent-black focus:ring-0"
+                                                        className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 accent-slate-900 dark:accent-slate-400 focus:ring-0"
                                                     />
                                                     <span>{permission}</span>
                                                 </label>
@@ -327,23 +327,23 @@ const CreateRole = () => {
                                 </div>
                             ))}
                             {filteredPermissionGroups.length === 0 ? (
-                                <p className="text-sm text-slate-500">No permissions match your search.</p>
+                                <p className="text-sm text-slate-500 dark:text-slate-400">No permissions match your search.</p>
                             ) : null}
                         </div>
                     </section>
 
-                    <div className="mt-8 flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:justify-end">
+                    <div className="mt-8 flex flex-col gap-3 border-t border-slate-200 dark:border-slate-700 pt-6 sm:flex-row sm:justify-end">
                         <NavLink
                             to="/roles"
                             aria-disabled={isSubmitting}
-                            className="inline-flex items-center justify-center rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                            className="inline-flex items-center justify-center rounded-md border border-slate-300 dark:border-slate-600 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-gray-700 bg-white dark:bg-gray-800"
                         >
                             Cancel
                         </NavLink>
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="inline-flex items-center justify-center rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="inline-flex items-center justify-center rounded-md bg-slate-900 dark:bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             {isSubmitting
                                 ? "Saving..."

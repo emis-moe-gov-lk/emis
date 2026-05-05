@@ -66,7 +66,7 @@ const TemporaryLocation = ({ employee, canEdit }) => {
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => !hasTemporaryAddress && e.preventDefault()}
-            className="block bg-gradient-to-br from-white to-teal-50/30 dark:from-gray-800 dark:to-teal-900/10 p-5 rounded-2xl border border-teal-100 dark:border-gray-700 shadow-sm transition-all hover:shadow-md hover:border-teal-300 group"
+            className="block surface-muted bg-gradient-to-br from-white to-teal-50/30 dark:from-gray-800 dark:to-teal-900/10 p-5 rounded-2xl border border-teal-100 dark:border-gray-700 shadow-sm transition-all hover:shadow-md hover:border-teal-300 group"
           >
             <div className="flex items-start gap-4">
               <div className="p-3 bg-teal-100 dark:bg-teal-900/40 rounded-xl group-hover:scale-105 transition-transform">
@@ -75,7 +75,7 @@ const TemporaryLocation = ({ employee, canEdit }) => {
 
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-start">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                  <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">
                     Residential Address
                   </p>
                   {hasTemporaryAddress && (
@@ -112,8 +112,8 @@ const TemporaryLocation = ({ employee, canEdit }) => {
           </a>
 
           {/* Note */}
-          <div className="px-4 py-2 bg-gray-50 dark:bg-gray-900/40 rounded-xl border border-gray-100 dark:border-gray-800">
-            <p className="text-[10px] text-gray-500 text-center uppercase tracking-tighter">
+          <div className="px-4 py-2 surface-muted rounded-xl">
+            <p className="text-[10px] text-gray-500 dark:text-gray-400 text-center uppercase tracking-tighter">
               Only provide details if different from your{" "}
               <span className="font-bold">Permanent Location</span>.
             </p>
@@ -124,10 +124,10 @@ const TemporaryLocation = ({ employee, canEdit }) => {
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 w-full max-w-xl rounded-2xl p-6 shadow-xl">
+          <div className="surface w-full max-w-xl rounded-2xl p-6 shadow-xl">
             <h3 className="text-lg font-bold mb-4">Residential Update</h3>
 
-            <p className="text-sm text-gray-500 mb-4">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
               Update your current living address if you are working away from
               home.
             </p>
