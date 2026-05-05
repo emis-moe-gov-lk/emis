@@ -3,6 +3,7 @@ import React from "react";
 const AlertsOverview = ({
   pendingConfirmationCount = 0,
   pendingVerificationCount = 0,
+  rejectedCount = 0,
 }) => {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -41,7 +42,7 @@ const AlertsOverview = ({
         </div>
       )}
 
-      {/* Pending Confirmation - NOW SECOND */}
+      {/* Pending Confirmation */}
       {pendingConfirmationCount > 0 && (
         <div className="aspect-square flex flex-col items-center justify-center rounded-xl bg-green-50 border border-green-200 shadow-sm transition hover:shadow-md">
           <div className="mt-3 p-2 bg-green-200 rounded-full mb-10">
@@ -70,6 +71,41 @@ const AlertsOverview = ({
             className="mt-2 w-full flex justify-center"
           >
             <button className="bg-green-500 hover:bg-green-600 text-white py-1 px-4 rounded text-sm font-bold">
+              View
+            </button>
+          </a>
+        </div>
+      )}
+
+      {/* Rejected */}
+      {rejectedCount > 0 && (
+        <div className="aspect-square flex flex-col items-center justify-center rounded-xl bg-red-50 border border-red-200 shadow-sm transition hover:shadow-md">
+          <div className="mt-3 p-2 bg-red-200 rounded-full mb-10">
+            <svg
+              className="w-6 h-6 text-red-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M6 18L18 6M6 6l12 12"
+              ></path>
+            </svg>
+          </div>
+          <span className="text-4xl font-bold text-red-600">
+            {rejectedCount}
+          </span>
+          <span className="text-sm font-semibold text-red-700 mt-2 mb-2">
+            Rejected
+          </span>
+          <a
+            href="/alerts/rejection"
+            className="mt-2 w-full flex justify-center"
+          >
+            <button className="bg-red-500 hover:bg-red-600 text-white py-1 px-4 rounded text-sm font-bold">
               View
             </button>
           </a>

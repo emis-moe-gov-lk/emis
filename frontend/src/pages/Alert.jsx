@@ -1,16 +1,32 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AiOutlineHome } from "react-icons/ai";
 import { BsFillTagFill } from "react-icons/bs";
 import { HiShieldCheck } from "react-icons/hi";
-import { MdCancel, MdOutlineCancel } from "react-icons/md"; // Add rejection icon
+import { MdCancel, MdOutlineCancel } from "react-icons/md";
 import Header from "../components/Alert/Header";
 import AlertsOverview from "../components/Alert/AlertsOverview";
 import PendingConfirmationList from "../components/Alert/PendingConfirmationList";
 import PendingVerificationList from "../components/Alert/PendingVerificationList";
-import RejectedList from "../components/Alert/RejectedList"; // New component for rejected items
+import RejectedList from "../components/Alert/RejectedList";
+import api from "@/api/axios";
 
 const Alert = () => {
   const [activeTab, setActiveTab] = useState("primary");
+  const [counts, setCounts] = useState({
+    pending_verification: 0,
+    pending_confirmation: 0,
+    rejected: 0,
+  });
+
+  useEffect(() => {
+    api.get("/alerts/counts")
+      .then((res) => {
+        if (res.data?.status === "success") {
+          setCounts(res.data.data);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const tabs = [
     {
@@ -51,9 +67,9 @@ const Alert = () => {
       case "primary":
         return (
           <AlertsOverview
-            pendingConfirmationCount={10}
-            pendingVerificationCount={23}
-            rejectedCount={5} // Add rejected count
+            pendingVerificationCount={counts.pending_verification}
+            pendingConfirmationCount={counts.pending_confirmation}
+            rejectedCount={counts.rejected}
           />
         );
       case "confirmation":

@@ -39,12 +39,13 @@ use App\Models\ZonalEducationOffice;
 use Illuminate\Support\Facades\Hash;
 use App\Models\EmployerCurrentAppointment;
 use App\Models\DivisionalSecretariatOffice;
-
+use App\Traits\ResolvesZonalScope;
 
 use Illuminate\Validation\ValidationException;
 
 class TeacherApiController extends Controller
 {
+    use ResolvesZonalScope;
     private function resolveDsOffice(?string $value): ?DivisionalSecretariatOffice
     {
         $normalized = trim((string) $value);
@@ -68,60 +69,6 @@ class TeacherApiController extends Controller
     private function resolveDsOfficePrimaryKey(?string $value): ?int
     {
         return $this->resolveDsOffice($value)?->id;
-    }
-
-    private function resolvedRoles(Request $request): array
-    {
-        $jwtRoles = (array) $request->attributes->get('jwt_roles', []);
-        $dbRoles = $request->user()?->getRoleNames()?->all() ?? [];
-
-        return collect(array_merge($jwtRoles, $dbRoles))
-            ->filter(fn ($role) => is_string($role) && trim($role) !== '')
-            ->map(fn (string $role) => strtolower(trim(preg_replace('/\s+/', ' ', $role) ?? $role)))
-            ->unique()
-            ->values()
-            ->all();
-    }
-
-    private function hasAnyRole(array $roles, array $allowedRoles): bool
-    {
-        $allowed = collect($allowedRoles)
-            ->map(fn (string $role) => strtolower(trim($role)))
-            ->all();
-
-        return ! empty(array_intersect($roles, $allowed));
-    }
-
-    private function resolveUserZonalWorkplaceId(Request $request): ?string
-    {
-        $appointment = $request->user()?->currentAppointment;
-
-        if (! $appointment?->workplace_id) {
-            return null;
-        }
-
-        $workplaceId = $appointment->workplace_id;
-
-        if (ZonalEducationOffice::where('workplace_id', $workplaceId)->exists()) {
-            return $workplaceId;
-        }
-
-        $deoZonalWorkplaceId = DivisionalEducationOffice::where('workplace_id', $workplaceId)
-            ->value('zeo_wp_id');
-
-        if ($deoZonalWorkplaceId) {
-            return $deoZonalWorkplaceId;
-        }
-
-        return Institution::where('workplace_id', $workplaceId)
-            ->value('zeo_wp_id');
-    }
-
-    private function applyTeacherZonalScope($query, string $zonalWorkplaceId)
-    {
-        return $query->whereHas('currentAppointment.workplace.institution', function ($q) use ($zonalWorkplaceId) {
-            $q->where('zeo_wp_id', $zonalWorkplaceId);
-        });
     }
 
     private function appendRejectCommentSummary(array $payload, $rejectComments): array

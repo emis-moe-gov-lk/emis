@@ -129,6 +129,13 @@ Route::prefix('')->group(function () {
         Route::get('/principal/{people_id}', 'getPrincipal');
     });
 
+    Route::controller(\App\Http\Controllers\API\AlertController::class)->middleware('auth:jwt')->group(function () {
+        Route::get('/alerts/counts', 'counts');
+        Route::get('/alerts/pending-verification', 'pendingVerification');
+        Route::get('/alerts/pending-confirmation', 'pendingConfirmation');
+        Route::get('/alerts/rejected', 'rejected');
+    });
+
     Route::controller(EmployerAppointmentConfirmationController::class)->middleware('auth:jwt')->group(function () {
         Route::get('/employer-appointment-reject-comments', 'rejectComments');
         Route::get('/employer-appointment-reject-comments/profile/{people_id}', 'rejectCommentsByProfile');

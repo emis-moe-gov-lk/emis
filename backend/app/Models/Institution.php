@@ -139,6 +139,12 @@ class Institution extends Model
         return $this->hasMany(EmployerCurrentAppointment::class, 'workplace_id', 'workplace_id');
     }
 
+    public function teachers()
+    {
+        return $this->hasMany(EmployerCurrentAppointment::class, 'workplace_id', 'workplace_id')
+            ->where('office_level_id', 'OLID006');
+    }
+
     public function getLogoUrlAttribute()
     {
         $path = 'public/images/institution/' . $this->logo;
