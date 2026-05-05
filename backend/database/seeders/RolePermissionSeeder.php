@@ -14,6 +14,7 @@ class RolePermissionSeeder extends Seeder
         // Reset cached roles and permissions
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
+
         // Create permissions
         $permissions = [
             /*
@@ -35,6 +36,10 @@ class RolePermissionSeeder extends Seeder
             'resource.manage.update',
             'resource.allocation.create',
             'resource.allocation.view',
+
+            "dashboard.view",
+            "dashboard.view.myprofile",
+            "dashboard.view.calendar",
 
             /*
             |--------------------------------------------------------------------------
@@ -81,12 +86,16 @@ class RolePermissionSeeder extends Seeder
             'my-profile.family.delete',
 
 
+            "my-profile.view",
+            "my-profile.update",
+            "my-profile.verify",
 
             /*
             |--------------------------------------------------------------------------
             | Teacher Management
             |--------------------------------------------------------------------------
             */
+
             'teacher.list.view',
             'teacher.create',
             'teacher.update',
@@ -132,6 +141,17 @@ class RolePermissionSeeder extends Seeder
 
             'teacher.profile.family.create',
             'teacher.profile.family.delete',
+
+
+            // Roles Management
+
+            "roles.view",
+            "roles.view.create",
+            "roles.view.edit",
+            "roles.view.delete",
+
+            // main table 
+            "maintable.view",
 
 
             /*
@@ -186,6 +206,13 @@ class RolePermissionSeeder extends Seeder
             'principal.profile.family.delete',
 
 
+            "principal.bulk.upload",
+            "principal.create",
+            "principal.delete",
+            "principal.list.view",
+            "principal.update",
+
+
             /*
             |--------------------------------------------------------------------------
             | DOS Management
@@ -236,6 +263,12 @@ class RolePermissionSeeder extends Seeder
             
             'dos.profile.family.create',
             'dos.profile.family.delete',
+
+
+            "dos.bulk.upload",
+            "dos.list.view",
+            "dos.profile.confirm",
+            "dos.profile.verify",
 
 
             /*
@@ -583,6 +616,10 @@ class RolePermissionSeeder extends Seeder
             'institution.mission_vision.update',
 
 
+            "institution.view.create",
+            "institution.view.profile",
+            "institution.view",
+
             /*
             |--------------------------------------------------------------------------
             | Appointment Subject Management
@@ -595,6 +632,13 @@ class RolePermissionSeeder extends Seeder
             'appointment_subject.view',
 
 
+            "appointment_subject.create",
+            "appointment_subject.delete",
+            "appointment_subject.update",
+            "appointment_subject.view",
+            "appointment_subject.list.view",
+
+
             /*
             |--------------------------------------------------------------------------
             | Teaching Subject Management
@@ -605,6 +649,29 @@ class RolePermissionSeeder extends Seeder
             'teaching_subject.update',
             'teaching_subject.delete',
             'teaching_subject.view',
+
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | School Management
+            |--------------------------------------------------------------------------
+            */
+
+            "school.view",
+            "teacher.view",
+            "principal.view",
+            "schooldeo.view",
+            "schoolclerk.view",
+            "teacher.bulk.upload",
+            "teacher.create",
+            "teacher.delete",
+            "teacher.profile.confirm",
+            "teacher.profile.view",
+            "teacher.update",
+            "teacher.profile.printid",
+            "teacher.profile.exportpdf",
+
 
 
             /*
@@ -659,6 +726,20 @@ class RolePermissionSeeder extends Seeder
             'office.institution.profile.report-module.pdf',
             'office.institution.profile.report-module.xls',
 
+
+            "office.overview",
+            "office.moe",
+            "office.zeo",
+            "office.deo",
+            "office.pmoe",
+            "office.peo",
+            "office.moe.profile.view",
+            "office.zeo.profile.view",
+            "office.deo.profile.view",
+            "office.pmoe.profile.view",
+            "office.zeo.create",
+            "office.deo.create",
+
             // Cadre DMS Approved
             'cadre-dms-approved.index.view',
             'cadre-dms-approved.add',
@@ -669,6 +750,31 @@ class RolePermissionSeeder extends Seeder
             'office.institution.profile.cadre-dms-approved.view',
 
             'alerts.overview.view',
+
+            // Alters 
+
+            "alerts.view",
+            "alerts.view.profile",
+
+            // Division Management
+            "division.view",
+
+            //Provincial Management
+            "provincial.view",
+
+            //MOE
+            "moe.view",
+
+            //Index
+            "inbox.overview.view",
+
+            //Admin User Management
+            "admin.overview.view",
+
+            //Timetable Management
+            "timetable.overview.view",
+
+         
         ];
 
 
