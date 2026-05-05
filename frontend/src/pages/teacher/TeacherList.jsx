@@ -220,7 +220,8 @@ const TeacherList = () => {
       normalizedRoles.includes("development officer") ||
       normalizedRoles.includes("development officer head") ||
       normalizedRoles.includes("zonal deo") ||
-      normalizedRoles.includes("zonal deo head");
+      normalizedRoles.includes("zonal deo head") ||
+      normalizedRoles.includes("zonal director");
 
     if (!needsZoneFilter) return teachers;
 
