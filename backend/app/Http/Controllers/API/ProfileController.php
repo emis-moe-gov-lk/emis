@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
+use App\Services\TeacherAccountProvisioningService;
 
 class ProfileController extends Controller
 {
@@ -19,8 +21,7 @@ class ProfileController extends Controller
     // -------------------------------------------------------
     public function update(Request $request)
     {
-        $email = $request->attributes->get('jwt_email');
-        $user  = User::where('email', $email)->first();
+        $user = $request->user() ?: User::where('email', $request->attributes->get('jwt_email'))->first();
 
         if (! $user) {
             return response()->json([
@@ -90,8 +91,7 @@ class ProfileController extends Controller
     // -------------------------------------------------------
     public function changePassword(Request $request)
 {
-    $email = $request->attributes->get('jwt_email');
-    $user  = User::where('email', $email)->first();
+    $user  = $request->user() ?: User::where('email', $request->attributes->get('jwt_email'))->first();
 
     if (! $user) {
         return response()->json([
@@ -103,7 +103,7 @@ class ProfileController extends Controller
     try {
         $validated = $request->validate([
             'current_password' => 'required|string',
-            'new_password'     => 'required|string|min:8|',
+            'new_password'     => ['required', 'string', 'confirmed', Password::defaults()],
         ]);
 
         if (!Hash::check($validated['current_password'], $user->password)) {
@@ -121,7 +121,9 @@ class ProfileController extends Controller
         }
 
         $user->update([
-            'password' => Hash::make($validated['new_password'])
+            'password' => Hash::make($validated['new_password']),
+            'must_change_password' => false,
+            'password_changed_at' => now(),
         ]);
 
         return response()->json([
@@ -143,4 +145,23 @@ class ProfileController extends Controller
         ], 500);
     }
 }
+
+    public function completeExternalPasswordChange(Request $request, TeacherAccountProvisioningService $teacherAccountProvisioningService)
+    {
+        $user = $request->user() ?: User::where('email', $request->attributes->get('jwt_email'))->first();
+
+        if (! $user) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'User not found',
+            ], 404);
+        }
+
+        $teacherAccountProvisioningService->completePasswordChange($user);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Password change status updated successfully',
+        ]);
+    }
 }

@@ -6,7 +6,6 @@ use Carbon\Carbon;
 use App\Traits\Blameable;
 use App\Helpers\NicHelper;
 use Spatie\Activitylog\LogOptions;
-use Illuminate\Support\Facades\Crypt;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Activitylog\Traits\LogsActivity;
 
@@ -99,7 +98,7 @@ class People extends Model
         static::saved(function ($model) {
 
             // Prevent unnecessary sync
-            if (!$model->wasChanged(['nic', 'nic_hash', 'phone', 'email'])) {
+            if (! $model->wasChanged(['nic', 'nic_hash', 'phone', 'email', 'name_with_initials'])) {
                 return;
             }
 
@@ -112,6 +111,7 @@ class People extends Model
             $user->fill([
                 'nic' => $model->nic,
                 'nic_hash' => $model->nic_hash,
+                'name' => $model->name_with_initials ?? $user->name,
                 'contact' => $model->phone ?? $user->contact,
                 'email' => $model->email ?? $user->email,
             ]);
@@ -310,6 +310,11 @@ class People extends Model
     public function teacher()
     {
         return $this->hasOne(Teacher::class, 'employee_id', 'people_id');
+    }
+
+    public function user()
+    {
+        return $this->hasOne(User::class, 'people_id', 'people_id');
     }
 
     public function principal()

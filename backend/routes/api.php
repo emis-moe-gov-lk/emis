@@ -26,6 +26,7 @@ use App\Http\Controllers\API\RoleController;
 use App\Http\Controllers\API\DeoOfficerController;
 use App\Http\Controllers\API\MobileTeacherProfileController;
 use App\Http\Controllers\API\EmployerAppointmentConfirmationController;
+use App\Http\Controllers\API\ProfileController;
 use App\Http\Controllers\Pdf\TeacherPdf;
 
 // Route::get('/user', function (Request $request) {
@@ -116,6 +117,7 @@ Route::prefix('')->group(function () {
         Route::get('/teacher-settings', 'index');     // GET all
         Route::get('/teachers-list', 'teacherList');  // GET all teachers
         Route::post('/teacher-create', 'store');      // POST
+        Route::patch('/teachers/{people_id}', 'updateProfile');
         Route::get('/teacher/{people_id}', 'getTeacher');
         Route::get('/teachers/check-nic/{nic}', 'getTeacherWithNIC');
         Route::get('/teachers/personal-form-data', 'getPersonalFromData');
@@ -160,6 +162,9 @@ Route::prefix('')->group(function () {
 
     Route::get('/identity', AuthIdentityController::class)->middleware('auth:jwt');
     Route::get('/mobile/identity', MobileTeacherProfileController::class)->middleware('auth:jwt');
+    Route::patch('/profile', [ProfileController::class, 'update'])->middleware('auth:jwt');
+    Route::patch('/profile/password', [ProfileController::class, 'changePassword'])->middleware('auth:jwt');
+    Route::post('/profile/password/complete-external', [ProfileController::class, 'completeExternalPasswordChange'])->middleware('auth:jwt');
     Route::get('/user/{people_id}', UserApiController::class)->middleware('auth:jwt');
     Route::get('/dashboard/{people_id}', DashboardController::class)->middleware('auth:jwt');
     Route::get('/pdf/teacher/{people_id}', [TeacherPdf::class, 'generateSimplePdf'])->middleware('auth:jwt');

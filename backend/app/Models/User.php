@@ -8,7 +8,6 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 use Spatie\Permission\Traits\HasRoles;
-use Illuminate\Support\Facades\Crypt;
 use App\Traits\Blameable;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
@@ -32,6 +31,13 @@ class User extends Authenticatable
         'email',
         'contact',
         'password',
+        'must_change_password',
+        'password_initialized_at',
+        'password_changed_at',
+        'identity_provider',
+        'identity_provider_user_id',
+        'default_password_version',
+        'account_provisioned_at',
         'profile_picture',
         'remember_token',
         'active_status',
@@ -64,6 +70,10 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'contact_verified_at' => 'datetime',
             'password' => 'hashed',
+            'must_change_password' => 'boolean',
+            'password_initialized_at' => 'datetime',
+            'password_changed_at' => 'datetime',
+            'account_provisioned_at' => 'datetime',
         ];
     }
 
@@ -83,7 +93,7 @@ class User extends Authenticatable
         static::saved(function ($user) {
 
             // Sync People only if these fields changed
-            if (! $user->wasChanged(['nic', 'nic_hash', 'contact', 'email'])) {
+            if (! $user->wasChanged(['nic', 'nic_hash', 'contact', 'email', 'name'])) {
                 return;
             }
 
@@ -95,6 +105,7 @@ class User extends Authenticatable
                 $person->fill([
                     'nic'       => $user->nic,
                     'nic_hash'  => $user->nic_hash,
+                    'name_with_initials' => $user->name ?? $person->name_with_initials,
                     'phone'     => $user->contact ?? $person->phone,
                     'email'     => $user->email ?? $person->email,
                 ]);
@@ -127,6 +138,11 @@ class User extends Authenticatable
     public function people()
     {
         return $this->belongsTo(People::class, 'people_id', 'people_id');
+    }
+
+    public function teacher()
+    {
+        return $this->hasOne(Teacher::class, 'employee_id', 'people_id');
     }
 
     /**
