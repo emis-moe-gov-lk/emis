@@ -1,3 +1,5 @@
+---
+# ---PLAY-SETUP-MYSQL-WSO2-DBS-----
 - name: Setup MySQL databases for WSO2
   hosts: databases
   become: yes

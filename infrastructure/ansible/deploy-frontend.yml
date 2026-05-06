@@ -1,6 +1,7 @@
 ---
-- name: Deploy EMIS UAT Environment
-  hosts: frontend_service:backend_service
+# ---PLAY-DEPLOY-FRONTEND-----
+- name: Deploy EMIS UAT — Frontend Only
+  hosts: frontend_service
   become: true
   vars:
     remote_project_path: "/opt/emis-uat"
@@ -15,15 +16,17 @@
         state: directory
         mode: '0755'
 
-    - name: Render and copy environment files from templates
+    - name: Render and copy frontend env file
       ansible.builtin.template:
-        src: "{{ item.src }}"
-        dest: "{{ remote_project_path }}/{{ item.dest }}"
+        src: "templates/frontend.env.j2"
+        dest: "{{ remote_project_path }}/frontend.env"
         mode: '0600'
-      loop:
-        - { src: "templates/frontend.env.j2",  dest: "frontend.env" }
-        - { src: "templates/backend.env.j2",   dest: "backend.env" }
-        - { src: "templates/docker.env.j2",    dest: ".env" }
+
+    - name: Render and copy docker env file
+      ansible.builtin.template:
+        src: "templates/docker.env.j2"
+        dest: "{{ remote_project_path }}/.env"
+        mode: '0600'
 
     - name: Copy Docker Compose file
       ansible.builtin.copy:
@@ -31,12 +34,13 @@
         dest: "{{ remote_project_path }}/docker-compose.yml"
         mode: '0644'
 
-    - name: Pull images and start containers
+    - name: Pull and start frontend container only
       community.docker.docker_compose_v2:
         project_src: "{{ remote_project_path }}"
+        services:
+          - frontend             # ← only the frontend service from compose file
         state: present
         pull: always
-        build: always
       register: output
 
     - name: Show Docker Compose output
