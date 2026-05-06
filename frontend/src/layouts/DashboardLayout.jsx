@@ -4,7 +4,6 @@ import { useAuthUser } from "@/context/useAuthUser";
 import NavBar from "../components/Layout/NavBar";
 import SideBar from "../components/Layout/SideBar";
 import MainContent from "../components/Layout/MainContent";
-import RightSidebar from "../components/Layout/RightSidebar";
 
 const DashboardLayout = () => {
   // const location = useLocation();
@@ -86,7 +85,6 @@ const DashboardLayout = () => {
       {/* CONTENT AREA */}
       <div className="flex flex-1 overflow-hidden pt-16 lg:pt-0 bg-gray-50 dark:bg-gray-900">
         <MainContent isCollapsed={isCollapsed} isMobile={isMobile} />
-        <RightSidebar userInfo={userInfo} />
       </div>
 
       {/* MOBILE OVERLAY (inside shell) */}

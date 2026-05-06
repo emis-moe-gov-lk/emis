@@ -51,7 +51,7 @@ const MyProfileHeader = ({ myprofile, permissions, onTabChange }) => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto pb-10 mt-10">
+    <div className="w-full px-4 sm:px-6 lg:px-8 mx-auto pb-10 mt-10">
       {/* PROFILE HEADER */}
       <div className="surface rounded-2xl overflow-hidden">
         {/* Cover */}
