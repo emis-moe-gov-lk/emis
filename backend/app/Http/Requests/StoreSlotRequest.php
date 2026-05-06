@@ -34,7 +34,7 @@ class StoreSlotRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $v) {
-            $config = Auth::user()->timetableConfig;
+            $config = Auth::user()->teacher?->timetableConfig;
 
             if (! $config) {
                 $v->errors()->add('general', 'Timetable not configured.');
