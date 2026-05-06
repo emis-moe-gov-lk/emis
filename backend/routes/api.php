@@ -164,6 +164,7 @@ Route::prefix('')->group(function () {
     Route::get('/identity', AuthIdentityController::class)->middleware('auth:jwt');
     Route::get('/mobile/identity', MobileTeacherProfileController::class)->middleware('auth:jwt');
     Route::patch('/profile', [ProfileController::class, 'update'])->middleware('auth:jwt');
+    Route::post('/profile/photo', [ProfileController::class, 'uploadPhoto']);
     Route::patch('/profile/password', [ProfileController::class, 'changePassword'])->middleware('auth:jwt');
     Route::post('/profile/password/complete-external', [ProfileController::class, 'completeExternalPasswordChange'])->middleware('auth:jwt');
     Route::get('/user/{people_id}', UserApiController::class)->middleware('auth:jwt');
