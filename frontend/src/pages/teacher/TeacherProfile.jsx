@@ -409,6 +409,7 @@ const TeacherProfile = () => {
           null,
 
         dob: formatDate(d.date_of_birth),
+        title_name: d.title?.title_name,
         gender: d.gender?.gender_name,
         religion: d.religion?.religion_name,
         ethnicity: d.ethnicity?.ethnicity_name,
@@ -1514,6 +1515,8 @@ function GeneralTab({ teacher, onEdit }) {
         }
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <FieldCell label="NIC" value={teacher.nic} />
+          <FieldCell label="title" value={teacher.title_name} />
           <FieldCell label="Full Name" value={teacher.fullName} />
           <FieldCell label="Initials" value={teacher.initialsName} />
           <FieldCell label="Date of Birth" value={teacher.dob} />
