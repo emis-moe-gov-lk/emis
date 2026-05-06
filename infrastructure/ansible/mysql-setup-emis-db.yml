@@ -1,6 +1,6 @@
 ---
 - name: Configure MySQL Database and User
-  hosts: mysql
+  hosts: databases
   become: true 
   vars_files:
     - "{{ playbook_dir }}/vars_files/vars.yml"

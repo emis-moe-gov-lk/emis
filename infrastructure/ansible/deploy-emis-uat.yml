@@ -1,6 +1,6 @@
 ---
 - name: Deploy EMIS UAT Environment
-  hosts: uat-server
+  hosts: frontend_service:backend_service
   become: true
   vars:
     remote_project_path: "/opt/emis-uat"
