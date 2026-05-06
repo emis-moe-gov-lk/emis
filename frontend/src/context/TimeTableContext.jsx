@@ -1,24 +1,18 @@
 import { createContext, useState, useEffect, useContext } from "react";
 import {
-  fetchSubjects,
-  fetchSetup,
-  fetchSlots,
+  fetchInit,
+  fetchWeek,
   createSlot,
   updateSlot,
   deleteSlot,
-  fetchPeriods,
   updatePeriod,
-  fetchIntervals,
   updateInterval,
-  fetchSubjectColors,
   createSubjectColor,
   deleteSubjectColor,
-  fetchHolidays,
   createHoliday,
   deleteHoliday,
-  fetchRecordedDates,
 } from "../api/timetableApi";
-import { getThisWeekDate, getWeekSunday } from "../utils/time";
+import { getThisWeekDate } from "../utils/time";
 
 // const TimetableContext = createContext(null);
 const TimetableContext = createContext(null);
@@ -43,7 +37,7 @@ export function TimetableProvider({ children }) {
     getThisWeekDate("Monday"),
   );
 
-  // Effect 1: Static data (subjects, periods, intervals, colors, teacher)
+  // Effect 1: Static data via single /init request
   useEffect(() => {
     async function loadStaticData() {
       try {
@@ -51,10 +45,9 @@ export function TimetableProvider({ children }) {
         setError(null);
         setNotConfigured(false);
 
-        // Check config first — a 404 means the teacher hasn't set up yet
-        let setupRes;
+        let initRes;
         try {
-          setupRes = await fetchSetup();
+          initRes = await fetchInit();
         } catch (err) {
           if (err.response?.status === 404) {
             setNotConfigured(true);
@@ -63,33 +56,21 @@ export function TimetableProvider({ children }) {
           throw err;
         }
 
-        const [subjectsRes, periodsRes, intervalsRes, colorsRes] =
-          await Promise.all([
-            fetchSubjects(),
-            fetchPeriods(),
-            fetchIntervals(),
-            fetchSubjectColors(),
-          ]);
-
-        const subjectNames = subjectsRes.map((s) =>
-          typeof s === "string" ? s : s.name,
-        );
-        setSubjects(subjectNames);
-        setPeriods(periodsRes);
-        setIntervals(intervalsRes);
+        setPeriods(initRes.periods);
+        setIntervals(initRes.intervals);
+        setOffDays(initRes.offDays || []);
+        setSubjects(initRes.subjects.map((s) => s.name));
 
         const colorsMap = {};
         const idsMap = {};
-        colorsRes.forEach((c) => {
-          const subjectName = c.subject?.name || c.subject;
-          if (subjectName && c.color) {
-            colorsMap[subjectName] = c.color;
-            idsMap[subjectName] = c.id;
+        initRes.subjectColors.forEach((c) => {
+          if (c.subject && c.color) {
+            colorsMap[c.subject] = c.color;
+            idsMap[c.subject] = c.id;
           }
         });
         setSubjectColors(colorsMap);
         setSubjectColorIds(idsMap);
-        setOffDays(setupRes.offDays || []);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -100,22 +81,17 @@ export function TimetableProvider({ children }) {
     loadStaticData();
   }, []);
 
-  // Effect 2: Slots + holidays (depends on active week)
+  // Effect 2: Week data via single /week request
   useEffect(() => {
     if (notConfigured) return;
 
     async function loadWeekData() {
       try {
         setSlotsLoading(true);
-        const weekEnd = getWeekSunday(activeWeekStart);
-        const [slotsRes, holidaysRes, recordedDatesRes] = await Promise.all([
-          fetchSlots(activeWeekStart),
-          fetchHolidays(activeWeekStart, weekEnd),
-          fetchRecordedDates(activeWeekStart),
-        ]);
-        setSlots(slotsRes);
-        setHolidays(holidaysRes);
-        setRecordedDates(recordedDatesRes);
+        const weekRes = await fetchWeek(activeWeekStart);
+        setSlots(weekRes.slots);
+        setHolidays(weekRes.holidays);
+        setRecordedDates(weekRes.recordedDates);
       } catch (err) {
         setError(err.message);
       } finally {

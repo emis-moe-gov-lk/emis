@@ -27,6 +27,16 @@ const EMPTY_OPTS = {
 	gnDivisions: [],
 };
 
+const normalizeDsOfficeOption = (ds) => ({
+	id: ds?.dso_id ?? ds?.ds_office_id ?? ds?.id ?? "",
+	name: ds?.dso_name ?? ds?.ds_office_name ?? ds?.name ?? "",
+});
+
+const normalizeGnDivisionOption = (gn) => ({
+	id: gn?.gn_division_id ?? gn?.id ?? "",
+	name: gn?.gn_division_name ?? gn?.name ?? "",
+});
+
 export default function TeacherUpdateModal({
 	isOpen,
 	section,
@@ -39,9 +49,38 @@ export default function TeacherUpdateModal({
 	const [opts, setOpts] = useState(EMPTY_OPTS);
 	const [form, setForm] = useState({});
 
+	const getErrorMessage = (error) => {
+		const payload = error?.response?.data;
+		const fieldErrors = payload?.errors;
+
+		if (fieldErrors && typeof fieldErrors === "object") {
+			const firstFieldError = Object.values(fieldErrors)
+				.flat()
+				.find(Boolean);
+			if (firstFieldError) return String(firstFieldError);
+		}
+
+		return (
+			payload?.message ||
+			error?.message ||
+			"Failed to save changes"
+		);
+	};
+
 	const setField = (key, value) => {
 		setForm((prev) => ({ ...prev, [key]: value }));
 	};
+
+	useEffect(() => {
+		if (section !== "health") return;
+		if (form.healthCondition !== "1") return;
+
+		setForm((prev) =>
+			prev.knownProblems
+				? { ...prev, knownProblems: "" }
+				: prev,
+		);
+	}, [form.healthCondition, section]);
 
 	useEffect(() => {
 		if (!isOpen || !teacherId) return;
@@ -70,6 +109,7 @@ export default function TeacherUpdateModal({
 						nic: d.nic ?? "",
 						titleId: d.title?.title_id ?? "",
 						fullName: d.full_name ?? "",
+						initialsName: d.name_with_initials ?? "",
 						genderId: d.gender?.gender_id ?? "",
 						dateOfBirth: d.date_of_birth ?? "",
 						ethnicityId: d.ethnicity?.ethnicity_id ?? "",
@@ -94,7 +134,7 @@ export default function TeacherUpdateModal({
 						email: d.email ?? "",
 						phone: d.phone ?? "",
 						districtId: d.district?.district_id ?? "",
-						dsOfficeId: d.ds_office?.ds_office_id ?? "",
+						dsOfficeId: d.ds_office?.dso_id ?? d.ds_office?.ds_office_id ?? "",
 						gnDivisionId: d.gn_division?.gn_division_id ?? "",
 						addressLine1: d.address_line1 ?? "",
 						addressLine2: d.address_line2 ?? "",
@@ -103,6 +143,16 @@ export default function TeacherUpdateModal({
 						latitude: d.latitude ?? "",
 						longitude: d.longitude ?? "",
 					});
+
+					setOpts((prev) => ({
+						...prev,
+						dsOffices: (res.data?.divisionalSecretariats ?? []).map(
+							normalizeDsOfficeOption,
+						),
+						gnDivisions: (res.data?.gnDivisions ?? []).map(
+							normalizeGnDivisionOption,
+						),
+					}));
 				}
 
 				if (section === "temporary") {
@@ -165,14 +215,11 @@ export default function TeacherUpdateModal({
 			.get(`/teachers/personal-form-data?district=${form.districtId}`)
 			.then((res) => {
 				if (ignore) return;
-				const rawDs = res.data?.divisionalSecretariats ?? [];
-				const normalizedDs = rawDs.map((ds) => ({
-					id: ds.dso_id ?? ds.ds_office_id ?? ds.id,
-					name: ds.dso_name ?? ds.ds_office_name ?? ds.name,
-				}));
 				setOpts((prev) => ({
 					...prev,
-					dsOffices: normalizedDs,
+					dsOffices: (res.data?.divisionalSecretariats ?? []).map(
+						normalizeDsOfficeOption,
+					),
 				}));
 			})
 			.catch(() => {});
@@ -195,14 +242,11 @@ export default function TeacherUpdateModal({
 			.get(`/teachers/personal-form-data?ds_office=${form.dsOfficeId}`)
 			.then((res) => {
 				if (ignore) return;
-				const rawGn = res.data?.gnDivisions ?? [];
-				const normalizedGn = rawGn.map((gn) => ({
-					id: gn.gn_division_id ?? gn.id,
-					name: gn.gn_division_name ?? gn.name,
-				}));
 				setOpts((prev) => ({
 					...prev,
-					gnDivisions: normalizedGn,
+					gnDivisions: (res.data?.gnDivisions ?? []).map(
+						normalizeGnDivisionOption,
+					),
 				}));
 			})
 			.catch(() => {});
@@ -216,7 +260,17 @@ export default function TeacherUpdateModal({
 		if (!section || !teacherId) return;
 		setSaving(true);
 		try {
-			const res = await api.patch(`/teachers/${teacherId}`, { section, ...form });
+			const payload =
+				section === "health"
+					? {
+							section,
+							...form,
+							knownProblems:
+								form.healthCondition === "1" ? null : form.knownProblems,
+					  }
+					: { section, ...form };
+
+			const res = await api.patch(`/teachers/${teacherId}`, payload);
 			const profileStatus =
 				res.data?.data?.profile_status ??
 				res.data?.profile_status ??
@@ -234,8 +288,8 @@ export default function TeacherUpdateModal({
 			}
 			onClose();
 			onSaved?.(res.data);
-		} catch {
-			toast.error("Failed to save changes");
+		} catch (error) {
+			toast.error(getErrorMessage(error));
 		} finally {
 			setSaving(false);
 		}
@@ -279,10 +333,14 @@ export default function TeacherUpdateModal({
 				<div className="space-y-4">
 					{section === "personal" && (
 						<>
-							<div>
-								<FormLabel text="NIC Number" />
-								<input className={darkSafeInputClass} value={form.nic ?? ""} readOnly />
-							</div>
+										<div>
+							<FormLabel text="NIC Number" />
+							<input
+								className={`${darkSafeInputClass} bg-gray-900 text-gray-400 placeholder-gray-500`}
+								value={form.nic ?? ""}
+								disabled
+							/>
+						</div>
 							<div className="grid grid-cols-[120px_1fr] gap-3">
 								<div>
 									<FormLabel text="Title" required />
@@ -307,6 +365,14 @@ export default function TeacherUpdateModal({
 										onChange={(e) => setField("fullName", e.target.value)}
 									/>
 								</div>
+							</div>
+							<div>
+								<FormLabel text="Initials" required />
+								<input
+									className={darkSafeInputClass}
+									value={form.initialsName ?? ""}
+									onChange={(e) => setField("initialsName", e.target.value)}
+								/>
 							</div>
 							<div className="grid grid-cols-2 gap-3">
 								<div>
@@ -436,9 +502,9 @@ export default function TeacherUpdateModal({
 									<FormLabel text="Email" required />
 									<input
 										type="email"
-										className={darkSafeInputClass}
+										className={`${darkSafeInputClass} bg-gray-900 text-gray-400 placeholder-gray-500`}
 										value={form.email ?? ""}
-										onChange={(e) => setField("email", e.target.value)}
+										disabled
 									/>
 								</div>
 								<div>
