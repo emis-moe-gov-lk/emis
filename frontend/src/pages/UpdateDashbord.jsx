@@ -58,6 +58,9 @@ const UpdateDashboard = () => {
     return <Spinner />;
   }
   const dynamicStats = getStats(userData?.summary);
+  const exactStats = dynamicStats.filter(
+    (stat) => stat.title !== "Total Students" || userData?.summary?.student_count != '-',
+  );
 
   const monthLabel = selectedDate.toLocaleDateString("en-US", {
     month: "long",
@@ -91,7 +94,7 @@ const UpdateDashboard = () => {
           <WelcomeCard user={userData} people={userData.people_id} />
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
-            {dynamicStats.map((stat, index) => (
+            {exactStats.map((stat, index) => (
               <StatCard key={index} {...stat} />
             ))}
           </div>
