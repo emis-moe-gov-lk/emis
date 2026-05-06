@@ -16,46 +16,48 @@ export default function StepCurrentAppointment({
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState({});
 
-  const [currentAppointmentServices, setCurrentAppointmentServices] = useState(
-    [],
-  );
+  const [currentAppointmentServices, setCurrentAppointmentServices] = useState([]);
   const [currentAppointmentRanks, setCurrentAppointmentRanks] = useState([]);
-  const [currentAppointmentSubjects, setCurrentAppointmentSubjects] = useState(
-    [],
-  );
-  const [currentAppointmentZonalOffices, setCurrentAppointmentZonalOffices] =
-    useState([]);
-  const [
-    currentAppointmentInstCategories,
-    setCurrentAppointmentInstCategories,
-  ] = useState([]);
-  const [currentAppointmentInstitutions, setCurrentAppointmentInstitutions] =
-    useState([]);
-  const [currentAppointmentPositions, setCurrentAppointmentPositions] =
-    useState([]);
-  const sltsCurrentAppointmentServices =
-    currentAppointmentServices.filter(isSLTSService);
+  const [currentAppointmentWorkingPlaces, setCurrentAppointmentWorkingPlaces] = useState([]);
+  const [currentAppointmentPositions, setCurrentAppointmentPositions] = useState([]);
+
+  const sltsCurrentAppointmentServices = currentAppointmentServices.filter(isSLTSService);
   const isAllowedCurrentAppointmentService = (serviceId) =>
     sltsCurrentAppointmentServices.some(
       (service) => String(service.service_id) === String(serviceId),
     );
+
+  // Cadre Medium options
+  const cadreMediumOptions = [
+    { value: "sinhala", label: "Sinhala" },
+    { value: "tamil", label: "Tamil" },
+    { value: "english", label: "English" },
+    { value: "not_applicable", label: "Not Applicable" },
+  ];
+
+  // Working Place Level options
+  const workingPlaceLevelOptions = [
+    { value: "ministry", label: "Ministry" },
+    { value: "provincial_ministry", label: "Provincial Ministry" },
+    { value: "provincial_education_office", label: "Provincial Education Office" },
+    { value: "zonal_education_office", label: "Zonal Education Office" },
+    { value: "divisional_education_office", label: "Divisional Education Office" },
+    { value: "institution", label: "Institution" },
+  ];
 
   /* -------------------- FETCH DATA -------------------- */
   useEffect(() => {
     const fetchData = async () => {
       try {
         const res = await api.get(
-          `/teachers/appointment-form-data?service=${formData.currentAppointmentService || ""}&ins_cat=${formData.currentAppointmentInstCategory || ""}&zone=${formData.currentAppointmentZone || ""}`,
+          `/teachers/appointment-form-data?service=${formData.currentAppointmentService || ""}&working_place=${formData.currentAppointmentWorkingPlace || ""}`,
         );
 
         const data = res.data;
 
         setCurrentAppointmentServices(data.service ?? []);
         setCurrentAppointmentRanks(data.serviceRanks ?? []);
-        setCurrentAppointmentSubjects(data.mainTeachingSubjects ?? []);
-        setCurrentAppointmentZonalOffices(data.zonalEducationOffices ?? []);
-        setCurrentAppointmentInstCategories(data.institutionCategory ?? []);
-        setCurrentAppointmentInstitutions(data.institutions ?? []);
+        setCurrentAppointmentWorkingPlaces(data.workingPlaces ?? data.zonalEducationOffices ?? []);
         setCurrentAppointmentPositions(data.positions ?? []);
       } catch (error) {
         console.error("Failed to load current appointment form data", error);
@@ -65,36 +67,22 @@ export default function StepCurrentAppointment({
     };
 
     fetchData();
-  }, [
-    formData.currentAppointmentService,
-    formData.currentAppointmentInstCategory,
-    formData.currentAppointmentZone,
-  ]);
+  }, [formData.currentAppointmentService, formData.currentAppointmentWorkingPlace]);
 
   /* -------------------- VALIDATION -------------------- */
   const validate = () => {
     const e = {};
-    if (!formData.currentAppointmentRegType)
-      e.currentAppointmentRegType = "Required";
+    if (!formData.currentAppointmentRegType) e.currentAppointmentRegType = "Required";
     if (!formData.currentAppointmentDate) e.currentAppointmentDate = "Required";
-    if (!formData.currentAppointmentLetter)
-      e.currentAppointmentLetter = "Required";
-    if (!formData.currentAppointmentService)
-      e.currentAppointmentService = "Required";
-    else if (
-      !isAllowedCurrentAppointmentService(formData.currentAppointmentService)
-    )
+    if (!formData.currentAppointmentLetter) e.currentAppointmentLetter = "Required";
+    if (!formData.currentAppointmentService) e.currentAppointmentService = "Required";
+    else if (!isAllowedCurrentAppointmentService(formData.currentAppointmentService))
       e.currentAppointmentService = "Only SLTS service can be selected";
     if (!formData.currentAppointmentRank) e.currentAppointmentRank = "Required";
-    if (!formData.currentAppointmentSubject)
-      e.currentAppointmentSubject = "Required";
-    if (!formData.currentAppointmentZone) e.currentAppointmentZone = "Required";
-    if (!formData.currentAppointmentInstCategory)
-      e.currentAppointmentInstCategory = "Required";
-    if (!formData.currentAppointmentInstitution)
-      e.currentAppointmentInstitution = "Required";
-    if (!formData.currentAppointmentPosition)
-      e.currentAppointmentPosition = "Required";
+    if (!formData.currentAppointmentWorkingPlaceLevel) e.currentAppointmentWorkingPlaceLevel = "Required";
+    if (!formData.currentAppointmentWorkingPlace) e.currentAppointmentWorkingPlace = "Required";
+    if (!formData.currentAppointmentPosition) e.currentAppointmentPosition = "Required";
+    if (!formData.currentAppointmentCadreMedium) e.currentAppointmentCadreMedium = "Required";
 
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -113,6 +101,24 @@ export default function StepCurrentAppointment({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Auto-set Cadre Subject to "Not Applicable" when Cadre Medium changes or on init
+  useEffect(() => {
+    if (formData.currentAppointmentCadreMedium) {
+      update("currentAppointmentCadreSubject", "Not Applicable");
+    } else if (!formData.currentAppointmentCadreSubject) {
+      update("currentAppointmentCadreSubject", "Not Applicable");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.currentAppointmentCadreMedium]);
+
+  // Initialize Cadre Subject on mount
+  useEffect(() => {
+    if (!formData.currentAppointmentCadreSubject) {
+      update("currentAppointmentCadreSubject", "Not Applicable");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const update = (key, value) => {
     setFormData((prev) => {
       const next = { ...prev, [key]: value };
@@ -121,11 +127,8 @@ export default function StepCurrentAppointment({
       if (key === "currentAppointmentService") {
         next.currentAppointmentRank = "";
       }
-      if (
-        key === "currentAppointmentZone" ||
-        key === "currentAppointmentInstCategory"
-      ) {
-        next.currentAppointmentInstitution = "";
+      if (key === "currentAppointmentWorkingPlaceLevel") {
+        next.currentAppointmentWorkingPlace = "";
       }
 
       return next;
@@ -137,40 +140,39 @@ export default function StepCurrentAppointment({
   const selectPlaceholder = loading ? "Loading..." : "Select";
 
   return (
-    <div className="space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-500 px-6 py-0 [&_input]:bg-white dark:[&_input]:bg-gray-800 [&_select]:bg-white dark:[&_select]:bg-gray-800 [&_textarea]:bg-white dark:[&_textarea]:bg-gray-800 [&_label]:text-xs [&_label]:font-bold [&_label]:text-gray-700 dark:[&_label]:text-gray-300">
+    <div className="space-y-2 px-6 py-0">
       <div className="mb-3 flex items-center gap-3">
-        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-600 text-xs font-bold text-white">
+        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gray-600 text-xs font-bold text-white">
           05
         </div>
-        <h2 className="text-lg font-semibold">
+        <h2 className="text-lg font-semibold text-gray-700">
           Current Appointment Details
         </h2>
       </div>
 
       {/* Registration Type */}
       <div className="space-y-2">
-        <Label>Select registration type for the Teacher</Label>
+        <Label className="text-gray-700">Select registration type for the Education Administrator Officer</Label>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
           {/* New Teacher */}
-          <label className="relative flex p-4 cursor-not-allowed rounded-2xl border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800 opacity-50 transition-all">
+          <label className="relative flex p-4 cursor-not-allowed rounded-2xl border border-gray-300 bg-gray-50 opacity-50 transition-all">
             <div className="flex items-start gap-3">
               <Radio
                 name="reg_type"
                 value="new"
                 disabled
                 checked={formData.currentAppointmentRegType === "new"}
-                onChange={(e) =>
-                  update("currentAppointmentRegType", e.target.value)
-                }
+                onChange={(e) => update("currentAppointmentRegType", e.target.value)}
                 className="mt-1"
               />
               <div>
-                <span className="block text-sm font-semibold text-gray-400 dark:text-gray-500">
-                  New teacher
+                <span className="block text-sm font-semibold text-gray-600">
+                  New Education Administrator Officer
                 </span>
-                <span className="block text-xs text-gray-400 mt-1">
-                  Teacher appointed for the first time.
+                <span className="block text-xs text-gray-500 mt-1">
+                  New Education Administrator Officer
+                 New Education Administrator Officer users can perform any action.
                 </span>
               </div>
             </div>
@@ -178,50 +180,47 @@ export default function StepCurrentAppointment({
 
           {/* Existing Teacher */}
           <label
-            className={`relative flex p-4 cursor-pointer rounded-2xl border transition-all ${formData.currentAppointmentRegType === "existing"
-                ? "border-blue-600 bg-blue-50/10"
-                : "border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800 hover:border-blue-500"
-              }`}
+            className={`relative flex p-4 cursor-pointer rounded-2xl border border-gray-300 transition-all ${
+              formData.currentAppointmentRegType === "existing"
+                ? "bg-gray-100"
+                : "bg-gray-50 hover:bg-gray-100"
+            }`}
           >
             <div className="flex items-start gap-3">
               <Radio
                 name="reg_type"
                 value="existing"
                 checked={formData.currentAppointmentRegType === "existing"}
-                onChange={(e) =>
-                  update("currentAppointmentRegType", e.target.value)
-                }
+                onChange={(e) => update("currentAppointmentRegType", e.target.value)}
                 className="mt-1"
               />
               <div>
-                <span className="block text-sm font-semibold text-gray-900 dark:text-white">
-                  Existing teacher
+                <span className="block text-sm font-semibold text-gray-700">
+                 Existing Education Administrator Officer
+
                 </span>
-                <span className="block text-xs text-gray-500 mt-1">
-                  Teacher with prior service history.
+                <span className="block text-xs text-gray-600 mt-1">
+                  Existing Education Administrator Officer
+                  Existing Education Administrator Officer users have the ability to read, create, and update.
                 </span>
               </div>
             </div>
           </label>
         </div>
-        {errors.currentAppointmentRegType && (
-          <p className="text-sm text-red-600 mt-1">
-            {errors.currentAppointmentRegType}
-          </p>
-        )}
       </div>
 
       {/* Information Alert */}
-      <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex gap-3">
+      <div className="border border-gray-300 rounded-2xl p-4 flex gap-3 bg-gray-50">
         <div className="shrink-0">
-          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-            <HiInformationCircle className="w-6 h-6 text-blue-600" />
+          <div className="w-10 h-10 rounded-full flex items-center justify-center">
+            <HiInformationCircle className="w-6 h-6 text-gray-600" />
           </div>
         </div>
-        <div className="space-y-2 text-blue-800 text-sm">
+        <div className="space-y-2 text-red-700 text-sm">
           <p className="font-medium leading-relaxed">
-            Only for the registration of a teacher with a period of service, if
-            not appointed as a new teacher.
+           නවක අධ්‍යාපන අධ්‍යක්ෂවරයකු ලෙස පත්වීමක් ලබා නොගන්නා අවස්තාවක, සේවා කාලයක් සහිත අධ්‍යාපන අධ්‍යක්ෂවරයකු ලියාපදිංචි කිරීම සඳහා පමණි
+
+Only for the registration of a Education Administrator Officer with a period of service, in the event that an appointment is not obtained as a new Education Administrator Officer.
           </p>
         </div>
       </div>
@@ -229,226 +228,175 @@ export default function StepCurrentAppointment({
       {/* Appointment Date & Letter */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-4 gap-y-2">
         <div>
-          <Label htmlFor="currentAppointmentDate">
+          <Label htmlFor="currentAppointmentDate" className="text-gray-700">
             Current Appointment Date
           </Label>
           <TextInput
             id="currentAppointmentDate"
             type="date"
             value={formData.currentAppointmentDate || ""}
-            color={errors.currentAppointmentDate ? "failure" : "gray"}
             onChange={(e) => update("currentAppointmentDate", e.target.value)}
             shadow
+            className="[&_input]:text-gray-700 [&_input]:border-gray-300 [&_input]:focus:border-gray-300 [&_input]:ring-0 [&_input]:focus:ring-0 [&_input]:bg-white"
           />
-          {errors.currentAppointmentDate && (
-            <p className="text-sm text-red-600 mt-1">
-              {errors.currentAppointmentDate}
-            </p>
-          )}
         </div>
 
         <div>
-          <Label htmlFor="currentAppointmentLetter">
+          <Label htmlFor="currentAppointmentLetter" className="text-gray-700">
             Appointment / Transfer Letter No
           </Label>
           <TextInput
             id="currentAppointmentLetter"
             placeholder="Enter letter number"
             value={formData.currentAppointmentLetter || ""}
-            color={errors.currentAppointmentLetter ? "failure" : "gray"}
             onChange={(e) => update("currentAppointmentLetter", e.target.value)}
             shadow
+            className="[&_input]:text-gray-700 [&_input]:border-gray-300 [&_input]:focus:border-gray-300 [&_input]:ring-0 [&_input]:focus:ring-0 [&_input]:bg-white [&_input]:placeholder-gray-400"
           />
-          {errors.currentAppointmentLetter && (
-            <p className="text-sm text-red-600 mt-1">
-              {errors.currentAppointmentLetter}
-            </p>
-          )}
         </div>
       </div>
 
       {/* Service & Rank */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-4 gap-y-2">
         <div>
-          <Label htmlFor="currentAppointmentService">Current Service</Label>
+          <Label htmlFor="currentAppointmentService" className="text-gray-700">
+            Current Service
+          </Label>
           <Select
             id="currentAppointmentService"
             value={formData.currentAppointmentService || ""}
             disabled={loading}
-            color={errors.currentAppointmentService ? "failure" : "gray"}
-            onChange={(e) =>
-              update("currentAppointmentService", e.target.value)
-            }
+            onChange={(e) => update("currentAppointmentService", e.target.value)}
+            className="[&_select]:text-gray-700 [&_select]:border-gray-300 [&_select]:focus:border-gray-300 [&_select]:ring-0 [&_select]:focus:ring-0 [&_select]:bg-white"
           >
-            <option value="">{selectPlaceholder}</option>
+            <option value="" className="text-gray-500">{selectPlaceholder}</option>
             {sltsCurrentAppointmentServices.map((s) => (
-              <option key={s.id} value={s.service_id}>
+              <option key={s.id} value={s.service_id} className="text-gray-700">
                 {s.service_name}
               </option>
             ))}
           </Select>
-          {errors.currentAppointmentService && (
-            <p className="text-sm text-red-600 mt-1">
-              {errors.currentAppointmentService}
-            </p>
-          )}
         </div>
 
         <div>
-          <Label htmlFor="currentAppointmentRank">Current Service Rank</Label>
+          <Label htmlFor="currentAppointmentRank" className="text-gray-700">
+            Current Service Rank
+          </Label>
           <Select
             id="currentAppointmentRank"
             value={formData.currentAppointmentRank || ""}
             disabled={loading}
-            color={errors.currentAppointmentRank ? "failure" : "gray"}
             onChange={(e) => update("currentAppointmentRank", e.target.value)}
+            className="[&_select]:text-gray-700 [&_select]:border-gray-300 [&_select]:focus:border-gray-300 [&_select]:ring-0 [&_select]:focus:ring-0 [&_select]:bg-white"
           >
-            <option value="">{selectPlaceholder}</option>
+            <option value="" className="text-gray-500">{selectPlaceholder}</option>
             {currentAppointmentRanks.map((r) => (
-              <option key={r.id} value={r.rank_id}>
+              <option key={r.id} value={r.rank_id} className="text-gray-700">
                 {r.name || r.rank_name}
               </option>
             ))}
           </Select>
-          {errors.currentAppointmentRank && (
-            <p className="text-sm text-red-600 mt-1">
-              {errors.currentAppointmentRank}
-            </p>
-          )}
         </div>
       </div>
 
-      {/* Teaching Subject */}
-      <div>
-        <Label htmlFor="currentAppointmentSubject">
-          Current teaching subject
-        </Label>
-        <Select
-          id="currentAppointmentSubject"
-          value={formData.currentAppointmentSubject || ""}
-          disabled={loading}
-          color={errors.currentAppointmentSubject ? "failure" : "gray"}
-          onChange={(e) => update("currentAppointmentSubject", e.target.value)}
-        >
-          <option value="">{selectPlaceholder}</option>
-          {currentAppointmentSubjects.map((s) => (
-            <option key={s.id} value={s.subject_id}>
-              {s.name_en}
-            </option>
-          ))}
-        </Select>
-        {errors.currentAppointmentSubject && (
-          <p className="text-sm text-red-600 mt-1">
-            {errors.currentAppointmentSubject}
-          </p>
-        )}
-      </div>
-
-      {/* Zone & Institution Category */}
+      {/* Cadre Medium & Cadre Subject */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-4 gap-y-2">
         <div>
-          <Label htmlFor="currentAppointmentZone">Zonal Education Office</Label>
+          <Label htmlFor="currentAppointmentCadreMedium" className="text-gray-700">
+            Cadre Medium
+          </Label>
           <Select
-            id="currentAppointmentZone"
-            value={formData.currentAppointmentZone || ""}
-            disabled={loading}
-            color={errors.currentAppointmentZone ? "failure" : "gray"}
-            onChange={(e) => update("currentAppointmentZone", e.target.value)}
+            id="currentAppointmentCadreMedium"
+            value={formData.currentAppointmentCadreMedium || ""}
+            onChange={(e) => update("currentAppointmentCadreMedium", e.target.value)}
+            className="[&_select]:text-gray-700 [&_select]:border-gray-300 [&_select]:focus:border-gray-300 [&_select]:ring-0 [&_select]:focus:ring-0 [&_select]:bg-white"
           >
-            <option value="">{selectPlaceholder}</option>
-            {currentAppointmentZonalOffices.map((z) => (
-              <option key={z.id} value={z.workplace_id}>
-                {z.name}
+            <option value="" className="text-gray-500">{selectPlaceholder}</option>
+            {cadreMediumOptions.map((option) => (
+              <option key={option.value} value={option.value} className="text-gray-700">
+                {option.label}
               </option>
             ))}
           </Select>
-          {errors.currentAppointmentZone && (
-            <p className="text-sm text-red-600 mt-1">
-              {errors.currentAppointmentZone}
-            </p>
-          )}
         </div>
 
         <div>
-          <Label htmlFor="currentAppointmentInstCategory">
-            Institution Category
+          <Label htmlFor="currentAppointmentCadreSubject" className="text-gray-700">
+            Cadre Subject
           </Label>
-          <Select
-            id="currentAppointmentInstCategory"
-            value={formData.currentAppointmentInstCategory || ""}
-            disabled={loading}
-            color={errors.currentAppointmentInstCategory ? "failure" : "gray"}
-            onChange={(e) =>
-              update("currentAppointmentInstCategory", e.target.value)
-            }
-          >
-            <option value="">{selectPlaceholder}</option>
-            {currentAppointmentInstCategories.map((c) => (
-              <option key={c.id} value={c.institution_category_id}>
-                {c.institution_category_name || c.name}
-              </option>
-            ))}
-          </Select>
-          {errors.currentAppointmentInstCategory && (
-            <p className="text-sm text-red-600 mt-1">
-              {errors.currentAppointmentInstCategory}
-            </p>
-          )}
+          <TextInput
+            id="currentAppointmentCadreSubject"
+            type="text"
+            value={formData.currentAppointmentCadreSubject || "Not Applicable"}
+            onChange={(e) => update("currentAppointmentCadreSubject", e.target.value)}
+            shadow
+            readOnly
+            className="bg-gray-50 cursor-not-allowed [&_input]:text-gray-600 [&_input]:border-gray-300 [&_input]:bg-gray-50 [&_input]:ring-0 [&_input]:focus:ring-0"
+          />
         </div>
       </div>
 
-      {/* Institution */}
-      <div>
-        <Label htmlFor="currentAppointmentInstitution">
-          Current Appointment Institution
-        </Label>
-        <Select
-          id="currentAppointmentInstitution"
-          value={formData.currentAppointmentInstitution || ""}
-          disabled={loading}
-          color={errors.currentAppointmentInstitution ? "failure" : "gray"}
-          onChange={(e) =>
-            update("currentAppointmentInstitution", e.target.value)
-          }
-        >
-          <option value="">{selectPlaceholder}</option>
-          {currentAppointmentInstitutions.map((i) => (
-            <option key={i.id} value={i.workplace_id}>
-              {i.census_no + " - " + i.name}
-            </option>
-          ))}
-        </Select>
-        {errors.currentAppointmentInstitution && (
-          <p className="text-sm text-red-600 mt-1">
-            {errors.currentAppointmentInstitution}
-          </p>
-        )}
+      {/* Current Working Place Level & Working Place */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-4 gap-y-2">
+        <div>
+          <Label htmlFor="currentAppointmentWorkingPlaceLevel" className="text-gray-700">
+            Current Working Place Level
+          </Label>
+          <Select
+            id="currentAppointmentWorkingPlaceLevel"
+            value={formData.currentAppointmentWorkingPlaceLevel || ""}
+            onChange={(e) => update("currentAppointmentWorkingPlaceLevel", e.target.value)}
+            className="[&_select]:text-gray-700 [&_select]:border-gray-300 [&_select]:focus:border-gray-300 [&_select]:ring-0 [&_select]:focus:ring-0 [&_select]:bg-white"
+          >
+            <option value="" className="text-gray-500">{selectPlaceholder}</option>
+            {workingPlaceLevelOptions.map((option) => (
+              <option key={option.value} value={option.value} className="text-gray-700">
+                {option.label}
+              </option>
+            ))}
+          </Select>
+        </div>
+
+        <div>
+          <Label htmlFor="currentAppointmentWorkingPlace" className="text-gray-700">
+            Working Place
+          </Label>
+          <Select
+            id="currentAppointmentWorkingPlace"
+            value={formData.currentAppointmentWorkingPlace || ""}
+            disabled={loading}
+            onChange={(e) => update("currentAppointmentWorkingPlace", e.target.value)}
+            className="[&_select]:text-gray-700 [&_select]:border-gray-300 [&_select]:focus:border-gray-300 [&_select]:ring-0 [&_select]:focus:ring-0 [&_select]:bg-white"
+          >
+            <option value="" className="text-gray-500">{selectPlaceholder}</option>
+            {currentAppointmentWorkingPlaces.map((wp) => (
+              <option key={wp.id} value={wp.workplace_id || wp.id} className="text-gray-700">
+                {wp.census_no ? `${wp.census_no} - ${wp.name}` : wp.name}
+              </option>
+            ))}
+          </Select>
+        </div>
       </div>
 
       {/* Position */}
       <div>
-        <Label htmlFor="currentAppointmentPosition">
+        <Label htmlFor="currentAppointmentPosition" className="text-gray-700">
           Current Appointed Position
         </Label>
         <Select
           id="currentAppointmentPosition"
           value={formData.currentAppointmentPosition || ""}
           disabled={loading}
-          color={errors.currentAppointmentPosition ? "failure" : "gray"}
           onChange={(e) => update("currentAppointmentPosition", e.target.value)}
+          className="[&_select]:text-gray-700 [&_select]:border-gray-300 [&_select]:focus:border-gray-300 [&_select]:ring-0 [&_select]:focus:ring-0 [&_select]:bg-white"
         >
-          <option value="">{selectPlaceholder}</option>
+          <option value="" className="text-gray-500">{selectPlaceholder}</option>
           {currentAppointmentPositions.map((p) => (
-            <option key={p.id} value={p.position_id}>
+            <option key={p.id} value={p.position_id} className="text-gray-700">
               {p.position_name}
             </option>
           ))}
         </Select>
-        {errors.currentAppointmentPosition && (
-          <p className="text-sm text-red-600 mt-1">
-            {errors.currentAppointmentPosition}
-          </p>
-        )}
       </div>
     </div>
   );

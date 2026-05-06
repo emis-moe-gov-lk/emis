@@ -1,6 +1,6 @@
 "use client";
 import { useState, useContext, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "flowbite-react";
 import {
   TeacherFormContext,
@@ -10,21 +10,40 @@ import {
 import StepperHeader from "@/components/teacher/StepperHeader";
 import StepNavigation from "@/components/teacher/StepNavigation";
 
-import { registerTeacher } from "@/api/teacherService";
+import { registerDeoOfficer } from "@/api/deoOfficerService";
 import toast from "react-hot-toast";
 import { HiCheckCircle, HiArrowLeft } from "react-icons/hi";
 import StepNICVerification from "../../components/dos/steps/StepNICVerification";
 import StepPersonalDetails from "../../components/dos/steps/StepPersonalDetails";
+import StepContactDetails from "../../components/dos/steps/StepContactDetails";
+import StepFirstAppointment from "../../components/dos/steps/StepFirstAppointment";
+import StepCurrentAppointment from "../../components/dos/steps/StepCurrentAppointment";
 
-function RegTeacherInner() {
+function RegDosInner() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { state, dispatch } = useContext(TeacherFormContext);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const DRAFT_STORAGE_KEY = "teacher_form_draft_v2";
+  const isEduDirectorPath = location.pathname.includes("/employees/edu-directors");
+  const isZonalDirectorPath = location.pathname.includes(
+    "/employees/zonaldirector",
+  );
+
+  const employeeType = isZonalDirectorPath ? "Zonal Director" : "Edu Director";
+  const employeeTypePlural = isZonalDirectorPath
+    ? "Zonal Directors"
+    : "Edu Directors";
+  const backPath = isZonalDirectorPath
+    ? "/employees/zonaldirector"
+    : "/employees/edu-directors";
+
+  const DRAFT_STORAGE_KEY = `${employeeType
+    .toLowerCase()
+    .replace(/ /g, "_")}_form_draft_v2`;
   const LEAVE_WARNING_MESSAGE =
-    "Saved teacher registration draft will be lost. Do you want to continue?";
+    `Saved ${employeeType} registration draft will be lost. Do you want to continue?`;
 
   const {
     formData,
@@ -198,21 +217,56 @@ function RegTeacherInner() {
         setIsSubmitting(true);
         dispatch({ type: "SET_ERROR", payload: null });
 
-        const result = await registerTeacher(formData);
+        // Transform form data from teacher format to DEO format
+        const deoPayload = {
+          // Personal
+          nic: formData.nic,
+          is_new_registration: formData.is_new_registration,
+          titleId: formData.titleId,
+          fullName: formData.fullName,
+          dateOfBirth: formData.dateOfBirth,
+          genderId: formData.genderId,
+          religionId: formData.religionId,
+          ethnicityId: formData.ethnicityId,
+          civilStatusId: formData.civilStatusId,
+          bloodGroupId: formData.bloodGroupId,
+          healthCondition: formData.healthCondition,
+          healthConditionDescription: formData.healthConditionDescription,
+          districtId: formData.districtId,
+          gnDivisionId: formData.gnDivisionId,
+          dsOfficeId: formData.dsOfficeId,
+          // Contact
+          email: formData.email,
+          contact: formData.contact,
+          addressLine1: formData.addressLine1,
+          addressLine2: formData.addressLine2,
+          addressLine3: formData.addressLine3,
+          postalCode: formData.postalCode,
+          // Appointment (simplified for DEO - use current appointment fields)
+          appointmentDate: formData.currentAppointmentDate,
+          appointmentLetter: formData.currentAppointmentLetter,
+          serviceId: formData.currentAppointmentService,
+          rankId: formData.currentAppointmentRank,
+          positionId: formData.currentAppointmentPosition,
+          deoOfficeId: formData.currentAppointmentZone,
+        };
+
+        const result = await registerDeoOfficer(deoPayload);
 
         if (result.status === "success") {
-          toast.success("Teacher registered successfully");
+          toast.success(`${employeeType} registered successfully`);
           dispatch({ type: "SET_STEP", payload: 6 });
         } else {
           dispatch({
             type: "SET_ERROR",
-            payload: result.message || "Failed to register teacher",
+            payload: result.message || `Failed to register ${employeeType}`,
           });
         }
-      } catch (_err) {
+      } catch (err) {
+        console.error("Registration error:", err);
         dispatch({
           type: "SET_ERROR",
-          payload: "Unable to complete registration. Please try again.",
+          payload: err.response?.data?.message || err.response?.data?.errors || "Unable to complete registration. Please try again.",
         });
       } finally {
         setIsSubmitting(false);
@@ -245,7 +299,7 @@ function RegTeacherInner() {
       {/* Back */}
       <Button
         onClick={() => {
-          confirmDiscardAndRun(() => navigate("/employees/teacher"));
+          confirmDiscardAndRun(() => navigate(backPath));
         }}
         color="blue"
         className="mb-8 rounded-full px-6 py-2"
@@ -319,7 +373,7 @@ function RegTeacherInner() {
                 <HiCheckCircle className="text-green-600 w-8 h-8 mt-1" />
                 <div>
                   <h3 className="font-semibold text-green-800">
-                    Teacher Registration Successfully
+                    Edu Director Registration Successful
                   </h3>
                   <p className="text-sm text-green-700 mt-1">
                     Registration has been completed successfully.
@@ -388,10 +442,10 @@ function RegTeacherInner() {
 }
 
 // Wrapper Component - Provides context only for this page
-export default function RegTeacher() {
+export default function RegDos() {
   return (
     <TeacherFormProvider>
-      <RegTeacherInner />
+      <RegDosInner />
     </TeacherFormProvider>
   );
 }

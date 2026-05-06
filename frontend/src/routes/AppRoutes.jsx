@@ -192,15 +192,16 @@ export default function AppRoutes() {
               <Route path=":id" element={<TeacherProfile />} />
             </Route>
 
-            <Route path="employees/development-officers">
+            <Route path="employees/edu-directors">
               <Route index element={<DosDirectory />} />
               <Route path="bulk-upload" element={<DosBulkUpload />} />
               <Route path="create" element={<RegDos />} />
             </Route>
-            <Route
-              path="employees/development-officers"
-              element={<DosDirectory />}
-            />
+            <Route path="employees/zonaldirector">
+              <Route index element={<DosDirectory />} />
+              <Route path="bulk-upload" element={<DosBulkUpload />} />
+              <Route path="create" element={<RegDos />} />
+            </Route>
             <Route path="employees/principal" element={<PrincipalList />} />
             <Route
               path="employees/principal/:id"

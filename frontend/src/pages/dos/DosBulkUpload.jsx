@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
   HiArrowLeft,
@@ -10,8 +10,28 @@ import {
 } from "react-icons/hi";
 
 const TeacherBulkUpload = () => {
+  const location = useLocation();
   const inputRef = useRef(null);
   const [selectedFile, setSelectedFile] = useState(null);
+
+  const isEduDirectors = location.pathname.includes("/employees/edu-directors");
+  const isZonalDirectors = location.pathname.includes("/employees/zonaldirector");
+  const employeeTypeLabel = isEduDirectors
+    ? "Edu Directors"
+    : isZonalDirectors
+    ? "Zonal Directors"
+    : "Teachers";
+  const backPath = isEduDirectors
+    ? "/employees/edu-directors"
+    : isZonalDirectors
+    ? "/employees/zonaldirector"
+    : "/employees/teacher";
+
+  const employeeTitle = isEduDirectors
+    ? "Edu Directors"
+    : isZonalDirectors
+    ? "Zonal Directors"
+    : "Teachers";
 
   const handleFileChange = (event) => {
     const file = event.target.files?.[0] ?? null;
@@ -41,19 +61,19 @@ const TeacherBulkUpload = () => {
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-6 py-6 lg:px-10 lg:py-10">
       <div className="flex flex-col gap-3 border-b border-gray-200 pb-6">
         <Link
-          to="/employees/development-officers"
+          to={backPath}
           className="inline-flex w-fit items-center gap-2 text-sm font-medium text-blue-600 transition-colors hover:text-blue-700"
         >
           <HiArrowLeft className="h-4 w-4" />
-          Back to Development Officers
+          Back to {employeeTitle}
         </Link>
 
         <div>
           <h1 className="text-3xl font-semibold tracking-tight text-gray-900">
-            Bulk upload Development Officers
+            Bulk upload {employeeTypeLabel}
           </h1>
           <p className="mt-2 text-base text-gray-500">
-            Create development officer profiles and accounts
+            Create {employeeTitle.toLowerCase()} profile and account
           </p>
         </div>
       </div>
@@ -70,7 +90,7 @@ const TeacherBulkUpload = () => {
             className="mt-4 inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700"
           >
             <HiDocumentDownload className="h-4 w-4" />
-            Download Sample CSV
+            Download Sample CSV for {employeeTypeLabel}
           </a>
         </div>
 
@@ -132,7 +152,7 @@ const TeacherBulkUpload = () => {
             disabled={!selectedFile}
           >
             <HiOutlineUpload className="h-4 w-4" />
-            Import Development Officers
+            Import {employeeTypeLabel}
           </button>
         </div>
       </section>
