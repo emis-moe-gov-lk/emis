@@ -50,7 +50,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
- 
+
       - name: Build frontend Docker image
         run: |
           docker build \
@@ -119,14 +119,14 @@ jobs:
       - name: Read backend version
         id: version
         run: echo "value=$(head -1 backend/DEPLOY_VERSION | tr -d '[:space:]')" >> $GITHUB_OUTPUT
- 
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
- 
+
       - name: Build backend Docker image
         run: |
           docker build \
