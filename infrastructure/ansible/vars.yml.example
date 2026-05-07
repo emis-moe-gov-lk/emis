@@ -69,11 +69,11 @@ varsfl_memcached_host: 127.0.0.1
 
 # frontend docker image versions
 varsfl_frontend_dockerimg_repo: [XXX FRONTEND IMG REPO XXX]
-varsfl_frontend_dockerimg_tag: [XXX FRONTEND IMG TAG XXX]
+varsfl_frontend_dockerimg_tag: [XXX FRONTEND IMG TAG XXX] # auto filled by ghactions via frontend/DEPLOY_VERSION
 
 # backend doccker image versions
 varsfl_backend_dockerimg_repo: [XXX BACKEND IMG REPO XXX]
-varsfl_backend_dockerimg_tag: [XXX BACKCEND IMG TAG XXX]
+varsfl_backend_dockerimg_tag: [XXX BACKCEND IMG TAG XXX] # # auto filled by ghactions via backend/DEPLOY_VERSION
 
 # wso2 asgardeo identity server repo custom image versions
 varsfl_wso2_is_dockerimg_repo: [XXX WSO2 IS IMG REPO XXX]
