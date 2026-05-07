@@ -90,7 +90,8 @@ jobs:
         run: |
           ansible-playbook infrastructure/ansible/playbooks/deploy-frontend.yml \
             -i infrastructure/ansible/inventory/uat.yml \
-            --vault-password-file infrastructure/ansible/.vault_pass
+            --vault-password-file infrastructure/ansible/.vault_pass \
+            -e "varsfl_frontend_dockerimg_tag=${{ steps.version.outputs.value }}"
 
       - name: Cleanup secrets
         if: always()   # runs even if playbook fails
@@ -164,7 +165,9 @@ jobs:
         run: |
           ansible-playbook infrastructure/ansible/playbooks/deploy-backend.yml \
             -i infrastructure/ansible/inventory/uat.yml \
-            --vault-password-file infrastructure/ansible/.vault_pass
+            --vault-password-file infrastructure/ansible/.vault_pass \
+            -e "varsfl_backend_dockerimg_tag=${{ steps.version.outputs.value }}"
+
 
       - name: Cleanup secrets
         if: always()
