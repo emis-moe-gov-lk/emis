@@ -7,7 +7,7 @@ all:
     # ansible vars
     ansible_user: ansible
     ansible_port: 22
-    ansible_ssh_private_key_file: ~/.ssh/id_rsa
+    ansible_ssh_private_key_file: ~/.ssh/gha_emis_ed25519
     ansible_python_interpreter: /usr/bin/python3
     ansible_ssh_common_args: >-
       -o StrictHostKeyChecking=no
@@ -20,28 +20,29 @@ all:
         frontend_service:          
           hosts:                   
             uat_frontend:          
-              ansible_host: [frontend_host]
+              ansible_host: 192.168.200.2
         
         # PHP + Laravel Backend
         backend_service:           
           hosts:                
             uat_backend:           
-              ansible_host: [backend_host]
+              ansible_host: 192.168.200.2
 
         # WSO2 Identity Server
         is_service:                
           hosts:                   
             uat_is:               
-              ansible_host: [is_host]
+              ansible_host: 192.168.200.2
 
         # WSO2 API Manager
         apim_service:              
           hosts:                   
             uat_apim:            
-              ansible_host: [apim_host]
+              ansible_host: 192.168.200.2
 
 
+    # MYSQL Databases for services
     databases:                
       hosts:                  
         uat_db:               
-          ansible_host: [mysql_db_host]
+          ansible_host: 192.168.200.2

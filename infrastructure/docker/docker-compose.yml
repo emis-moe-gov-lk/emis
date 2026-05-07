@@ -13,6 +13,8 @@ services:
       - WSO2_SERVER_OFFSET=1
     networks:
       - uat-emis-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   # WSO2 API Manager
   wso2-apim:
@@ -30,6 +32,8 @@ services:
       - uat-emis-network
     depends_on:
       - wso2-is
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   # Frontend
   frontend:
@@ -59,6 +63,8 @@ services:
       - backend.env # BACKEND ENV
     networks:
       - uat-emis-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
 
 # Isolated custom network
