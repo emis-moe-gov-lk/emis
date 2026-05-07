@@ -21,7 +21,7 @@ jobs:
           # Exempt Branches
           EXEMPT_LIST="${{ vars.EXEMPT_BRANCHES }}"
           # convert comma separated list to regex like ^(main|dev|staging)$
-          EXEMPT="^($(echo "$EXEMPT_LIST" | tr ',' '|'))$"
+          EXEMPT="^($(echo "$EXEMPT_LIST" | tr ',' '|' | tr -d ' '))$"
           if echo "$BRANCH" | grep -Eq "$EXEMPT"; then
             echo "✅ Exempt branch '$BRANCH' — skipping check"
             exit 0
