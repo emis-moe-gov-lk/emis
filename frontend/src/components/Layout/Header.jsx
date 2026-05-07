@@ -6,7 +6,7 @@ const Header = ({ isCollapsed }) => {
   return (
     <header className="sticky top-0 z-20 hidden lg:flex h-16 items-center justify-between surface-shell border-b">
       <div className="flex items-center gap-3">
-        <div className="w-8 h-8 lg:w-10 lg:h-10 flex items-center justify-center rounded-xl shadow-sm surface border">
+        <div className="w-8 h-8 lg:w-10 lg:h-10 flex items-center justify-center ">
           <img
             src={Logo}
             alt="Emblem"

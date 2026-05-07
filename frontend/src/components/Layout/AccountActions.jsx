@@ -59,7 +59,7 @@ const AccountActions = ({ layout = "sidebar" }) => {
           />
         </button>
 
-        <button
+        {/* <button
           type="button"
           aria-label="Help"
           className={utilityButtonClass}
@@ -68,7 +68,7 @@ const AccountActions = ({ layout = "sidebar" }) => {
             className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white cursor-pointer"
             size={18}
           />
-        </button>
+        </button> */}
 
         <button
           type="button"
