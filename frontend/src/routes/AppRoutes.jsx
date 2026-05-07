@@ -192,11 +192,17 @@ export default function AppRoutes() {
               <Route path=":id" element={<TeacherProfile />} />
             </Route>
 
+            <Route path="employees/development-officers">
+              <Route index element={<DosDirectory />} />
+              <Route path="bulk-upload" element={<DosBulkUpload />} />
+              <Route path="create" element={<RegDos />} />
+            </Route>
             <Route path="employees/edu-directors">
               <Route index element={<DosDirectory />} />
               <Route path="bulk-upload" element={<DosBulkUpload />} />
               <Route path="create" element={<RegDos />} />
             </Route>
+            
             <Route path="employees/zonaldirector">
               <Route index element={<DosDirectory />} />
               <Route path="bulk-upload" element={<DosBulkUpload />} />
@@ -216,6 +222,9 @@ export default function AppRoutes() {
             <Route path="offices/overview" element={<OfficesOverview />} />
           </Route>
         </Route>
+
+
+          
 
         {/* Errors */}
         <Route path="/not-authorized" element={<NotAuthorizedPage />} />

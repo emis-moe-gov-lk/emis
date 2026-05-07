@@ -63,6 +63,7 @@ Route::prefix('')->group(function () {
         Route::put('/blood-groups/{id}', 'update');  // UPDATE (one)
     });
 
+
     Route::controller(TitleController::class)->group(function () {
         Route::get('/titles', 'index');        // GET all
         Route::put('/titles/{id}', 'update');  // UPDATE
@@ -119,7 +120,7 @@ Route::prefix('')->group(function () {
         Route::get('/teacher/{people_id}', 'getTeacher');
         Route::get('/teachers/check-nic/{nic}', 'getTeacherWithNIC');
         Route::get('/teachers/personal-form-data', 'getPersonalFromData');
-        Route::get('/teachers/appointment-form-data', 'getAppoinmentFromData');                         // first appointment
+        Route::get('/register/appointment-form-data', 'getAppoinmentFromData');                         // first appointment
         Route::get('/teachers/current-appointment-form-data', 'getCurrentAppointmentFormData');      // current appointment (role-filtered)
         Route::post('/teachers/check-contact', 'checkContact');                                       // POST check email/phone
     });

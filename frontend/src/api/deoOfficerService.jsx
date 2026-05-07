@@ -37,3 +37,4 @@ export const getDeoOfficer = async (id) => {
   const response = await api.get(`/deo-officers/${id}`);
   return response.data;
 };
+

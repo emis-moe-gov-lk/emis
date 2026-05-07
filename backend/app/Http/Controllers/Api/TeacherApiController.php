@@ -30,6 +30,7 @@ use Illuminate\Support\Facades\DB;
 use App\Models\EmployerAppointment;
 use App\Models\InstitutionCategory;
 use App\Models\MediumOfInstruction;
+use App\Models\RecruitmentCategory;
 
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rules\In;
@@ -804,6 +805,11 @@ class TeacherApiController extends Controller
             'institutionCategory' => InstitutionCategory::active()->get(),
             'zonalEducationOffices' => ZonalEducationOffice::active()->get(),
             'institutions' => $zone && $institutionCategory ? Institution::where('zeo_wp_id', $zone)->where('institution_category_id', $institutionCategory)->get() : [],
+            'recruitmentCategories' => RecruitmentCategory::active()->orderBy('category_id')->get(),
+            'zonalPositions' => Position::where('service_id', 'SER005')
+                ->where('position_name', 'like', '%Zonal%')
+                ->active()
+                ->get(),
         ]);
     }
 

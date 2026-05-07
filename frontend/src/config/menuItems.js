@@ -203,6 +203,14 @@ export const menuItems = [
             to: "/employees/edu-directors",
             permission: "zonaladmin.view",
           },
+
+            {
+            id: "zonaldeo",
+            label: "Zonal Deo",
+            to: "/employees/development-officers",
+            permission: "zonaldeo.view",
+          },
+
           // {
           //   id: "zonalclerk",
           //   label: "Zonal Clerk",

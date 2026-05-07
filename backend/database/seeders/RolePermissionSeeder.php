@@ -777,6 +777,12 @@ class RolePermissionSeeder extends Seeder
             //Timetable Management
             "timetable.overview.view",
 
+            //Zonal Management
+
+            "zonal.view",
+            "zonaladmin.view",
+            "zonaldeo.view"
+
          
         ];
 

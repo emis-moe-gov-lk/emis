@@ -12,20 +12,14 @@ export default function StepFirstAppointment({
 
   // Dropdown data states
   const [recruitmentSubjects, setRecruitmentSubjects] = useState([]);
+  const [recruitmentCategories, setRecruitmentCategories] = useState([]);
+  const [zonalPositions, setZonalPositions] = useState([]);
 
   // Service Ranks for SLEAS
   const sleasServiceRanks = [
     { id: 1, rank_id: "SLEAS-III", rank_name: "Class III (SLEAS III)" },
     { id: 2, rank_id: "SLEAS-II", rank_name: "Class II (SLEAS II)" },
     { id: 3, rank_id: "SLEAS-I", rank_name: "Class I (SLEAS I)" },
-  ];
-
-  const recruitmentCategoriesList = [
-    { id: 1, name: "Open General" },
-    { id: 2, name: "Limited General" },
-    { id: 3, name: "Limited Special" },
-    { id: 4, name: "Experience Based" },
-    { id: 5, name: "Other" }
   ];
 
   const workingPlaceLevelsList = [
@@ -49,18 +43,6 @@ export default function StepFirstAppointment({
     { id: 9, name: "Ministry of Education - Sabaragamuwa Province" }
   ];
 
-  const appointedPositionsList = [
-    { id: 1, position_id: "PRINCIPAL", position_name: "Principal (SLEAS)" },
-    { id: 2, position_id: "DIV_DIRECTOR", position_name: "Divisional Director of Education" },
-    { id: 3, position_id: "ZONAL_DIRECTOR", position_name: "Zonal Director of Education" },
-    { id: 4, position_id: "ADD_ZONAL_DIRECTOR", position_name: "Additional Zonal Director of Education" },
-    { id: 5, position_id: "ZONAL_ASSISTANT_DIRECTOR", position_name: "Zonal Assistant Director of Education" },
-    { id: 6, position_id: "PROVINCIAL_DIRECTOR", position_name: "Provincial Director of Education" },
-    { id: 7, position_id: "ADD_PROVINCIAL_DIRECTOR", position_name: "Additional Provincial Director of Education" },
-    { id: 8, position_id: "PROVINCIAL_DEPUTY_DIRECTOR", position_name: "Provincial Deputy Director of Education" },
-    { id: 9, position_id: "PROVINCIAL_ASSISTANT_DIRECTOR", position_name: "Provincial Assistant Director of Education" }
-  ];
-
   /* Auto-set SLEAS service on component mount */
   useEffect(() => {
     if (!formData.firstAppointmentService) {
@@ -68,18 +50,18 @@ export default function StepFirstAppointment({
     }
   }, []);
 
-  /* -------------------- FETCH RECRUITMENT SUBJECTS FROM API -------------------- */
+  /* -------------------- FETCH FORM DATA FROM API -------------------- */
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await api.get(`/teachers/appointment-form-data`);
-        
-        // Fetch recruitment subjects from existing API
+        const res = await api.get(`/register/appointment-form-data`);
+
         setRecruitmentSubjects(res.data.apointmentSubjects ?? []);
-        
-        setLoading(false);
+        setRecruitmentCategories(res.data.recruitmentCategories ?? []);
+        setZonalPositions(res.data.zonalPositions ?? []);
       } catch (error) {
         console.error("Failed to load appointment form data", error);
+      } finally {
         setLoading(false);
       }
     };
@@ -211,9 +193,9 @@ export default function StepFirstAppointment({
               className="mt-1"
             >
               <option value="">{selectPlaceholder}</option>
-              {recruitmentCategoriesList.map((c) => (
-                <option key={c.id} value={c.name}>
-                  {c.name}
+              {recruitmentCategories.map((c) => (
+                <option key={c.id} value={c.category_id}>
+                  {c.category_name}
                 </option>
               ))}
             </Select>
@@ -289,7 +271,7 @@ export default function StepFirstAppointment({
               className="mt-1"
             >
               <option value="">{selectPlaceholder}</option>
-              {appointedPositionsList.map((p) => (
+              {zonalPositions.map((p) => (
                 <option key={p.id} value={p.position_id}>
                   {p.position_name}
                 </option>

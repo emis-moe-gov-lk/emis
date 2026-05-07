@@ -50,7 +50,7 @@ export default function StepCurrentAppointment({
     const fetchData = async () => {
       try {
         const res = await api.get(
-          `/teachers/appointment-form-data?service=${formData.currentAppointmentService || ""}&working_place=${formData.currentAppointmentWorkingPlace || ""}`,
+          `/register/appointment-form-data?service=${formData.currentAppointmentService || ""}&working_place=${formData.currentAppointmentWorkingPlace || ""}`,
         );
 
         const data = res.data;
