@@ -1,7 +1,7 @@
 # Enforcing Branch Naming Convention
 
 name: Branch Naming Convention
-
+run-name: "Evaluate new branch [${{ github.ref_name }}]"
 on:
   create:
     branches:
@@ -18,8 +18,10 @@ jobs:
         run: |
           BRANCH="${{ github.ref_name }}"
 
-          # Branches exempt from naming rules
-          EXEMPT="^(main|dev|staging|develop)$"
+          # Exempt Branches
+          EXEMPT_LIST="${{ vars.EXEMPT_BRANCHES }}"
+          # convert comma separated list to regex like ^(main|dev|staging)$
+          EXEMPT="^($(echo "$EXEMPT_LIST" | tr ',' '|' | tr -d ' '))$"
           if echo "$BRANCH" | grep -Eq "$EXEMPT"; then
             echo "✅ Exempt branch '$BRANCH' — skipping check"
             exit 0
