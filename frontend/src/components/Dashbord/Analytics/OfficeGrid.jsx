@@ -100,7 +100,7 @@ const OfficeGrid = ({ workplaceLevel, officeLists, search }) => {
           </div>
 
           {/* Stats */}
-          <div className="p-6 bg-slate-50/50 dark:bg-gray-700/20">{renderStatsCards(region)}</div>
+          {/* <div className="p-6 bg-slate-50/50 dark:bg-gray-700/20">{renderStatsCards(region)}</div> */}
 
           {/* Total Institutions / Staff */}
           <div className="p-6">

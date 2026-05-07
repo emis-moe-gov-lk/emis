@@ -76,7 +76,7 @@ const PrincipalList = () => {
   }, [page]);
 
   return (
-    <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-6">
+    <div className="p-6 lg:p-10 w-full px-4 sm:px-6 lg:px-8 mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -121,7 +121,7 @@ const PrincipalList = () => {
                 return (
                   <div
                     key={principal.people_id}
-                    className="group flex flex-col md:flex-row md:items-center gap-4 p-5 bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-md border border-gray-100 dark:border-gray-700 transition-all duration-200 hover:border-blue-100 dark:hover:border-blue-900/30"
+                    className="group flex flex-col md:flex-row md:items-start gap-4 p-4 sm:p-5 bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-md border border-gray-100 dark:border-gray-700 transition-all duration-200 hover:border-blue-100 dark:hover:border-blue-900/30"
                   >
                     <div className="flex items-center gap-4 min-w-[60px]">
                       <div className="p-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
@@ -174,19 +174,22 @@ const PrincipalList = () => {
                         </div>
                       </div>
 
-                      <div className="md:col-span-2 flex items-center justify-end gap-2 flex-nowrap">
-                        <Badge color={appointmentStatus.color} className="px-3 py-1 whitespace-nowrap">
+                      <div className="md:col-span-2 flex items-center justify-end gap-2 flex-nowrap mt-3 md:mt-0">
+                        <Badge color={appointmentStatus.color} className="px-3 py-1 whitespace-nowrap hidden sm:inline-flex">
                           {appointmentStatus.label}
                         </Badge>
-                        <Button
-                          size="xs"
-                          color="light"
-                          onClick={() => navigate(`/employees/principal/${principal.people_id}`)}
-                          className="border-gray-200"
-                        >
-                          <HiEye className="mr-1 h-4 w-4" />
-                          View Profile
-                        </Button>
+                        <div className="w-full md:w-auto flex-shrink-0">
+                          <Button
+                            size="sm"
+                            color="light"
+                            onClick={() => navigate(`/employees/principal/${principal.people_id}`)}
+                            className="border-gray-200 w-full md:w-auto flex items-center justify-center gap-2"
+                            aria-label={`View profile of ${principal.full_name}`}
+                          >
+                            <HiEye className="h-4 w-4" />
+                            <span className="truncate">View Profile</span>
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>
