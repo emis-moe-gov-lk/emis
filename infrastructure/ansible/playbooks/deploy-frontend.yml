@@ -1,13 +1,13 @@
 ---
-# ---PLAY-DEPLOY-EMIS-BACKEND-----
-- name: Deploy EMIS UAT — Backend Only
-  hosts: backend_service
+# ---PLAY-DEPLOY-FRONTEND-----
+- name: Deploy EMIS UAT — Frontend Only
+  hosts: frontend_service
   become: true
   vars:
     remote_project_path: "/opt/emis-uat"
     docker_compose_file: "{{ playbook_dir | dirname }}/docker/docker-compose.yml"
   vars_files:
-    - vars_files/vars.yml
+    - ../vars.yml
 
   tasks:
     - name: Ensure project directory exists
@@ -16,10 +16,10 @@
         state: directory
         mode: '0755'
 
-    - name: Render and copy backend env file
+    - name: Render and copy frontend env file
       ansible.builtin.template:
-        src: "templates/backend.env.j2"
-        dest: "{{ remote_project_path }}/backend.env"
+        src: "templates/frontend.env.j2"
+        dest: "{{ remote_project_path }}/frontend.env"
         mode: '0600'
 
     - name: Render and copy docker env file
@@ -34,11 +34,11 @@
         dest: "{{ remote_project_path }}/docker-compose.yml"
         mode: '0644'
 
-    - name: Pull and start backend container only
+    - name: Pull and start frontend container only
       community.docker.docker_compose_v2:
         project_src: "{{ remote_project_path }}"
         services:
-          - backend              # ← only the backend service from compose file
+          - frontend             # ← only the frontend service from compose file
         state: present
         pull: always
       register: output

@@ -3,7 +3,7 @@
 - name: Install and Configure MySQL 8.0 Database and root user for EMIS & WSO2 Environment
   hosts: databases
   vars_files:
-    - "{{ playbook_dir }}/vars_files/vars.yml"
+    - ../vars.yml
   become: yes
   vars:
     # var values from inventory .ini files

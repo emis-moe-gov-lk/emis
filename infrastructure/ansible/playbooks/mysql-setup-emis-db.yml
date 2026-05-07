@@ -4,7 +4,7 @@
   hosts: databases
   become: true 
   vars_files:
-    - "{{ playbook_dir }}/vars_files/vars.yml"
+    - ../vars.yml
 
   tasks:
     - name: Create the Emis database
