@@ -1,8 +1,10 @@
+---
+# ---PLAY-SETUP-MYSQL-WSO2-DBS-----
 - name: Setup MySQL databases for WSO2
   hosts: databases
   become: yes
   vars_files:
-    - "{{ playbook_dir }}/vars_files/vars.yml"
+    - ../vars.yml
   gather_facts: false
   collections:
     - community.mysql

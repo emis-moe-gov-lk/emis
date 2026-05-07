@@ -1,0 +1,129 @@
+name: Deploy on Change
+
+on:
+  push:
+    branches:
+      - uat     # uat environment
+
+jobs:
+  detect-changes:
+    name: Detect Changed Directories
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.changes.outputs.frontend }}
+      backend: ${{ steps.changes.outputs.backend }}
+      infrastructure: ${{ steps.changes.outputs.infrastructure }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2   # need at least 2 commits to diff against
+
+      - name: Detect changes
+        id: changes
+        run: |
+          echo "frontend=$(git diff --name-only HEAD~1 HEAD | grep -q '^frontend/' && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "backend=$(git diff --name-only HEAD~1 HEAD | grep -q '^backend/' && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "infrastructure=$(git diff --name-only HEAD~1 HEAD | grep -q '^infrastructure/' && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+
+  deploy-frontend:
+    name: Deploy Frontend
+    needs: detect-changes
+    if: needs.detect-changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install Ansible
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y ansible
+
+      - name: Write vault password
+        run: echo "${{ secrets.ANSIBLE_VAULT_PASSWORD }}" > infrastructure/ansible/.vault_pass
+        # File is written and lives only for the duration of this job runner
+
+      - name: Write SSH private key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/gha_emis_ed25519
+          chmod 600 ~/.ssh/gha_emis_ed25519
+
+      - name: Write actual inventory # stored in GHA Secrets
+        run: echo "${{ secrets.UAT_INVENTORY }}" > infrastructure/ansible/inventory/uat.yml
+      
+      - name: Write actual vars.yml # stored in GHA Secrets
+        run: echo "${{ secrets.ANSIBLE_VARS }}" > infrastructure/ansible/vars.yml
+
+      - name: Run deploy-frontend playbook
+        run: |
+          ansible-playbook infrastructure/ansible/playbooks/deploy-frontend.yml \
+            -i infrastructure/ansible/inventory/uat.yml \
+            --vault-password-file infrastructure/ansible/.vault_pass
+
+      - name: Cleanup secrets
+        if: always()   # runs even if playbook fails
+        run: |
+          rm -f infrastructure/ansible/.vault_pass
+          rm -f ~/.ssh/id_rsa
+          rm -f infrastructure/ansible/inventory/uat.yml
+          rm -f infrastructure/ansible/vars.yml
+
+  deploy-backend:
+    name: Deploy Backend
+    needs: detect-changes
+    if: needs.detect-changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install Ansible
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y ansible
+
+      - name: Write vault password
+        run: echo "${{ secrets.ANSIBLE_VAULT_PASSWORD }}" > infrastructure/ansible/.vault_pass
+
+      - name: Write SSH private key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/gha_emis_ed25519
+          chmod 600 ~/.ssh/gha_emis_ed25519
+
+      - name: Write actual inventory
+        run: echo "${{ secrets.UAT_INVENTORY }}" > infrastructure/ansible/inventory/uat.yml
+
+      - name: Write vars.yml
+        run: echo "${{ secrets.ANSIBLE_VARS }}" > infrastructure/ansible/vars.yml
+
+      - name: Run deploy-backend playbook
+        run: |
+          ansible-playbook infrastructure/ansible/playbooks/deploy-backend.yml \
+            -i infrastructure/ansible/inventory/uat.yml \
+            --vault-password-file infrastructure/ansible/.vault_pass
+
+      - name: Cleanup secrets
+        if: always()
+        run: |
+          rm -f infrastructure/ansible/.vault_pass
+          rm -f ~/.ssh/id_rsa
+          rm -f infrastructure/ansible/inventory/uat.yml
+          rm -f infrastructure/ansible/vars.yml
+
+  infrastructure-changes:
+    name: Infrastructure Changes Detected
+    needs: detect-changes
+    if: needs.detect-changes.outputs.infrastructure == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      # TODO: decide what to do with infrastructure changes
+      # Options:
+      #   - run ansible-lint to validate playbooks
+      #   - notify a Slack/Teams channel for manual review
+      #   - auto-apply if changes are in inventory/ or vars/
+      #   - require manual approval before applying
+      - name: Placeholder
+        run: echo "Infrastructure changes detected — manual review required"

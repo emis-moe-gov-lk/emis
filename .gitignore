@@ -36,4 +36,8 @@ docker-compose.override.yml
 
 # Ansible
 vars.yml
+vars.yml.bck
+.vault_pass
+.facts_cache/
+*actual*.yml
 *.retry
