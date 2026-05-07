@@ -35,6 +35,36 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      # ------------------------------------------------
+      # Docker — build and push to GHCR
+      # ------------------------------------------------
+      - name: Read frontend version
+        id: version
+        run: echo "value=$(cat frontend/DEPLOY_VERSION | tr -d '[:space:]')" >> $GITHUB_OUTPUT
+ 
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GH_PAT }}
+ 
+      - name: Build frontend Docker image
+        run: |
+          docker build \
+            -t ghcr.io/emis-moe-gov-lk/emis-frontend:${{ steps.version.outputs.value }} \
+            -t ghcr.io/emis-moe-gov-lk/emis-frontend:latest \
+            ./frontend
+ 
+      - name: Push frontend Docker image
+        run: |
+          docker push ghcr.io/emis-moe-gov-lk/emis-frontend:${{ steps.version.outputs.value }}
+          docker push ghcr.io/emis-moe-gov-lk/emis-frontend:latest
+
+
+      # ------------------------------------------------
+      # Ansible — deploy to UAT server
+      # ------------------------------------------------
       - name: Install Ansible
         run: |
           sudo apt-get update -y
@@ -79,6 +109,37 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
+
+      # ------------------------------------------------
+      # Docker — build and push to GHCR
+      # ------------------------------------------------
+      - name: Read backend version
+        id: version
+        run: echo "value=$(cat backend/DEPLOY_VERSION | tr -d '[:space:]')" >> $GITHUB_OUTPUT
+ 
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GH_PAT }}
+ 
+      - name: Build backend Docker image
+        run: |
+          docker build \
+            -t ghcr.io/emis-moe-gov-lk/emis-backend:${{ steps.version.outputs.value }} \
+            -t ghcr.io/emis-moe-gov-lk/emis-backend:latest \
+            ./backend
+ 
+      - name: Push backend Docker image
+        run: |
+          docker push ghcr.io/emis-moe-gov-lk/emis-backend:${{ steps.version.outputs.value }}
+          docker push ghcr.io/emis-moe-gov-lk/emis-backend:latest
+
+ 
+      # ------------------------------------------------
+      # Ansible — deploy to UAT server
+      # ------------------------------------------------
       - name: Install Ansible
         run: |
           sudo apt-get update -y
