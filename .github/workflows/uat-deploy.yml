@@ -89,6 +89,8 @@ jobs:
         run: echo "${{ secrets.ANSIBLE_VARS }}" > infrastructure/ansible/vars.yml
 
       - name: Run deploy-frontend playbook
+        env:
+          ANSIBLE_CONFIG: infrastructure/ansible/ansible.cfg
         run: |
           ansible-playbook infrastructure/ansible/playbooks/deploy-frontend.yml \
             -e "varsfl_frontend_dockerimg_tag=${{ steps.version.outputs.value }}"
@@ -97,7 +99,7 @@ jobs:
         if: always()   # runs even if playbook fails
         run: |
           rm -f infrastructure/ansible/.vault_pass
-          rm -f infrastructure/ansible/inventory/uat.yml
+          rm -f infrastructure/ansible/inventory/hosts.yml
           rm -f infrastructure/ansible/vars.yml
 
   deploy-backend:
@@ -154,12 +156,14 @@ jobs:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
       - name: Write actual inventory
-        run: echo "${{ secrets.UAT_INVENTORY }}" > infrastructure/ansible/inventory/uat.yml
+        run: echo "${{ secrets.UAT_INVENTORY }}" > infrastructure/ansible/inventory/hosts.yml
 
       - name: Write vars.yml
         run: echo "${{ secrets.ANSIBLE_VARS }}" > infrastructure/ansible/vars.yml
 
       - name: Run deploy-backend playbook
+        env:
+          ANSIBLE_CONFIG: infrastructure/ansible/ansible.cfg
         run: |
           ansible-playbook infrastructure/ansible/playbooks/deploy-backend.yml \
             -e "varsfl_backend_dockerimg_tag=${{ steps.version.outputs.value }}"
