@@ -1,5 +1,5 @@
 name: version check
-
+run-name: "UAT Status check"
 on:
   pull_request:
     branches:
