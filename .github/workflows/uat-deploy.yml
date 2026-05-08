@@ -68,25 +68,20 @@ jobs:
       # ------------------------------------------------
       # Ansible — deploy to UAT server
       # ------------------------------------------------
-      - name: Install Ansible
+      - name: Install Ansible collections
+        run: ansible-galaxy collection install community.general
+
+      - name: Write secrets to disk
         run: |
-          sudo apt-get update -y
-          sudo apt-get install -y ansible
-
-      - name: Write vault password
-        run: echo "${{ secrets.ANSIBLE_VAULT_PASSWORD }}" > infrastructure/ansible/.vault_pass
-        # File is written and lives only for the duration of this job runner
-
+          echo "${{ secrets.ANSIBLE_VAULT_PASSWORD }}" > infrastructure/ansible/.vault_pass
+          echo "${{ secrets.UAT_INVENTORY }}" > infrastructure/ansible/inventory/hosts.yml
+          echo "${{ secrets.ANSIBLE_VARS }}" > infrastructure/ansible/vars.yml
+        # Files are written to disk and lives only for the duration of this job runner. 
+        
       - name: Configure SSH agent
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }} # stored in GHA Secrets
-
-      - name: Write actual inventory # stored in GHA Secrets
-        run: echo "${{ secrets.UAT_INVENTORY }}" > infrastructure/ansible/inventory/hosts.yml
-      
-      - name: Write actual vars.yml # stored in GHA Secrets
-        run: echo "${{ secrets.ANSIBLE_VARS }}" > infrastructure/ansible/vars.yml
 
       - name: Run deploy-frontend playbook
         env:
@@ -142,24 +137,20 @@ jobs:
       # ------------------------------------------------
       # Ansible — deploy to UAT server
       # ------------------------------------------------
-      - name: Install Ansible
+      - name: Install Ansible collections
+        run: ansible-galaxy collection install community.general
+
+      - name: Write secrets to disk
         run: |
-          sudo apt-get update -y
-          sudo apt-get install -y ansible
-
-      - name: Write vault password
-        run: echo "${{ secrets.ANSIBLE_VAULT_PASSWORD }}" > infrastructure/ansible/.vault_pass
-
+          echo "${{ secrets.ANSIBLE_VAULT_PASSWORD }}" > infrastructure/ansible/.vault_pass
+          echo "${{ secrets.UAT_INVENTORY }}" > infrastructure/ansible/inventory/hosts.yml
+          echo "${{ secrets.ANSIBLE_VARS }}" > infrastructure/ansible/vars.yml
+        # Files are written to disk and lives only for the duration of this job runner. 
+          
       - name: Configure SSH agent
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-
-      - name: Write actual inventory
-        run: echo "${{ secrets.UAT_INVENTORY }}" > infrastructure/ansible/inventory/hosts.yml
-
-      - name: Write vars.yml
-        run: echo "${{ secrets.ANSIBLE_VARS }}" > infrastructure/ansible/vars.yml
 
       - name: Run deploy-backend playbook
         env:
@@ -168,13 +159,13 @@ jobs:
           ansible-playbook infrastructure/ansible/playbooks/deploy-backend.yml \
             -e "varsfl_backend_dockerimg_tag=${{ steps.version.outputs.value }}"
 
-
       - name: Cleanup secrets
         if: always()
         run: |
           rm -f infrastructure/ansible/.vault_pass
           rm -f infrastructure/ansible/inventory/hosts.yml
           rm -f infrastructure/ansible/vars.yml
+
 
   infrastructure-changes:
     name: Infrastructure Changes Detected
@@ -222,7 +213,7 @@ jobs:
 
       - name: Update UAT version variable
         run: |
-          VERSION=$(head -1 /UAT_VERSION | tr -d '[:space:]')
+          VERSION=$(head -1 UAT_VERSION | tr -d '[:space:]')
           curl -s -X PATCH \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/vnd.github+json" \
