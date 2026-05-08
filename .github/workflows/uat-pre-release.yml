@@ -1,0 +1,31 @@
+name: version initialization
+
+on:
+  create:
+
+jobs:
+  add-deploy-versions:
+    if: github.event.ref_type == 'branch' && github.event.master_branch == 'dev' && startsWith(github.event.ref, 'uat-release')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout new branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Write DEPLOY_VERSION files
+        run: |
+          echo "${{ vars.FRONTEND_STABLE_VERSION }}" > frontend/DEPLOY_VERSION
+          echo "${{ vars.BACKEND_STABLE_VERSION }}" > backend/DEPLOY_VERSION
+          echo "${{ vars.UAT_VERSION }}" > UAT_VERSION
+
+      - name: Commit and push
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add frontend/DEPLOY_VERSION backend/DEPLOY_VERSION UAT_VERSION
+          git commit -m "add UAT DEPLOY_VERSION files [skip ci]"
+          git push origin ${{ github.event.ref }}

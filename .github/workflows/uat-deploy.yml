@@ -1,4 +1,5 @@
 name: Deploy on Change
+run-name: "Deploy to UAT — v${{ vars.APP_VERSION }}"
 
 on:
   push:
