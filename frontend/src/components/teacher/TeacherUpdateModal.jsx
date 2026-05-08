@@ -524,6 +524,7 @@ export default function TeacherUpdateModal({
 								<input
 									className={`${darkSafeInputClass} bg-gray-800 text-gray-400`}
 									value={form.initialsName ?? ""}
+									onChange={(e) => setField("initialsName", e.target.value)}
 									disabled
 								/>
 							</div>

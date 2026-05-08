@@ -633,6 +633,21 @@ class TeacherApiController extends Controller
             })->toArray() ?? [],
         ]);
 
+        // DEBUG: Log what's being loaded
+        $educationQuals = $teacher?->educationQualifications;
+        Log::info('Teacher Data Debug', [
+            'people_id' => $people_id,
+            'education_qualifications_count' => $educationQuals?->count() ?? 0,
+            'education_qualifications' => $educationQuals?->map(function($q) {
+                return [
+                    'id' => $q->id,
+                    'qualifications_id' => $q->qualifications_id,
+                    'active_status' => $q->active_status,
+                    'institution' => $q->institution,
+                ];
+            })->toArray() ?? [],
+        ]);
+
 //        if (!$teacher) {
 //            return response()->json([
 //                'status' => 'error',
@@ -666,6 +681,13 @@ class TeacherApiController extends Controller
         $teacherData['profile_status'] = $profileStatus;
         $teacherData['ui_actions'] = $this->buildActionVisibility($roles, $profileStatus);
         $dsOfficeDsoId = $teacher?->dsOffice?->dso_id ?? $this->resolveDsOfficeDsoId((string) $teacher?->ds_office_id);
+
+        // DEBUG: Log the final response
+        Log::info('Final API Response - Education Qualifications', [
+            'people_id' => $people_id,
+            'education_qualifications_in_response' => isset($teacherData['educationQualifications']),
+            'education_qualifications_count' => count($teacherData['educationQualifications'] ?? []),
+        ]);
 
         // DEBUG: Log the final response
         Log::info('Final API Response - Education Qualifications', [
@@ -738,12 +760,12 @@ class TeacherApiController extends Controller
 
         $section = (string) $request->input('section');
 
-      if (! in_array($section, ['personal', 'health', 'contact', 'temporary', 'appointment'], true)) {
-    return response()->json([
-        'status' => 'error',
-        'message' => 'Invalid update section',
-    ], 422);
-}
+        if (! in_array($section, ['personal', 'health', 'contact', 'temporary'], true)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Invalid update section',
+            ], 422);
+        }
 
         $rules = match ($section) {
             'personal' => [
@@ -779,13 +801,6 @@ class TeacherApiController extends Controller
                 'tAddressLine3' => 'nullable|string|max:255',
                 'tPostalCode' => 'nullable|string|max:20',
             ],
-            'appointment' => [
-        'service_id' => 'required|string',
-        'rank_id' => 'required|string',
-        'position_id' => 'required|string',
-        'appoint_date' => 'required|date',
-        'appointment_letter_no' => 'nullable|string',
-    ],
         };
 
         $validated = $request->validate($rules);
@@ -871,32 +886,7 @@ class TeacherApiController extends Controller
                     't_postal_code' => $validated['tPostalCode'] ?? null,
                 ]);
             }
-
-    if ($section === 'appointment') {
-        // Update current appointment (EmployerCurrentAppointment)
-        $currentAppointment = EmployerCurrentAppointment::where('employee_id', $teacher->people_id)->first();
-
-        if ($currentAppointment) {
-            $currentAppointment->update([
-                'service_id' => $validated['service_id'],
-                'rank_id' => $validated['rank_id'],
-                'position_id' => $validated['position_id'],
-                'appoint_date' => $validated['appoint_date'],
-            ]);
-        }
-
-        // Update appointment letter number in main appointment (EmployerAppointment)
-        if (isset($validated['appointment_letter_no'])) {
-            $appointment = EmployerAppointment::where('employee_id', $teacher->people_id)->first();
-            if ($appointment) {
-                $appointment->update([
-                    'appointment_letter_no' => $validated['appointment_letter_no']
-                ]);
-            }
-        }
-    }
-});
-
+        });
 
         $teacher->refresh();
         $accountSync = $teacherAccountProvisioningService->syncProfile($teacher);
