@@ -88,6 +88,14 @@ jobs:
       
       - name: Write actual vars.yml # stored in GHA Secrets
         run: echo "${{ secrets.ANSIBLE_VARS }}" > infrastructure/ansible/vars.yml
+      
+      - name: Check vault password is set
+        run: |
+          if [ -z "${{ secrets.ANSIBLE_VAULT_PASSWORD }}" ]; then
+            echo "❌ ANSIBLE_VAULT_PASSWORD is empty"
+          else
+            echo "✅ ANSIBLE_VAULT_PASSWORD is set"
+          fi
 
       - name: Run deploy-frontend playbook
         run: |
