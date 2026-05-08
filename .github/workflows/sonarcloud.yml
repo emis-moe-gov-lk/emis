@@ -27,12 +27,12 @@
 # or reach out to our community forum if you need some help (https://community.sonarsource.com/c/help/sc/9)
 
 name: SonarCloud analysis
+run-name: "SonarCloud Analysis - ${{ github.event.pull_request.title}}"
 
 on:
-  push:
-    branches: [ "dev" ]
   pull_request:
-    branches: [ "dev" ]
+    branches:
+      - dev
   workflow_dispatch:
 
 permissions:

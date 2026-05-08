@@ -1,4 +1,5 @@
-name: version initialization
+name: UAT Pre-Release Workflow
+run-name: "UAT Pre-Release Workflow"
 
 on:
   create:
