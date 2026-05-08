@@ -30,6 +30,9 @@ use Illuminate\Support\Facades\DB;
 use App\Models\EmployerAppointment;
 use App\Models\InstitutionCategory;
 use App\Models\MediumOfInstruction;
+use App\Models\PeopleEducationQualification;
+use App\Models\EducationQualification;
+use App\Models\EducationalQualificationGrade;
 
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rules\In;
@@ -590,7 +593,11 @@ class TeacherApiController extends Controller
             'teacher.mainSubject',
             'teacher.secondarySubject',
             'teacher.currentTeachingSubject',
-           
+
+            // Education qualifications with relationships - load all for debugging
+            'educationQualifications',
+            'educationQualifications.qualification',
+            'educationQualifications.qualificationGrade',
 
         ])
             ->whereHas('appointment')
@@ -606,6 +613,21 @@ class TeacherApiController extends Controller
                 'message' => 'Teacher not found for the permitted zonal scope',
             ], 404);
         }
+        
+        // DEBUG: Log what's being loaded
+        $educationQuals = $teacher?->educationQualifications;
+        Log::info('Teacher Data Debug', [
+            'people_id' => $people_id,
+            'education_qualifications_count' => $educationQuals?->count() ?? 0,
+            'education_qualifications' => $educationQuals?->map(function($q) {
+                return [
+                    'id' => $q->id,
+                    'qualifications_id' => $q->qualifications_id,
+                    'active_status' => $q->active_status,
+                    'institution' => $q->institution,
+                ];
+            })->toArray() ?? [],
+        ]);
 
 //        if (!$teacher) {
 //            return response()->json([
@@ -613,7 +635,6 @@ class TeacherApiController extends Controller
 //                'message' => 'Teacher not found',
 //            ], 404);
 //        }
-//
 //        if($jwt_people_id != $people_id){
 //            return response()->json([
 //                'status' => 'error',
@@ -629,12 +650,25 @@ class TeacherApiController extends Controller
 //        }
 
         $teacherData = $teacher?->toArray() ?? [];
+        
+        // Ensure educationQualifications are explicitly included
+        if (!isset($teacherData['educationQualifications'])) {
+            $teacherData['educationQualifications'] = $teacher?->educationQualifications?->toArray() ?? [];
+        }
+        
         $currentRejectComments = $teacher?->currentAppointment?->appointment?->rejectComments;
         $teacherData = $this->appendRejectCommentSummary($teacherData, $currentRejectComments);
         $profileStatus = $this->resolveProfileStatus((int) ($teacher?->currentAppointment?->appointment?->is_verified ?? 0));
         $teacherData['profile_status'] = $profileStatus;
         $teacherData['ui_actions'] = $this->buildActionVisibility($roles, $profileStatus);
         $dsOfficeDsoId = $teacher?->dsOffice?->dso_id ?? $this->resolveDsOfficeDsoId((string) $teacher?->ds_office_id);
+        
+        // DEBUG: Log the final response
+        Log::info('Final API Response - Education Qualifications', [
+            'people_id' => $people_id,
+            'education_qualifications_in_response' => isset($teacherData['educationQualifications']),
+            'education_qualifications_count' => count($teacherData['educationQualifications'] ?? []),
+        ]);
 
         return response()->json([
             'status' => 'success',
@@ -654,224 +688,192 @@ class TeacherApiController extends Controller
 
     public function updateProfile(Request $request, string $people_id, TeacherAccountProvisioningService $teacherAccountProvisioningService)
     {
-        try {
-            $roles = $this->resolvedRoles($request);
+        $roles = $this->resolvedRoles($request);
 
-            if (! $this->hasAnyRole($roles, ['development officer', 'development officer head', 'zonal deo', 'zonal deo head', 'zonal director', 'super admin'])) {
+        if (! $this->hasAnyRole($roles, ['development officer', 'development officer head', 'zonal deo', 'zonal deo head', 'zonal director', 'super admin'])) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Unauthorized',
+            ], 403);
+        }
+
+        $teacher = People::query()
+            ->with(['currentAppointment.appointment', 'teacher', 'user'])
+            ->where('people_id', $people_id)
+            ->first();
+
+        if (! $teacher?->teacher) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Teacher not found',
+            ], 404);
+        }
+
+        $currentAppointment = $teacher->currentAppointment;
+
+        if (! $this->isSuperAdmin($roles)) {
+            $zonalWorkplaceId = $this->resolveUserZonalWorkplaceId($request);
+
+            if (! $zonalWorkplaceId) {
                 return response()->json([
-                    'status' => 'error',
-                    'message' => 'Unauthorized',
+                    'status'  => 'error',
+                    'message' => 'Authenticated user has no zonal workplace mapped',
                 ], 403);
             }
 
-            $teacher = People::query()
-                ->with(['currentAppointment.appointment', 'teacher', 'user'])
-                ->where('people_id', $people_id)
-                ->first();
+            $teacherZonalWorkplaceId = Institution::where('workplace_id', $currentAppointment?->workplace_id)
+                ->value('zeo_wp_id');
 
-            if (! $teacher?->teacher) {
+            if ($teacherZonalWorkplaceId !== $zonalWorkplaceId) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Teacher not found',
-                ], 404);
+                    'message' => 'You can only update teachers within your relevant zonal area',
+                ], 403);
             }
+        }
 
-            $currentAppointment = $teacher->currentAppointment;
+        $section = (string) $request->input('section');
 
-            if (! $this->hasRole($roles, 'super admin')) {
-                $zonalWorkplaceId = $this->resolveUserZonalWorkplaceId($request);
-
-                if (! $zonalWorkplaceId) {
-                    return response()->json([
-                        'status'  => 'error',
-                        'message' => 'Authenticated user has no zonal workplace mapped',
-                    ], 403);
-                }
-
-                $teacherZonalWorkplaceId = Institution::where('workplace_id', $currentAppointment?->workplace_id)
-                    ->value('zeo_wp_id');
-
-                if ($teacherZonalWorkplaceId !== $zonalWorkplaceId) {
-                    return response()->json([
-                        'status' => 'error',
-                        'message' => 'You can only update teachers within your relevant zonal area',
-                    ], 403);
-                }
-            }
-
-            $section = (string) $request->input('section');
-
-            if (! in_array($section, ['personal', 'health', 'contact', 'temporary'], true)) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Invalid update section',
-                ], 422);
-            }
-
-            $rules = match ($section) {
-                'personal' => [
-                    'titleId' => 'required|string',
-                    'fullName' => 'required|string|max:255',
-                    'initialsName' => 'required|string|max:255',
-                    'genderId' => 'required|string',
-                    'dateOfBirth' => 'required|date',
-                    'ethnicityId' => 'required|string',
-                    'religionId' => 'required|string',
-                    'civilStatusId' => 'required|string',
-                ],
-                'health' => [
-                    'bloodGroupId' => 'required|string',
-                    'healthCondition' => 'required|in:0,1',
-                    'knownProblems' => 'nullable|string|max:500',
-                ],
-                'contact' => [
-                    'email' => 'required|email:rfc,dns',
-                    'phone' => 'required|digits:10',
-                    'districtId' => 'required|string',
-                    'dsOfficeId' => 'required',
-                    'gnDivisionId' => 'required|string',
-                    'addressLine1' => 'required|string|max:255',
-                    'addressLine2' => 'required|string|max:255',
-                    'addressLine3' => 'nullable|string|max:255',
-                    'postalCode' => 'required|string|max:20',
-                    'latitude' => 'nullable|string|max:100',
-                    'longitude' => 'nullable|string|max:100',
-                ],
-                'temporary' => [
-                    'tAddressLine1' => 'nullable|string|max:255',
-                    'tAddressLine2' => 'nullable|string|max:255',
-                    'tAddressLine3' => 'nullable|string|max:255',
-                    'tPostalCode' => 'nullable|string|max:20',
-                ],
-            };
-
-            $validated = $request->validate($rules);
-
-            if ($section === 'contact') {
-                $email = strtolower(trim((string) $validated['email']));
-                $phone = (string) $validated['phone'];
-
-                $emailConflict = People::query()
-                    ->where('email', $email)
-                    ->where('people_id', '!=', $teacher->people_id)
-                    ->exists()
-                    || User::query()
-                        ->where('email', $email)
-                        ->where('people_id', '!=', $teacher->people_id)
-                        ->exists();
-
-                $phoneConflict = People::query()
-                    ->where('phone', $phone)
-                    ->where('people_id', '!=', $teacher->people_id)
-                    ->exists()
-                    || User::query()
-                        ->where('contact', $phone)
-                        ->where('people_id', '!=', $teacher->people_id)
-                        ->exists();
-
-                if ($emailConflict || $phoneConflict) {
-                    return response()->json([
-                        'status' => 'validation_error',
-                        'message' => 'Please correct the highlighted contact details and try again.',
-                        'errors' => array_filter([
-                            'email' => $emailConflict ? ['Email is already used by another profile.'] : null,
-                            'phone' => $phoneConflict ? ['Phone number is already used by another profile.'] : null,
-                        ]),
-                    ], 422);
-                }
-            }
-
-            DB::transaction(function () use ($section, $validated, $teacher) {
-                if ($section === 'personal') {
-                    $fullName = ucwords(strtolower($validated['fullName']));
-                    $initialsName = trim((string) $validated['initialsName']);
-
-                    $teacher->update([
-                        'title_id' => $validated['titleId'],
-                        'full_name' => $fullName,
-                        'name_with_initials' => $initialsName,
-                        'gender_id' => $validated['genderId'],
-                        'date_of_birth' => $validated['dateOfBirth'],
-                        'ethnicity_id' => $validated['ethnicityId'],
-                        'religion_id' => $validated['religionId'],
-                        'civil_status_id' => $validated['civilStatusId'],
-                    ]);
-                }
-
-                if ($section === 'health') {
-                    $healthCondition = (int) $validated['healthCondition'];
-
-                    $teacher->update([
-                        'blood_group_id' => $validated['bloodGroupId'],
-                        'health_condition' => $healthCondition,
-                        'health_problem' => $healthCondition === 1
-                            ? null
-                            : ($validated['knownProblems'] ?? null),
-                    ]);
-                }
-
-                if ($section === 'contact') {
-                    $teacher->update([
-                        'email' => strtolower(trim((string) $validated['email'])),
-                        'phone' => $validated['phone'],
-                        'district_id' => $validated['districtId'],
-                        'ds_office_id' => $this->resolveDsOfficePrimaryKey((string) $validated['dsOfficeId']),
-                        'gn_division_id' => $validated['gnDivisionId'],
-                        'address_line1' => $validated['addressLine1'],
-                        'address_line2' => $validated['addressLine2'],
-                        'address_line3' => $validated['addressLine3'] ?? null,
-                        'postal_code' => $validated['postalCode'],
-                        'latitude' => $validated['latitude'] ?? null,
-                        'longitude' => $validated['longitude'] ?? null,
-                    ]);
-                }
-
-                if ($section === 'temporary') {
-                    $teacher->update([
-                        't_address_line1' => $validated['tAddressLine1'] ?? null,
-                        't_address_line2' => $validated['tAddressLine2'] ?? null,
-                        't_address_line3' => $validated['tAddressLine3'] ?? null,
-                        't_postal_code' => $validated['tPostalCode'] ?? null,
-                    ]);
-                }
-            });
-
-            $teacher->refresh();
-            $accountSync = $teacherAccountProvisioningService->syncProfile($teacher);
-            $profileStatus = $this->resolveProfileStatus((int) ($teacher->currentAppointment?->appointment?->is_verified ?? 0));
-
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Teacher profile updated successfully',
-                'data' => [
-                    'profile_status' => $profileStatus,
-                    'account_sync' => $accountSync,
-                ],
-            ]);
-        } catch (ValidationException $e) {
-            return response()->json([
-                'status' => 'validation_error',
-                'message' => 'Please review the entered details and try again.',
-                'errors' => $e->errors(),
-            ], 422);
-        } catch (\Throwable $e) {
-            Log::error('Teacher Profile Update Error', [
-                'people_id' => $people_id,
-                'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-            ]);
-
+        if (! in_array($section, ['personal', 'health', 'contact', 'temporary'], true)) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to update teacher profile',
-            ], 500);
+                'message' => 'Invalid update section',
+            ], 422);
         }
-    }
 
-    private function hasRole(array $roles, string $role): bool
-    {
-        return in_array(strtolower(trim($role)), $roles, true);
+        $rules = match ($section) {
+            'personal' => [
+                'titleId' => 'required|string',
+                'fullName' => 'required|string|max:255',
+                'genderId' => 'required|string',
+                'dateOfBirth' => 'required|date',
+                'ethnicityId' => 'required|string',
+                'religionId' => 'required|string',
+                'civilStatusId' => 'required|string',
+            ],
+            'health' => [
+                'bloodGroupId' => 'required|string',
+                'healthCondition' => 'required|in:0,1',
+                'knownProblems' => 'nullable|string|max:500',
+            ],
+            'contact' => [
+                'email' => 'required|email:rfc,dns',
+                'phone' => 'required|digits:10',
+                'districtId' => 'required|string',
+                'dsOfficeId' => 'required',
+                'gnDivisionId' => 'required|string',
+                'addressLine1' => 'required|string|max:255',
+                'addressLine2' => 'required|string|max:255',
+                'addressLine3' => 'nullable|string|max:255',
+                'postalCode' => 'required|string|max:20',
+                'latitude' => 'nullable|string|max:100',
+                'longitude' => 'nullable|string|max:100',
+            ],
+            'temporary' => [
+                'tAddressLine1' => 'nullable|string|max:255',
+                'tAddressLine2' => 'nullable|string|max:255',
+                'tAddressLine3' => 'nullable|string|max:255',
+                'tPostalCode' => 'nullable|string|max:20',
+            ],
+        };
+
+        $validated = $request->validate($rules);
+
+        if ($section === 'contact') {
+            $email = strtolower(trim((string) $validated['email']));
+            $phone = (string) $validated['phone'];
+
+            $emailConflict = People::query()
+                ->where('email', $email)
+                ->where('people_id', '!=', $teacher->people_id)
+                ->exists()
+                || User::query()
+                    ->where('email', $email)
+                    ->where('people_id', '!=', $teacher->people_id)
+                    ->exists();
+
+            $phoneConflict = People::query()
+                ->where('phone', $phone)
+                ->where('people_id', '!=', $teacher->people_id)
+                ->exists()
+                || User::query()
+                    ->where('contact', $phone)
+                    ->where('people_id', '!=', $teacher->people_id)
+                    ->exists();
+
+            if ($emailConflict || $phoneConflict) {
+                return response()->json([
+                    'status' => 'validation_error',
+                    'errors' => array_filter([
+                        'email' => $emailConflict ? ['Email is already used by another profile.'] : null,
+                        'phone' => $phoneConflict ? ['Phone number is already used by another profile.'] : null,
+                    ]),
+                ], 422);
+            }
+        }
+
+        DB::transaction(function () use ($section, $validated, $teacher) {
+            if ($section === 'personal') {
+                $fullName = ucwords(strtolower($validated['fullName']));
+
+                $teacher->update([
+                    'title_id' => $validated['titleId'],
+                    'full_name' => $fullName,
+                    'name_with_initials' => People::generateInitials($fullName),
+                    'gender_id' => $validated['genderId'],
+                    'date_of_birth' => $validated['dateOfBirth'],
+                    'ethnicity_id' => $validated['ethnicityId'],
+                    'religion_id' => $validated['religionId'],
+                    'civil_status_id' => $validated['civilStatusId'],
+                ]);
+            }
+
+            if ($section === 'health') {
+                $teacher->update([
+                    'blood_group_id' => $validated['bloodGroupId'],
+                    'health_condition' => (int) $validated['healthCondition'],
+                    'health_problem' => $validated['knownProblems'] ?? null,
+                ]);
+            }
+
+            if ($section === 'contact') {
+                $teacher->update([
+                    'email' => strtolower(trim((string) $validated['email'])),
+                    'phone' => $validated['phone'],
+                    'district_id' => $validated['districtId'],
+                    'ds_office_id' => $this->resolveDsOfficePrimaryKey((string) $validated['dsOfficeId']),
+                    'gn_division_id' => $validated['gnDivisionId'],
+                    'address_line1' => $validated['addressLine1'],
+                    'address_line2' => $validated['addressLine2'],
+                    'address_line3' => $validated['addressLine3'] ?? null,
+                    'postal_code' => $validated['postalCode'],
+                    'latitude' => $validated['latitude'] ?? null,
+                    'longitude' => $validated['longitude'] ?? null,
+                ]);
+            }
+
+            if ($section === 'temporary') {
+                $teacher->update([
+                    't_address_line1' => $validated['tAddressLine1'] ?? null,
+                    't_address_line2' => $validated['tAddressLine2'] ?? null,
+                    't_address_line3' => $validated['tAddressLine3'] ?? null,
+                    't_postal_code' => $validated['tPostalCode'] ?? null,
+                ]);
+            }
+        });
+
+        $teacher->refresh();
+        $accountSync = $teacherAccountProvisioningService->syncProfile($teacher);
+        $profileStatus = $this->resolveProfileStatus((int) ($teacher->currentAppointment?->appointment?->is_verified ?? 0));
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Teacher profile updated successfully',
+            'data' => [
+                'profile_status' => $profileStatus,
+                'account_sync' => $accountSync,
+            ],
+        ]);
     }
 
     public function getTeacherWithNIC(Request $request, string $nic)
@@ -1087,5 +1089,145 @@ class TeacherApiController extends Controller
             'email'  => ['exists' => $emailExists],
             'phone'  => ['exists' => $phoneExists],
         ]);
+    }
+
+    public function saveEducationQualification(Request $request, $people_id)
+    {
+        try {
+            $validated = $request->validate([
+                'id' => 'nullable|integer|exists:people_education_qualifications,id',
+                'qualification' => 'required|string|exists:education_qualifications,qualifications_id',
+                'institution_university' => 'required|string|max:255',
+                'effective_date' => 'required|date',
+                'grade_result' => 'required|string|exists:educational_qualification_grades,grade_id',
+                'additional_details' => 'nullable|string|max:1000',
+            ]);
+
+            // Ensure people_id exists
+            $person = People::where('people_id', $people_id)->first();
+            if (!$person) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Teacher profile not found.',
+                ], 404);
+            }
+
+            DB::beginTransaction();
+
+            if (!empty($validated['id'])) {
+                $qualification = PeopleEducationQualification::where('id', $validated['id'])
+                    ->where('people_id', $people_id)
+                    ->firstOrFail();
+                    
+                $qualification->update([
+                    'qualifications_id' => $validated['qualification'],
+                    'institution' => $validated['institution_university'],
+                    'effective_date' => $validated['effective_date'],
+                    'grade' => $validated['grade_result'],
+                    'description' => $validated['additional_details'],
+                ]);
+                $statusCode = 200;
+                $message = 'Education qualification updated successfully.';
+            } else {
+                $qualification = PeopleEducationQualification::create([
+                    'people_id' => $people_id,
+                    'qualifications_id' => $validated['qualification'],
+                    'institution' => $validated['institution_university'],
+                    'effective_date' => $validated['effective_date'],
+                    'grade' => $validated['grade_result'],
+                    'description' => $validated['additional_details'],
+                    'active_status' => 1,
+                ]);
+                
+                Log::info('Education Qualification Saved', [
+                    'qualification_id' => $qualification->id,
+                    'people_id' => $people_id,
+                    'qualifications_id' => $validated['qualification'],
+                    'active_status' => $qualification->active_status,
+                ]);
+                
+                $statusCode = 201;
+                $message = 'Education qualification saved successfully.';
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => $message,
+                'data' => $qualification,
+            ], $statusCode);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'status' => 'validation_error',
+                'message' => 'Validation failed',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('Save Education Qualification Error', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Internal server error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function getEducationQualifications()
+    {
+        try {
+            $qualifications = EducationQualification::active()
+                ->select('qualifications_id', 'qualification')
+                ->orderBy('qualification', 'asc')
+                ->get();
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $qualifications,
+            ], 200);
+        } catch (\Throwable $e) {
+            Log::error('Get Education Qualifications Error', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to fetch education qualifications.',
+            ], 500);
+        }
+    }
+
+    public function getEducationQualificationGrades()
+    {
+        try {
+            $grades = EducationalQualificationGrade::where('active_status', 1)
+                ->select('grade_id', 'grade')
+                ->orderBy('grade', 'asc')
+                ->get();
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $grades,
+            ], 200);
+        } catch (\Throwable $e) {
+            Log::error('Get Education Qualification Grades Error', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to fetch education qualification grades.',
+            ], 500);
+        }
     }
 }

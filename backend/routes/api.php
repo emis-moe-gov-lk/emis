@@ -124,6 +124,9 @@ Route::prefix('')->group(function () {
         Route::get('/teachers/appointment-form-data', 'getAppoinmentFromData');                         // first appointment
         Route::get('/teachers/current-appointment-form-data', 'getCurrentAppointmentFormData');      // current appointment (role-filtered)
         Route::post('/teachers/check-contact', 'checkContact');                                       // POST check email/phone
+        Route::post('/teachers/{people_id}/education-qualifications', 'saveEducationQualification');
+        Route::get('/education-qualifications', 'getEducationQualifications');                           // GET qualification lookup
+        Route::get('/education-qualification-grades', 'getEducationQualificationGrades');               // GET grade lookup
     });
 
     Route::controller(PrincipalApiController::class)->middleware('auth:jwt')->group(function () {

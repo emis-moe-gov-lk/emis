@@ -45,7 +45,11 @@ class PeopleEducationQualification extends Model
     // A qualification references one education qualification type
     public function qualification()
     {
-        return $this->belongsTo(EducationQualification::class, 'qualifications_id', 'qualifications_id');
+        return $this->belongsTo(
+            EducationQualification::class, 
+            'qualifications_id', 
+            'qualifications_id'
+        );
     }
 
     public function qualificationGrade()
