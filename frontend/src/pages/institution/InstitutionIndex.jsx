@@ -12,6 +12,8 @@ import api from "@/api/axios";
 import { HiPlus } from "react-icons/hi";
 import { NavLink } from "react-router-dom";
 
+import Can from "@/components/common/Can";
+import { PermissionGroups } from "@/data/permissionGroups";
 
 export default function InstitutionIndex() {
   const navigate = useNavigate();
@@ -87,16 +89,16 @@ export default function InstitutionIndex() {
           />
         </div>
 
-        <NavLink
-          to="/institution/create"
-          className="inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-        >
-          <HiPlus />
-          Create Institution
-        </NavLink>
+        <Can permission={PermissionGroups.INSTITUTION.CREATE}>
+          <NavLink
+            to="/institution/create"
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+          >
+            <HiPlus />
+            Create Institution
+          </NavLink>
+        </Can>
       </div>
-
-
 
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700">

@@ -53,7 +53,7 @@ const ProfileHeader = () => {
                 ${
                   activeTab === id
                     ? "bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border-gray-300 dark:border-gray-700 shadow-sm"
-                      : "bg-gray-100 dark:bg-gray-900/60 text-gray-500 dark:text-gray-400 border-transparent hover:text-gray-700 dark:hover:text-gray-200"
+                    : "bg-gray-100 dark:bg-gray-900/60 text-gray-500 dark:text-gray-400 border-transparent hover:text-gray-700 dark:hover:text-gray-200"
                 }
               `}
             >

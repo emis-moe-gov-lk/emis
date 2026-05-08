@@ -79,6 +79,7 @@ export const menuItems = [
         id: "offices",
         label: "Offices",
         icon: HiBuildingOffice,
+        permission: "office.view",
         children: [
           {
             id: "overview",

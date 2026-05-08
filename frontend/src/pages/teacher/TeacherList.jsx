@@ -239,8 +239,7 @@ const TeacherList = () => {
     return userPermissions.includes(permission);
   };
 
-  const canCreateTeacher =
-    hasRole("super admin") || hasRole("zonal deo");
+  const canCreateTeacher = hasRole("super admin") || hasRole("zonal deo");
 
   return (
     <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-6">
@@ -436,7 +435,7 @@ const TeacherList = () => {
 
                         {/* 3 Dot Menu */}
                         <div className="relative">
-                          <button
+                          {/* <button
                             onClick={(e) => {
                               e.stopPropagation();
                               setOpenMenuId(
@@ -446,7 +445,7 @@ const TeacherList = () => {
                             className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
                           >
                             <HiDotsVertical className="w-5 h-5 text-gray-500" />
-                          </button>
+                          </button> */}
 
                           {openMenuId === t.people_id && (
                             <div
@@ -472,9 +471,7 @@ const TeacherList = () => {
                               </Can>
 
                               <Can
-                                permission={
-                                  PermissionGroups.SCHOOLS.EXPORT_PDF
-                                }
+                                permission={PermissionGroups.SCHOOLS.EXPORT_PDF}
                               >
                                 <button
                                   onClick={(e) => {

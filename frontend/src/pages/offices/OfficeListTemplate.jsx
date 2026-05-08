@@ -180,14 +180,14 @@ const OfficeListTemplate = ({ title, subtitle, endpoint, createLabel }) => {
           />
         </div>
 
-        <Button
+        {/* <Button
           color="gray"
           className="inline-flex items-center gap-2 rounded-lg border shadow-sm enabled:hover:text-blue-600"
           onClick={() => alert("Create functionality will be connected next.")}
         >
           <HiPlus className="w-5 h-5 mr-1" />
           {createLabel}
-        </Button>
+        </Button> */}
       </div>
 
       {/* Content */}
