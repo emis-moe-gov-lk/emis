@@ -89,6 +89,8 @@ jobs:
         run: echo "${{ secrets.ANSIBLE_VARS }}" > infrastructure/ansible/vars.yml
 
       - name: Run deploy-frontend playbook
+        env:
+          ANSIBLE_CONFIG: infrastructure/ansible/ansible.cfg
         run: |
           ansible-playbook infrastructure/ansible/playbooks/deploy-frontend.yml \
             -e "varsfl_frontend_dockerimg_tag=${{ steps.version.outputs.value }}"
@@ -160,6 +162,8 @@ jobs:
         run: echo "${{ secrets.ANSIBLE_VARS }}" > infrastructure/ansible/vars.yml
 
       - name: Run deploy-backend playbook
+        env:
+          ANSIBLE_CONFIG: infrastructure/ansible/ansible.cfg
         run: |
           ansible-playbook infrastructure/ansible/playbooks/deploy-backend.yml \
             -e "varsfl_backend_dockerimg_tag=${{ steps.version.outputs.value }}"
