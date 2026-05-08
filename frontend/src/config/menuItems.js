@@ -2,6 +2,7 @@ import {
   HiCalendar,
   HiChartPie,
   HiInbox,
+  HiMenu,
   HiShieldCheck,
   HiUser,
   HiUserGroup,
@@ -290,6 +291,33 @@ export const menuItems = [
         icon: HiCalendar,
         to: "/timetable/weekly",
         permission: "timetable.overview.view",
+      },
+      {
+        id: "settings",
+        label: "Settings",
+        icon: HiMenu,
+        children: [
+          {
+            id: "system-settings",
+            label: "System Settings",
+            to: "/dashboard/settings",
+          },
+          {
+            id: "version",
+            label: "Version",
+            to: "/dashboard/versionpage",
+          },
+          {
+            id: "notifications",
+            label: "Notifications",
+            to: "/dashboard/settings/notifications",
+          },
+          {
+            id: "privacy",
+            label: "Privacy",
+            to: "/dashboard/settings/privacy",
+          },
+        ],
       },
     ],
   },
