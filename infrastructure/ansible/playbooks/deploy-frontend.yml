@@ -5,7 +5,7 @@
   become: true
   vars:
     remote_project_path: "/opt/emis-uat"
-    docker_compose_file: "{{ playbook_dir | dirname }}/docker/docker-compose.yml"
+    docker_compose_file: "../../docker/docker-compose.yml"
   vars_files:
     - ../vars.yml
 
@@ -18,13 +18,13 @@
 
     - name: Render and copy frontend env file
       ansible.builtin.template:
-        src: "templates/frontend.env.j2"
+        src: "../templates/frontend.env.j2"
         dest: "{{ remote_project_path }}/frontend.env"
         mode: '0600'
 
     - name: Render and copy docker env file
       ansible.builtin.template:
-        src: "templates/docker.env.j2"
+        src: "../templates/docker.env.j2"
         dest: "{{ remote_project_path }}/.env"
         mode: '0600'
 
