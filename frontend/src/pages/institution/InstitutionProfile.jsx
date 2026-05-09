@@ -23,6 +23,8 @@ import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import api from "@/api/axios";
 
+import Can from "@/components/common/Can";
+import { PermissionGroups } from "@/data/permissionGroups";
 
 /* Leaflet icon fix (Vite + Leaflet) */
 delete L.Icon.Default.prototype._getIconUrl;
@@ -30,8 +32,7 @@ L.Icon.Default.mergeOptions({
   iconRetinaUrl:
     "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl:
-    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
 /* Motion */
@@ -42,17 +43,24 @@ const fadeUp = {
 
 /* UI helpers */
 function EmptyText({ children = "Not available" }) {
-  return <span className="text-gray-400 dark:text-gray-500 italic">{children}</span>;
+  return (
+    <span className="text-gray-400 dark:text-gray-500 italic">{children}</span>
+  );
 }
 
 function MiniChip({ children, tone = "neutral" }) {
   const tones = {
-    neutral: "bg-white/80 dark:bg-gray-800/50 text-gray-700 dark:text-gray-200 ring-1 ring-gray-200 dark:ring-gray-700",
+    neutral:
+      "bg-white/80 dark:bg-gray-800/50 text-gray-700 dark:text-gray-200 ring-1 ring-gray-200 dark:ring-gray-700",
     blue: "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 ring-1 ring-blue-200 dark:ring-blue-800",
-    indigo: "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 ring-1 ring-indigo-200 dark:ring-indigo-800",
-    purple: "bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 ring-1 ring-purple-200 dark:ring-purple-800",
-    green: "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 ring-1 ring-green-200 dark:ring-green-800",
-    yellow: "bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-200 ring-1 ring-yellow-200 dark:ring-yellow-800",
+    indigo:
+      "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 ring-1 ring-indigo-200 dark:ring-indigo-800",
+    purple:
+      "bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 ring-1 ring-purple-200 dark:ring-purple-800",
+    green:
+      "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 ring-1 ring-green-200 dark:ring-green-800",
+    yellow:
+      "bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-200 ring-1 ring-yellow-200 dark:ring-yellow-800",
   };
   return (
     <span
@@ -167,7 +175,13 @@ export default function InstitutionProfile() {
   const initials = useMemo(() => {
     const name = institution?.name || "";
     const parts = name.split(" ").filter(Boolean);
-    return parts.slice(0, 2).map((w) => w[0]).join("").toUpperCase() || "SC";
+    return (
+      parts
+        .slice(0, 2)
+        .map((w) => w[0])
+        .join("")
+        .toUpperCase() || "SC"
+    );
   }, [institution]);
 
   const isActive = Number(institution?.active_status) === 1;
@@ -188,7 +202,6 @@ export default function InstitutionProfile() {
   const sportsSchool =
     institution?.sport_s === "1" || institution?.sport_s === 1 ? "Yes" : "No";
 
-
   const handleGetDirections = () => {
     if (!lat || !lng) return;
 
@@ -208,10 +221,9 @@ export default function InstitutionProfile() {
       },
       () => {
         alert("Unable to get your current location.");
-      }
+      },
     );
   };
-
 
   const handleShareLocation = () => {
     if (!lat || !lng) return;
@@ -247,16 +259,17 @@ export default function InstitutionProfile() {
       },
       () => {
         alert("Unable to get your current location.");
-      }
+      },
     );
   };
-
 
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
         <Spinner size="xl" />
-        <p className="mt-4 text-gray-500 dark:text-gray-400 animate-pulse">Loading profile…</p>
+        <p className="mt-4 text-gray-500 dark:text-gray-400 animate-pulse">
+          Loading profile…
+        </p>
       </div>
     );
   }
@@ -264,7 +277,9 @@ export default function InstitutionProfile() {
   if (!institution) {
     return (
       <div className="p-10 text-center">
-        <h2 className="text-xl font-bold text-gray-700 dark:text-gray-300">School not found</h2>
+        <h2 className="text-xl font-bold text-gray-700 dark:text-gray-300">
+          School not found
+        </h2>
         <Button className="mt-4 rounded-full" onClick={() => navigate(-1)}>
           Go Back
         </Button>
@@ -323,8 +338,8 @@ export default function InstitutionProfile() {
               {/* Category/Type/Grade/Gender badges */}
               <div className="flex flex-wrap gap-2">
                 <MiniChip tone="blue">
-                  {institution.institution_category?.institution_category_name ??
-                    "—"}
+                  {institution.institution_category
+                    ?.institution_category_name ?? "—"}
                 </MiniChip>
                 <MiniChip tone="purple">
                   {institution.institution_type?.institution_types_name ?? "—"}
@@ -350,9 +365,6 @@ export default function InstitutionProfile() {
                   Sports School: {sportsSchool}
                 </MiniChip>
               </div>
-
-
-
 
               {/* Meta row */}
               <div className="flex flex-wrap gap-6 text-sm text-gray-600 dark:text-gray-400">
@@ -440,7 +452,9 @@ export default function InstitutionProfile() {
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 {institution.vision || (
-                  <span className="text-gray-400 dark:text-gray-500 italic">Not available</span>
+                  <span className="text-gray-400 dark:text-gray-500 italic">
+                    Not available
+                  </span>
                 )}
               </p>
             </div>
@@ -448,11 +462,15 @@ export default function InstitutionProfile() {
             <div className="md:border-l md:pl-8 border-blue-200 dark:border-blue-800">
               <div className="flex items-center gap-2 mb-2">
                 <HiInformationCircle className="text-blue-600 dark:text-blue-400 h-5 w-5" />
-                <h3 className="text-lg font-bold dark:text-gray-100">Mission</h3>
+                <h3 className="text-lg font-bold dark:text-gray-100">
+                  Mission
+                </h3>
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 {institution.mission || (
-                  <span className="text-gray-400 dark:text-gray-500 italic">Not available</span>
+                  <span className="text-gray-400 dark:text-gray-500 italic">
+                    Not available
+                  </span>
                 )}
               </p>
             </div>
@@ -465,11 +483,14 @@ export default function InstitutionProfile() {
                 Institution Category
               </div>
               <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                {institution.institution_category?.institution_category_name || "—"}
+                {institution.institution_category?.institution_category_name ||
+                  "—"}
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
                 {institution.institution_category?.description || (
-                  <span className="text-gray-400 dark:text-gray-500 italic">Not available</span>
+                  <span className="text-gray-400 dark:text-gray-500 italic">
+                    Not available
+                  </span>
                 )}
               </p>
             </div>
@@ -483,13 +504,14 @@ export default function InstitutionProfile() {
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
                 {institution.institution_type?.description || (
-                  <span className="text-gray-400 dark:text-gray-500 italic">Not available</span>
+                  <span className="text-gray-400 dark:text-gray-500 italic">
+                    Not available
+                  </span>
                 )}
               </p>
             </div>
           </div>
         </motion.div>
-
       </div>
 
       {/* Row: Police + MOH (both light panels, with icons) */}
@@ -594,35 +616,49 @@ export default function InstitutionProfile() {
 
       {/* Row: Location (left) + Map (right) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <motion.div variants={fadeUp} className="rounded-3xl bg-blue-50/30 dark:bg-blue-950/20 ring-1 ring-blue-200 dark:ring-blue-800 shadow-sm">
+        <motion.div
+          variants={fadeUp}
+          className="rounded-3xl bg-blue-50/30 dark:bg-blue-950/20 ring-1 ring-blue-200 dark:ring-blue-800 shadow-sm"
+        >
           <div className="p-6 space-y-5">
             <div className="flex items-center gap-2">
               <HiLocationMarker className="h-5 w-5 text-blue-700 dark:text-blue-400" />
-              <div className="font-extrabold text-gray-900 dark:text-gray-100">Location Details</div>
+              <div className="font-extrabold text-gray-900 dark:text-gray-100">
+                Location Details
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <InfoField label="Address" value={institution.address} />
               <InfoField label="Postal Code" value={institution.postal_code} />
-              <InfoField label="Province" value={institution.district?.province_id} />
-              <InfoField label="District" value={institution.district?.district_name} />
+              <InfoField
+                label="Province"
+                value={institution.district?.province_id}
+              />
+              <InfoField
+                label="District"
+                value={institution.district?.district_name}
+              />
 
               {/* Missing fields that exist but may not have relations */}
-              <InfoField label="GN Division" value={institution.gn_division_id} />
+              <InfoField
+                label="GN Division"
+                value={institution.gn_division_id}
+              />
               <InfoField label="Ethnicity" value={institution.ethnicity_id} />
             </div>
 
             <div className="flex gap-3 pt-2">
-              <Button
+              {/* <Button
                 color="blue"
                 size="sm"
                 className="rounded-full"
                 onClick={handleGetDirections}
               >
                 Get Directions
-              </Button>
+              </Button> */}
 
-              <Button
+              {/* <Button
                 color="gray"
                 outline
                 size="sm"
@@ -630,14 +666,21 @@ export default function InstitutionProfile() {
                 onClick={handleShareLocation}
               >
                 Share Location
-              </Button>
+              </Button> */}
             </div>
           </div>
         </motion.div>
 
-        <motion.div variants={fadeUp} className="rounded-3xl overflow-hidden ring-1 ring-blue-200 dark:ring-blue-800 shadow-sm">
+        <motion.div
+          variants={fadeUp}
+          className="rounded-3xl overflow-hidden ring-1 ring-blue-200 dark:ring-blue-800 shadow-sm"
+        >
           {lat && lng ? (
-            <MapContainer center={[lng, lat]} zoom={14} className="h-[320px] w-full">
+            <MapContainer
+              center={[lng, lat]}
+              zoom={14}
+              className="h-[320px] w-full"
+            >
               <TileLayer
                 attribution="© OpenStreetMap contributors"
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -664,18 +707,26 @@ export default function InstitutionProfile() {
         </div>
 
         <div className="flex flex-wrap gap-3 justify-end">
-          <Button color="gray" outline className="rounded-full">
-            <HiDocumentReport className="mr-2 h-4 w-4" />
-            Generate Report
-          </Button>
-          <Button color="blue" className="rounded-full shadow-sm hover:shadow-md transition-shadow">
-            <HiPencilAlt className="mr-2 h-4 w-4" />
-            Edit Profile
-          </Button>
-          <Button color="success" className="rounded-full shadow-sm hover:shadow-md transition-shadow">
+          <Can permission={PermissionGroups.INSTITUTION.PROFILE_REPORT}>
+            <Button color="gray" outline className="rounded-full">
+              <HiDocumentReport className="mr-2 h-4 w-4" />
+              Generate Report
+            </Button>
+          </Can>
+
+          <Can permission={PermissionGroups.INSTITUTION.PROFILE_EDIT}>
+            <Button
+              color="blue"
+              className="rounded-full shadow-sm hover:shadow-md transition-shadow"
+            >
+              <HiPencilAlt className="mr-2 h-4 w-4" />
+              Edit Profile
+            </Button>
+          </Can>
+          {/* <Button color="success" className="rounded-full shadow-sm hover:shadow-md transition-shadow">
             <HiClipboardCheck className="mr-2 h-4 w-4" />
             Schedule Visit
-          </Button>
+          </Button> */}
         </div>
       </motion.div>
     </motion.div>

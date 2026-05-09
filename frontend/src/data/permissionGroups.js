@@ -2,6 +2,12 @@ export const PermissionGroups = {
   ALERTS: {
     ALERT_VIEW: "alerts.view",
     PROFILE_VIEW: "alerts.view.profile",
+    PROFILE_VERIFY: "alerts.view.profile-verify",
+    PROFILE_REVISE: "alerts.view.profile-revise",
+    PROFILE_CONFIRM: "alerts.view.profile-confirm",
+    PROFILE_REJECT: "alerts.view.profile-reject"
+
+
 
   },
 
@@ -42,6 +48,8 @@ export const PermissionGroups = {
     VIEW: "dashboard.view",
     VIEW_MYPROFILE: "dashboard.view.myprofile",
     VIEW_CALENDAR: "dashboard.view.calendar",
+    VIEW_ANALYTICS: "dashboard.view.analytics",
+    GEOGRAPHIC_MORE: "dashboard.view.geographic-moreview",
   },
 
   DOS: {
@@ -63,6 +71,14 @@ export const PermissionGroups = {
     CREATE: "institution.view.create",
     PROFILE_VIEW: "institution.view.profile",
     OVERVIEW_VIEW: "institution.view",
+    PROFILE_REPORT: "institution.profile.report-module.pdf",
+    PROFILE_EDIT: "institution.basic_information.update",
+    MOE_PROFILE_VIEW: "office.moe.profile.overview.view",
+    PMOE_PROFILE_VIEW: "office.pmoe.profile.overview.view",
+    PEO_PROFILE_VIEW: "office.peo.profile.overview.view",
+    ZEO_PROFILE_VIEW: "office.zeo.profile.overview.view",
+    DEO_PROFILE_VIEW: "office.deo.profile.overview.view",
+
   },
 
   MSO: {
@@ -80,7 +96,7 @@ export const PermissionGroups = {
   },
 
   OFFICE: {
-    // VIEW: "office.view",
+    VIEW: "office.view",
     OVERVIEW_VIEW: "office.overview",
     MOE_LIST_VIEW: "office.moe",
     ZEO_LIST_VIEW: "office.zeo",
@@ -160,7 +176,14 @@ export const PermissionGroups = {
     EXPORT_PDF: "teacher.profile.exportpdf",
     PROMOTE: "teacher.profile.promote",
     EDIT_REQUEST: "teacher.profile.edit-request.view",
-    PROFILE_EDIT: "teacher.profile.edit.view"
+    PROFILE_EDIT: "teacher.profile.edit.view",
+    PROFILE_QUALIFICATION: "teacher.profile.qualification.view",
+    PROFILE_EMPLOYMENT: "teacher.profile.employment.view",
+    PROFILE_PREVIOUS_SERVICE: "teacher.profile.employment.previous-service.create",
+    PROFILE_PREVIOUS_RECORD: "teacher.profile.employment.previous-record.view",
+    PROFILE_WOP: "teacher.profile.pension-and-payment.update",
+    PROFILE_FAMILY: "teacher.profile.family.create"
+
 
   },
 
@@ -172,6 +195,8 @@ export const PermissionGroups = {
     VIEW: "zonal.view",
     ADMIN: "zonaladmin.view",
     DEO: "zonaldeo.view",
+    CREATE: "zonaldeo.view.create",
+    PROFILE_VIEW: "zonaldeo.view.profile",
   },
 
   PROVINCIAL: {

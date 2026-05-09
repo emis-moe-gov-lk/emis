@@ -1902,13 +1902,15 @@ function QualificationTab({ qualifications, onAddQualification, onEditQualificat
         <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
           Educational qualification
         </h2>
-        <RoundedActionButton
-          icon={HiPlus}
-          onClick={onAddQualification}
-          variant="outline"
-        >
-          Add qualification
-        </RoundedActionButton>
+        <Can permission={PermissionGroups.SCHOOLS.PROFILE_QUALIFICATION}>
+          <RoundedActionButton
+            icon={HiPlus}
+            onClick={() => {}}
+            variant="outline"
+          >
+            Add qualification
+          </RoundedActionButton>
+        </Can>
       </div>
 
       <ProfileDataTable
@@ -2106,9 +2108,11 @@ function EmploymentTab({ employment }) {
         title="Appointment current status"
         color="slate"
         right={
-          <RoundedActionButton onClick={() => { }} variant="outline">
-            Edit
-          </RoundedActionButton>
+          <Can permission={PermissionGroups.SCHOOLS.PROFILE_EMPLOYMENT}>
+            <RoundedActionButton onClick={() => {}} variant="outline">
+              Edit
+            </RoundedActionButton>
+          </Can>
         }
       >
         <div className="flex items-center gap-2 mb-4 text-xs font-extrabold text-gray-600">
@@ -2148,9 +2152,11 @@ function EmploymentTab({ employment }) {
         title="My Appointment"
         color="indigo"
         right={
-          <RoundedActionButton onClick={() => { }} variant="outline">
-            Edit
-          </RoundedActionButton>
+          <Can permission={PermissionGroups.SCHOOLS.PROFILE_EMPLOYMENT}>
+            <RoundedActionButton onClick={() => {}} variant="outline">
+              Edit
+            </RoundedActionButton>
+          </Can>
         }
       >
         <div className="flex items-center gap-2 mb-4 text-xs font-extrabold text-gray-600">
@@ -2183,9 +2189,11 @@ function EmploymentTab({ employment }) {
         title="Teaching Info"
         color="teal"
         right={
-          <RoundedActionButton onClick={() => { }} variant="outline">
-            Edit
-          </RoundedActionButton>
+          <Can permission={PermissionGroups.SCHOOLS.PROFILE_EMPLOYMENT}>
+            <RoundedActionButton onClick={() => {}} variant="outline">
+              Edit
+            </RoundedActionButton>
+          </Can>
         }
       >
         <div className="flex items-center gap-2 mb-4 text-xs font-extrabold text-gray-600">
@@ -2228,9 +2236,15 @@ function EmploymentTab({ employment }) {
         <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
           Previous Service
         </h2>
-        <RoundedActionButton icon={HiPlus} onClick={() => { }} variant="outline">
-          Previous services
-        </RoundedActionButton>
+        <Can permission={PermissionGroups.SCHOOLS.PROFILE_PREVIOUS_SERVICE}>
+          <RoundedActionButton
+            icon={HiPlus}
+            onClick={() => {}}
+            variant="outline"
+          >
+            Previous services
+          </RoundedActionButton>
+        </Can>
       </div>
 
       <ProfileDataTable
@@ -2267,9 +2281,15 @@ function EmploymentTab({ employment }) {
         <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
           Previous Service-related information
         </h2>
-        <RoundedActionButton icon={HiPlus} onClick={() => { }} variant="outline">
-          Previous Record
-        </RoundedActionButton>
+        <Can permission={PermissionGroups.SCHOOLS.PROFILE_PREVIOUS_RECORD}>
+          <RoundedActionButton
+            icon={HiPlus}
+            onClick={() => {}}
+            variant="outline"
+          >
+            Previous Record
+          </RoundedActionButton>
+        </Can>
       </div>
 
       <ProfileDataTable
@@ -2343,9 +2363,11 @@ function WopTab({ wopAndPayment }) {
         <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
           W&OP & Payment Details
         </h2>
-        <RoundedActionButton onClick={() => { }} variant="outline">
-          Edit
-        </RoundedActionButton>
+        <Can permission={PermissionGroups.SCHOOLS.PROFILE_WOP}>
+          <RoundedActionButton onClick={() => {}} variant="outline">
+            Edit
+          </RoundedActionButton>
+        </Can>
       </div>
 
       <div className="rounded-2xl overflow-hidden border surface">
@@ -2371,9 +2393,11 @@ function FamilyTab({ family }) {
         <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
           Spouse List
         </h2>
-        <RoundedActionButton onClick={() => { }} variant="outline">
-          Add spouse
-        </RoundedActionButton>
+        <Can permission={PermissionGroups.SCHOOLS.PROFILE_FAMILY}>
+          <RoundedActionButton onClick={() => {}} variant="outline">
+            Add spouse
+          </RoundedActionButton>
+        </Can>
       </div>
 
       <ProfileDataTable

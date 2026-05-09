@@ -152,20 +152,18 @@ const AlertTeacherList = ({
                         {rowBadge.label}
                       </Badge>
 
-                      <Can permission={PermissionGroups.ALERTS.PROFILE_VIEW}>
-                        <Button
-                          size="xs"
-                          color="dark"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/employees/teacher/${teacher.people_id}`);
-                          }}
-                          className="flex items-center gap-1"
-                        >
-                          <HiEye className="w-4 h-4" />
-                          View
-                        </Button>
-                      </Can>
+                      <Button
+                        size="xs"
+                        color="dark"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/employees/teacher/${teacher.people_id}`);
+                        }}
+                        className="flex items-center gap-1"
+                      >
+                        <HiEye className="w-4 h-4" />
+                        View
+                      </Button>
                     </div>
                   </div>
                 </div>
