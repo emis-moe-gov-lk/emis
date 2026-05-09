@@ -17,8 +17,8 @@ class TimetableSetupController extends Controller
 
     public function show(): JsonResponse
     {
-        $teacher = Auth::user();
-        $config = $teacher->timetableConfig;
+        $teacher = Auth::user()->teacher;
+        $config = $teacher?->timetableConfig;
 
         if (! $config) {
             return response()->json(['message' => 'Timetable not configured.'], 404);
@@ -34,7 +34,8 @@ class TimetableSetupController extends Controller
 
     public function store(StoreTimetableSetupRequest $request): JsonResponse
     {
-        $teacher = Auth::user();
+        $teacher = Auth::user()->teacher
+            ?? abort(response()->json(['message' => 'Teacher profile not found.'], 404));
 
         return DB::transaction(function () use ($request, $teacher) {
             $config = TeacherTimetableConfig::updateOrCreate(

@@ -20,7 +20,7 @@ export default function FamilyManagement({
 
   return (
     <div className="antialiased min-h-screen pb-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+      <div className="w-full px-4 sm:px-6 lg:px-8 mx-auto px-4 sm:px-6 lg:px-8 pt-6">
         {!isSingle ? (
           <div className="space-y-10">
             {/* ================= SPOUSE SECTION ================= */}

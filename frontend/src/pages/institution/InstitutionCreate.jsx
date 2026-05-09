@@ -3,7 +3,7 @@ import { HiArrowLeft } from "react-icons/hi";
 
 const InstitutionCreate = () => {
   return (
-    <div className="p-6 lg:p-10 max-w-7xl mx-auto">
+    <div className="p-6 lg:p-10 w-full px-4 sm:px-6 lg:px-8 mx-auto">
       {/* Back button */}
       <div className="mb-6">
         <NavLink

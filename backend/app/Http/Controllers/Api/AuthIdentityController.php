@@ -17,6 +17,7 @@ class AuthIdentityController extends Controller
             'currentAppointment.workplace.zonal',
             'currentAppointment.workplace.divisional.zonalEducationOffice',
             'currentAppointment.workplace.institution.zonalEducationOffice',
+            'currentAppointment.workplace.zonal.provincialEducationOffice',
         ]);
 
         $roles = $user?->roles?->pluck('name')->values()->all() ?? [];
@@ -73,6 +74,13 @@ class AuthIdentityController extends Controller
                         'name'         => $zonalOffice->name,
                         'short_name'   => $zonalOffice->short_name,
                         'workplace_id' => $zonalOffice->workplace_id,
+                        'province_name' => preg_replace(
+                            '/^PDE\s*[-:–—]\s*/i',
+                            '',
+                            $zonalOffice->provincialEducationOffice?->short_name
+                                ?? $zonalOffice->provincialEducationOffice?->name
+                                ?? ''
+                        ) ?: null,
                     ] : null,
                 ] : null,
             ],

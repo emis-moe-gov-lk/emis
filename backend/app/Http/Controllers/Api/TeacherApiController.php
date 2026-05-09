@@ -30,6 +30,9 @@ use Illuminate\Support\Facades\DB;
 use App\Models\EmployerAppointment;
 use App\Models\InstitutionCategory;
 use App\Models\MediumOfInstruction;
+use App\Models\PeopleEducationQualification;
+use App\Models\EducationQualification;
+use App\Models\EducationalQualificationGrade;
 
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rules\In;
@@ -590,7 +593,11 @@ class TeacherApiController extends Controller
             'teacher.mainSubject',
             'teacher.secondarySubject',
             'teacher.currentTeachingSubject',
-           
+
+            // Education qualifications with relationships - load all for debugging
+            'educationQualifications',
+            'educationQualifications.qualification',
+            'educationQualifications.qualificationGrade',
 
         ])
             ->whereHas('appointment')
@@ -606,6 +613,21 @@ class TeacherApiController extends Controller
                 'message' => 'Teacher not found for the permitted zonal scope',
             ], 404);
         }
+        
+        // DEBUG: Log what's being loaded
+        $educationQuals = $teacher?->educationQualifications;
+        Log::info('Teacher Data Debug', [
+            'people_id' => $people_id,
+            'education_qualifications_count' => $educationQuals?->count() ?? 0,
+            'education_qualifications' => $educationQuals?->map(function($q) {
+                return [
+                    'id' => $q->id,
+                    'qualifications_id' => $q->qualifications_id,
+                    'active_status' => $q->active_status,
+                    'institution' => $q->institution,
+                ];
+            })->toArray() ?? [],
+        ]);
 
 //        if (!$teacher) {
 //            return response()->json([
@@ -613,7 +635,6 @@ class TeacherApiController extends Controller
 //                'message' => 'Teacher not found',
 //            ], 404);
 //        }
-//
 //        if($jwt_people_id != $people_id){
 //            return response()->json([
 //                'status' => 'error',
@@ -629,12 +650,25 @@ class TeacherApiController extends Controller
 //        }
 
         $teacherData = $teacher?->toArray() ?? [];
+        
+        // Ensure educationQualifications are explicitly included
+        if (!isset($teacherData['educationQualifications'])) {
+            $teacherData['educationQualifications'] = $teacher?->educationQualifications?->toArray() ?? [];
+        }
+        
         $currentRejectComments = $teacher?->currentAppointment?->appointment?->rejectComments;
         $teacherData = $this->appendRejectCommentSummary($teacherData, $currentRejectComments);
         $profileStatus = $this->resolveProfileStatus((int) ($teacher?->currentAppointment?->appointment?->is_verified ?? 0));
         $teacherData['profile_status'] = $profileStatus;
         $teacherData['ui_actions'] = $this->buildActionVisibility($roles, $profileStatus);
         $dsOfficeDsoId = $teacher?->dsOffice?->dso_id ?? $this->resolveDsOfficeDsoId((string) $teacher?->ds_office_id);
+        
+        // DEBUG: Log the final response
+        Log::info('Final API Response - Education Qualifications', [
+            'people_id' => $people_id,
+            'education_qualifications_in_response' => isset($teacherData['educationQualifications']),
+            'education_qualifications_count' => count($teacherData['educationQualifications'] ?? []),
+        ]);
 
         return response()->json([
             'status' => 'success',
@@ -677,7 +711,7 @@ class TeacherApiController extends Controller
 
         $currentAppointment = $teacher->currentAppointment;
 
-        if (! $this->hasRole($roles, 'super admin')) {
+        if (! $this->isSuperAdmin($roles)) {
             $zonalWorkplaceId = $this->resolveUserZonalWorkplaceId($request);
 
             if (! $zonalWorkplaceId) {
@@ -1055,5 +1089,145 @@ class TeacherApiController extends Controller
             'email'  => ['exists' => $emailExists],
             'phone'  => ['exists' => $phoneExists],
         ]);
+    }
+
+    public function saveEducationQualification(Request $request, $people_id)
+    {
+        try {
+            $validated = $request->validate([
+                'id' => 'nullable|integer|exists:people_education_qualifications,id',
+                'qualification' => 'required|string|exists:education_qualifications,qualifications_id',
+                'institution_university' => 'required|string|max:255',
+                'effective_date' => 'required|date',
+                'grade_result' => 'required|string|exists:educational_qualification_grades,grade_id',
+                'additional_details' => 'nullable|string|max:1000',
+            ]);
+
+            // Ensure people_id exists
+            $person = People::where('people_id', $people_id)->first();
+            if (!$person) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Teacher profile not found.',
+                ], 404);
+            }
+
+            DB::beginTransaction();
+
+            if (!empty($validated['id'])) {
+                $qualification = PeopleEducationQualification::where('id', $validated['id'])
+                    ->where('people_id', $people_id)
+                    ->firstOrFail();
+                    
+                $qualification->update([
+                    'qualifications_id' => $validated['qualification'],
+                    'institution' => $validated['institution_university'],
+                    'effective_date' => $validated['effective_date'],
+                    'grade' => $validated['grade_result'],
+                    'description' => $validated['additional_details'],
+                ]);
+                $statusCode = 200;
+                $message = 'Education qualification updated successfully.';
+            } else {
+                $qualification = PeopleEducationQualification::create([
+                    'people_id' => $people_id,
+                    'qualifications_id' => $validated['qualification'],
+                    'institution' => $validated['institution_university'],
+                    'effective_date' => $validated['effective_date'],
+                    'grade' => $validated['grade_result'],
+                    'description' => $validated['additional_details'],
+                    'active_status' => 1,
+                ]);
+                
+                Log::info('Education Qualification Saved', [
+                    'qualification_id' => $qualification->id,
+                    'people_id' => $people_id,
+                    'qualifications_id' => $validated['qualification'],
+                    'active_status' => $qualification->active_status,
+                ]);
+                
+                $statusCode = 201;
+                $message = 'Education qualification saved successfully.';
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => $message,
+                'data' => $qualification,
+            ], $statusCode);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'status' => 'validation_error',
+                'message' => 'Validation failed',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('Save Education Qualification Error', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Internal server error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function getEducationQualifications()
+    {
+        try {
+            $qualifications = EducationQualification::active()
+                ->select('qualifications_id', 'qualification')
+                ->orderBy('qualification', 'asc')
+                ->get();
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $qualifications,
+            ], 200);
+        } catch (\Throwable $e) {
+            Log::error('Get Education Qualifications Error', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to fetch education qualifications.',
+            ], 500);
+        }
+    }
+
+    public function getEducationQualificationGrades()
+    {
+        try {
+            $grades = EducationalQualificationGrade::where('active_status', 1)
+                ->select('grade_id', 'grade')
+                ->orderBy('grade', 'asc')
+                ->get();
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $grades,
+            ], 200);
+        } catch (\Throwable $e) {
+            Log::error('Get Education Qualification Grades Error', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to fetch education qualification grades.',
+            ], 500);
+        }
     }
 }

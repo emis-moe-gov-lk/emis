@@ -289,7 +289,7 @@ export default function InstitutionProfile() {
 
   return (
     <motion.div
-      className="max-w-7xl mx-auto px-6 lg:px-10 space-y-10"
+      className="w-full px-4 sm:px-6 lg:px-8 mx-auto px-6 lg:px-10 space-y-10"
       initial="hidden"
       animate="visible"
       variants={{ visible: { transition: { staggerChildren: 0.08 } } }}

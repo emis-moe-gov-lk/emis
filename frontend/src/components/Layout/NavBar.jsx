@@ -2,6 +2,7 @@ import { Tooltip } from "flowbite-react";
 import { useNavigate } from "react-router-dom";
 import BrandIcon from "./BrandIcon";
 import { HiBell, HiCog, HiMenu, HiUser, HiX } from "react-icons/hi";
+import AccountActions from "./AccountActions";
 
 const NavBar = ({ isSidebarOpen, setIsSidebarOpen }) => {
   const navigate = useNavigate();
@@ -24,33 +25,15 @@ const NavBar = ({ isSidebarOpen, setIsSidebarOpen }) => {
           <BrandIcon />
         </div>
 
-        <div className="flex items-center gap-3">
-          <Tooltip content="Profile">
-            <button
-              onClick={() => navigate("/dashboard/profile")}
-              className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors"
-              aria-label="Go to profile"
-            >
-              <HiUser className="w-5 h-5" />
-            </button>
-          </Tooltip>
-
-          <Tooltip content="Settings">
-            <button
-              onClick={() => navigate("/dashboard/Settings")}
-              className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors"
-              aria-label="Go to settings"
-            >
-              <HiCog className="w-5 h-5" />
-            </button>
-          </Tooltip>
-
+        <div className="relative flex items-center gap-3">
           <Tooltip content="Notifications">
             <button className="relative p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors">
               <HiBell className="w-5 h-5" />
               <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-gray-100 dark:ring-gray-900"></span>
             </button>
           </Tooltip>
+
+          <AccountActions layout="mobile" />
         </div>
       </div>
     </div>
