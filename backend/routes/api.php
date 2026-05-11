@@ -24,6 +24,7 @@ use App\Http\Controllers\API\UserApiController;
 use App\Http\Controllers\API\UserManagementController;
 use App\Http\Controllers\API\RoleController;
 use App\Http\Controllers\API\DeoOfficerController;
+use App\Http\Controllers\API\DosAdminController;
 use App\Http\Controllers\API\MobileTeacherProfileController;
 use App\Http\Controllers\API\EmployerAppointmentConfirmationController;
 use App\Http\Controllers\Pdf\TeacherPdf;
@@ -149,6 +150,10 @@ Route::prefix('')->group(function () {
         Route::patch('/teachers/{people_id}/rejected-status', 'updateRejectedStatus');
     });
 
+
+    Route::controller(DosAdminController::class)->middleware('auth:jwt')->prefix('dos-admins')->group(function () {
+        Route::post('/', 'store');  // POST register education administrator
+    });
 
     Route::controller(DeoOfficerController::class)->middleware('auth:jwt')->prefix('deo-officers')->group(function () {
         Route::get('/', 'index');                      // GET all DEO officers

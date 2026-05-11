@@ -11,6 +11,16 @@ export const registerDeoOfficer = async (data) => {
 };
 
 /**
+ * Register a new Education Administrator (Zonal Director / Deputy Director)
+ * @param {Object} data - The DOS admin registration form data
+ * @returns {Promise} - Axios response payload
+ */
+export const registerDosAdmin = async (data) => {
+  const response = await api.post("/dos-admins", data);
+  return response.data;
+};
+
+/**
  * Get DEO Officer form dropdown data
  * @returns {Promise} - Form data with available options
  */
