@@ -58,6 +58,7 @@ import DosDirectory from "../pages/DosDirectory.jsx";
 import DosBulkUpload from "../pages/dos/DosBulkUpload.jsx";
 import RegDos from "../pages/dos/RegDos.jsx";
 import DosList from "../components/dos/DosList.jsx";
+import DosAdminProfile from "../pages/dos/DosAdminProfile.jsx";
 
 export default function AppRoutes() {
   return (
@@ -196,17 +197,20 @@ export default function AppRoutes() {
               <Route index element={<DosDirectory />} />
               <Route path="bulk-upload" element={<DosBulkUpload />} />
               <Route path="create" element={<RegDos />} />
+              <Route path=":id" element={<DosAdminProfile />} />
             </Route>
             <Route path="employees/edu-directors">
               <Route index element={<DosDirectory />} />
               <Route path="bulk-upload" element={<DosBulkUpload />} />
               <Route path="create" element={<RegDos />} />
+              <Route path=":id" element={<DosAdminProfile />} />
             </Route>
-            
+
             <Route path="employees/zonaldirector">
               <Route index element={<DosDirectory />} />
               <Route path="bulk-upload" element={<DosBulkUpload />} />
               <Route path="create" element={<RegDos />} />
+              <Route path=":id" element={<DosAdminProfile />} />
             </Route>
             <Route path="employees/principal" element={<PrincipalList />} />
             <Route

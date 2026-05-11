@@ -1,4 +1,4 @@
-import { Label, Select, TextInput, Radio } from "flowbite-react";
+import { Label, Select, TextInput, Radio, Checkbox } from "flowbite-react";
 import { HiInformationCircle } from "react-icons/hi";
 import { useState, useEffect } from "react";
 import api from "@/api/axios";
@@ -14,6 +14,9 @@ export default function StepCurrentAppointment({
 }) {
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState({});
+  const [sameAsFirst, setSameAsFirst] = useState(false);
+
+  const firstIsSleas = formData.firstAppointmentService === SLEAS_SERVICE_ID;
 
   const [serviceRanks, setServiceRanks] = useState([]);
   const [zonalOffices, setZonalOffices] = useState([]);
@@ -78,6 +81,25 @@ export default function StepCurrentAppointment({
   const update = (key, value) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
     setErrors((prev) => ({ ...prev, [key]: undefined }));
+  };
+
+  const handleSameAsFirst = (checked) => {
+    setSameAsFirst(checked);
+    if (checked) {
+      const position = zonalPositions.find(
+        (p) => p.position_id === formData.appointedPosition
+      );
+      setFormData((prev) => ({
+        ...prev,
+        currentAppointmentDate: formData.firstAppointmentDate || "",
+        currentAppointmentLetter: formData.firstAppointmentLetter || "",
+        currentAppointmentRank: formData.firstAppointmentRank || "",
+        currentAppointmentWorkingPlace: formData.workingPlace || "",
+        currentAppointmentPosition: formData.appointedPosition || "",
+        currentAppointmentPositionLabel: position?.position_name ?? formData.appointedPosition ?? "",
+      }));
+      setErrors({});
+    }
   };
 
   const handlePositionChange = (positionId) => {
@@ -174,6 +196,25 @@ export default function StepCurrentAppointment({
           </p>
         </div>
       </div>
+
+      {/* Same as first appointment */}
+      {firstIsSleas && (
+        <label className="flex items-center gap-3 p-4 rounded-2xl border border-gray-300 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-all">
+          <Checkbox
+            checked={sameAsFirst}
+            onChange={(e) => handleSameAsFirst(e.target.checked)}
+            className="text-gray-700"
+          />
+          <div>
+            <span className="block text-sm font-semibold text-gray-700">
+              Current appointment is the same as the first appointment
+            </span>
+            <span className="block text-xs text-gray-500 mt-0.5">
+              Pre-fills the fields below from your first appointment details. You can still edit them.
+            </span>
+          </div>
+        </label>
+      )}
 
       {/* Appointment Date & Letter */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-4 gap-y-2">

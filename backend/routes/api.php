@@ -152,7 +152,9 @@ Route::prefix('')->group(function () {
 
 
     Route::controller(DosAdminController::class)->middleware('auth:jwt')->prefix('dos-admins')->group(function () {
-        Route::post('/', 'store');  // POST register education administrator
+        Route::get('/', 'index');         // GET all DOS admins
+        Route::post('/', 'store');        // POST register education administrator
+        Route::get('/{id}', 'show');      // GET single DOS admin profile
     });
 
     Route::controller(DeoOfficerController::class)->middleware('auth:jwt')->prefix('deo-officers')->group(function () {

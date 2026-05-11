@@ -271,20 +271,11 @@ function RegDosInner() {
           });
         }
       } catch (err) {
-        console.error("Registration error:", err);
-        const responseData = err.response?.data;
-        if (responseData?.errors) {
-          const errorMessages = Object.values(responseData.errors).flat();
-          dispatch({
-            type: "SET_ERROR",
-            payload: errorMessages,
-          });
-        } else {
-          dispatch({
-            type: "SET_ERROR",
-            payload: responseData?.message || "Unable to complete registration. Please try again.",
-          });
-        }
+        console.error("Registration error:", err.response?.data ?? err);
+        dispatch({
+          type: "SET_ERROR",
+          payload: "Registration failed. Please review your information and try again.",
+        });
       } finally {
         setIsSubmitting(false);
       }

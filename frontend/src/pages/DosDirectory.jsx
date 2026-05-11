@@ -2,15 +2,13 @@ import { useEffect, useState } from "react";
 import DosHeader from "../components/dos/DosHeader";
 import DosList from "../components/dos/DosList";
 import DosSearchModal from "../components/dos/DosSearchModal";
-import { useDosService } from "../services/dosService";
+import { getDosAdmins } from "../api/deoOfficerService";
 
 export default function DosDirectory() {
   const [employees, setEmployees] = useState([]);
   const [showSearch, setShowSearch] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  const { getAllDos } = useDosService(); // custom hook
 
   useEffect(() => {
     fetchData();
@@ -21,13 +19,11 @@ export default function DosDirectory() {
     setError(null);
 
     try {
-      const data = await getAllDos();
-      console.log("Fetched DOs:", data.data.data);
-      // if API returns { data: [...] }, adjust below
-      setEmployees(data.data || data);
+      const data = await getDosAdmins();
+      setEmployees(data.data || []);
     } catch (err) {
       console.error(err);
-      setError(err.message || "Failed to fetch DOs");
+      setError("Failed to load DOS admins. Please try again.");
     } finally {
       setLoading(false);
     }

@@ -61,6 +61,115 @@ class DosAdminController extends Controller
     }
 
     // ==============================
+    // LIST
+    // ==============================
+
+    public function index(Request $request)
+    {
+        try {
+            $perPage = (int) $request->get('per_page', 20);
+            $nic     = trim($request->get('nic', ''));
+
+            $dosAdminPeopleIds = User::query()
+                ->whereHas('roles', function ($query) {
+                    $query->whereIn('name', ['zonal director', 'zonal deputy director']);
+                })
+                ->pluck('people_id');
+
+            $query = People::query()
+                ->whereIn('people_id', $dosAdminPeopleIds)
+                ->with([
+                    'title',
+                    'gender',
+                    'appointment',
+                    'currentAppointment.service',
+                    'currentAppointment.rank',
+                    'currentAppointment.position',
+                    'currentAppointment.workplace',
+                ])
+                ->when($nic !== '', function ($q) use ($nic) {
+                    $normalized = NicHelper::normalize($nic);
+                    if (NicHelper::checkNicValid($normalized)) {
+                        $q->where('nic_hash', NicHelper::hash($normalized));
+                    }
+                });
+
+            $admins = $query->orderBy('created_at', 'desc')->paginate($perPage);
+
+            return response()->json([
+                'status'       => 'success',
+                'data'         => $admins->items(),
+                'total'        => $admins->total(),
+                'per_page'     => $admins->perPage(),
+                'current_page' => $admins->currentPage(),
+                'last_page'    => $admins->lastPage(),
+            ], 200);
+        } catch (\Throwable $e) {
+            Log::error('DOS Admin List Error', [
+                'message' => $e->getMessage(),
+                'file'    => $e->getFile(),
+                'line'    => $e->getLine(),
+            ]);
+
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Failed to fetch DOS admin list',
+            ], 500);
+        }
+    }
+
+    // ==============================
+    // SHOW
+    // ==============================
+
+    public function show($people_id)
+    {
+        try {
+            $admin = People::with([
+                'title',
+                'gender',
+                'religion',
+                'ethnicity',
+                'civilStatus',
+                'bloodGroup',
+                'district',
+                'dsOffice',
+                'gnDivision.divisionalSecretariatOffice',
+                'appointment',
+                'currentAppointment.service',
+                'currentAppointment.rank',
+                'currentAppointment.position',
+                'currentAppointment.workplace',
+                'employeeAdministration.recruitmentCategory',
+                'employeeAdministration.recruitmentSubject',
+            ])->where('people_id', $people_id)->first();
+
+            if (! $admin) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'DOS admin not found',
+                ], 404);
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'data'   => $admin,
+            ], 200);
+        } catch (\Throwable $e) {
+            Log::error('DOS Admin Show Error', [
+                'message' => $e->getMessage(),
+                'file'    => $e->getFile(),
+                'line'    => $e->getLine(),
+            ]);
+
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Failed to fetch DOS admin profile',
+            ], 500);
+        }
+    }
+
+    // ==============================
     // STORE
     // ==============================
 

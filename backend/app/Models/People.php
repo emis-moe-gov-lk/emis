@@ -249,6 +249,11 @@ class People extends Model
         return $this->hasOne(EmployerCurrentAppointment::class, 'employee_id', 'people_id');
     }
 
+    public function employeeAdministration()
+    {
+        return $this->hasOne(EmployeeAdministration::class, 'employee_id', 'people_id');
+    }
+
     public function attachmentAppointment()
     {
         return $this->hasOne(EmployerAttachmentAppointment::class, 'employee_id', 'people_id');
