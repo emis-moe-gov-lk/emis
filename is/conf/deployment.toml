@@ -17,16 +17,17 @@ create_admin_account = true
 type = "database_unique_id"
 
 [database.identity_db]
-type = "h2"
-url = "jdbc:h2:./repository/database/WSO2IDENTITY_DB;DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=60000"
-username = "wso2carbon"
-password = "wso2carbon"
+type = "mysql"
+url = "jdbc:mysql://$env{IS_DB_HOST}:${IS_DB_PORT}/$env{IS_DB_IDENTITY}?useSSL=false&amp;allowPublicKeyRetrieval=true&amp;autoReconnect=true"
+username = "$env{IS_DB_WSO2USER_USERNAME}"
+password = "$env{IS_DB_WSO2USER_PASSWORD}"
 
 [database.shared_db]
-type = "h2"
-url = "jdbc:h2:./repository/database/WSO2SHARED_DB;DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=60000"
-username = "wso2carbon"
-password = "wso2carbon"
+type = "mysql"
+url = "jdbc:mysql://host.docker.internal:3306/wso2_is_shared_db?useSSL=false&amp;allowPublicKeyRetrieval=true&amp;autoReconnect=true"
+username = "wso2-user"
+password = "WSO2@User4"
+
 
 [datasource.AgentIdentity]
 id = "AgentIdentity"
@@ -104,7 +105,7 @@ name = "org.wso2.is.notification.ApimOauthEventInterceptor"
 order = 1
 
 [event_listener.properties]
-notification_endpoint = "https://<APIM_HOST>:<APIM_PORT>/internal/data/v1/notify"
-username = "${admin.username}"
-password = "${admin.password}"
+notification_endpoint = "https://$env{APIM_HOST}:$env{APIM_PORT}/internal/data/v1/notify"
+username = "$env{APIM_WSO2USER_USERNAME}"
+password = "$env{APIM_WSO2USER_PASSWORD}"
 'header.X-WSO2-KEY-MANAGER' = "WSO2-IS"
