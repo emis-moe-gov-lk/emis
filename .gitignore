@@ -45,3 +45,6 @@ hosts.yml
 
 # Backup files
 *.bck
+
+# Identity Server
+.is.env
