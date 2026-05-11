@@ -17,6 +17,45 @@ use App\Services\TeacherAccountProvisioningService;
 class ProfileController extends Controller
 {
     // -------------------------------------------------------
+    // GET /profile
+    // Fetch the authenticated user's own profile.
+    // -------------------------------------------------------
+    public function show(Request $request)
+    {
+        $user = $request->user() ?: User::where('email', $request->attributes->get('jwt_email'))->first();
+
+        if (! $user) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'User not found',
+            ], 404);
+        }
+
+        try {
+            $disk     = config('filesystems.profile_photo_disk', 'public');
+            $filename = $user->profile_picture;
+            $url      = $filename && $filename !== 'default.png'
+                ? Storage::disk($disk)->url('profile-photos/' . $filename)
+                : null;
+
+            return response()->json([
+                'status' => 'success',
+                'data'   => [
+                    'profile_picture' => $filename,
+                    'url'             => $url,
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Profile fetch error', ['message' => $e->getMessage()]);
+
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Failed to fetch profile',
+            ], 500);
+        }
+    }
+
+    // -------------------------------------------------------
     // PATCH /profile
     // Update the authenticated user's own profile.
     // -------------------------------------------------------
