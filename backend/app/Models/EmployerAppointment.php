@@ -45,6 +45,8 @@ class EmployerAppointment extends Model
         'active_status',
         'created_by',
         'updated_by',
+        'recruitment_category_id',
+        'recruitment_subject_id',
     ];
 
     protected $casts = [
@@ -194,6 +196,16 @@ class EmployerAppointment extends Model
         }
 
         return $result;
+    }
+
+    public function recruitmentCategory()
+    {
+        return $this->belongsTo(RecruitmentCategory::class, 'recruitment_category_id', 'category_id');
+    }
+
+    public function recruitmentSubject()
+    {
+        return $this->belongsTo(ApointedSubject::class, 'recruitment_subject_id', 'a_subject_id');
     }
 
     public function currentAppointment()

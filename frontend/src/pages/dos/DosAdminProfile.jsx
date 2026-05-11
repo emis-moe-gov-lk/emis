@@ -66,7 +66,6 @@ export default function DosAdminProfile() {
 
   const ca = admin.current_appointment;
   const fa = admin.appointment;
-  const ea = admin.employee_administration;
 
   const profile = {
     fullName: admin.full_name,
@@ -101,8 +100,8 @@ export default function DosAdminProfile() {
     faDate: formatDate(fa?.first_appointment_date),
     faLetter: fa?.appointment_letter_no,
     faRetirement: formatDate(fa?.retirement_date),
-    recruitmentCategory: ea?.recruitment_category?.category_name,
-    recruitmentSubject: ea?.recruitment_subject?.a_subject_name,
+    recruitmentCategory: fa?.recruitment_category?.category_name,
+    recruitmentSubject: fa?.recruitment_subject?.a_subject_name,
   };
 
   return (

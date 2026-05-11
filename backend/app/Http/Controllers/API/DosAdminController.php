@@ -9,7 +9,6 @@ use App\Models\Position;
 use App\Helpers\NicHelper;
 use App\Models\EmployerAppointment;
 use App\Models\EmployerCurrentAppointment;
-use App\Models\EmployeeAdministration;
 use App\Models\DivisionalSecretariatOffice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -135,13 +134,12 @@ class DosAdminController extends Controller
                 'district',
                 'dsOffice',
                 'gnDivision.divisionalSecretariatOffice',
-                'appointment',
+                'appointment.recruitmentCategory',
+                'appointment.recruitmentSubject',
                 'currentAppointment.service',
                 'currentAppointment.rank',
                 'currentAppointment.position',
                 'currentAppointment.workplace',
-                'employeeAdministration.recruitmentCategory',
-                'employeeAdministration.recruitmentSubject',
             ])->where('people_id', $people_id)->first();
 
             if (! $admin) {
@@ -273,25 +271,17 @@ class DosAdminController extends Controller
             $appointmentId  = EmployerAppointment::generateAppointmentId($validated['firstAppointmentDate']);
 
             EmployerAppointment::create([
-                'appointment_id'       => $appointmentId,
-                'employee_id'          => $people->people_id,
-                'first_appointment_date' => $validated['firstAppointmentDate'],
-                'retirement_date'      => $retirementDate->toDateString(),
-                'service_id'           => $validated['firstAppointmentService'],
-                'rank_id'              => $validated['firstAppointmentRank'],
-                'position_id'          => $validated['firstAppointmentPosition'],
-                'office_level_id'      => $validated['firstAppointmentOfficeLevel'],
-                'workplace_id'         => $validated['firstAppointmentWorkplace'],
-                'appointment_letter_no' => $validated['firstAppointmentLetter'],
-                'appointment_letter'   => 'none.pdf',
-            ]);
-
-            // ==============================
-            // EMPLOYEE ADMINISTRATION
-            // ==============================
-            EmployeeAdministration::create([
                 'appointment_id'          => $appointmentId,
                 'employee_id'             => $people->people_id,
+                'first_appointment_date'  => $validated['firstAppointmentDate'],
+                'retirement_date'         => $retirementDate->toDateString(),
+                'service_id'              => $validated['firstAppointmentService'],
+                'rank_id'                 => $validated['firstAppointmentRank'],
+                'position_id'             => $validated['firstAppointmentPosition'],
+                'office_level_id'         => $validated['firstAppointmentOfficeLevel'],
+                'workplace_id'            => $validated['firstAppointmentWorkplace'],
+                'appointment_letter_no'   => $validated['firstAppointmentLetter'],
+                'appointment_letter'      => 'none.pdf',
                 'recruitment_category_id' => $validated['recruitmentCategory'],
                 'recruitment_subject_id'  => $validated['recruitmentSubject'],
             ]);

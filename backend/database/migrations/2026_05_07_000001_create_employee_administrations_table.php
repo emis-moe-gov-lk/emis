@@ -8,18 +8,18 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('employee_administrations', function (Blueprint $table) {
-            $table->id();
-            $table->string('appointment_id', 20)->index();
-            $table->string('employee_id', 20)->index();
-            $table->string('recruitment_category_id', 12)->nullable();
-            $table->string('recruitment_subject_id', 12)->nullable();
-            $table->timestamps();
+        Schema::dropIfExists('employee_administrations');
+
+        Schema::table('employer_appointments', function (Blueprint $table) {
+            $table->string('recruitment_category_id', 12)->nullable()->after('appointment_letter');
+            $table->string('recruitment_subject_id', 12)->nullable()->after('recruitment_category_id');
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('employee_administrations');
+        Schema::table('employer_appointments', function (Blueprint $table) {
+            $table->dropColumn(['recruitment_category_id', 'recruitment_subject_id']);
+        });
     }
 };
