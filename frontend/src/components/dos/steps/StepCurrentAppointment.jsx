@@ -1,46 +1,42 @@
 import { Label, Select, TextInput, Radio } from "flowbite-react";
 import { HiInformationCircle } from "react-icons/hi";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import api from "@/api/axios";
+
+const isSLTSService = (service) =>
+  [service?.service_name, service?.name, service?.service_code, service?.code]
+    .filter(Boolean)
+    .some((value) => String(value).trim().toUpperCase() === "SLTS");
 
 export default function StepCurrentAppointment({
   formData,
   setFormData,
   onValid,
 }) {
-  const isSLTSService = (service) =>
-    [service?.service_name, service?.name, service?.service_code, service?.code]
-      .filter(Boolean)
-      .some((value) => String(value).trim().toUpperCase() === "SLTS");
-
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState({});
 
-  const [currentAppointmentServices, setCurrentAppointmentServices] = useState(
-    [],
-  );
-  const [currentAppointmentRanks, setCurrentAppointmentRanks] = useState([]);
-  const [currentAppointmentSubjects, setCurrentAppointmentSubjects] = useState(
-    [],
-  );
-  const [currentAppointmentZonalOffices, setCurrentAppointmentZonalOffices] =
-    useState([]);
-  const [
-    currentAppointmentInstCategories,
-    setCurrentAppointmentInstCategories,
-  ] = useState([]);
-  const [currentAppointmentInstitutions, setCurrentAppointmentInstitutions] =
-    useState([]);
-  const [currentAppointmentPositions, setCurrentAppointmentPositions] =
-    useState([]);
-  const sltsCurrentAppointmentServices =
-    currentAppointmentServices.filter(isSLTSService);
-  const isAllowedCurrentAppointmentService = (serviceId) =>
-    sltsCurrentAppointmentServices.some(
-      (service) => String(service.service_id) === String(serviceId),
-    );
+  const [data, setData] = useState({
+    services: [],
+    ranks: [],
+    subjects: [],
+    zonalOffices: [],
+    instCategories: [],
+    institutions: [],
+    positions: [],
+  });
 
-  /* -------------------- FETCH DATA -------------------- */
+  const sltsServices = data.services.filter(isSLTSService);
+
+  const isAllowedService = useCallback(
+    (serviceId) =>
+      sltsServices.some(
+        (service) => String(service.service_id) === String(serviceId),
+      ),
+    [sltsServices],
+  );
+
+  // Fetch form data
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -48,15 +44,15 @@ export default function StepCurrentAppointment({
           `/teachers/appointment-form-data?service=${formData.currentAppointmentService || ""}&ins_cat=${formData.currentAppointmentInstCategory || ""}&zone=${formData.currentAppointmentZone || ""}`,
         );
 
-        const data = res.data;
-
-        setCurrentAppointmentServices(data.service ?? []);
-        setCurrentAppointmentRanks(data.serviceRanks ?? []);
-        setCurrentAppointmentSubjects(data.mainTeachingSubjects ?? []);
-        setCurrentAppointmentZonalOffices(data.zonalEducationOffices ?? []);
-        setCurrentAppointmentInstCategories(data.institutionCategory ?? []);
-        setCurrentAppointmentInstitutions(data.institutions ?? []);
-        setCurrentAppointmentPositions(data.positions ?? []);
+        setData({
+          services: res.data.service ?? [],
+          ranks: res.data.serviceRanks ?? [],
+          subjects: res.data.mainTeachingSubjects ?? [],
+          zonalOffices: res.data.zonalEducationOffices ?? [],
+          instCategories: res.data.institutionCategory ?? [],
+          institutions: res.data.institutions ?? [],
+          positions: res.data.positions ?? [],
+        });
       } catch (error) {
         console.error("Failed to load current appointment form data", error);
       } finally {
@@ -71,88 +67,107 @@ export default function StepCurrentAppointment({
     formData.currentAppointmentZone,
   ]);
 
-  /* -------------------- VALIDATION -------------------- */
-  const validate = () => {
-    const e = {};
-    if (!formData.currentAppointmentRegType)
-      e.currentAppointmentRegType = "Required";
-    if (!formData.currentAppointmentDate) e.currentAppointmentDate = "Required";
-    if (!formData.currentAppointmentLetter)
-      e.currentAppointmentLetter = "Required";
-    if (!formData.currentAppointmentService)
-      e.currentAppointmentService = "Required";
-    else if (
-      !isAllowedCurrentAppointmentService(formData.currentAppointmentService)
-    )
-      e.currentAppointmentService = "Only SLTS service can be selected";
-    if (!formData.currentAppointmentRank) e.currentAppointmentRank = "Required";
-    if (!formData.currentAppointmentSubject)
-      e.currentAppointmentSubject = "Required";
-    if (!formData.currentAppointmentZone) e.currentAppointmentZone = "Required";
-    if (!formData.currentAppointmentInstCategory)
-      e.currentAppointmentInstCategory = "Required";
-    if (!formData.currentAppointmentInstitution)
-      e.currentAppointmentInstitution = "Required";
-    if (!formData.currentAppointmentPosition)
-      e.currentAppointmentPosition = "Required";
+  // Validation
+  const validate = useCallback(() => {
+    const newErrors = {};
 
-    setErrors(e);
-    return Object.keys(e).length === 0;
-  };
+    if (!formData.currentAppointmentRegType)
+      newErrors.currentAppointmentRegType = "Required";
+    if (!formData.currentAppointmentDate)
+      newErrors.currentAppointmentDate = "Required";
+    if (!formData.currentAppointmentLetter)
+      newErrors.currentAppointmentLetter = "Required";
+
+    if (!formData.currentAppointmentService) {
+      newErrors.currentAppointmentService = "Required";
+    } else if (!isAllowedService(formData.currentAppointmentService)) {
+      newErrors.currentAppointmentService = "Only SLTS service can be selected";
+    }
+
+    if (!formData.currentAppointmentRank)
+      newErrors.currentAppointmentRank = "Required";
+    if (!formData.currentAppointmentSubject)
+      newErrors.currentAppointmentSubject = "Required";
+    if (!formData.currentAppointmentZone)
+      newErrors.currentAppointmentZone = "Required";
+    if (!formData.currentAppointmentInstCategory)
+      newErrors.currentAppointmentInstCategory = "Required";
+    if (!formData.currentAppointmentInstitution)
+      newErrors.currentAppointmentInstitution = "Required";
+    if (!formData.currentAppointmentPosition)
+      newErrors.currentAppointmentPosition = "Required";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  }, [formData, isAllowedService]);
 
   useEffect(() => {
     onValid?.(validate());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData]);
+  }, [formData, validate, onValid]);
 
   // Set default registration type
   useEffect(() => {
     if (!formData.currentAppointmentRegType) {
       update("currentAppointmentRegType", "existing");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const update = (key, value) => {
-    setFormData((prev) => {
-      const next = { ...prev, [key]: value };
+  const update = useCallback(
+    (key, value) => {
+      setFormData((prev) => {
+        const next = { ...prev, [key]: value };
 
-      // RESET LOGIC
-      if (key === "currentAppointmentService") {
-        next.currentAppointmentRank = "";
-      }
-      if (
-        key === "currentAppointmentZone" ||
-        key === "currentAppointmentInstCategory"
-      ) {
-        next.currentAppointmentInstitution = "";
-      }
+        // Reset dependent fields
+        if (key === "currentAppointmentService") {
+          next.currentAppointmentRank = "";
+        }
+        if (
+          key === "currentAppointmentZone" ||
+          key === "currentAppointmentInstCategory"
+        ) {
+          next.currentAppointmentInstitution = "";
+        }
 
-      return next;
-    });
+        return next;
+      });
 
-    setErrors((prev) => ({ ...prev, [key]: undefined }));
-  };
+      setErrors((prev) => ({ ...prev, [key]: undefined }));
+    },
+    [setFormData],
+  );
+
+  const FormGroup = ({ label, error, required = false, children }) => (
+    <div>
+      <Label className="mb-2 text-xs font-semibold text-gray-700">
+        {label} {required && <span className="text-red-600">*</span>}
+      </Label>
+      {children}
+      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+    </div>
+  );
 
   const selectPlaceholder = loading ? "Loading..." : "Select";
 
   return (
-    <div className="space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-500 px-6 py-0 [&_input]:bg-white dark:[&_input]:bg-gray-800 [&_select]:bg-white dark:[&_select]:bg-gray-800 [&_textarea]:bg-white dark:[&_textarea]:bg-gray-800 [&_label]:text-xs [&_label]:font-bold [&_label]:text-gray-700 dark:[&_label]:text-gray-300">
-      <div className="mb-3 flex items-center gap-3">
-        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-600 text-xs font-bold text-white">
+    <div className="space-y-6 px-4 py-2">
+      {/* Step Title */}
+      <div className="flex items-center gap-3 mb-6">
+        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-blue-600 text-xs font-bold text-white">
           05
         </div>
-        <h2 className="text-lg font-semibold">
+        <h2 className="text-xl font-semibold text-gray-900">
           Current Appointment Details
         </h2>
       </div>
 
-      {/* Registration Type */}
-      <div className="space-y-2">
-        <Label>Select registration type for the Teacher</Label>
+      {/* Registration Type Selection */}
+      <div className="space-y-3">
+        <Label className="text-sm font-semibold text-gray-700">
+          Select registration type for the Officer
+        </Label>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
-          {/* New Teacher */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* New Officer - Disabled */}
           <label className="relative flex p-4 cursor-not-allowed rounded-2xl border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800 opacity-50 transition-all">
             <div className="flex items-start gap-3">
               <Radio
@@ -165,23 +180,24 @@ export default function StepCurrentAppointment({
                 }
                 className="mt-1"
               />
-              <div>
+              <div className="flex-1">
                 <span className="block text-sm font-semibold text-gray-400 dark:text-gray-500">
-                  New teacher
+                  New Officer
                 </span>
                 <span className="block text-xs text-gray-400 mt-1">
-                  Teacher appointed for the first time.
+                  Officer appointed for the first time.
                 </span>
               </div>
             </div>
           </label>
 
-          {/* Existing Teacher */}
+          {/* Existing Officer */}
           <label
-            className={`relative flex p-4 cursor-pointer rounded-2xl border transition-all ${formData.currentAppointmentRegType === "existing"
+            className={`relative flex p-4 cursor-pointer rounded-2xl border transition-all ${
+              formData.currentAppointmentRegType === "existing"
                 ? "border-blue-600 bg-blue-50/10"
                 : "border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800 hover:border-blue-500"
-              }`}
+            }`}
           >
             <div className="flex items-start gap-3">
               <Radio
@@ -193,19 +209,20 @@ export default function StepCurrentAppointment({
                 }
                 className="mt-1"
               />
-              <div>
+              <div className="flex-1">
                 <span className="block text-sm font-semibold text-gray-900 dark:text-white">
-                  Existing teacher
+                  Existing Officer
                 </span>
                 <span className="block text-xs text-gray-500 mt-1">
-                  Teacher with prior service history.
+                  Officer with prior service history.
                 </span>
               </div>
             </div>
           </label>
         </div>
+
         {errors.currentAppointmentRegType && (
-          <p className="text-sm text-red-600 mt-1">
+          <p className="text-xs text-red-600">
             {errors.currentAppointmentRegType}
           </p>
         )}
@@ -213,66 +230,52 @@ export default function StepCurrentAppointment({
 
       {/* Information Alert */}
       <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex gap-3">
-        <div className="shrink-0">
-          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-            <HiInformationCircle className="w-6 h-6 text-blue-600" />
-          </div>
-        </div>
-        <div className="space-y-2 text-blue-800 text-sm">
+        <HiInformationCircle className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" />
+        <div className="text-blue-800 text-sm">
           <p className="font-medium leading-relaxed">
-            Only for the registration of a teacher with a period of service, if
-            not appointed as a new teacher.
+            Only for the registration of an officer with a period of service, if
+            not appointed as a new officer.
           </p>
         </div>
       </div>
 
       {/* Appointment Date & Letter */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-4 gap-y-2">
-        <div>
-          <Label htmlFor="currentAppointmentDate">
-            Current Appointment Date
-          </Label>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <FormGroup
+          label="Current Appointment Date"
+          required
+          error={errors.currentAppointmentDate}
+        >
           <TextInput
-            id="currentAppointmentDate"
             type="date"
             value={formData.currentAppointmentDate || ""}
             color={errors.currentAppointmentDate ? "failure" : "gray"}
             onChange={(e) => update("currentAppointmentDate", e.target.value)}
-            shadow
           />
-          {errors.currentAppointmentDate && (
-            <p className="text-sm text-red-600 mt-1">
-              {errors.currentAppointmentDate}
-            </p>
-          )}
-        </div>
+        </FormGroup>
 
-        <div>
-          <Label htmlFor="currentAppointmentLetter">
-            Appointment / Transfer Letter No
-          </Label>
+        <FormGroup
+          label="Appointment/Transfer Letter No"
+          required
+          error={errors.currentAppointmentLetter}
+        >
           <TextInput
-            id="currentAppointmentLetter"
             placeholder="Enter letter number"
             value={formData.currentAppointmentLetter || ""}
             color={errors.currentAppointmentLetter ? "failure" : "gray"}
             onChange={(e) => update("currentAppointmentLetter", e.target.value)}
-            shadow
           />
-          {errors.currentAppointmentLetter && (
-            <p className="text-sm text-red-600 mt-1">
-              {errors.currentAppointmentLetter}
-            </p>
-          )}
-        </div>
+        </FormGroup>
       </div>
 
       {/* Service & Rank */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-4 gap-y-2">
-        <div>
-          <Label htmlFor="currentAppointmentService">Current Service</Label>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <FormGroup
+          label="Current Service"
+          required
+          error={errors.currentAppointmentService}
+        >
           <Select
-            id="currentAppointmentService"
             value={formData.currentAppointmentService || ""}
             disabled={loading}
             color={errors.currentAppointmentService ? "failure" : "gray"}
@@ -281,100 +284,84 @@ export default function StepCurrentAppointment({
             }
           >
             <option value="">{selectPlaceholder}</option>
-            {sltsCurrentAppointmentServices.map((s) => (
+            {sltsServices.map((s) => (
               <option key={s.id} value={s.service_id}>
                 {s.service_name}
               </option>
             ))}
           </Select>
-          {errors.currentAppointmentService && (
-            <p className="text-sm text-red-600 mt-1">
-              {errors.currentAppointmentService}
-            </p>
-          )}
-        </div>
+        </FormGroup>
 
-        <div>
-          <Label htmlFor="currentAppointmentRank">Current Service Rank</Label>
+        <FormGroup
+          label="Current Service Rank"
+          required
+          error={errors.currentAppointmentRank}
+        >
           <Select
-            id="currentAppointmentRank"
             value={formData.currentAppointmentRank || ""}
             disabled={loading}
             color={errors.currentAppointmentRank ? "failure" : "gray"}
             onChange={(e) => update("currentAppointmentRank", e.target.value)}
           >
             <option value="">{selectPlaceholder}</option>
-            {currentAppointmentRanks.map((r) => (
+            {data.ranks.map((r) => (
               <option key={r.id} value={r.rank_id}>
                 {r.name || r.rank_name}
               </option>
             ))}
           </Select>
-          {errors.currentAppointmentRank && (
-            <p className="text-sm text-red-600 mt-1">
-              {errors.currentAppointmentRank}
-            </p>
-          )}
-        </div>
+        </FormGroup>
       </div>
 
       {/* Teaching Subject */}
-      <div>
-        <Label htmlFor="currentAppointmentSubject">
-          Current teaching subject
-        </Label>
+      <FormGroup
+        label="Current Teaching Subject"
+        required
+        error={errors.currentAppointmentSubject}
+      >
         <Select
-          id="currentAppointmentSubject"
           value={formData.currentAppointmentSubject || ""}
           disabled={loading}
           color={errors.currentAppointmentSubject ? "failure" : "gray"}
           onChange={(e) => update("currentAppointmentSubject", e.target.value)}
         >
           <option value="">{selectPlaceholder}</option>
-          {currentAppointmentSubjects.map((s) => (
+          {data.subjects.map((s) => (
             <option key={s.id} value={s.subject_id}>
               {s.name_en}
             </option>
           ))}
         </Select>
-        {errors.currentAppointmentSubject && (
-          <p className="text-sm text-red-600 mt-1">
-            {errors.currentAppointmentSubject}
-          </p>
-        )}
-      </div>
+      </FormGroup>
 
       {/* Zone & Institution Category */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-4 gap-y-2">
-        <div>
-          <Label htmlFor="currentAppointmentZone">Zonal Education Office</Label>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <FormGroup
+          label="Zonal Education Office"
+          required
+          error={errors.currentAppointmentZone}
+        >
           <Select
-            id="currentAppointmentZone"
             value={formData.currentAppointmentZone || ""}
             disabled={loading}
             color={errors.currentAppointmentZone ? "failure" : "gray"}
             onChange={(e) => update("currentAppointmentZone", e.target.value)}
           >
             <option value="">{selectPlaceholder}</option>
-            {currentAppointmentZonalOffices.map((z) => (
+            {data.zonalOffices.map((z) => (
               <option key={z.id} value={z.workplace_id}>
                 {z.name}
               </option>
             ))}
           </Select>
-          {errors.currentAppointmentZone && (
-            <p className="text-sm text-red-600 mt-1">
-              {errors.currentAppointmentZone}
-            </p>
-          )}
-        </div>
+        </FormGroup>
 
-        <div>
-          <Label htmlFor="currentAppointmentInstCategory">
-            Institution Category
-          </Label>
+        <FormGroup
+          label="Institution Category"
+          required
+          error={errors.currentAppointmentInstCategory}
+        >
           <Select
-            id="currentAppointmentInstCategory"
             value={formData.currentAppointmentInstCategory || ""}
             disabled={loading}
             color={errors.currentAppointmentInstCategory ? "failure" : "gray"}
@@ -383,27 +370,22 @@ export default function StepCurrentAppointment({
             }
           >
             <option value="">{selectPlaceholder}</option>
-            {currentAppointmentInstCategories.map((c) => (
+            {data.instCategories.map((c) => (
               <option key={c.id} value={c.institution_category_id}>
                 {c.institution_category_name || c.name}
               </option>
             ))}
           </Select>
-          {errors.currentAppointmentInstCategory && (
-            <p className="text-sm text-red-600 mt-1">
-              {errors.currentAppointmentInstCategory}
-            </p>
-          )}
-        </div>
+        </FormGroup>
       </div>
 
       {/* Institution */}
-      <div>
-        <Label htmlFor="currentAppointmentInstitution">
-          Current Appointment Institution
-        </Label>
+      <FormGroup
+        label="Current Appointment Institution"
+        required
+        error={errors.currentAppointmentInstitution}
+      >
         <Select
-          id="currentAppointmentInstitution"
           value={formData.currentAppointmentInstitution || ""}
           disabled={loading}
           color={errors.currentAppointmentInstitution ? "failure" : "gray"}
@@ -412,44 +394,34 @@ export default function StepCurrentAppointment({
           }
         >
           <option value="">{selectPlaceholder}</option>
-          {currentAppointmentInstitutions.map((i) => (
+          {data.institutions.map((i) => (
             <option key={i.id} value={i.workplace_id}>
-              {i.census_no + " - " + i.name}
+              {i.census_no} - {i.name}
             </option>
           ))}
         </Select>
-        {errors.currentAppointmentInstitution && (
-          <p className="text-sm text-red-600 mt-1">
-            {errors.currentAppointmentInstitution}
-          </p>
-        )}
-      </div>
+      </FormGroup>
 
       {/* Position */}
-      <div>
-        <Label htmlFor="currentAppointmentPosition">
-          Current Appointed Position
-        </Label>
+      <FormGroup
+        label="Current Appointed Position"
+        required
+        error={errors.currentAppointmentPosition}
+      >
         <Select
-          id="currentAppointmentPosition"
           value={formData.currentAppointmentPosition || ""}
           disabled={loading}
           color={errors.currentAppointmentPosition ? "failure" : "gray"}
           onChange={(e) => update("currentAppointmentPosition", e.target.value)}
         >
           <option value="">{selectPlaceholder}</option>
-          {currentAppointmentPositions.map((p) => (
+          {data.positions.map((p) => (
             <option key={p.id} value={p.position_id}>
               {p.position_name}
             </option>
           ))}
         </Select>
-        {errors.currentAppointmentPosition && (
-          <p className="text-sm text-red-600 mt-1">
-            {errors.currentAppointmentPosition}
-          </p>
-        )}
-      </div>
+      </FormGroup>
     </div>
   );
 }
