@@ -48,3 +48,6 @@ hosts.yml
 
 # Identity Server
 .is.env
+
+# Api Manager
+.apim.env
