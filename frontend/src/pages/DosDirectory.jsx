@@ -1,33 +1,33 @@
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import DosHeader from "../components/dos/DosHeader";
 import DosList from "../components/dos/DosList";
 import DosSearchModal from "../components/dos/DosSearchModal";
-import { useDosService } from "../services/dosService";
+import { getDosAdmins, getDeoOfficers } from "../api/deoOfficerService";
 
 export default function DosDirectory() {
   const [employees, setEmployees] = useState([]);
   const [showSearch, setShowSearch] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const location = useLocation();
 
-  const { getAllDos } = useDosService(); // custom hook
+  const isDeoRoute = location.pathname.includes("development-officers");
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [location.pathname]);
 
   const fetchData = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const data = await getAllDos();
-      console.log("Fetched DOs:", data.data.data);
-      // if API returns { data: [...] }, adjust below
-      setEmployees(data.data || data);
+      const data = isDeoRoute ? await getDeoOfficers() : await getDosAdmins();
+      setEmployees(data.data || []);
     } catch (err) {
       console.error(err);
-      setError(err.message || "Failed to fetch DOs");
+      setError("Failed to load employees. Please try again.");
     } finally {
       setLoading(false);
     }

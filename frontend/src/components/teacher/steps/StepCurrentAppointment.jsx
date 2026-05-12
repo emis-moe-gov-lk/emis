@@ -16,13 +16,9 @@ export default function StepCurrentAppointment({
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState({});
 
-  const [currentAppointmentServices, setCurrentAppointmentServices] = useState(
-    [],
-  );
+  const [currentAppointmentServices, setCurrentAppointmentServices] = useState([]);
   const [currentAppointmentRanks, setCurrentAppointmentRanks] = useState([]);
-  const [currentAppointmentSubjects, setCurrentAppointmentSubjects] = useState(
-    [],
-  );
+  const [currentAppointmentSubjects, setCurrentAppointmentSubjects] = useState([]);
   const [currentAppointmentZonalOffices, setCurrentAppointmentZonalOffices] =
     useState([]);
   const [
@@ -36,9 +32,16 @@ export default function StepCurrentAppointment({
   const minCurrentAppointmentDate = formData.firstAppointmentDate || undefined;
   const sltsCurrentAppointmentServices =
     currentAppointmentServices.filter(isSLTSService);
+  const availableCurrentAppointmentServices =
+    sltsCurrentAppointmentServices.length > 0
+      ? sltsCurrentAppointmentServices
+      : currentAppointmentServices;
+  const getServiceValue = (service) => service.service_id || service.id || service.value;
+  const getServiceLabel = (service) =>
+    service.service_name || service.name || service.serviceName || service.title || "Unknown";
   const isAllowedCurrentAppointmentService = (serviceId) =>
-    sltsCurrentAppointmentServices.some(
-      (service) => String(service.service_id) === String(serviceId),
+    availableCurrentAppointmentServices.some(
+      (service) => String(getServiceValue(service)) === String(serviceId),
     );
 
   /* -------------------- FETCH DATA -------------------- */
@@ -50,12 +53,18 @@ export default function StepCurrentAppointment({
         );
 
         const data = res.data;
+        const services =
+          Array.isArray(data.service)
+            ? data.service
+            : Array.isArray(data.services)
+            ? data.services
+            : [];
 
-        setCurrentAppointmentServices(data.service ?? []);
-        setCurrentAppointmentRanks(data.serviceRanks ?? []);
-        setCurrentAppointmentSubjects(data.mainTeachingSubjects ?? []);
-        setCurrentAppointmentZonalOffices(data.zonalEducationOffices ?? []);
-        setCurrentAppointmentInstCategories(data.institutionCategory ?? []);
+        setCurrentAppointmentServices(services);
+        setCurrentAppointmentRanks(data.serviceRanks ?? data.service_ranks ?? []);
+        setCurrentAppointmentSubjects(data.mainTeachingSubjects ?? data.main_teaching_subjects ?? []);
+        setCurrentAppointmentZonalOffices(data.zonalEducationOffices ?? data.zonal_education_offices ?? []);
+        setCurrentAppointmentInstCategories(data.institutionCategory ?? data.institution_category ?? []);
         setCurrentAppointmentInstitutions(data.institutions ?? []);
         setCurrentAppointmentPositions(data.positions ?? []);
       } catch (error) {
@@ -293,9 +302,9 @@ export default function StepCurrentAppointment({
             }
           >
             <option value="">{selectPlaceholder}</option>
-            {sltsCurrentAppointmentServices.map((s) => (
-              <option key={s.id} value={s.service_id}>
-                {s.service_name}
+            {availableCurrentAppointmentServices.map((s) => (
+              <option key={s.id || s.service_id} value={getServiceValue(s)}>
+                {getServiceLabel(s)}
               </option>
             ))}
           </Select>

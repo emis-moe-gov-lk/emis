@@ -39,6 +39,10 @@ use Illuminate\Validation\Rules\In;
 use App\Http\Controllers\Controller;
 use App\Models\DivisionalEducationOffice;
 use App\Models\ZonalEducationOffice;
+use App\Models\OfficeLevel;
+use App\Models\MinistryOfEducationOffice;
+use App\Models\ProvincialMinistryOfEducationOffice;
+use App\Models\ProvincialEducationOffice;
 use Illuminate\Support\Facades\Hash;
 use App\Models\EmployerCurrentAppointment;
 use App\Models\DivisionalSecretariatOffice;
@@ -211,7 +215,7 @@ class TeacherApiController extends Controller
                 $this->applyTeacherZonalScope($query, $zonalWorkplaceId);
             }
 
-            
+
 
             // Both NIC and name fields are encrypted at rest; do partial matching against decrypted model values.
             // Detect search type: numeric first char → NIC search, alphabetic → name search.
@@ -410,7 +414,7 @@ class TeacherApiController extends Controller
 
                 throw new \Exception('This person already has an active appointment. Cannot register as a new teacher.');
             }
-            
+
             // ==============================
             // FIRST APPOINTMENT
             // ==============================
@@ -613,7 +617,22 @@ class TeacherApiController extends Controller
                 'message' => 'Teacher not found for the permitted zonal scope',
             ], 404);
         }
-        
+
+        // DEBUG: Log what's being loaded
+        $educationQuals = $teacher?->educationQualifications;
+        Log::info('Teacher Data Debug', [
+            'people_id' => $people_id,
+            'education_qualifications_count' => $educationQuals?->count() ?? 0,
+            'education_qualifications' => $educationQuals?->map(function($q) {
+                return [
+                    'id' => $q->id,
+                    'qualifications_id' => $q->qualifications_id,
+                    'active_status' => $q->active_status,
+                    'institution' => $q->institution,
+                ];
+            })->toArray() ?? [],
+        ]);
+
         // DEBUG: Log what's being loaded
         $educationQuals = $teacher?->educationQualifications;
         Log::info('Teacher Data Debug', [
@@ -650,19 +669,26 @@ class TeacherApiController extends Controller
 //        }
 
         $teacherData = $teacher?->toArray() ?? [];
-        
+
         // Ensure educationQualifications are explicitly included
         if (!isset($teacherData['educationQualifications'])) {
             $teacherData['educationQualifications'] = $teacher?->educationQualifications?->toArray() ?? [];
         }
-        
+
         $currentRejectComments = $teacher?->currentAppointment?->appointment?->rejectComments;
         $teacherData = $this->appendRejectCommentSummary($teacherData, $currentRejectComments);
         $profileStatus = $this->resolveProfileStatus((int) ($teacher?->currentAppointment?->appointment?->is_verified ?? 0));
         $teacherData['profile_status'] = $profileStatus;
         $teacherData['ui_actions'] = $this->buildActionVisibility($roles, $profileStatus);
         $dsOfficeDsoId = $teacher?->dsOffice?->dso_id ?? $this->resolveDsOfficeDsoId((string) $teacher?->ds_office_id);
-        
+
+        // DEBUG: Log the final response
+        Log::info('Final API Response - Education Qualifications', [
+            'people_id' => $people_id,
+            'education_qualifications_in_response' => isset($teacherData['educationQualifications']),
+            'education_qualifications_count' => count($teacherData['educationQualifications'] ?? []),
+        ]);
+
         // DEBUG: Log the final response
         Log::info('Final API Response - Education Qualifications', [
             'people_id' => $people_id,
@@ -1002,6 +1028,16 @@ class TeacherApiController extends Controller
         $service = $request->query('service');
         $institutionCategory = $request->query('ins_cat');
         $zone = $request->query('zone');
+        $officeLevel = $request->query('office_level');
+
+        $workplacesByLevel = match ($officeLevel) {
+            'OLID001' => MinistryOfEducationOffice::active()->get(),
+            'OLID002' => ProvincialMinistryOfEducationOffice::active()->get(),
+            'OLID003' => ProvincialEducationOffice::active()->get(),
+            'OLID004' => ZonalEducationOffice::active()->get(),
+            'OLID005' => DivisionalEducationOffice::active()->get(),
+            default   => [],
+        };
 
         return response()->json([
             'status' => 'success',
@@ -1018,6 +1054,13 @@ class TeacherApiController extends Controller
             'institutionCategory' => InstitutionCategory::active()->get(),
             'zonalEducationOffices' => ZonalEducationOffice::active()->get(),
             'institutions' => $zone && $institutionCategory ? Institution::where('zeo_wp_id', $zone)->where('institution_category_id', $institutionCategory)->get() : [],
+            
+            'zonalPositions' => Position::where('service_id', 'SER005')
+                ->where('position_name', 'like', '%Zonal%')
+                ->active()
+                ->get(),
+            'officeLevels' => OfficeLevel::active()->orderBy('office_level_rank')->get(),
+            'workplacesByLevel' => $workplacesByLevel,
         ]);
     }
 
@@ -1118,7 +1161,7 @@ class TeacherApiController extends Controller
                 $qualification = PeopleEducationQualification::where('id', $validated['id'])
                     ->where('people_id', $people_id)
                     ->firstOrFail();
-                    
+
                 $qualification->update([
                     'qualifications_id' => $validated['qualification'],
                     'institution' => $validated['institution_university'],
@@ -1138,14 +1181,14 @@ class TeacherApiController extends Controller
                     'description' => $validated['additional_details'],
                     'active_status' => 1,
                 ]);
-                
+
                 Log::info('Education Qualification Saved', [
                     'qualification_id' => $qualification->id,
                     'people_id' => $people_id,
                     'qualifications_id' => $validated['qualification'],
                     'active_status' => $qualification->active_status,
                 ]);
-                
+
                 $statusCode = 201;
                 $message = 'Education qualification saved successfully.';
             }
