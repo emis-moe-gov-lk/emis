@@ -1,21 +1,22 @@
-import { Label, Select, TextInput, Radio } from "flowbite-react";
+import { Label, Select, TextInput, Radio, Checkbox } from "flowbite-react";
 import { HiInformationCircle } from "react-icons/hi";
 import { useState, useEffect } from "react";
 import api from "@/api/axios";
+
+const SLEAS_SERVICE_ID = "SER005";
+const SLEAS_SERVICE_NAME = "Sri Lanka Education Administrative Service (SLEAS)";
+const ZONAL_LEVEL_NAME = "Zonal Education Office";
 
 export default function StepCurrentAppointment({
   formData,
   setFormData,
   onValid,
 }) {
-  const isSLTSService = (service) =>
-    [service?.service_name, service?.name, service?.service_code, service?.code]
-      .filter(Boolean)
-      .some((value) => String(value).trim().toUpperCase() === "SLTS");
-
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState({});
+  const [sameAsFirst, setSameAsFirst] = useState(false);
 
+<<<<<<< HEAD
   const [currentAppointmentServices, setCurrentAppointmentServices] = useState([]);
   const [currentAppointmentRanks, setCurrentAppointmentRanks] = useState([]);
   const [currentAppointmentWorkingPlaces, setCurrentAppointmentWorkingPlaces] = useState([]);
@@ -26,6 +27,20 @@ export default function StepCurrentAppointment({
     sltsCurrentAppointmentServices.some(
       (service) => String(service.service_id) === String(serviceId),
     );
+=======
+  const firstIsSleas = formData.firstAppointmentService === SLEAS_SERVICE_ID;
+
+  const [serviceRanks, setServiceRanks] = useState([]);
+  const [zonalOffices, setZonalOffices] = useState([]);
+  const [zonalPositions, setZonalPositions] = useState([]);
+
+
+  /* -------------------- AUTO-SET FIXED VALUES -------------------- */
+  useEffect(() => {
+    update("currentAppointmentService", SLEAS_SERVICE_ID);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+>>>>>>> 6fd80b216d2b1cb05d4fe30cb240211ee7e7abfb
 
   // Cadre Medium options
   const cadreMediumOptions = [
@@ -50,15 +65,24 @@ export default function StepCurrentAppointment({
     const fetchData = async () => {
       try {
         const res = await api.get(
+<<<<<<< HEAD
           `/teachers/appointment-form-data?service=${formData.currentAppointmentService || ""}&working_place=${formData.currentAppointmentWorkingPlace || ""}`,
+=======
+          `/register/appointment-form-data?service=${SLEAS_SERVICE_ID}`
+>>>>>>> 6fd80b216d2b1cb05d4fe30cb240211ee7e7abfb
         );
-
         const data = res.data;
 
+<<<<<<< HEAD
         setCurrentAppointmentServices(data.service ?? []);
         setCurrentAppointmentRanks(data.serviceRanks ?? []);
         setCurrentAppointmentWorkingPlaces(data.workingPlaces ?? data.zonalEducationOffices ?? []);
         setCurrentAppointmentPositions(data.positions ?? []);
+=======
+        setServiceRanks(data.serviceRanks ?? []);
+        setZonalOffices(data.zonalEducationOffices ?? []);
+        setZonalPositions(data.zonalPositions ?? []);
+>>>>>>> 6fd80b216d2b1cb05d4fe30cb240211ee7e7abfb
       } catch (error) {
         console.error("Failed to load current appointment form data", error);
       } finally {
@@ -67,7 +91,19 @@ export default function StepCurrentAppointment({
     };
 
     fetchData();
+<<<<<<< HEAD
   }, [formData.currentAppointmentService, formData.currentAppointmentWorkingPlace]);
+=======
+  }, []);
+
+  /* -------------------- DEFAULT REG TYPE -------------------- */
+  useEffect(() => {
+    if (!formData.currentAppointmentRegType) {
+      update("currentAppointmentRegType", "existing");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+>>>>>>> 6fd80b216d2b1cb05d4fe30cb240211ee7e7abfb
 
   /* -------------------- VALIDATION -------------------- */
   const validate = () => {
@@ -75,6 +111,7 @@ export default function StepCurrentAppointment({
     if (!formData.currentAppointmentRegType) e.currentAppointmentRegType = "Required";
     if (!formData.currentAppointmentDate) e.currentAppointmentDate = "Required";
     if (!formData.currentAppointmentLetter) e.currentAppointmentLetter = "Required";
+<<<<<<< HEAD
     if (!formData.currentAppointmentService) e.currentAppointmentService = "Required";
     else if (!isAllowedCurrentAppointmentService(formData.currentAppointmentService))
       e.currentAppointmentService = "Only SLTS service can be selected";
@@ -83,6 +120,11 @@ export default function StepCurrentAppointment({
     if (!formData.currentAppointmentWorkingPlace) e.currentAppointmentWorkingPlace = "Required";
     if (!formData.currentAppointmentPosition) e.currentAppointmentPosition = "Required";
     if (!formData.currentAppointmentCadreMedium) e.currentAppointmentCadreMedium = "Required";
+=======
+    if (!formData.currentAppointmentRank) e.currentAppointmentRank = "Required";
+    if (!formData.currentAppointmentWorkingPlace) e.currentAppointmentWorkingPlace = "Required";
+    if (!formData.currentAppointmentPosition) e.currentAppointmentPosition = "Required";
+>>>>>>> 6fd80b216d2b1cb05d4fe30cb240211ee7e7abfb
 
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -93,6 +135,7 @@ export default function StepCurrentAppointment({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData]);
 
+<<<<<<< HEAD
   // Set default registration type
   useEffect(() => {
     if (!formData.currentAppointmentRegType) {
@@ -134,7 +177,40 @@ export default function StepCurrentAppointment({
       return next;
     });
 
+=======
+  const update = (key, value) => {
+    setFormData((prev) => ({ ...prev, [key]: value }));
+>>>>>>> 6fd80b216d2b1cb05d4fe30cb240211ee7e7abfb
     setErrors((prev) => ({ ...prev, [key]: undefined }));
+  };
+
+  const handleSameAsFirst = (checked) => {
+    setSameAsFirst(checked);
+    if (checked) {
+      const position = zonalPositions.find(
+        (p) => p.position_id === formData.appointedPosition
+      );
+      setFormData((prev) => ({
+        ...prev,
+        currentAppointmentDate: formData.firstAppointmentDate || "",
+        currentAppointmentLetter: formData.firstAppointmentLetter || "",
+        currentAppointmentRank: formData.firstAppointmentRank || "",
+        currentAppointmentWorkingPlace: formData.workingPlace || "",
+        currentAppointmentPosition: formData.appointedPosition || "",
+        currentAppointmentPositionLabel: position?.position_name ?? formData.appointedPosition ?? "",
+      }));
+      setErrors({});
+    }
+  };
+
+  const handlePositionChange = (positionId) => {
+    const position = zonalPositions.find((p) => p.position_id === positionId);
+    setFormData((prev) => ({
+      ...prev,
+      currentAppointmentPosition: positionId,
+      currentAppointmentPositionLabel: position?.position_name ?? positionId,
+    }));
+    setErrors((prev) => ({ ...prev, currentAppointmentPosition: undefined }));
   };
 
   const selectPlaceholder = loading ? "Loading..." : "Select";
@@ -155,7 +231,11 @@ export default function StepCurrentAppointment({
         <Label className="text-gray-700">Select registration type for the Education Administrator Officer</Label>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+<<<<<<< HEAD
           {/* New Teacher */}
+=======
+          {/* New — disabled */}
+>>>>>>> 6fd80b216d2b1cb05d4fe30cb240211ee7e7abfb
           <label className="relative flex p-4 cursor-not-allowed rounded-2xl border border-gray-300 bg-gray-50 opacity-50 transition-all">
             <div className="flex items-start gap-3">
               <Radio
@@ -171,14 +251,18 @@ export default function StepCurrentAppointment({
                   New Education Administrator Officer
                 </span>
                 <span className="block text-xs text-gray-500 mt-1">
+<<<<<<< HEAD
                   New Education Administrator Officer
                  New Education Administrator Officer users can perform any action.
+=======
+                  New Education Administrator Officer users can perform any action.
+>>>>>>> 6fd80b216d2b1cb05d4fe30cb240211ee7e7abfb
                 </span>
               </div>
             </div>
           </label>
 
-          {/* Existing Teacher */}
+          {/* Existing */}
           <label
             className={`relative flex p-4 cursor-pointer rounded-2xl border border-gray-300 transition-all ${
               formData.currentAppointmentRegType === "existing"
@@ -196,11 +280,17 @@ export default function StepCurrentAppointment({
               />
               <div>
                 <span className="block text-sm font-semibold text-gray-700">
+<<<<<<< HEAD
                  Existing Education Administrator Officer
 
                 </span>
                 <span className="block text-xs text-gray-600 mt-1">
                   Existing Education Administrator Officer
+=======
+                  Existing Education Administrator Officer
+                </span>
+                <span className="block text-xs text-gray-600 mt-1">
+>>>>>>> 6fd80b216d2b1cb05d4fe30cb240211ee7e7abfb
                   Existing Education Administrator Officer users have the ability to read, create, and update.
                 </span>
               </div>
@@ -218,12 +308,37 @@ export default function StepCurrentAppointment({
         </div>
         <div className="space-y-2 text-red-700 text-sm">
           <p className="font-medium leading-relaxed">
+<<<<<<< HEAD
            නවක අධ්‍යාපන අධ්‍යක්ෂවරයකු ලෙස පත්වීමක් ලබා නොගන්නා අවස්තාවක, සේවා කාලයක් සහිත අධ්‍යාපන අධ්‍යක්ෂවරයකු ලියාපදිංචි කිරීම සඳහා පමණි
 
 Only for the registration of a Education Administrator Officer with a period of service, in the event that an appointment is not obtained as a new Education Administrator Officer.
+=======
+            නවක අධ්‍යාපන අධ්‍යක්ෂවරයකු ලෙස පත්වීමක් ලබා නොගන්නා අවස්තාවක, සේවා කාලයක් සහිත අධ්‍යාපන අධ්‍යක්ෂවරයකු ලියාපදිංචි කිරීම සඳහා පමණි
+
+            Only for the registration of a Education Administrator Officer with a period of service, in the event that an appointment is not obtained as a new Education Administrator Officer.
+>>>>>>> 6fd80b216d2b1cb05d4fe30cb240211ee7e7abfb
           </p>
         </div>
       </div>
+
+      {/* Same as first appointment */}
+      {firstIsSleas && (
+        <label className="flex items-center gap-3 p-4 rounded-2xl border border-gray-300 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-all">
+          <Checkbox
+            checked={sameAsFirst}
+            onChange={(e) => handleSameAsFirst(e.target.checked)}
+            className="text-gray-700"
+          />
+          <div>
+            <span className="block text-sm font-semibold text-gray-700">
+              Current appointment is the same as the first appointment
+            </span>
+            <span className="block text-xs text-gray-500 mt-0.5">
+              Pre-fills the fields below from your first appointment details. You can still edit them.
+            </span>
+          </div>
+        </label>
+      )}
 
       {/* Appointment Date & Letter */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-4 gap-y-2">
@@ -256,12 +371,13 @@ Only for the registration of a Education Administrator Officer with a period of 
         </div>
       </div>
 
-      {/* Service & Rank */}
+      {/* Service (fixed) & Rank */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-4 gap-y-2">
         <div>
           <Label htmlFor="currentAppointmentService" className="text-gray-700">
             Current Service
           </Label>
+<<<<<<< HEAD
           <Select
             id="currentAppointmentService"
             value={formData.currentAppointmentService || ""}
@@ -276,6 +392,15 @@ Only for the registration of a Education Administrator Officer with a period of 
               </option>
             ))}
           </Select>
+=======
+          <TextInput
+            id="currentAppointmentService"
+            value={SLEAS_SERVICE_NAME}
+            disabled
+            shadow
+            className="bg-gray-50 cursor-not-allowed [&_input]:text-gray-600 [&_input]:border-gray-300 [&_input]:bg-gray-50 [&_input]:ring-0 [&_input]:focus:ring-0"
+          />
+>>>>>>> 6fd80b216d2b1cb05d4fe30cb240211ee7e7abfb
         </div>
 
         <div>
@@ -290,15 +415,22 @@ Only for the registration of a Education Administrator Officer with a period of 
             className="[&_select]:text-gray-700 [&_select]:border-gray-300 [&_select]:focus:border-gray-300 [&_select]:ring-0 [&_select]:focus:ring-0 [&_select]:bg-white"
           >
             <option value="" className="text-gray-500">{selectPlaceholder}</option>
+<<<<<<< HEAD
             {currentAppointmentRanks.map((r) => (
               <option key={r.id} value={r.rank_id} className="text-gray-700">
                 {r.name || r.rank_name}
+=======
+            {serviceRanks.map((r) => (
+              <option key={r.id} value={r.rank_id} className="text-gray-700">
+                {r.rank_name ?? r.name}
+>>>>>>> 6fd80b216d2b1cb05d4fe30cb240211ee7e7abfb
               </option>
             ))}
           </Select>
         </div>
       </div>
 
+<<<<<<< HEAD
       {/* Cadre Medium & Cadre Subject */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-4 gap-y-2">
         <div>
@@ -378,6 +510,44 @@ Only for the registration of a Education Administrator Officer with a period of 
         </div>
       </div>
 
+=======
+      {/* Working Place Level (fixed) & Working Place */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-4 gap-y-2">
+        <div>
+          <Label htmlFor="currentAppointmentWorkingPlaceLevel" className="text-gray-700">
+            Current Working Place Level
+          </Label>
+          <TextInput
+            id="currentAppointmentWorkingPlaceLevel"
+            value={ZONAL_LEVEL_NAME}
+            disabled
+            shadow
+            className="bg-gray-50 cursor-not-allowed [&_input]:text-gray-600 [&_input]:border-gray-300 [&_input]:bg-gray-50 [&_input]:ring-0 [&_input]:focus:ring-0"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="currentAppointmentWorkingPlace" className="text-gray-700">
+            Working Place (Zonal Education Office)
+          </Label>
+          <Select
+            id="currentAppointmentWorkingPlace"
+            value={formData.currentAppointmentWorkingPlace || ""}
+            disabled={loading}
+            onChange={(e) => update("currentAppointmentWorkingPlace", e.target.value)}
+            className="[&_select]:text-gray-700 [&_select]:border-gray-300 [&_select]:focus:border-gray-300 [&_select]:ring-0 [&_select]:focus:ring-0 [&_select]:bg-white"
+          >
+            <option value="" className="text-gray-500">{selectPlaceholder}</option>
+            {zonalOffices.map((z) => (
+              <option key={z.id} value={z.workplace_id} className="text-gray-700">
+                {z.census_no ? `${z.census_no} - ${z.name}` : z.name}
+              </option>
+            ))}
+          </Select>
+        </div>
+      </div>
+
+>>>>>>> 6fd80b216d2b1cb05d4fe30cb240211ee7e7abfb
       {/* Position */}
       <div>
         <Label htmlFor="currentAppointmentPosition" className="text-gray-700">
@@ -387,11 +557,19 @@ Only for the registration of a Education Administrator Officer with a period of 
           id="currentAppointmentPosition"
           value={formData.currentAppointmentPosition || ""}
           disabled={loading}
+<<<<<<< HEAD
           onChange={(e) => update("currentAppointmentPosition", e.target.value)}
           className="[&_select]:text-gray-700 [&_select]:border-gray-300 [&_select]:focus:border-gray-300 [&_select]:ring-0 [&_select]:focus:ring-0 [&_select]:bg-white"
         >
           <option value="" className="text-gray-500">{selectPlaceholder}</option>
           {currentAppointmentPositions.map((p) => (
+=======
+          onChange={(e) => handlePositionChange(e.target.value)}
+          className="[&_select]:text-gray-700 [&_select]:border-gray-300 [&_select]:focus:border-gray-300 [&_select]:ring-0 [&_select]:focus:ring-0 [&_select]:bg-white"
+        >
+          <option value="" className="text-gray-500">{selectPlaceholder}</option>
+          {zonalPositions.map((p) => (
+>>>>>>> 6fd80b216d2b1cb05d4fe30cb240211ee7e7abfb
             <option key={p.id} value={p.position_id} className="text-gray-700">
               {p.position_name}
             </option>

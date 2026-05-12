@@ -58,7 +58,7 @@ const TeacherBulkUpload = () => {
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-6 py-6 lg:px-10 lg:py-10">
+    <div className="mx-auto flex w-full w-full px-4 sm:px-6 lg:px-8 flex-col gap-8 px-6 py-6 lg:px-10 lg:py-10">
       <div className="flex flex-col gap-3 border-b border-gray-200 pb-6">
         <Link
           to={backPath}

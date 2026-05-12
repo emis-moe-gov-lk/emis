@@ -1,7 +1,4 @@
-import { useState } from "react";
-
-const AnalyticsHeader = () => {
-  const [search, setSearch] = useState("");
+const AnalyticsHeader = ({ search = "", setSearch = () => {} }) => {
 
   return (
     <div className="mb-10 px-2">
@@ -46,7 +43,7 @@ const AnalyticsHeader = () => {
             </svg>
           </div>
 
-          <button
+          {/* <button
             type="button"
             className="p-3 bg-white dark:bg-gray-800 ring-1 ring-slate-200 dark:ring-gray-700 rounded-2xl hover:bg-slate-50 dark:hover:bg-gray-700 transition-all shadow-sm"
           >
@@ -63,7 +60,7 @@ const AnalyticsHeader = () => {
                 d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
               ></path>
             </svg>
-          </button>
+          </button> */}
         </div>
       </div>
 

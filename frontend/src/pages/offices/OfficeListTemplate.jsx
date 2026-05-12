@@ -149,7 +149,7 @@ const OfficeListTemplate = ({ title, subtitle, endpoint, createLabel }) => {
   }, [normalized, search]);
 
   return (
-    <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-6">
+    <div className="p-6 lg:p-10 w-full px-4 sm:px-6 lg:px-8 mx-auto space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -180,14 +180,14 @@ const OfficeListTemplate = ({ title, subtitle, endpoint, createLabel }) => {
           />
         </div>
 
-        <Button
+        {/* <Button
           color="gray"
           className="inline-flex items-center gap-2 rounded-lg border shadow-sm enabled:hover:text-blue-600"
           onClick={() => alert("Create functionality will be connected next.")}
         >
           <HiPlus className="w-5 h-5 mr-1" />
           {createLabel}
-        </Button>
+        </Button> */}
       </div>
 
       {/* Content */}

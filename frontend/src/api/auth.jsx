@@ -14,6 +14,9 @@ const normalizeIdentityPayload = (responseData) => {
     workplace: data?.workplace ?? null,
     officeLevel: data?.office_level ?? null,
     officeLevelId: data?.office_level_id ?? null,
+    mustChangePassword: Boolean(data?.must_change_password ?? data?.user?.must_change_password),
+    passwordChangeRequiredReason: data?.password_change_required_reason ?? null,
+    identityProvider: data?.identity_provider ?? data?.user?.identity_provider ?? null,
     raw: data ?? {},
   };
 };
@@ -37,4 +40,14 @@ export const getPermissionCatalog = async () => {
       : [];
     return acc;
   }, {});
+};
+
+export const changeOwnPassword = async (payload) => {
+  const response = await api.patch("/profile/password", payload);
+  return response?.data;
+};
+
+export const completeExternalPasswordChange = async () => {
+  const response = await api.post("/profile/password/complete-external");
+  return response?.data;
 };

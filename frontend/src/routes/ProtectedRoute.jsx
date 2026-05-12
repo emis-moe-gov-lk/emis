@@ -1,11 +1,12 @@
 import { useAuthContext } from "@asgardeo/auth-react";
-import { Navigate, Outlet } from "react-router";
+import { Navigate, Outlet, useLocation } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuthUser } from "@/context/useAuthUser";
 
 export default function ProtectedRoute({ roles, permissions, anyPermissions, children }) {
   const { state } = useAuthContext();
-  const { hasPermission, hasRole, isLoading } = useAuthUser();
+  const { hasPermission, hasRole, isLoading, mustChangePassword } = useAuthUser();
+  const location = useLocation();
 
   if (state.isLoading || isLoading) {
     return (
@@ -53,6 +54,14 @@ export default function ProtectedRoute({ roles, permissions, anyPermissions, chi
 
   if (!state.isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  const isPasswordRoute = location.pathname === "/force-password-change";
+  const isLogoutRoute = location.pathname === "/logout";
+  const shouldForcePasswordChange = mustChangePassword && hasRole("teacher");
+
+  if (shouldForcePasswordChange && !isPasswordRoute && !isLogoutRoute) {
+    return <Navigate to="/force-password-change" replace />;
   }
 
   if (Array.isArray(roles) && roles.length > 0 && !roles.some((role) => hasRole(role))) {

@@ -10,6 +10,7 @@ export default function StepFirstAppointment({
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState({});
 
+<<<<<<< HEAD
   // Dropdown data states
   const [recruitmentSubjects, setRecruitmentSubjects] = useState([]);
 
@@ -69,9 +70,22 @@ export default function StepFirstAppointment({
   }, []);
 
   /* -------------------- FETCH RECRUITMENT SUBJECTS FROM API -------------------- */
+=======
+  // Dropdown data
+  const [services, setServices] = useState([]);
+  const [serviceRanks, setServiceRanks] = useState([]);
+  const [officeLevels, setOfficeLevels] = useState([]);
+  const [workplacesByLevel, setWorkplacesByLevel] = useState([]);
+  const [positions, setPositions] = useState([]);
+  const [recruitmentCategories, setRecruitmentCategories] = useState([]);
+  const [recruitmentSubjects, setRecruitmentSubjects] = useState([]);
+
+  /* -------------------- INITIAL FETCH -------------------- */
+>>>>>>> 6fd80b216d2b1cb05d4fe30cb240211ee7e7abfb
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchBase = async () => {
       try {
+<<<<<<< HEAD
         const res = await api.get(`/teachers/appointment-form-data`);
         
         // Fetch recruitment subjects from existing API
@@ -80,10 +94,23 @@ export default function StepFirstAppointment({
         setLoading(false);
       } catch (error) {
         console.error("Failed to load appointment form data", error);
+=======
+        const res = await api.get(`/register/appointment-form-data`);
+        setServices(res.data.service ?? []);
+        setOfficeLevels(res.data.officeLevels ?? []);
+        setRecruitmentCategories(res.data.recruitmentCategories ?? []);
+        setRecruitmentSubjects(res.data.apointmentSubjects ?? []);
+      } catch (error) {
+        console.error("Failed to load appointment base data", error);
+      } finally {
+>>>>>>> 6fd80b216d2b1cb05d4fe30cb240211ee7e7abfb
         setLoading(false);
       }
     };
+    fetchBase();
+  }, []);
 
+<<<<<<< HEAD
     fetchData();
   }, []);
 
@@ -93,6 +120,54 @@ export default function StepFirstAppointment({
     
     if (!formData.firstAppointmentDate) e.firstAppointmentDate = "Required";
     if (!formData.firstAppointmentLetter) e.firstAppointmentLetter = "Required";
+=======
+  /* -------------------- RE-FETCH ON SERVICE CHANGE -------------------- */
+  useEffect(() => {
+    if (!formData.firstAppointmentService) {
+      setServiceRanks([]);
+      setPositions([]);
+      return;
+    }
+    const fetchServiceData = async () => {
+      try {
+        const res = await api.get(
+          `/register/appointment-form-data?service=${formData.firstAppointmentService}`
+        );
+        setServiceRanks(res.data.serviceRanks ?? []);
+        setPositions(res.data.positions ?? []);
+      } catch (error) {
+        console.error("Failed to load service data", error);
+      }
+    };
+    fetchServiceData();
+  }, [formData.firstAppointmentService]);
+
+  /* -------------------- RE-FETCH ON OFFICE LEVEL CHANGE -------------------- */
+  useEffect(() => {
+    if (!formData.workingPlaceLevel) {
+      setWorkplacesByLevel([]);
+      return;
+    }
+    const fetchWorkplaces = async () => {
+      try {
+        const res = await api.get(
+          `/register/appointment-form-data?office_level=${formData.workingPlaceLevel}`
+        );
+        setWorkplacesByLevel(res.data.workplacesByLevel ?? []);
+      } catch (error) {
+        console.error("Failed to load workplaces", error);
+      }
+    };
+    fetchWorkplaces();
+  }, [formData.workingPlaceLevel]);
+
+  /* -------------------- VALIDATION -------------------- */
+  const validate = () => {
+    const e = {};
+    if (!formData.firstAppointmentDate) e.firstAppointmentDate = "Required";
+    if (!formData.firstAppointmentLetter) e.firstAppointmentLetter = "Required";
+    if (!formData.firstAppointmentService) e.firstAppointmentService = "Required";
+>>>>>>> 6fd80b216d2b1cb05d4fe30cb240211ee7e7abfb
     if (!formData.firstAppointmentRank) e.firstAppointmentRank = "Required";
     if (!formData.recruitmentCategory) e.recruitmentCategory = "Required";
     if (!formData.recruitmentSubject) e.recruitmentSubject = "Required";
@@ -112,7 +187,14 @@ export default function StepFirstAppointment({
     setFormData((prev) => {
       const next = { ...prev, [key]: value };
 
+<<<<<<< HEAD
       // Reset working place when level changes
+=======
+      if (key === "firstAppointmentService") {
+        next.firstAppointmentRank = "";
+        next.appointedPosition = "";
+      }
+>>>>>>> 6fd80b216d2b1cb05d4fe30cb240211ee7e7abfb
       if (key === "workingPlaceLevel") {
         next.workingPlace = "";
       }
@@ -141,7 +223,11 @@ export default function StepFirstAppointment({
 
         {/* FORM GRID */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+<<<<<<< HEAD
           
+=======
+
+>>>>>>> 6fd80b216d2b1cb05d4fe30cb240211ee7e7abfb
           {/* Appointment Date */}
           <div>
             <Label className="text-gray-700 font-semibold">
@@ -168,6 +254,7 @@ export default function StepFirstAppointment({
             />
           </div>
 
+<<<<<<< HEAD
           {/* Service - Auto-loaded SLEAS as text box */}
           <div>
             <Label className="text-gray-700 font-semibold">
@@ -195,6 +282,45 @@ export default function StepFirstAppointment({
               {sleasServiceRanks.map((r) => (
                 <option key={r.id} value={r.rank_id}>
                   {r.rank_name}
+=======
+          {/* Service */}
+          <div>
+            <Label className="text-gray-700 font-semibold">Service</Label>
+            <Select
+              value={formData.firstAppointmentService || ""}
+              disabled={loading}
+              onChange={(e) => update("firstAppointmentService", e.target.value)}
+              className="mt-1"
+            >
+              <option value="">{selectPlaceholder}</option>
+              {services.map((s) => (
+                <option key={s.id} value={s.service_id}>
+                  {s.service_name}
+                </option>
+              ))}
+            </Select>
+          </div>
+
+          {/* Service Rank */}
+          <div>
+            <Label className="text-gray-700 font-semibold">Service Rank</Label>
+            <Select
+              value={formData.firstAppointmentRank || ""}
+              disabled={!formData.firstAppointmentService}
+              onChange={(e) => update("firstAppointmentRank", e.target.value)}
+              className="mt-1"
+            >
+              <option value="">
+                {!formData.firstAppointmentService
+                  ? "Select a service first"
+                  : serviceRanks.length === 0
+                  ? "Loading..."
+                  : "Select"}
+              </option>
+              {serviceRanks.map((r) => (
+                <option key={r.id} value={r.rank_id}>
+                  {r.rank_name ?? r.name}
+>>>>>>> 6fd80b216d2b1cb05d4fe30cb240211ee7e7abfb
                 </option>
               ))}
             </Select>
@@ -211,18 +337,31 @@ export default function StepFirstAppointment({
               className="mt-1"
             >
               <option value="">{selectPlaceholder}</option>
+<<<<<<< HEAD
               {recruitmentCategoriesList.map((c) => (
                 <option key={c.id} value={c.name}>
                   {c.name}
+=======
+              {recruitmentCategories.map((c) => (
+                <option key={c.id} value={c.category_id}>
+                  {c.category_name}
+>>>>>>> 6fd80b216d2b1cb05d4fe30cb240211ee7e7abfb
                 </option>
               ))}
             </Select>
           </div>
 
+<<<<<<< HEAD
           {/* Recruitment Subjects - Loaded from API */}
           <div>
             <Label className="text-gray-700 font-semibold">
               Recruitment Subjects
+=======
+          {/* Recruitment Subjects */}
+          <div>
+            <Label className="text-gray-700 font-semibold">
+              Recruitment Subject
+>>>>>>> 6fd80b216d2b1cb05d4fe30cb240211ee7e7abfb
             </Label>
             <Select
               value={formData.recruitmentSubject || ""}
@@ -239,20 +378,34 @@ export default function StepFirstAppointment({
             </Select>
           </div>
 
+<<<<<<< HEAD
           {/* Appointment Working Place Level */}
+=======
+          {/* Working Place Level */}
+>>>>>>> 6fd80b216d2b1cb05d4fe30cb240211ee7e7abfb
           <div>
             <Label className="text-gray-700 font-semibold">
               Working Place Level
             </Label>
             <Select
               value={formData.workingPlaceLevel || ""}
+<<<<<<< HEAD
+=======
+              disabled={loading}
+>>>>>>> 6fd80b216d2b1cb05d4fe30cb240211ee7e7abfb
               onChange={(e) => update("workingPlaceLevel", e.target.value)}
               className="mt-1"
             >
               <option value="">{selectPlaceholder}</option>
+<<<<<<< HEAD
               {workingPlaceLevelsList.map((l) => (
                 <option key={l.id} value={l.name}>
                   {l.name}
+=======
+              {officeLevels.map((l) => (
+                <option key={l.id} value={l.office_level_id}>
+                  {l.office_level_name}
+>>>>>>> 6fd80b216d2b1cb05d4fe30cb240211ee7e7abfb
                 </option>
               ))}
             </Select>
@@ -260,19 +413,36 @@ export default function StepFirstAppointment({
 
           {/* Working Place */}
           <div>
+<<<<<<< HEAD
             <Label className="text-gray-700 font-semibold">
               Working Place
             </Label>
+=======
+            <Label className="text-gray-700 font-semibold">Working Place</Label>
+>>>>>>> 6fd80b216d2b1cb05d4fe30cb240211ee7e7abfb
             <Select
               value={formData.workingPlace || ""}
               disabled={!formData.workingPlaceLevel}
               onChange={(e) => update("workingPlace", e.target.value)}
               className="mt-1"
             >
+<<<<<<< HEAD
               <option value="">{selectPlaceholder}</option>
               {workingPlacesList.map((w) => (
                 <option key={w.id} value={w.name}>
                   {w.name}
+=======
+              <option value="">
+                {!formData.workingPlaceLevel
+                  ? "Select a level first"
+                  : workplacesByLevel.length === 0
+                  ? "Loading..."
+                  : "Select"}
+              </option>
+              {workplacesByLevel.map((w) => (
+                <option key={w.id} value={w.workplace_id}>
+                  {w.census_no ? `${w.census_no} - ${w.name}` : w.name}
+>>>>>>> 6fd80b216d2b1cb05d4fe30cb240211ee7e7abfb
                 </option>
               ))}
             </Select>
@@ -285,11 +455,26 @@ export default function StepFirstAppointment({
             </Label>
             <Select
               value={formData.appointedPosition || ""}
+<<<<<<< HEAD
               onChange={(e) => update("appointedPosition", e.target.value)}
               className="mt-1"
             >
               <option value="">{selectPlaceholder}</option>
               {appointedPositionsList.map((p) => (
+=======
+              disabled={!formData.firstAppointmentService}
+              onChange={(e) => update("appointedPosition", e.target.value)}
+              className="mt-1"
+            >
+              <option value="">
+                {!formData.firstAppointmentService
+                  ? "Select a service first"
+                  : positions.length === 0
+                  ? "Loading..."
+                  : "Select"}
+              </option>
+              {positions.map((p) => (
+>>>>>>> 6fd80b216d2b1cb05d4fe30cb240211ee7e7abfb
                 <option key={p.id} value={p.position_id}>
                   {p.position_name}
                 </option>
@@ -301,7 +486,11 @@ export default function StepFirstAppointment({
         {/* Info Box */}
         <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
           <p className="text-xs text-gray-600">
+<<<<<<< HEAD
             <span className="font-semibold">Note:</span> Service is automatically set to SLEAS (Sri Lanka Education Administrative Service).
+=======
+            <span className="font-semibold">Note:</span> Service rank and positions are filtered based on the selected service. Working places are filtered by the selected office level.
+>>>>>>> 6fd80b216d2b1cb05d4fe30cb240211ee7e7abfb
           </p>
         </div>
       </div>

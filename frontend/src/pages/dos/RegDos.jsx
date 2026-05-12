@@ -10,7 +10,7 @@ import {
 import StepperHeader from "@/components/teacher/StepperHeader";
 import StepNavigation from "@/components/teacher/StepNavigation";
 
-import { registerDeoOfficer } from "@/api/deoOfficerService";
+import { registerDeoOfficer, registerDosAdmin } from "@/api/deoOfficerService";
 import toast from "react-hot-toast";
 import { HiCheckCircle, HiArrowLeft } from "react-icons/hi";
 import StepNICVerification from "../../components/dos/steps/StepNICVerification";
@@ -217,8 +217,7 @@ function RegDosInner() {
         setIsSubmitting(true);
         dispatch({ type: "SET_ERROR", payload: null });
 
-        // Transform form data from teacher format to DEO format
-        const deoPayload = {
+        const dosPayload = {
           // Personal
           nic: formData.nic,
           is_new_registration: formData.is_new_registration,
@@ -242,16 +241,25 @@ function RegDosInner() {
           addressLine2: formData.addressLine2,
           addressLine3: formData.addressLine3,
           postalCode: formData.postalCode,
-          // Appointment (simplified for DEO - use current appointment fields)
-          appointmentDate: formData.currentAppointmentDate,
-          appointmentLetter: formData.currentAppointmentLetter,
-          serviceId: formData.currentAppointmentService,
-          rankId: formData.currentAppointmentRank,
-          positionId: formData.currentAppointmentPosition,
-          deoOfficeId: formData.currentAppointmentZone,
+          // First Appointment
+          firstAppointmentDate: formData.firstAppointmentDate,
+          firstAppointmentLetter: formData.firstAppointmentLetter,
+          firstAppointmentService: formData.firstAppointmentService,
+          firstAppointmentRank: formData.firstAppointmentRank,
+          firstAppointmentOfficeLevel: formData.workingPlaceLevel,
+          firstAppointmentWorkplace: formData.workingPlace,
+          firstAppointmentPosition: formData.appointedPosition,
+          recruitmentCategory: formData.recruitmentCategory,
+          recruitmentSubject: formData.recruitmentSubject,
+          // Current Appointment
+          currentAppointmentDate: formData.currentAppointmentDate,
+          currentAppointmentLetter: formData.currentAppointmentLetter,
+          currentAppointmentRank: formData.currentAppointmentRank,
+          currentAppointmentWorkplace: formData.currentAppointmentWorkingPlace,
+          currentAppointmentPosition: formData.currentAppointmentPosition,
         };
 
-        const result = await registerDeoOfficer(deoPayload);
+        const result = await registerDosAdmin(dosPayload);
 
         if (result.status === "success") {
           toast.success(`${employeeType} registered successfully`);
@@ -263,10 +271,10 @@ function RegDosInner() {
           });
         }
       } catch (err) {
-        console.error("Registration error:", err);
+        console.error("Registration error:", err.response?.data ?? err);
         dispatch({
           type: "SET_ERROR",
-          payload: err.response?.data?.message || err.response?.data?.errors || "Unable to complete registration. Please try again.",
+          payload: "Registration failed. Please review your information and try again.",
         });
       } finally {
         setIsSubmitting(false);
@@ -423,7 +431,15 @@ function RegDosInner() {
             {error && (
               <div className="px-6 pt-4">
                 <div className="p-4 bg-red-50 text-red-700 rounded-2xl border border-red-100 text-sm">
-                  {error}
+                  {Array.isArray(error) ? (
+                    <ul className="list-disc list-inside space-y-1">
+                      {error.map((msg, i) => (
+                        <li key={i}>{msg}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    error
+                  )}
                 </div>
               </div>
             )}

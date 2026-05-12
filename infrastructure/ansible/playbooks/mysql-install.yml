@@ -1,0 +1,59 @@
+---
+# ---PLAY-INSTALL-MYSQL-----
+- name: Install and Configure MySQL 8.0 Database and root user for EMIS & WSO2 Environment
+  hosts: databases
+  vars_files:
+    - ../vars.yml
+  become: yes
+  vars:
+    # var values from inventory .ini files
+    expose_port: "{{ varsfl_mysql_port }}"  
+    root_pass: "{{ varsfl_mysql_root_password }}"
+
+  tasks:
+    - name: Update apt and install MySQL + Python connector
+      apt:
+        name: 
+          - mysql-server
+          - python3-pymysql
+        state: present
+        update_cache: yes
+
+    - name: Ensure MySQL is running
+      service:
+        name: mysql
+        state: started
+        enabled: yes
+
+    - name: Configure MySQL to listen on custom port
+      lineinfile:
+        path: /etc/mysql/mysql.conf.d/mysqld.cnf
+        regexp: '^port\s*='
+        line: "port = {{ varsfl_mysql_port }}"
+
+    - name: Configure MySQL bind address
+      lineinfile:
+        path: /etc/mysql/mysql.conf.d/mysqld.cnf
+        regexp: '^bind-address\s*='
+        line: "bind-address = {{ varsfl_mysql_bind_address }}"
+      notify: restart mysql
+
+    - name: Set root user password &  allowed host
+      mysql_user:
+        check_implicit_admin: yes        
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+        login_user: root
+        login_password: "{{ varsfl_mysql_root_password }}"
+
+        name: "{{ varsfl_mysql_root_user }}"
+        host: "{{ varsfl_mysql_root_allowedhost }}"
+        password: "{{ varsfl_mysql_root_password }}"        
+        priv: "*.*:ALL,GRANT"
+
+        state: present
+
+  handlers:
+    - name: restart mysql
+      service:
+        name: mysql
+        state: restarted

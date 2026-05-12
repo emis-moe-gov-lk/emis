@@ -1,0 +1,61 @@
+name: Build and Push WSO2 AM Image
+
+on:
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  # Converts repository name to lowercase for registry compatibility
+  IMAGE_NAME: ${{ github.repository_owner }}/wso2am
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get Image Version
+        id: get_version
+        run: |
+          # Read version from the apim directory and clean whitespace
+          VERSION=$(head -n 1 apim/IMG_VERSION | xargs)
+          echo "IMG_VERSION=$VERSION" >> $GITHUB_OUTPUT
+          # Setting the full tag using WSO2 AM base version + your custom build version
+          echo "FULL_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:4.6.0-$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check if image exists
+        id: check_tag
+        run: |
+          if docker manifest inspect ${{ steps.get_version.outputs.FULL_TAG }} > /dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "Image ${{ steps.get_version.outputs.FULL_TAG }} already exists. Skipping build."
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "Image ${{ steps.get_version.outputs.FULL_TAG }} does not exist. Proceeding with build."
+          fi
+
+      - name: Build and push Docker image
+        # Runs only if the image tag doesn't already exist in GHCR
+        if: steps.check_tag.outputs.exists == 'false'
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apim
+          file: ./apim/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.get_version.outputs.FULL_TAG }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}

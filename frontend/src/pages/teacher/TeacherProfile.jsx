@@ -3,10 +3,12 @@ import { NavLink, useParams, useNavigate } from "react-router-dom";
 import { useAuthContext } from "@asgardeo/auth-react";
 import {
   HiArrowLeft,
+  HiCalendar,
   HiDocumentText,
   HiPencilAlt,
   HiCheckCircle,
   HiExclamation,
+  HiOfficeBuilding,
   HiPlus,
   HiX,
 } from "react-icons/hi";
@@ -14,6 +16,9 @@ import api from "@/api/axios";
 import {
   downloadTeacherProfileDocument,
   promoteTeacher,
+  saveEducationQualification,
+  getEducationQualifications,
+  getEducationQualificationGrades,
 } from "@/api/teacherService";
 import toast from "react-hot-toast";
 import {
@@ -45,6 +50,36 @@ import { PermissionGroups } from "@/data/permissionGroups";
 const formatDate = (value) => {
   if (!value) return null;
   return String(value).slice(0, 10);
+};
+
+const QUALIFICATION_OPTIONS = [
+  "Doctoral Degree, MD with Board Certification",
+  "Master of Philosophy, Masters by Full-time Research, DM",
+  "Masters with Coursework and a Research Component",
+  "Postgraduate Certificate, Postgraduate Diploma, Masters with Coursework",
+  "Honours Bachelors",
+  "Bachelor's Degree, Bachelor's Double Major Degree",
+  "Higher Diploma",
+  "Diploma",
+  "Advanced Certificate",
+  "Certificate",
+];
+
+const GRADE_OPTIONS = [
+  "First Class",
+  "Second Class Upper",
+  "Second Class Lower",
+  "Pass",
+  "Merit",
+  "Distinction",
+];
+
+const DEFAULT_QUALIFICATION_FORM = {
+  qualification: "Honours Bachelors",
+  institution: "",
+  effectiveDate: "",
+  grade: "",
+  additionalDetails: "",
 };
 
 const TeacherProfile = () => {
@@ -130,27 +165,27 @@ const TeacherProfile = () => {
 
     return String(
       value?.name ||
-        value?.full_name ||
-        value?.username ||
-        value?.user_name ||
-        value?.email ||
-        value?.display_name ||
-        value?.first_name ||
-        value?.id ||
-        "",
+      value?.full_name ||
+      value?.username ||
+      value?.user_name ||
+      value?.email ||
+      value?.display_name ||
+      value?.first_name ||
+      value?.id ||
+      "",
     ).trim();
   };
 
   const extractCommentActor = (record) =>
     resolveActorValue(
       record?.updated_by_name ||
-        record?.rejected_by_name ||
-        record?.user_name ||
-        record?.username ||
-        record?.updated_by ||
-        record?.rejected_by ||
-        record?.created_by_name ||
-        record?.created_by,
+      record?.rejected_by_name ||
+      record?.user_name ||
+      record?.username ||
+      record?.updated_by ||
+      record?.rejected_by ||
+      record?.created_by_name ||
+      record?.created_by,
     );
 
   const formatCommentEntry = (comment, actor) => {
@@ -308,6 +343,7 @@ const TeacherProfile = () => {
   // State objects (easy to replace with API response later)
   const [teacher, setTeacher] = useState(null);
   const [qualifications, setQualifications] = useState([]);
+  const [rawQualifications, setRawQualifications] = useState([]);
   const [employment, setEmployment] = useState({});
   const [wopAndPayment, setWopAndPayment] = useState({});
   const [family, setFamily] = useState({ spouses: [] });
@@ -325,6 +361,16 @@ const TeacherProfile = () => {
   const [currentUserName, setCurrentUserName] = useState("");
   const [showUpdateAction, setShowUpdateAction] = useState(false);
   const [isDownloadingDocument, setIsDownloadingDocument] = useState(false);
+  const [isQualificationModalOpen, setIsQualificationModalOpen] =
+    useState(false);
+  const [qualificationForm, setQualificationForm] = useState(
+    DEFAULT_QUALIFICATION_FORM,
+  );
+  const [qualificationOptions, setQualificationOptions] = useState([]);
+  const [gradeOptions, setGradeOptions] = useState([]);
+  const [isLoadingQualificationOptions, setIsLoadingQualificationOptions] =
+    useState(false);
+  const [isSavingQualification, setIsSavingQualification] = useState(false);
 
   /**
    * API Integration Hook (later)
@@ -337,9 +383,13 @@ const TeacherProfile = () => {
     setLoading(true);
     try {
       const res = await api.get(`/teacher/${id}`);
+      console.log("DEBUG: Full API response:", res.data);
+      
       if (res.data?.status !== "success") return;
 
       const d = res.data.data;
+      console.log("DEBUG: Teacher data object:", d);
+      console.log("DEBUG: educationQualifications from API:", d.educationQualifications);
       const appointmentId =
         d.appointment?.appointment_id ||
         d.appointment?.employer_appointment_id ||
@@ -357,10 +407,10 @@ const TeacherProfile = () => {
       const fallbackUpdatedComment = d.appointment?.update_comments || "";
       const rejectCommentRecords =
         d.appointment?.is_verified === 2 ||
-        d.appointment?.is_verified === 3 ||
-        String(d.profile_status ?? d.appointment?.profile_status ?? "")
-          .trim()
-          .toLowerCase() === "revised"
+          d.appointment?.is_verified === 3 ||
+          String(d.profile_status ?? d.appointment?.profile_status ?? "")
+            .trim()
+            .toLowerCase() === "revised"
           ? await loadRejectComment(d.people_id, appointmentId)
           : [];
       const latestRejectCommentRecord = rejectCommentRecords.at(-1) || null;
@@ -409,6 +459,7 @@ const TeacherProfile = () => {
           null,
 
         dob: formatDate(d.date_of_birth),
+        title_name: d.title?.title_name,
         gender: d.gender?.gender_name,
         religion: d.religion?.religion_name,
         ethnicity: d.ethnicity?.ethnicity_name,
@@ -493,7 +544,38 @@ const TeacherProfile = () => {
         paySheetNo: d.appointment?.pay_sheet_no,
       });
 
-      setQualifications([]);
+      /* ---------------------------
+                 QUALIFICATIONS
+              --------------------------- */
+      console.log("DEBUG: Raw educationQualifications data:", d.educationQualifications);
+      if (Array.isArray(d.educationQualifications)) {
+        setRawQualifications(d.educationQualifications);
+        const mappedQualifications = d.educationQualifications.map((qual) => {
+          const mapped = {
+            id: qual.id,
+            degree:
+              qual.qualification?.qualification ||
+              qual.qualifications_id ||
+              "—",
+            institution: qual.institution || "—",
+            completionDate: formatDate(qual.effective_date) || "—",
+            grade:
+              qual.qualificationGrade?.grade ||
+              qual.grade ||
+              "—",
+            additionalDetails: qual.description || "",
+          };
+          console.log("DEBUG: Mapped qualification:", qual, "=>", mapped);
+          return mapped;
+        });
+        console.log("DEBUG: Final mapped qualifications:", mappedQualifications);
+        setQualifications(mappedQualifications);
+      } else {
+        console.log("DEBUG: educationQualifications is not an array:", typeof d.educationQualifications);
+        setRawQualifications([]);
+        setQualifications([]);
+      }
+
       setFamily({ spouses: [] });
       setEditRequests([]);
     } catch (error) {
@@ -503,6 +585,128 @@ const TeacherProfile = () => {
       setLoading(false);
     }
   }, [id, loadRejectComment]);
+
+  const openQualificationModal = useCallback(() => {
+    setQualificationForm(DEFAULT_QUALIFICATION_FORM);
+    setIsQualificationModalOpen(true);
+  }, []);
+
+  const closeQualificationModal = useCallback(() => {
+    setIsQualificationModalOpen(false);
+    setQualificationForm(DEFAULT_QUALIFICATION_FORM);
+  }, []);
+
+  const handleEditQualification = useCallback((qualificationDisplay) => {
+    // Find the raw qualification data by ID
+    const qualification = rawQualifications.find(q => q.id === qualificationDisplay.id);
+    
+    if (!qualification) {
+      toast.error("Unable to load qualification data");
+      return;
+    }
+
+    const qualName = qualificationOptions.find(
+      (q) => q.qualifications_id === qualification.qualifications_id
+    )?.qualification || qualification.degree;
+
+    const gradeName = gradeOptions.find(
+      (g) => g.grade_id === qualification.grade
+    )?.grade || qualification.grade;
+
+    setQualificationForm({
+      id: qualification.id,
+      qualification: qualName,
+      institution: qualification.institution,
+      effectiveDate: formatDate(qualification.effective_date) || "",
+      grade: gradeName,
+      additionalDetails: qualification.additionalDetails || "",
+    });
+    setIsQualificationModalOpen(true);
+  }, [rawQualifications, qualificationOptions, gradeOptions]);
+
+  const handleQualificationFieldChange = useCallback((key, value) => {
+    setQualificationForm((prev) => ({ ...prev, [key]: value }));
+  }, []);
+
+  const handleQualificationSave = useCallback(async () => {
+    const qualification = String(qualificationForm.qualification || "").trim();
+    const institution = String(qualificationForm.institution || "").trim();
+    const effectiveDate = String(qualificationForm.effectiveDate || "").trim();
+    const grade = String(qualificationForm.grade || "").trim();
+    const additionalDetails = String(
+      qualificationForm.additionalDetails || "",
+    ).trim();
+
+    if (!qualification || !institution || !effectiveDate || !grade) {
+      toast.error("Please complete all required qualification fields.");
+      return;
+    }
+
+    if (!teacher?.id) {
+      toast.error("Teacher ID not found.");
+      return;
+    }
+
+    // Find the qualification ID from the selected value
+    const selectedQualification = qualificationOptions.find(
+      (q) => q.qualification === qualification
+    );
+    const qualificationId = selectedQualification?.qualifications_id;
+
+    // Find the grade ID from the selected value
+    const selectedGrade = gradeOptions.find((g) => g.grade === grade);
+    const gradeId = selectedGrade?.grade_id;
+
+    if (!qualificationId) {
+      toast.error("Invalid qualification selected.");
+      return;
+    }
+
+    if (!gradeId) {
+      toast.error("Invalid grade selected.");
+      return;
+    }
+
+    setIsSavingQualification(true);
+    try {
+      const response = await saveEducationQualification(teacher.id, {
+        id: qualificationForm.id || undefined,
+        qualification: qualificationId,
+        institution_university: institution,
+        effective_date: effectiveDate,
+        grade_result: gradeId,
+        additional_details: additionalDetails,
+      });
+
+      if (response?.status === "success") {
+        const isUpdate = qualificationForm.id;
+        toast.success(
+          response?.message || (isUpdate ? "Qualification updated successfully." : "Qualification added successfully.")
+        );
+        closeQualificationModal();
+        // Reload teacher profile to refresh qualifications list
+        await loadTeacherProfile();
+      } else {
+        toast.error(response?.message || "Failed to save qualification.");
+      }
+    } catch (error) {
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.response?.data?.errors?.[0] ||
+        "Failed to save qualification.";
+      console.error("Save qualification error:", error);
+      toast.error(errorMessage);
+    } finally {
+      setIsSavingQualification(false);
+    }
+  }, [
+    qualificationForm,
+    teacher?.id,
+    qualificationOptions,
+    gradeOptions,
+    closeQualificationModal,
+    loadTeacherProfile,
+  ]);
 
   const handleDownloadDocument = useCallback(async () => {
     if (!teacher?.id) return;
@@ -532,6 +736,33 @@ const TeacherProfile = () => {
   useEffect(() => {
     loadTeacherProfile();
   }, [loadTeacherProfile]);
+
+  useEffect(() => {
+    const loadQualificationOptions = async () => {
+      setIsLoadingQualificationOptions(true);
+      try {
+        const [qualResponse, gradeResponse] = await Promise.all([
+          getEducationQualifications(),
+          getEducationQualificationGrades(),
+        ]);
+
+        if (qualResponse?.status === "success" && qualResponse?.data) {
+          setQualificationOptions(qualResponse.data);
+        }
+
+        if (gradeResponse?.status === "success" && gradeResponse?.data) {
+          setGradeOptions(gradeResponse.data);
+        }
+      } catch (error) {
+        console.error("Failed to load qualification options:", error);
+        toast.error("Failed to load qualification options.");
+      } finally {
+        setIsLoadingQualificationOptions(false);
+      }
+    };
+
+    loadQualificationOptions();
+  }, []);
 
   useEffect(() => {
     if (!authState.isAuthenticated) {
@@ -729,9 +960,9 @@ const TeacherProfile = () => {
 
       const updatedProfileStatus = String(
         statusResponse?.data?.data?.profile_status ??
-          statusResponse?.data?.profile_status ??
-          statusResponse?.data?.data?.appointment?.profile_status ??
-          "",
+        statusResponse?.data?.profile_status ??
+        statusResponse?.data?.data?.appointment?.profile_status ??
+        "",
       )
         .trim()
         .toLowerCase();
@@ -749,14 +980,14 @@ const TeacherProfile = () => {
         setTeacher((prev) =>
           prev
             ? {
-                ...prev,
-                status: "Revised",
-                profileStatus: "revised",
-                revised: true,
-                rejected: false,
-                verified: false,
-                confirmed: false,
-              }
+              ...prev,
+              status: "Revised",
+              profileStatus: "revised",
+              revised: true,
+              rejected: false,
+              verified: false,
+              confirmed: false,
+            }
             : prev,
         );
       }
@@ -901,8 +1132,8 @@ const TeacherProfile = () => {
               : isDevelopmentOfficer
                 ? isRevisedStatus
                 : isDevelopmentOfficerHead &&
-                  !isPendingStatus &&
-                  !isRevisedStatus
+                !isPendingStatus &&
+                !isRevisedStatus
           }
         />
       )}
@@ -1014,7 +1245,11 @@ const TeacherProfile = () => {
             <GeneralTab teacher={teacher} onEdit={setModalSection} />
           )}
           {activeTab === "qualification" && (
-            <QualificationTab qualifications={qualifications} />
+            <QualificationTab
+              qualifications={qualifications}
+              onAddQualification={openQualificationModal}
+              onEditQualification={handleEditQualification}
+            />
           )}
           {activeTab === "employment" && (
             <EmploymentTab employment={employment} />
@@ -1035,9 +1270,9 @@ const TeacherProfile = () => {
         onSaved={async (responseData) => {
           const updatedProfileStatus = String(
             responseData?.data?.profile_status ??
-              responseData?.profile_status ??
-              responseData?.data?.appointment?.profile_status ??
-              "",
+            responseData?.profile_status ??
+            responseData?.data?.appointment?.profile_status ??
+            "",
           )
             .trim()
             .toLowerCase();
@@ -1046,14 +1281,14 @@ const TeacherProfile = () => {
             setTeacher((prev) =>
               prev
                 ? {
-                    ...prev,
-                    status: "Revised",
-                    profileStatus: "revised",
-                    revised: true,
-                    rejected: false,
-                    verified: false,
-                    confirmed: false,
-                  }
+                  ...prev,
+                  status: "Revised",
+                  profileStatus: "revised",
+                  revised: true,
+                  rejected: false,
+                  verified: false,
+                  confirmed: false,
+                }
                 : prev,
             );
           }
@@ -1081,6 +1316,18 @@ const TeacherProfile = () => {
         onChangeComment={setUpdateComment}
         onClose={closeUpdateModal}
         onSubmit={handleUpdateSubmit}
+      />
+
+      <QualificationAchievementModal
+        isOpen={isQualificationModalOpen}
+        form={qualificationForm}
+        qualificationOptions={qualificationOptions}
+        gradeOptions={gradeOptions}
+        onChange={handleQualificationFieldChange}
+        onClose={closeQualificationModal}
+        onSubmit={handleQualificationSave}
+        isSubmitting={isSavingQualification}
+        isLoadingOptions={isLoadingQualificationOptions}
       />
     </div>
   );
@@ -1514,6 +1761,8 @@ function GeneralTab({ teacher, onEdit }) {
         }
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <FieldCell label="NIC" value={teacher.nic} />
+          <FieldCell label="title" value={teacher.title_name} />
           <FieldCell label="Full Name" value={teacher.fullName} />
           <FieldCell label="Initials" value={teacher.initialsName} />
           <FieldCell label="Date of Birth" value={teacher.dob} />
@@ -1646,14 +1895,18 @@ function GeneralTab({ teacher, onEdit }) {
    TAB: Qualification (table kept, ready for API)
 ========================================================= */
 
-function QualificationTab({ qualifications }) {
+function QualificationTab({ qualifications, onAddQualification, onEditQualification }) {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
           Educational qualification
         </h2>
-        <RoundedActionButton icon={HiPlus} onClick={() => {}} variant="outline">
+        <RoundedActionButton
+          icon={HiPlus}
+          onClick={onAddQualification}
+          variant="outline"
+        >
           Add qualification
         </RoundedActionButton>
       </div>
@@ -1675,12 +1928,163 @@ function QualificationTab({ qualifications }) {
             <td className={tableCellClass}>{q.completionDate}</td>
             <td className={tableCellClass}>{q.grade}</td>
             <td className="px-5 py-4">
-              <button className={tableActionButtonClass}>Edit</button>
+              <button 
+                onClick={() => onEditQualification(q)}
+                className={tableActionButtonClass}
+              >
+                Edit
+              </button>
             </td>
           </tr>
         )}
       />
     </div>
+  );
+}
+
+function QualificationAchievementModal({
+  isOpen,
+  form,
+  qualificationOptions,
+  gradeOptions,
+  onChange,
+  onClose,
+  onSubmit,
+  isSubmitting = false,
+  isLoadingOptions = false,
+}) {
+  const isEditing = form?.id ? true : false;
+  
+  const footer = (
+    <>
+      <button
+        type="button"
+        onClick={onClose}
+        disabled={isSubmitting || isLoadingOptions}
+        className={darkSafeButtonClasses.cancel}
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        onClick={onSubmit}
+        disabled={isSubmitting || isLoadingOptions}
+        className="flex-1 rounded-xl bg-gray-900 py-2.5 text-sm font-semibold text-white shadow-lg shadow-gray-900/20 transition-colors hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {isSubmitting ? (isEditing ? "Updating..." : "Saving...") : (isEditing ? "Update Qualification" : "Save Achievement")}
+      </button>
+    </>
+  );
+
+  return (
+    <DarkSafeModal
+      isOpen={isOpen}
+      title={isEditing ? "Edit Qualification" : "Add Qualification"}
+      subtitle="Ensure dates match your certificates for verification."
+      onClose={onClose}
+      maxWidth="lg"
+      footer={footer}
+    >
+      <div className="space-y-5 animate-in fade-in zoom-in-95 duration-200">
+        <div>
+          <label className="mb-1.5 block text-xs font-semibold text-gray-600 dark:text-gray-400">
+            Qualification
+            <span className="ml-0.5 text-rose-500 dark:text-rose-400">*</span>
+          </label>
+          <select
+            className={darkSafeInputClass}
+            value={form.qualification}
+            onChange={(e) => onChange("qualification", e.target.value)}
+            disabled={isLoadingOptions || isSubmitting}
+          >
+            <option value="">
+              {isLoadingOptions ? "Loading..." : "Select Qualification"}
+            </option>
+            {qualificationOptions.map((option) => (
+              <option
+                key={option.qualifications_id}
+                value={option.qualification}
+              >
+                {option.qualification}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-xs font-semibold text-gray-600 dark:text-gray-400">
+            Institution / University
+            <span className="ml-0.5 text-rose-500 dark:text-rose-400">*</span>
+          </label>
+          <div className="relative">
+            <HiOfficeBuilding className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+            <input
+              className={`${darkSafeInputClass} pl-10`}
+              value={form.institution}
+              onChange={(e) => onChange("institution", e.target.value)}
+              placeholder="e.g. University of Colombo"
+              disabled={isLoadingOptions || isSubmitting}
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-gray-600 dark:text-gray-400">
+              Effective Date
+              <span className="ml-0.5 text-rose-500 dark:text-rose-400">*</span>
+            </label>
+            <div className="relative">
+              <HiCalendar className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+              <input
+                type="date"
+                className={`${darkSafeInputClass} pl-10`}
+                value={form.effectiveDate}
+                onChange={(e) => onChange("effectiveDate", e.target.value)}
+                placeholder="mm/dd/yyyy"
+                disabled={isLoadingOptions || isSubmitting}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-gray-600 dark:text-gray-400">
+              Grade / Result
+              <span className="ml-0.5 text-rose-500 dark:text-rose-400">*</span>
+            </label>
+            <select
+              className={darkSafeInputClass}
+              value={form.grade}
+              onChange={(e) => onChange("grade", e.target.value)}
+              disabled={isLoadingOptions || isSubmitting}
+            >
+              <option value="">
+                {isLoadingOptions ? "Loading..." : "Select Grade"}
+              </option>
+              {gradeOptions.map((option) => (
+                <option key={option.grade_id} value={option.grade}>
+                  {option.grade}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-xs font-semibold text-gray-600 dark:text-gray-400">
+            Additional Details
+          </label>
+          <textarea
+            rows={4}
+            className={darkSafeTextareaClass}
+            value={form.additionalDetails}
+            onChange={(e) => onChange("additionalDetails", e.target.value)}
+            placeholder="Major subjects, thesis title, or special awards..."
+            disabled={isLoadingOptions || isSubmitting}
+          />
+        </div>
+      </div>
+    </DarkSafeModal>
   );
 }
 
@@ -1702,7 +2106,7 @@ function EmploymentTab({ employment }) {
         title="Appointment current status"
         color="slate"
         right={
-          <RoundedActionButton onClick={() => {}} variant="outline">
+          <RoundedActionButton onClick={() => { }} variant="outline">
             Edit
           </RoundedActionButton>
         }
@@ -1744,7 +2148,7 @@ function EmploymentTab({ employment }) {
         title="My Appointment"
         color="indigo"
         right={
-          <RoundedActionButton onClick={() => {}} variant="outline">
+          <RoundedActionButton onClick={() => { }} variant="outline">
             Edit
           </RoundedActionButton>
         }
@@ -1779,7 +2183,7 @@ function EmploymentTab({ employment }) {
         title="Teaching Info"
         color="teal"
         right={
-          <RoundedActionButton onClick={() => {}} variant="outline">
+          <RoundedActionButton onClick={() => { }} variant="outline">
             Edit
           </RoundedActionButton>
         }
@@ -1824,7 +2228,7 @@ function EmploymentTab({ employment }) {
         <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
           Previous Service
         </h2>
-        <RoundedActionButton icon={HiPlus} onClick={() => {}} variant="outline">
+        <RoundedActionButton icon={HiPlus} onClick={() => { }} variant="outline">
           Previous services
         </RoundedActionButton>
       </div>
@@ -1863,7 +2267,7 @@ function EmploymentTab({ employment }) {
         <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
           Previous Service-related information
         </h2>
-        <RoundedActionButton icon={HiPlus} onClick={() => {}} variant="outline">
+        <RoundedActionButton icon={HiPlus} onClick={() => { }} variant="outline">
           Previous Record
         </RoundedActionButton>
       </div>
@@ -1939,7 +2343,7 @@ function WopTab({ wopAndPayment }) {
         <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
           W&OP & Payment Details
         </h2>
-        <RoundedActionButton onClick={() => {}} variant="outline">
+        <RoundedActionButton onClick={() => { }} variant="outline">
           Edit
         </RoundedActionButton>
       </div>
@@ -1967,7 +2371,7 @@ function FamilyTab({ family }) {
         <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
           Spouse List
         </h2>
-        <RoundedActionButton onClick={() => {}} variant="outline">
+        <RoundedActionButton onClick={() => { }} variant="outline">
           Add spouse
         </RoundedActionButton>
       </div>

@@ -52,3 +52,35 @@ export const promoteTeacher = async (id, payload = {}) => {
   const response = await api.patch(`/teachers/${id}/promote`, payload);
   return response.data;
 };
+
+/**
+ * Save teacher education qualification
+ * @param {string|number} peopleId - The teacher's people_id
+ * @param {Object} qualificationData - Qualification details (qualification, institution_university, effective_date, grade_result, additional_details)
+ * @returns {Promise} - Axios response payload
+ */
+export const saveEducationQualification = async (peopleId, qualificationData) => {
+  const response = await api.post(
+    `/teachers/${peopleId}/education-qualifications`,
+    qualificationData,
+  );
+  return response.data;
+};
+
+/**
+ * Get list of available education qualifications
+ * @returns {Promise} - Axios response payload with list of qualifications
+ */
+export const getEducationQualifications = async () => {
+  const response = await api.get("/education-qualifications");
+  return response.data;
+};
+
+/**
+ * Get list of available education qualification grades
+ * @returns {Promise} - Axios response payload with list of grades
+ */
+export const getEducationQualificationGrades = async () => {
+  const response = await api.get("/education-qualification-grades");
+  return response.data;
+};

@@ -69,9 +69,9 @@ class SubjectColorController extends Controller
 
     private function resolveConfig(): TeacherTimetableConfig
     {
-        $teacher = Auth::user();
+        $teacher = Auth::user()->teacher;
 
-        return $teacher->timetableConfig
+        return $teacher?->timetableConfig
             ?? abort(response()->json(['message' => 'Timetable not configured.'], 404));
     }
 }

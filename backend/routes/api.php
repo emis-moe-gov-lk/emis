@@ -24,8 +24,10 @@ use App\Http\Controllers\API\UserApiController;
 use App\Http\Controllers\API\UserManagementController;
 use App\Http\Controllers\API\RoleController;
 use App\Http\Controllers\API\DeoOfficerController;
+use App\Http\Controllers\API\DosAdminController;
 use App\Http\Controllers\API\MobileTeacherProfileController;
 use App\Http\Controllers\API\EmployerAppointmentConfirmationController;
+use App\Http\Controllers\API\ProfileController;
 use App\Http\Controllers\Pdf\TeacherPdf;
 
 // Route::get('/user', function (Request $request) {
@@ -62,6 +64,7 @@ Route::prefix('')->group(function () {
         Route::get('/blood-groups', 'index');        // GET (all)
         Route::put('/blood-groups/{id}', 'update');  // UPDATE (one)
     });
+
 
     Route::controller(TitleController::class)->group(function () {
         Route::get('/titles', 'index');        // GET all
@@ -116,22 +119,29 @@ Route::prefix('')->group(function () {
         Route::get('/teacher-settings', 'index');     // GET all
         Route::get('/teachers-list', 'teacherList');  // GET all teachers
         Route::post('/teacher-create', 'store');      // POST
+        Route::patch('/teachers/{people_id}', 'updateProfile');
         Route::get('/teacher/{people_id}', 'getTeacher');
         Route::get('/teachers/check-nic/{nic}', 'getTeacherWithNIC');
         Route::get('/teachers/personal-form-data', 'getPersonalFromData');
-        Route::get('/teachers/appointment-form-data', 'getAppoinmentFromData');                         // first appointment
+        Route::get('/register/appointment-form-data', 'getAppoinmentFromData');                         // first appointment
         Route::get('/teachers/current-appointment-form-data', 'getCurrentAppointmentFormData');      // current appointment (role-filtered)
         Route::post('/teachers/check-contact', 'checkContact');                                       // POST check email/phone
+        Route::post('/teachers/{people_id}/education-qualifications', 'saveEducationQualification');
+        Route::get('/education-qualifications', 'getEducationQualifications');                           // GET qualification lookup
+        Route::get('/education-qualification-grades', 'getEducationQualificationGrades');               // GET grade lookup
     });
 
     Route::controller(PrincipalApiController::class)->middleware('auth:jwt')->group(function () {
         Route::get('/principals-list', 'principalList');  // GET all principals
+        Route::post('/principal-create', 'store');
+        Route::get('/principal-recruitment-categories', 'recruitmentCategories');
         Route::get('/principal/{people_id}', 'getPrincipal');
     });
 
     Route::controller(\App\Http\Controllers\API\AlertController::class)->middleware('auth:jwt')->group(function () {
         Route::get('/alerts/counts', 'counts');
         Route::get('/alerts/pending-verification', 'pendingVerification');
+        Route::get('/alerts/revised', 'revised');
         Route::get('/alerts/pending-confirmation', 'pendingConfirmation');
         Route::get('/alerts/rejected', 'rejected');
     });
@@ -142,12 +152,19 @@ Route::prefix('')->group(function () {
         Route::patch('/employer-appointment-reject-comments/{id}', 'updateRejectComment');
         Route::patch('/teachers/{people_id}/verify', 'verify');
         Route::patch('/teachers/{people_id}/confirm', 'confirm');
+        Route::patch('/principals/{people_id}/confirm', 'confirm');
         Route::patch('/teachers/{people_id}/promote', 'promote');
         Route::patch('/teachers/{people_id}/reject', 'reject');
         Route::patch('/teachers/{people_id}/update', 'updateRejectedStatus');
         Route::patch('/teachers/{people_id}/rejected-status', 'updateRejectedStatus');
     });
 
+
+    Route::controller(DosAdminController::class)->middleware('auth:jwt')->prefix('dos-admins')->group(function () {
+        Route::get('/', 'index');         // GET all DOS admins
+        Route::post('/', 'store');        // POST register education administrator
+        Route::get('/{id}', 'show');      // GET single DOS admin profile
+    });
 
     Route::controller(DeoOfficerController::class)->middleware('auth:jwt')->prefix('deo-officers')->group(function () {
         Route::get('/', 'index');                      // GET all DEO officers
@@ -160,6 +177,10 @@ Route::prefix('')->group(function () {
 
     Route::get('/identity', AuthIdentityController::class)->middleware('auth:jwt');
     Route::get('/mobile/identity', MobileTeacherProfileController::class)->middleware('auth:jwt');
+    Route::patch('/profile', [ProfileController::class, 'update'])->middleware('auth:jwt');
+    Route::post('/profile/photo', [ProfileController::class, 'uploadPhoto']);
+    Route::patch('/profile/password', [ProfileController::class, 'changePassword'])->middleware('auth:jwt');
+    Route::post('/profile/password/complete-external', [ProfileController::class, 'completeExternalPasswordChange'])->middleware('auth:jwt');
     Route::get('/user/{people_id}', UserApiController::class)->middleware('auth:jwt');
     Route::get('/dashboard/{people_id}', DashboardController::class)->middleware('auth:jwt');
     Route::get('/pdf/teacher/{people_id}', [TeacherPdf::class, 'generateSimplePdf'])->middleware('auth:jwt');

@@ -1,0 +1,29 @@
+# playbooks/create-ansible-user.yml
+- hosts: all
+  become: true
+
+  vars:
+    ansible_public_key_path: "~/path/to/key/gha_emis_ed25519.pub"  
+    # pubkey actual path
+    # keyname should be [gha_emis_ed25519]. inventory and playbooks use this keyname.
+
+  tasks:
+    - name: Create ansible user
+      ansible.builtin.user:
+        name: ansible
+        shell: /bin/bash
+        create_home: true
+        state: present
+
+    - name: Grant passwordless sudo
+      ansible.builtin.copy:
+        dest: /etc/sudoers.d/ansible
+        content: "ansible ALL=(ALL) NOPASSWD:ALL\n"
+        mode: '0440'
+        validate: /usr/sbin/visudo -cf %s
+
+    - name: Add SSH public key
+      ansible.builtin.authorized_key:
+        user: ansible
+        key: "{{ lookup('file', ansible_public_key_path) }}"
+        state: present
