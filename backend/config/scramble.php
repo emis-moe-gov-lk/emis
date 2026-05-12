@@ -90,7 +90,7 @@ return [
      * ```
      */
     'servers' => [
-        'Production' => 'http://127.0.0.1:8000/api',
+        'Production' => 'https://api-uat.emis.moe.gov.lk/api',
     ],
 
     /**
