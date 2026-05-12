@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { AiOutlineHome } from "react-icons/ai";
 import { BsFillTagFill } from "react-icons/bs";
-import { HiShieldCheck } from "react-icons/hi";
+import { HiShieldCheck, HiRefresh } from "react-icons/hi";
 import { MdCancel, MdOutlineCancel } from "react-icons/md";
 import Header from "../components/Alert/Header";
 import AlertsOverview from "../components/Alert/AlertsOverview";
 import PendingConfirmationList from "../components/Alert/PendingConfirmationList";
 import PendingVerificationList from "../components/Alert/PendingVerificationList";
+import RevisedList from "../components/Alert/RevisedList";
 import RejectedList from "../components/Alert/RejectedList";
 import api from "@/api/axios";
 
@@ -14,6 +15,7 @@ const Alert = () => {
   const [activeTab, setActiveTab] = useState("primary");
   const [counts, setCounts] = useState({
     pending_verification: 0,
+    revised: 0,
     pending_confirmation: 0,
     rejected: 0,
   });
@@ -45,6 +47,14 @@ const Alert = () => {
       badgeColor: "bg-yellow-100 text-yellow-700",
     },
     {
+      key: "revised",
+      title: "Revised",
+      subtitle: "Profiles revised after rejection",
+      icon: <HiRefresh size={20} />,
+      badge: "REVISED",
+      badgeColor: "bg-purple-100 text-purple-700",
+    },
+    {
       key: "confirmation",
       title: "Confirmation",
       subtitle: "Identity & security checks",
@@ -68,6 +78,7 @@ const Alert = () => {
         return (
           <AlertsOverview
             pendingVerificationCount={counts.pending_verification}
+            revisedCount={counts.revised}
             pendingConfirmationCount={counts.pending_confirmation}
             rejectedCount={counts.rejected}
           />
@@ -76,6 +87,8 @@ const Alert = () => {
         return <PendingConfirmationList />;
       case "verification":
         return <PendingVerificationList />;
+      case "revised":
+        return <RevisedList />;
       case "rejection":
         return <RejectedList />;
       default:

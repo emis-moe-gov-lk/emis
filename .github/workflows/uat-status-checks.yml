@@ -1,0 +1,83 @@
+name: UAT Status Check
+run-name: "UAT Status check"
+on:
+  pull_request:
+    branches:
+      - uat
+  workflow_dispatch:
+
+jobs:
+  check-source-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify PR is from a uat-release/* branch
+        run: |
+          BRANCH="${{ github.head_ref }}"
+          if [[ "$BRANCH" != uat-release/* ]]; then
+            echo "PRs to uat must come from a uat-release/* branch. Got: $BRANCH"
+            exit 1
+          fi
+          echo "Source branch '$BRANCH' is valid."
+
+  check-versions:
+    needs: check-source-branch
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Check versions match Actions variables
+        run: |
+          FRONTEND_FILE=$(cat frontend/DEPLOY_VERSION | tr -d '[:space:]')
+          BACKEND_FILE=$(cat backend/DEPLOY_VERSION | tr -d '[:space:]')
+          UAT_FILE=$(cat UAT_VERSION | tr -d '[:space:]')
+
+          FRONTEND_VAR="${{ vars.FRONTEND_STABLE_VERSION }}"
+          BACKEND_VAR="${{ vars.BACKEND_STABLE_VERSION }}"
+          UAT_VAR="${{ vars.UAT_VERSION }}"
+
+          FAILED=0
+
+
+          # UAT_VERSION must always be bumped
+          if [ "$UAT_FILE" = "$UAT_VAR" ]; then
+            echo "UAT_VERSION ($UAT_FILE) was not bumped from the Actions variable ($UAT_VAR)"
+            FAILED=1
+          else
+            echo "UAT_VERSION ($UAT_FILE) differs from variable ($UAT_VAR) ✓"
+          fi
+
+
+          
+          # At least one of frontend or backend must be bumped
+          FRONTEND_BUMPED=0
+          BACKEND_BUMPED=0
+          if [ "$FRONTEND_FILE" != "$FRONTEND_VAR" ]; then
+            echo "frontend/DEPLOY_VERSION ($FRONTEND_FILE) differs from variable ($FRONTEND_VAR) ✓"
+            FRONTEND_BUMPED=1
+          else
+            echo "frontend/DEPLOY_VERSION ($FRONTEND_FILE) was not bumped from the Actions variable ($FRONTEND_VAR)"
+          fi
+          if [ "$BACKEND_FILE" != "$BACKEND_VAR" ]; then
+            echo "backend/DEPLOY_VERSION ($BACKEND_FILE) differs from variable ($BACKEND_VAR) ✓"
+            BACKEND_BUMPED=1
+          else
+            echo "backend/DEPLOY_VERSION ($BACKEND_FILE) was not bumped from the Actions variable ($BACKEND_VAR)"
+          fi
+
+          if [ $FRONTEND_BUMPED -eq 0 ] && [ $BACKEND_BUMPED -eq 0 ]; then
+            echo "Neither frontend nor backend DEPLOY_VERSION was bumped. At least one must be updated."
+            FAILED=1
+          fi
+
+          if [ $FAILED -ne 0 ]; then
+            echo ""
+            echo "One or more version files were not bumped. Please update them before merging."
+            exit 1
+          fi
+
+          echo ""
+          echo "All version files have been properly bumped. Good to merge!"

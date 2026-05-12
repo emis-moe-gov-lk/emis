@@ -41,6 +41,7 @@ use Illuminate\Support\Facades\Hash;
 use App\Models\EmployerCurrentAppointment;
 use App\Models\DivisionalSecretariatOffice;
 use App\Services\TeacherToPrincipalPromotionService;
+use App\Services\TeacherAccountProvisioningService;
 use App\Traits\ResolvesZonalScope;
 
 
@@ -353,7 +354,7 @@ class EmployerAppointmentConfirmationController extends Controller
             ], 500);
         }
     }
-public function confirm(Request $request, string $people_id)
+public function confirm(Request $request, string $people_id, TeacherAccountProvisioningService $teacherAccountProvisioningService)
 {
     try {
         $roles        = $this->resolvedRoles($request);
@@ -400,23 +401,62 @@ public function confirm(Request $request, string $people_id)
             }
         }
 
-        $appointment->is_confirmed = 1;
-        $appointment->save();
-        $appointment->refresh();
+        $profile = People::query()
+            ->with(['teacher', 'principal', 'user'])
+            ->where('people_id', $people_id)
+            ->first();
+
+        $profileRole = null;
+        if ($profile?->principal) {
+            $profileRole = 'principal';
+        } elseif ($profile?->teacher) {
+            $profileRole = 'teacher';
+        }
+
+        if (! $profileRole) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Profile record not found',
+            ], 404);
+        }
+
+        $provisioning = null;
+
+        DB::transaction(function () use ($appointment, $profile, $profileRole, $teacherAccountProvisioningService, &$provisioning) {
+            $appointment->is_confirmed = 1;
+            $appointment->save();
+            $appointment->refresh();
+
+            $provisioning = $teacherAccountProvisioningService->provisionFromPerson($profile, false, $profileRole);
+        });
+
+        $profileLabel = ucfirst($profileRole);
 
         return response()->json([
             'status'  => 'success',
-            'message' => 'Teacher appointment confirmed successfully',
+            'message' => $profileLabel . ' appointment confirmed successfully',
             'data'    => [
                 'appointment_id' => $appointment->appointment_id,
                 'employee_id'    => $appointment->employee_id,
                 'is_confirmed'   => (int) $appointment->is_confirmed,
                 'confirmed_by'   => $appointment->confirmed_by,
                 'confirmed_date' => $appointment->confirmed_date,
+                'profile_role' => $profileRole,
+                'login_account_provisioned' => (bool) ($provisioning['user'] ?? false),
+                'must_change_password' => (bool) ($provisioning['user']->must_change_password ?? true),
+                'identity_provider' => $provisioning['user']->identity_provider ?? 'asgardeo',
+                'identity_provider_user_id' => $provisioning['user']->identity_provider_user_id ?? null,
+                'remote_provisioning' => $provisioning['remote'] ?? null,
             ],
         ], 200);
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        return response()->json([
+            'status' => 'validation_error',
+            'message' => 'Account provisioning validation failed',
+            'errors' => $e->errors(),
+        ], 422);
     } catch (\Throwable $e) {
-        Log::error('Teacher Confirm Error', [
+        Log::error('Profile Confirm Error', [
             'people_id' => $people_id,
             'message'   => $e->getMessage(),
             'file'      => $e->getFile(),
@@ -425,7 +465,7 @@ public function confirm(Request $request, string $people_id)
 
         return response()->json([
             'status'  => 'error',
-            'message' => 'Failed to confirm teacher appointment',
+            'message' => 'Failed to confirm profile appointment',
         ], 500);
     }
 }

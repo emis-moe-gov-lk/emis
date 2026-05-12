@@ -1,5 +1,18 @@
 import api from "./axios";
 
+// Consolidated load endpoints
+export async function fetchInit() {
+    const response = await api.get("/v1/timetable/init");
+    return response.data;
+}
+
+export async function fetchWeek(weekStart) {
+    const response = await api.get("/v1/timetable/week", {
+        params: { week_start: weekStart },
+    });
+    return response.data;
+}
+
 // Subjects (global)
 export async function fetchSubjects() {
     const response = await api.get("/v1/subjects");

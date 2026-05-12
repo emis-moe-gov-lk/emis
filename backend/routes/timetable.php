@@ -9,7 +9,9 @@ use App\Http\Controllers\API\ReportController;
 use App\Http\Controllers\API\SlotController;
 use App\Http\Controllers\API\SubjectColorController;
 use App\Http\Controllers\API\SubjectController;
+use App\Http\Controllers\API\TimetableInitController;
 use App\Http\Controllers\API\TimetableSetupController;
+use App\Http\Controllers\API\TimetableWeekController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -25,6 +27,10 @@ Route::prefix('v1')->group(function () {
 
     // Teacher-scoped resources (auth resolved from JWT via Auth::user())
     Route::middleware('auth:jwt')->prefix('timetable')->group(function () {
+        // Consolidated load endpoints
+        Route::get('/init', TimetableInitController::class);
+        Route::get('/week', TimetableWeekController::class);
+
         // Current class (dashboard widget)
         Route::get('/current-class', [CurrentClassController::class, 'show']);
 

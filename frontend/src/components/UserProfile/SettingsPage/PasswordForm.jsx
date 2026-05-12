@@ -1,6 +1,12 @@
 import React, { useState } from "react";
+import toast from "react-hot-toast";
+import { useNavigate } from "react-router";
+import { changeOwnPassword } from "@/api/auth";
+import { useAuthUser } from "@/context/useAuthUser";
 
-const PasswordForm = () => {
+const PasswordForm = ({ forceMode = false }) => {
+  const navigate = useNavigate();
+  const { hydrateIdentity } = useAuthUser();
   const [formData, setFormData] = useState({
     currentPassword: "",
     newPassword: "",
@@ -12,6 +18,7 @@ const PasswordForm = () => {
     new: false,
     confirm: false,
   });
+  const [saving, setSaving] = useState(false);
 
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -21,16 +28,36 @@ const PasswordForm = () => {
     setShowPassword((prev) => ({ ...prev, [field]: !prev[field] }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (formData.newPassword !== formData.confirmPassword) {
-      alert("New password and confirm password do not match!");
+      toast.error("New password and confirm password do not match.");
       return;
     }
 
-    console.log("Password change data:", formData);
-    // Add API call here
+    setSaving(true);
+    try {
+      await changeOwnPassword({
+        current_password: formData.currentPassword,
+        new_password: formData.newPassword,
+        new_password_confirmation: formData.confirmPassword,
+      });
+      await hydrateIdentity();
+      toast.success("Password changed successfully.");
+      setFormData({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+      if (forceMode) {
+        navigate("/dashboard", { replace: true });
+      }
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Failed to change password.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -48,6 +75,7 @@ const PasswordForm = () => {
             name="currentPassword"
             value={formData.currentPassword}
             onChange={handleChange}
+            disabled={saving}
             className="w-full border border-gray-300 rounded-md p-2 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-400"
             placeholder="Enter current password"
           />
@@ -72,6 +100,7 @@ const PasswordForm = () => {
             name="newPassword"
             value={formData.newPassword}
             onChange={handleChange}
+            disabled={saving}
             className="w-full border border-gray-300 rounded-md p-2 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-400"
             placeholder="Enter new password"
           />
@@ -96,6 +125,7 @@ const PasswordForm = () => {
             name="confirmPassword"
             value={formData.confirmPassword}
             onChange={handleChange}
+            disabled={saving}
             className="w-full border border-gray-300 rounded-md p-2 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-400"
             placeholder="Confirm new password"
           />
@@ -111,9 +141,10 @@ const PasswordForm = () => {
 
       <button
         type="submit"
+        disabled={saving}
         className="bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800 transition"
       >
-        Update Password
+        {saving ? "Updating..." : "Update Password"}
       </button>
     </form>
   );

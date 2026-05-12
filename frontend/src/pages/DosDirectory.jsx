@@ -34,7 +34,7 @@ export default function DosDirectory() {
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto min-h-screen">
+    <div className="p-4 md:p-8 w-full px-4 sm:px-6 lg:px-8 mx-auto min-h-screen">
       <DosHeader
         count={employees.length}
         onSearch={() => setShowSearch(true)}

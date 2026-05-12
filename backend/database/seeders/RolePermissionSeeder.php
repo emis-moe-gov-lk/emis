@@ -781,8 +781,152 @@ class RolePermissionSeeder extends Seeder
 
             "zonal.view",
             "zonaladmin.view",
-            "zonaldeo.view"
+            "zonaldeo.view",
 
+
+
+
+            "menu.alerts",
+    "alerts.profile.view",
+    "alerts.profile-verify.view",
+   "alerts.profile-revise.view",
+    "alerts.profile-confirm.view",
+    "alerts.profile-reject.view",
+
+   "menu.roles",
+    "roles.create",
+    "roles.edit",
+    "roles.delete",
+
+
+"menu.maintable",
+
+   "menu.attendance",
+     "attendance.manage.update",
+
+
+     "cadre-dms-approved.add",
+     "cadre-dms-approved.edit",
+    "menu.approved-cader",
+
+  
+     "menu.dashboard",
+     "dashboard.myprofile",
+    "dashboard.calendar",
+    "dashboard.analytics",
+    "dashboard.geographic-moreview",
+
+
+     "dos.bulk.upload",
+   "dos.create",
+"dos.delete",
+  "menu.dos",
+    "dos.profile.confirm",
+  "dos.update",
+    "dos.profile.verify",
+
+  "institution.create",
+    "institution.profile.view",
+    "menu.institution",
+    "institution.profile.report-module.pdf",
+     "institution.basic_information.update",
+ 
+   
+
+    "mso.bulk.upload",
+     "mso.create",
+    "mso.delete",
+     "menu.mso",
+   "mso.update",
+
+  "my-profile.view",
+    "my-profile.update",
+     "my-profile.verify",
+
+   "menu.office",
+     "menu.office.overview",
+    "menu.office.moe",
+    "menu.office.zeo",
+    "menu.office.deo",
+    "menu.office.pmoe",
+    "menu.office.peo",
+  
+
+
+     "principal.bulk.upload",
+    "principal.create",
+    "principal.delete",
+    "menu.schools.principals",
+    "principal.update",
+    "principal.profile.view",
+   "principal.profile.edit.view",
+   "principal.profile.edit-request.view",
+    "principal.profile.qualification.view",
+    "principal.profile.employment.view",
+    "principal.profile.employment.previous-service.create",
+    "principal.profile.employment.previous-record.view",
+     "principal.profile.pension-and-payment.update",
+   "principal.profile.family.create",
+
+
+ "menu.students",
+
+    "menu.schools",
+    "menu.schools.teachers",
+   "menu.schools.principals",
+   "menu.schools.deo",
+    "menu.schools.clerk",
+     "teacher.bulk.upload",
+    "teacher.create",
+     "teacher.delete",
+    "teacher.profile.confirm",
+    "teacher.profile.view",
+    "teacher.update",
+    "teacher.profile.printid",
+   "teacher.profile.exportpdf",
+    "teacher.profile.promote",
+    "teacher.profile.edit-request.view",
+    "teacher.profile.edit.view",
+    "teacher.profile.qualification.view",
+    "teacher.profile.employment.view",
+     "teacher.profile.employment.previous-service.create",
+    "teacher.profile.employment.previous-record.view",
+    "teacher.profile.pension-and-payment.update",
+    "teacher.profile.family.create",
+  
+    
+"menu.division",
+
+"menu.zonal",
+   "menu.zonal.admin",
+    "menu.zonal.deo",
+    "zonal.create",
+    "zonal.profile.view",
+
+
+ "menu.provincial",
+ 
+ "menu.moe",
+
+  "user.create",
+   "user.delete",
+   "user.edit",
+     "menu.users",
+     "user.update",
+
+ "menu.inbox",
+    
+ "menu.admin",
+
+  "menu.timetable",
+
+  "menu.settings.system-settings",
+    "menu.settings.version",
+    "menu.settings.notifications",
+    "menu.settings.privacy",
+    "settings.version.add",
+    "settings.version.delete",
+   "settings.version.edit",
          
         ];
 

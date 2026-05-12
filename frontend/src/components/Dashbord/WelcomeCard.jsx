@@ -2,14 +2,35 @@ import welcomeImage from "/welcome.png";
 
 import Can from "@/components/common/Can";
 import { PermissionGroups } from "@/data/permissionGroups";
+import { useAuthUser } from "@/context/useAuthUser";
 
 const WelcomeCard = ({ user, people }) => {
   console.log("WelcomeCard received user:", user);
+  const { roles: authRoles = [], workplace: authWorkplace = null } = useAuthUser();
   const today = new Date().toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
     day: "numeric",
   });
+
+  const roles = Array.isArray(user?.roles) && user.roles.length ? user.roles : authRoles;
+  const isZonalDeo = roles.some(
+    (role) => String(role).trim().toLowerCase() === "zonal deo",
+  );
+
+  const zonalEducationOffice =
+    authWorkplace?.zonal_education_office ??
+    user?.workplace?.zonal_education_office ??
+    null;
+
+  const provinceName =
+    zonalEducationOffice?.province_name ??
+    zonalEducationOffice?.district?.province?.name ??
+    zonalEducationOffice?.district?.province?.province_name ??
+    "";
+
+  const zoneName =
+    zonalEducationOffice?.short_name ?? zonalEducationOffice?.name ?? "";
 
   return (
     <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-[#635BFF] via-[#564df0] to-[#4338ca] p-10 shadow-2xl shadow-indigo-200 text-white">
@@ -26,24 +47,49 @@ const WelcomeCard = ({ user, people }) => {
             <br /> {user?.name}!
           </h3>
 
+          {isZonalDeo && (provinceName || zoneName) && (
+            <div className="grid gap-3 sm:grid-cols-2 max-w-xl">
+              {provinceName && (
+                <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 backdrop-blur-md">
+                  <p className="text-[0.65rem] font-bold uppercase tracking-[0.28em] text-indigo-100/90">
+                    Province
+                  </p>
+                  <p className="mt-1 text-base font-semibold text-white">
+                    {provinceName}
+                  </p>
+                </div>
+              )}
+              {zoneName && (
+                <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 backdrop-blur-md">
+                  <p className="text-[0.65rem] font-bold uppercase tracking-[0.28em] text-indigo-100/90">
+                    Zone
+                  </p>
+                  <p className="mt-1 text-base font-semibold text-white">
+                    {zoneName}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Profile Status */}
-          <p className="text-indigo-100 text-lg font-medium max-w-md opacity-90">
+          {/* <p className="text-indigo-100 text-lg font-medium max-w-md opacity-90">
             Your profile{" "}
             <span className="text-white underline decoration-teal-400 underline-offset-4">
               {people?.appointment?.is_verified ? "Verified" : "Not Verified"}
             </span>
             . Please check your profile and update your information if needed.
-          </p>
+          </p> */}
 
           {/* Button */}
-          <Can permission={PermissionGroups.DASHBOARD.VIEW_MYPROFILE}>
+          {/* <Can permission={PermissionGroups.DASHBOARD.VIEW_MYPROFILE}>
             <a
               href="/dashboard/profile"
               className="bg-white text-indigo-600 px-6 py-3 rounded-xl font-bold text-sm hover:bg-indigo-50 transition-colors shadow-lg"
             >
               👤 My Profile
             </a>
-          </Can>
+          </Can> */}
         </div>
 
         {/* Image */}

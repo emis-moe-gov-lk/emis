@@ -9,7 +9,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
+use App\Services\TeacherAccountProvisioningService;
 
 class ProfileController extends Controller
 {
@@ -19,8 +22,7 @@ class ProfileController extends Controller
     // -------------------------------------------------------
     public function update(Request $request)
     {
-        $email = $request->attributes->get('jwt_email');
-        $user  = User::where('email', $email)->first();
+        $user = $request->user() ?: User::where('email', $request->attributes->get('jwt_email'))->first();
 
         if (! $user) {
             return response()->json([
@@ -90,8 +92,7 @@ class ProfileController extends Controller
     // -------------------------------------------------------
     public function changePassword(Request $request)
 {
-    $email = $request->attributes->get('jwt_email');
-    $user  = User::where('email', $email)->first();
+    $user  = $request->user() ?: User::where('email', $request->attributes->get('jwt_email'))->first();
 
     if (! $user) {
         return response()->json([
@@ -103,7 +104,7 @@ class ProfileController extends Controller
     try {
         $validated = $request->validate([
             'current_password' => 'required|string',
-            'new_password'     => 'required|string|min:8|',
+            'new_password'     => ['required', 'string', 'confirmed', Password::defaults()],
         ]);
 
         if (!Hash::check($validated['current_password'], $user->password)) {
@@ -121,7 +122,9 @@ class ProfileController extends Controller
         }
 
         $user->update([
-            'password' => Hash::make($validated['new_password'])
+            'password' => Hash::make($validated['new_password']),
+            'must_change_password' => false,
+            'password_changed_at' => now(),
         ]);
 
         return response()->json([
@@ -143,4 +146,92 @@ class ProfileController extends Controller
         ], 500);
     }
 }
+
+    // -------------------------------------------------------
+    // POST /profile/photo
+    // Upload or replace the authenticated user's profile photo.
+    // -------------------------------------------------------
+    public function uploadPhoto(Request $request)
+    {
+        $user = $request->user() ?: User::where('email', $request->attributes->get('jwt_email'))->first();
+
+        if (! $user) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'User not found',
+            ], 404);
+        }
+
+        try {
+            $request->validate([
+                'photo' => 'required|file|mimes:jpeg,jpg,png,webp|max:2048',
+            ]);
+
+            $disk = config('filesystems.profile_photo_disk', 'public');
+
+            // Delete existing photo if it's not the default
+            $existing = $user->profile_picture;
+            if ($existing && $existing !== 'default.png') {
+                $existingPath = 'profile-photos/' . $existing;
+                if (Storage::disk($disk)->exists($existingPath)) {
+                    Storage::disk($disk)->delete($existingPath);
+                }
+            }
+
+            $file     = $request->file('photo');
+            $filename = ($user->people_id ?? $user->id) . '_' . time() . '.' . $file->getClientOriginalExtension();
+            $path     = $file->storeAs('profile-photos', $filename, $disk);
+
+            DB::transaction(function () use ($user, $filename) {
+                $user->update(['profile_picture' => $filename]);
+
+                if ($user->people_id) {
+                    People::where('people_id', $user->people_id)
+                        ->update(['profile_picture' => $filename]);
+                }
+            });
+
+            $url = Storage::disk($disk)->url('profile-photos/' . $filename);
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Profile photo updated successfully',
+                'data'    => [
+                    'profile_picture' => $filename,
+                    'url'             => $url,
+                ],
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'status' => 'validation_error',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Throwable $e) {
+            Log::error('Profile photo upload error', ['message' => $e->getMessage()]);
+
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Failed to upload profile photo',
+            ], 500);
+        }
+    }
+
+    public function completeExternalPasswordChange(Request $request, TeacherAccountProvisioningService $teacherAccountProvisioningService)
+    {
+        $user = $request->user() ?: User::where('email', $request->attributes->get('jwt_email'))->first();
+
+        if (! $user) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'User not found',
+            ], 404);
+        }
+
+        $teacherAccountProvisioningService->completePasswordChange($user);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Password change status updated successfully',
+        ]);
+    }
 }

@@ -1,14 +1,12 @@
 import React from "react";
-import { HiBell, HiSearch } from "react-icons/hi";
 import Logo from "../../assets/images/Emblem_of_Sri_Lanka.svg";
-import { TextInput, Tooltip } from "flowbite-react";
-import { FiGrid } from "react-icons/fi";
+import AccountActions from "./AccountActions";
 
 const Header = ({ isCollapsed }) => {
   return (
     <header className="sticky top-0 z-20 hidden lg:flex h-16 items-center justify-between surface-shell border-b">
       <div className="flex items-center gap-3">
-        <div className="w-8 h-8 lg:w-10 lg:h-10 flex items-center justify-center rounded-xl shadow-sm surface border">
+        <div className="w-8 h-8 lg:w-10 lg:h-10 flex items-center justify-center ">
           <img
             src={Logo}
             alt="Emblem"
@@ -23,36 +21,10 @@ const Header = ({ isCollapsed }) => {
             </p>
           </div>
         )}
-
-        <div className="relative hidden md:block">
-          <TextInput
-            type="search"
-            icon={HiSearch}
-            placeholder="Search..."
-            className="w-64 [&_input]:bg-white dark:[&_input]:bg-gray-800 [&_input]:rounded-full [&_input]:border-transparent [&_input]:focus:border-blue-500 [&_input]:focus:ring-blue-500/20"
-          />
-        </div>
       </div>
-      {/* <h1 className="text-xl font-bold tracking-tight text-foreground capitalize">
-          {pageTitle}
-        </h1> */}
 
       <div className="flex items-center gap-2">
-          <Tooltip content="Notifications">
-          <button className="relative p-3 rounded-xl hover:cursor-pointer hover:bg-gray-200 dark:hover:bg-white/5 text-foreground transition-colors focus-ring">
-            <HiBell className="w-5 h-5 opacity-70" />
-            <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full ring-2 ring-background"></span>
-          </button>
-        </Tooltip>
-        {/* Divider */}
-        <button className="p-3 rounded-xl hover:bg-gray-200 dark:hover:bg-white/5 text-foreground transition-colors focus-ring">
-          <FiGrid
-            className="text-gray-500 hover:text-gray-700 cursor-pointer"
-            size={18}
-          />
-        </button>
-        {/* <div className="h-6 w-px bg-border mx-1"></div>
-          <LogoutButton /> */}
+        <AccountActions layout="sidebar" />
       </div>
     </header>
   );
