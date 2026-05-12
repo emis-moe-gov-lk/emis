@@ -67,10 +67,7 @@ const AlertsOverview = ({
           <span className="text-sm font-semibold text-purple-700 mt-2 mb-2">
             Revised
           </span>
-          <a
-            href="/alerts/revised"
-            className="mt-2 w-full flex justify-center"
-          >
+          <a href="/alerts/revised" className="mt-2 w-full flex justify-center">
             <button className="bg-purple-500 hover:bg-purple-600 text-white py-1 px-4 rounded text-sm font-bold">
               View
             </button>

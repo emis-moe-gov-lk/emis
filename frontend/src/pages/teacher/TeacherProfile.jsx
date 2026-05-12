@@ -1902,11 +1902,7 @@ function QualificationTab({ qualifications, onAddQualification, onEditQualificat
         <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
           Educational qualification
         </h2>
-        <RoundedActionButton
-          icon={HiPlus}
-          onClick={onAddQualification}
-          variant="outline"
-        >
+        <RoundedActionButton icon={HiPlus} onClick={() => {}} variant="outline">
           Add qualification
         </RoundedActionButton>
       </div>
@@ -2106,7 +2102,7 @@ function EmploymentTab({ employment }) {
         title="Appointment current status"
         color="slate"
         right={
-          <RoundedActionButton onClick={() => { }} variant="outline">
+          <RoundedActionButton onClick={() => {}} variant="outline">
             Edit
           </RoundedActionButton>
         }
@@ -2148,7 +2144,7 @@ function EmploymentTab({ employment }) {
         title="My Appointment"
         color="indigo"
         right={
-          <RoundedActionButton onClick={() => { }} variant="outline">
+          <RoundedActionButton onClick={() => {}} variant="outline">
             Edit
           </RoundedActionButton>
         }
@@ -2183,7 +2179,7 @@ function EmploymentTab({ employment }) {
         title="Teaching Info"
         color="teal"
         right={
-          <RoundedActionButton onClick={() => { }} variant="outline">
+          <RoundedActionButton onClick={() => {}} variant="outline">
             Edit
           </RoundedActionButton>
         }
@@ -2228,7 +2224,7 @@ function EmploymentTab({ employment }) {
         <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
           Previous Service
         </h2>
-        <RoundedActionButton icon={HiPlus} onClick={() => { }} variant="outline">
+        <RoundedActionButton icon={HiPlus} onClick={() => {}} variant="outline">
           Previous services
         </RoundedActionButton>
       </div>
@@ -2267,7 +2263,7 @@ function EmploymentTab({ employment }) {
         <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
           Previous Service-related information
         </h2>
-        <RoundedActionButton icon={HiPlus} onClick={() => { }} variant="outline">
+        <RoundedActionButton icon={HiPlus} onClick={() => {}} variant="outline">
           Previous Record
         </RoundedActionButton>
       </div>
@@ -2343,7 +2339,7 @@ function WopTab({ wopAndPayment }) {
         <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
           W&OP & Payment Details
         </h2>
-        <RoundedActionButton onClick={() => { }} variant="outline">
+        <RoundedActionButton onClick={() => {}} variant="outline">
           Edit
         </RoundedActionButton>
       </div>
@@ -2371,7 +2367,7 @@ function FamilyTab({ family }) {
         <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
           Spouse List
         </h2>
-        <RoundedActionButton onClick={() => { }} variant="outline">
+        <RoundedActionButton onClick={() => {}} variant="outline">
           Add spouse
         </RoundedActionButton>
       </div>

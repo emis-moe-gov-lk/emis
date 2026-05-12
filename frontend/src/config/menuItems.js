@@ -20,7 +20,7 @@ export const menuItems = [
         label: "Dashboard",
         icon: HiChartPie,
         to: "/dashboard",
-        permission: "dashboard.view",
+        permission: "menu.dashboard",
       },
 
       {
@@ -28,14 +28,14 @@ export const menuItems = [
         label: "Alerts",
         icon: HiShieldCheck,
         to: "/alert",
-        permission: "alerts.view",
+        permission: "menu.alerts",
       },
       {
         id: "institution",
         label: "Institution",
         icon: MdHomeWork,
         to: "/institution",
-        permission: "institution.view",
+        permission: "menu.institution",
       },
     ],
   },
@@ -47,7 +47,7 @@ export const menuItems = [
         label: "Roles",
         icon: HiUser,
         to: "/roles",
-        permission: "roles.view",
+        permission: "menu.roles",
       },
 
       {
@@ -55,21 +55,21 @@ export const menuItems = [
         label: "Main Table",
         icon: HiBuildingLibrary,
         to: "/maintable",
-        permission: "maintable.view",
+        permission: "menu.maintable",
       },
       {
         id: "Users",
         label: "Users",
         icon: HiUserGroup,
         to: "/users",
-        permission: "user.list.view",
+        permission: "menu.users",
       },
       {
         id: "DMSApprovedCader",
         label: "DMS Approved Cader",
         icon: HiUserGroup,
         to: "/dmsapprovedcader",
-        permission: "cadre-dms-approved.index.view",
+        permission: "menu.approved-cader",
       },
     ],
   },
@@ -80,48 +80,49 @@ export const menuItems = [
         id: "offices",
         label: "Offices",
         icon: HiBuildingOffice,
+        permission: "menu.office",
         children: [
           {
             id: "overview",
             label: "Overview",
             to: "/offices/overview",
-            anyPermissions: [
-              "office.overview",
-              // "office.pmoe.list.view",
-              // "office.peo.list.view",
-              // "office.zeo.list.view",
-              // "office.deo.list.view",
+            Permissions: [
+              "menu.office.overview",
+              // "menu.office.pmoe.list.view",
+              // "menu.office.peo.list.view",
+              // "menu.office.zeo.list.view",
+              // "menu.office.deo.list.view",
             ],
           },
           {
             id: "ministry",
             label: "Ministry of Education",
             to: "/offices/moe",
-            permission: "office.moe",
+            permission: "menu.office.moe",
           },
           {
             id: "provincial",
             label: "Provincial Ministry",
             to: "/offices/pmoe",
-            permission: "office.pmoe",
+            permission: "menu.office.pmoe",
           },
           {
             id: "provincial_office",
             label: "Provincial Office",
             to: "/offices/peo",
-            permission: "office.peo",
+            permission: "menu.office.peo",
           },
           {
             id: "zonal",
             label: "Zonal Office",
             to: "/offices/zeo",
-            permission: "office.zeo",
+            permission: "menu.office.zeo",
           },
           {
             id: "divisional",
             label: "Divisional Office",
             to: "/offices/deo",
-            permission: "office.deo",
+            permission: "menu.office.deo",
           },
         ],
       },
@@ -134,31 +135,31 @@ export const menuItems = [
         id: "schools",
         label: "Schools",
         icon: HiUserGroup,
-        permission: "school.view",
+        permission: "menu.schools",
         children: [
           {
             id: "teacher",
             label: "Teachers",
             to: "/employees/teacher",
-            permission: "teacher.view",
+            permission: "menu.schools.teachers",
           },
           {
             id: "principal",
             label: "Principals",
               to: "/employees/principal",
-              permission: "principal.view",
+              permission: "menu.schools.principals",
           },
           {
             id: "schooldeo",
             label: "School DEO",
             to: "/schools/schooldeo",
-            permission: "schooldeo.view",
+            permission: "menu.schools.deo",
           },
           {
             id: "schoolclerks",
             label: "School Clerks",
             to: "/schools/schoolclerks",
-            permission: "schoolclerk.view",
+            permission: "menu.schools.clerk",
           },
 
         ],
@@ -168,13 +169,13 @@ export const menuItems = [
         id: "division",
         label: "Division",
         icon: HiUserGroup,
-        permission: "division.view",
+        permission: "menu.division",
         children: [
           {
             id: "divisiondirector",
             label: "Division Director",
             to: "/employees/divisiondirector",
-            permission: "divisiondirector.view",
+            permission: "menu.division.admin",
           },
           // {
           //   id: "divisionhead",
@@ -196,20 +197,22 @@ export const menuItems = [
         id: "zonal",
         label: "Zonal",
         icon: HiUserGroup,
-        permission: "zonal.view",
+        permission: "menu.zonal",
         children: [
           {
             id: "zonaldirector",
             label: "Zonal Administrators",
-            to: "/employees/zonaldirector",
-            permission: "zonaladmin.view",
+            to: "/employees/edu-directors",
+            permission: "menu.zonal.admin",
           },
-          {
+
+            {
             id: "zonaldeo",
             label: "Zonal Deo",
             to: "/employees/development-officers",
-            permission: "zonaldeo.view",
+            permission: "menu.zonal.deo",
           },
+
           // {
           //   id: "zonalclerk",
           //   label: "Zonal Clerk",
@@ -224,13 +227,13 @@ export const menuItems = [
         id: "provincial",
         label: "Provincial",
         icon: HiUserGroup,
-        permission: "provincial.view",
+        permission: "menu.provincial",
         children: [
           {
             id: "provincialdirector",
             label: "Provincial Director",
             to: "/employees/provincialdirector",
-            permission: "provincialdirector.view",
+            permission: "menu.provincial.admin",
           },
           // {
           //   id: "provincialhead",
@@ -252,13 +255,13 @@ export const menuItems = [
         id: "moe",
         label: "MOE",
         icon: HiUserGroup,
-        permission: "moe.view",
+        permission: "menu.moe",
         children: [
           {
             id: "moedirector",
             label: "MOE Director",
             to: "/employees/moedirector",
-            permission: "moedirector.view",
+            permission: "menu.moe.admin",
           },
           
         ],
@@ -275,14 +278,14 @@ export const menuItems = [
         label: "Inbox",
         icon: HiInbox,
         to: "/message",
-        permission: "inbox.overview.view",
+        permission: "menu.inbox",
       },
       {
         id: "admin",
         label: "Admin",
         icon: HiShieldCheck,
         to: "/admin",
-        permission: "admin.overview.view",
+        permission: "menu.admin",
       },
 
       {
@@ -290,7 +293,7 @@ export const menuItems = [
         label: "Time Table",
         icon: HiCalendar,
         to: "/timetable/weekly",
-        permission: "timetable.overview.view",
+        permission: "menu.timetable",
       },
       {
         id: "settings",
@@ -301,21 +304,25 @@ export const menuItems = [
             id: "system-settings",
             label: "System Settings",
             to: "/dashboard/settings",
+            permission: "menu.settings.system-settings",
           },
           {
             id: "version",
             label: "Version",
             to: "/dashboard/versionpage",
+            permission: "menu.settings.version",
           },
           {
             id: "notifications",
             label: "Notifications",
             to: "/dashboard/settings/notifications",
+            permission: "menu.settings.notifications",
           },
           {
             id: "privacy",
             label: "Privacy",
             to: "/dashboard/settings/privacy",
+            permission: "menu.settings.privacy",
           },
         ],
       },

@@ -3,11 +3,12 @@ import { FiMail, FiPhone } from "react-icons/fi";
 import { HiOutlineDotsVertical } from "react-icons/hi";
 import profileMale from "../../assets/images/profile_m.png";
 import profileFemale from "../../assets/images/profile_f.png";
-import { useNavigate } from "react-router";
+import { useNavigate, useLocation } from "react-router";
 
 export default function DosCard({ employee }) {
-  console.log("Employee Data in DosCard:", employee);
   const navigate = useNavigate();
+  const location = useLocation();
+  const basePath = location.pathname.replace(/\/$/, "");
 
   return (
     <div className="group relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 flex flex-col lg:flex-row lg:items-center gap-6 hover:shadow-lg transition-all">
@@ -38,16 +39,18 @@ export default function DosCard({ employee }) {
             Position & Service
           </p>
           <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
-            {employee.current_appointment.position.position_name}
+            {employee.current_appointment?.position?.position_name ?? "—"}
           </p>
-          <p className="text-xs text-slate-500">{employee.service}</p>
+          <p className="text-xs text-slate-500">
+            {employee.current_appointment?.service?.service_name ?? "—"}
+          </p>
         </div>
         <div>
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
             Workplace Address
           </p>
           <p className="text-sm font-semibold text-slate-600 dark:text-slate-400 truncate">
-            {employee.office}
+            {employee.current_appointment?.workplace?.name ?? "—"}
           </p>
           <p className="text-[11px] text-indigo-400 font-medium">
             {employee.address_line1 || "Address not listed"}
@@ -76,7 +79,7 @@ export default function DosCard({ employee }) {
       {/* Actions */}
       <div className="flex items-center gap-2 lg:ml-auto">
         <button
-          onClick={() => navigate(`/dashboard/profile/${employee.people_id}`)}
+          onClick={() => navigate(`${basePath}/${employee.people_id}`)}
           className="bg-slate-900 text-white px-4 py-2 rounded-xl font-bold hover:bg-slate-800 transition"
         >
           View
@@ -90,7 +93,7 @@ export default function DosCard({ employee }) {
             <Menu.Item>
               {({ active }) => (
                 <a
-                  href={`/print-id/${employee.id}`}
+                  href={`/print-id/${employee.people_id}`}
                   className={`${
                     active ? "bg-slate-100 dark:bg-slate-700" : ""
                   } flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-200`}
@@ -102,7 +105,7 @@ export default function DosCard({ employee }) {
             <Menu.Item>
               {({ active }) => (
                 <a
-                  href={`/export-pdf/${employee.id}`}
+                  href={`/export-pdf/${employee.people_id}`}
                   className={`${
                     active ? "bg-slate-100 dark:bg-slate-700" : ""
                   } flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-200`}

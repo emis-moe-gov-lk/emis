@@ -24,6 +24,7 @@ import TeacherList from "@/pages/teacher/TeacherList";
 import TeacherProfile from "@/pages/teacher/TeacherProfile";
 import PrincipalList from "@/pages/principal/PrincipalList";
 import PrincipalProfile from "@/pages/principal/PrincipalProfile";
+import RegPrincipal from "@/pages/principal/RegPrincipal";
 
 import OfficesOverview from "@/pages/offices/OfficesOverview";
 import MoeOfficeList from "@/pages/offices/MoeOfficeList";
@@ -61,6 +62,7 @@ import DosDirectory from "../pages/DosDirectory.jsx";
 import DosBulkUpload from "../pages/dos/DosBulkUpload.jsx";
 import RegDos from "../pages/dos/RegDos.jsx";
 import DosList from "../components/dos/DosList.jsx";
+import DosAdminProfile from "../pages/dos/DosAdminProfile.jsx";
 
 export default function AppRoutes() {
   return (
@@ -216,12 +218,23 @@ export default function AppRoutes() {
               <Route index element={<DosDirectory />} />
               <Route path="bulk-upload" element={<DosBulkUpload />} />
               <Route path="create" element={<RegDos />} />
+              <Route path=":id" element={<DosAdminProfile />} />
             </Route>
-            <Route
-              path="employees/development-officers"
-              element={<DosDirectory />}
-            />
+            <Route path="employees/edu-directors">
+              <Route index element={<DosDirectory />} />
+              <Route path="bulk-upload" element={<DosBulkUpload />} />
+              <Route path="create" element={<RegDos />} />
+              <Route path=":id" element={<DosAdminProfile />} />
+            </Route>
+
+            <Route path="employees/zonaldirector">
+              <Route index element={<DosDirectory />} />
+              <Route path="bulk-upload" element={<DosBulkUpload />} />
+              <Route path="create" element={<RegDos />} />
+              <Route path=":id" element={<DosAdminProfile />} />
+            </Route>
             <Route path="employees/principal" element={<PrincipalList />} />
+            <Route path="employees/principal/create" element={<RegPrincipal />} />
             <Route
               path="employees/principal/:id"
               element={<PrincipalProfile />}
@@ -235,6 +248,9 @@ export default function AppRoutes() {
             <Route path="offices/overview" element={<OfficesOverview />} />
           </Route>
         </Route>
+
+
+          
 
         {/* Errors */}
         <Route path="/not-authorized" element={<NotAuthorizedPage />} />

@@ -1,5 +1,5 @@
-name: Deploy on Change
-run-name: "Deploy to UAT — v${{ vars.APP_VERSION }}"
+name: Deploy to UAT
+run-name: "Deploy to UAT — v${{ vars.UAT_VERSION }}"
 
 on:
   push:
@@ -68,40 +68,33 @@ jobs:
       # ------------------------------------------------
       # Ansible — deploy to UAT server
       # ------------------------------------------------
-      - name: Install Ansible
+      - name: Install Ansible collections
+        run: ansible-galaxy collection install community.general
+
+      - name: Write secrets to disk
         run: |
-          sudo apt-get update -y
-          sudo apt-get install -y ansible
-
-      - name: Write vault password
-        run: echo "${{ secrets.ANSIBLE_VAULT_PASSWORD }}" > infrastructure/ansible/.vault_pass
-        # File is written and lives only for the duration of this job runner
-
-      - name: Write SSH private key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/gha_emis_ed25519
-          chmod 600 ~/.ssh/gha_emis_ed25519
-
-      - name: Write actual inventory # stored in GHA Secrets
-        run: echo "${{ secrets.UAT_INVENTORY }}" > infrastructure/ansible/inventory/uat.yml
-      
-      - name: Write actual vars.yml # stored in GHA Secrets
-        run: echo "${{ secrets.ANSIBLE_VARS }}" > infrastructure/ansible/vars.yml
+          echo "${{ secrets.ANSIBLE_VAULT_PASSWORD }}" > infrastructure/ansible/.vault_pass
+          echo "${{ secrets.UAT_INVENTORY }}" > infrastructure/ansible/inventory/hosts.yml
+          echo "${{ secrets.ANSIBLE_VARS }}" > infrastructure/ansible/vars.yml
+        # Files are written to disk and lives only for the duration of this job runner. 
+        
+      - name: Configure SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }} # stored in GHA Secrets
 
       - name: Run deploy-frontend playbook
+        env:
+          ANSIBLE_CONFIG: infrastructure/ansible/ansible.cfg
         run: |
           ansible-playbook infrastructure/ansible/playbooks/deploy-frontend.yml \
-            -i infrastructure/ansible/inventory/uat.yml \
-            --vault-password-file infrastructure/ansible/.vault_pass \
             -e "varsfl_frontend_dockerimg_tag=${{ steps.version.outputs.value }}"
 
       - name: Cleanup secrets
         if: always()   # runs even if playbook fails
         run: |
           rm -f infrastructure/ansible/.vault_pass
-          rm -f ~/.ssh/id_rsa
-          rm -f infrastructure/ansible/inventory/uat.yml
+          rm -f infrastructure/ansible/inventory/hosts.yml
           rm -f infrastructure/ansible/vars.yml
 
   deploy-backend:
@@ -144,41 +137,35 @@ jobs:
       # ------------------------------------------------
       # Ansible — deploy to UAT server
       # ------------------------------------------------
-      - name: Install Ansible
+      - name: Install Ansible collections
+        run: ansible-galaxy collection install community.general
+
+      - name: Write secrets to disk
         run: |
-          sudo apt-get update -y
-          sudo apt-get install -y ansible
-
-      - name: Write vault password
-        run: echo "${{ secrets.ANSIBLE_VAULT_PASSWORD }}" > infrastructure/ansible/.vault_pass
-
-      - name: Write SSH private key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/gha_emis_ed25519
-          chmod 600 ~/.ssh/gha_emis_ed25519
-
-      - name: Write actual inventory
-        run: echo "${{ secrets.UAT_INVENTORY }}" > infrastructure/ansible/inventory/uat.yml
-
-      - name: Write vars.yml
-        run: echo "${{ secrets.ANSIBLE_VARS }}" > infrastructure/ansible/vars.yml
+          echo "${{ secrets.ANSIBLE_VAULT_PASSWORD }}" > infrastructure/ansible/.vault_pass
+          echo "${{ secrets.UAT_INVENTORY }}" > infrastructure/ansible/inventory/hosts.yml
+          echo "${{ secrets.ANSIBLE_VARS }}" > infrastructure/ansible/vars.yml
+        # Files are written to disk and lives only for the duration of this job runner. 
+          
+      - name: Configure SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
       - name: Run deploy-backend playbook
+        env:
+          ANSIBLE_CONFIG: infrastructure/ansible/ansible.cfg
         run: |
           ansible-playbook infrastructure/ansible/playbooks/deploy-backend.yml \
-            -i infrastructure/ansible/inventory/uat.yml \
-            --vault-password-file infrastructure/ansible/.vault_pass \
             -e "varsfl_backend_dockerimg_tag=${{ steps.version.outputs.value }}"
-
 
       - name: Cleanup secrets
         if: always()
         run: |
           rm -f infrastructure/ansible/.vault_pass
-          rm -f ~/.ssh/id_rsa
-          rm -f infrastructure/ansible/inventory/uat.yml
+          rm -f infrastructure/ansible/inventory/hosts.yml
           rm -f infrastructure/ansible/vars.yml
+
 
   infrastructure-changes:
     name: Infrastructure Changes Detected
@@ -187,10 +174,49 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # TODO: decide what to do with infrastructure changes
-      # Options:
-      #   - run ansible-lint to validate playbooks
-      #   - notify a Slack/Teams channel for manual review
-      #   - auto-apply if changes are in inventory/ or vars/
-      #   - require manual approval before applying
       - name: Placeholder
         run: echo "Infrastructure changes detected — manual review required"
+
+
+  update-versions:
+    name: Update Version Variables
+    needs: [detect-changes, deploy-frontend, deploy-backend]
+    if: |
+      always() &&
+      (needs.deploy-frontend.result == 'success' || needs.deploy-backend.result == 'success')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Update frontend version variable
+        if: needs.deploy-frontend.result == 'success'
+        run: |
+          VERSION=$(head -1 frontend/DEPLOY_VERSION | tr -d '[:space:]')
+          curl -s -X PATCH \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/${{ github.repository }}/actions/variables/FRONTEND_STABLE_VERSION \
+            -d "{\"name\":\"FRONTEND_STABLE_VERSION\",\"value\":\"${VERSION}\"}"
+
+      - name: Update backend version variable
+        if: needs.deploy-backend.result == 'success'
+        run: |
+          VERSION=$(head -1 backend/DEPLOY_VERSION | tr -d '[:space:]')
+          curl -s -X PATCH \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/${{ github.repository }}/actions/variables/BACKEND_STABLE_VERSION \
+            -d "{\"name\":\"BACKEND_STABLE_VERSION\",\"value\":\"${VERSION}\"}"
+
+      - name: Update UAT version variable
+        run: |
+          VERSION=$(head -1 UAT_VERSION | tr -d '[:space:]')
+          curl -s -X PATCH \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/${{ github.repository }}/actions/variables/UAT_VERSION \
+            -d "{\"name\":\"UAT_VERSION\",\"value\":\"${VERSION}\"}"
