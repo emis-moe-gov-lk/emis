@@ -5,6 +5,10 @@ namespace App\Providers;
 use App\Auth\JwtGuard;
 use App\Contracts\IdentityProvisioningServiceInterface;
 use App\Services\AsgardeoIdentityProvisioningService;
+use Dedoc\Scramble\Scramble;
+use Dedoc\Scramble\Support\Generator\OpenApi;
+use Dedoc\Scramble\Support\Generator\SecurityScheme;
+use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Auth;
 use Spatie\Activitylog\Models\Activity;
 use Illuminate\Support\ServiceProvider;
@@ -41,5 +45,15 @@ class AppServiceProvider extends ServiceProvider
         if (app()->environment('production')) {
             URL::forceScheme('https');
         }
+
+        Scramble::afterOpenApiGenerated(function (OpenApi $openApi) {
+            $openApi->secure(
+                SecurityScheme::http('bearer', 'JWT')
+            );
+        });
+
+        Scramble::routes(function (Route $route) {
+            return str_starts_with($route->uri, 'api/');
+        });
     }
 }
