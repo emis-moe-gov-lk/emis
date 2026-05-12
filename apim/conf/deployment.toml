@@ -18,16 +18,16 @@ create_admin_account = true
 type = "database_unique_id"
 
 [database.apim_db]
-type = "h2"
-url = "jdbc:h2:./repository/database/WSO2AM_DB;DB_CLOSE_ON_EXIT=FALSE"
-username = "wso2carbon"
-password = "wso2carbon"
+type = "mysql"
+url = "jdbc:mysql://$env{APIM_DB_HOST}:$env{APIM_DB_PORT}/$env{APIM_DB_APIMDB}?useSSL=false&amp;allowPublicKeyRetrieval=true&amp;autoReconnect=true"
+username = "$env{APIM_DB_WSO2USER_USERNAME}"
+password = "$env{APIM_DB_WSO2USER_PASSWORD}"
 
 [database.shared_db]
-type = "h2"
-url = "jdbc:h2:./repository/database/WSO2SHARED_DB;DB_CLOSE_ON_EXIT=FALSE"
-username = "wso2carbon"
-password = "wso2carbon"
+type = "mysql"
+url = "jdbc:mysql://$env{APIM_DB_HOST}:$env{APIM_DB_PORT}/$env{APIM_DB_SHARED}?useSSL=false&amp;allowPublicKeyRetrieval=true&amp;autoReconnect=true"
+username = "$env{APIM_DB_WSO2USER_USERNAME}"
+password = "$env{APIM_DB_WSO2USER_PASSWORD}"
 
 [keystore.tls]
 file_name =  "wso2carbon.jks"
@@ -35,6 +35,20 @@ type =  "JKS"
 password =  "wso2carbon"
 alias =  "wso2carbon"
 key_password =  "wso2carbon"
+
+# ----------------
+#  Health Checks
+# ---------------
+
+[carbon_health_check]
+enable= true
+
+[carbon_health_check.health_checker.data_source_health_checker.properties]
+'monitored.datasources' = "jdbc/WSO2CarbonDB,jdbc/WSO2UM_DB,jdbc/SHARED_DB"
+
+[carbon_health_check.health_checker.super_tenant_health_checker.properties]
+'monitored.user.stores' = "primary"
+
 
 #[keystore.listener_profile]
 #bind_address = "0.0.0.0"
@@ -64,15 +78,15 @@ provider = "wso2"
 display_in_api_console = true
 description = "This is a hybrid gateway that handles both production and sandbox token traffic."
 show_as_token_endpoint_url = true
-service_url = "https://localhost:${mgt.transport.https.port}/services/"
-username= "${admin.username}"
-password= "${admin.password}"
-ws_endpoint = "ws://localhost:9099"
-wss_endpoint = "wss://localhost:8099"
-http_endpoint = "http://localhost:${http.nio.port}"
-https_endpoint = "https://localhost:${https.nio.port}"
-websub_event_receiver_http_endpoint = "http://localhost:9021"
-websub_event_receiver_https_endpoint = "https://localhost:8021"
+service_url = "https://$env{APIM_HOSTNAME}/services/"
+username= "$env{APIM_ADMIN_NAME}"
+password= "$env{APIM_ADMIN_PASSWORD}"
+ws_endpoint = ""
+wss_endpoint = ""
+http_endpoint = "http://$env{APIM_HOSTNAME}"
+https_endpoint = "https://$env{APIM_HOSTNAME}"
+websub_event_receiver_http_endpoint = ""
+websub_event_receiver_https_endpoint = ""
 
 [apim.sync_runtime_artifacts.gateway]
 gateway_labels =["Default"]
@@ -110,7 +124,7 @@ enable = false
 type = "moesif"
 
 [apim.ai]
-enable = true
+enable = false
 key = ""
 
 [apim.key_manager]
@@ -264,6 +278,7 @@ id = "token_revocation"
 type = "org.wso2.carbon.identity.core.handler.AbstractIdentityHandler"
 name = "org.wso2.is.notification.ApimOauthEventInterceptor"
 order = 1
+
 [event_listener.properties]
 notification_endpoint = "https://localhost:${mgt.transport.https.port}/internal/data/v1/notify"
 username = "${admin.username}"
