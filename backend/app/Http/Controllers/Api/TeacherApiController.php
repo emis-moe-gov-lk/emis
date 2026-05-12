@@ -211,7 +211,7 @@ class TeacherApiController extends Controller
                 $this->applyTeacherZonalScope($query, $zonalWorkplaceId);
             }
 
-            
+
 
             // Both NIC and name fields are encrypted at rest; do partial matching against decrypted model values.
             // Detect search type: numeric first char → NIC search, alphabetic → name search.
@@ -410,7 +410,7 @@ class TeacherApiController extends Controller
 
                 throw new \Exception('This person already has an active appointment. Cannot register as a new teacher.');
             }
-            
+
             // ==============================
             // FIRST APPOINTMENT
             // ==============================
@@ -613,7 +613,7 @@ class TeacherApiController extends Controller
                 'message' => 'Teacher not found for the permitted zonal scope',
             ], 404);
         }
-        
+
         // DEBUG: Log what's being loaded
         $educationQuals = $teacher?->educationQualifications;
         Log::info('Teacher Data Debug', [
@@ -650,19 +650,19 @@ class TeacherApiController extends Controller
 //        }
 
         $teacherData = $teacher?->toArray() ?? [];
-        
+
         // Ensure educationQualifications are explicitly included
         if (!isset($teacherData['educationQualifications'])) {
             $teacherData['educationQualifications'] = $teacher?->educationQualifications?->toArray() ?? [];
         }
-        
+
         $currentRejectComments = $teacher?->currentAppointment?->appointment?->rejectComments;
         $teacherData = $this->appendRejectCommentSummary($teacherData, $currentRejectComments);
         $profileStatus = $this->resolveProfileStatus((int) ($teacher?->currentAppointment?->appointment?->is_verified ?? 0));
         $teacherData['profile_status'] = $profileStatus;
         $teacherData['ui_actions'] = $this->buildActionVisibility($roles, $profileStatus);
         $dsOfficeDsoId = $teacher?->dsOffice?->dso_id ?? $this->resolveDsOfficeDsoId((string) $teacher?->ds_office_id);
-        
+
         // DEBUG: Log the final response
         Log::info('Final API Response - Education Qualifications', [
             'people_id' => $people_id,
@@ -734,12 +734,12 @@ class TeacherApiController extends Controller
 
         $section = (string) $request->input('section');
 
-        if (! in_array($section, ['personal', 'health', 'contact', 'temporary'], true)) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Invalid update section',
-            ], 422);
-        }
+      if (! in_array($section, ['personal', 'health', 'contact', 'temporary', 'appointment'], true)) {
+    return response()->json([
+        'status' => 'error',
+        'message' => 'Invalid update section',
+    ], 422);
+}
 
         $rules = match ($section) {
             'personal' => [
@@ -775,6 +775,13 @@ class TeacherApiController extends Controller
                 'tAddressLine3' => 'nullable|string|max:255',
                 'tPostalCode' => 'nullable|string|max:20',
             ],
+            'appointment' => [
+        'service_id' => 'required|string',
+        'rank_id' => 'required|string',
+        'position_id' => 'required|string',
+        'appoint_date' => 'required|date',
+        'appointment_letter_no' => 'nullable|string',
+    ],
         };
 
         $validated = $request->validate($rules);
@@ -860,7 +867,32 @@ class TeacherApiController extends Controller
                     't_postal_code' => $validated['tPostalCode'] ?? null,
                 ]);
             }
-        });
+
+    if ($section === 'appointment') {
+        // Update current appointment (EmployerCurrentAppointment)
+        $currentAppointment = EmployerCurrentAppointment::where('employee_id', $teacher->people_id)->first();
+
+        if ($currentAppointment) {
+            $currentAppointment->update([
+                'service_id' => $validated['service_id'],
+                'rank_id' => $validated['rank_id'],
+                'position_id' => $validated['position_id'],
+                'appoint_date' => $validated['appoint_date'],
+            ]);
+        }
+
+        // Update appointment letter number in main appointment (EmployerAppointment)
+        if (isset($validated['appointment_letter_no'])) {
+            $appointment = EmployerAppointment::where('employee_id', $teacher->people_id)->first();
+            if ($appointment) {
+                $appointment->update([
+                    'appointment_letter_no' => $validated['appointment_letter_no']
+                ]);
+            }
+        }
+    }
+});
+
 
         $teacher->refresh();
         $accountSync = $teacherAccountProvisioningService->syncProfile($teacher);
@@ -1118,7 +1150,7 @@ class TeacherApiController extends Controller
                 $qualification = PeopleEducationQualification::where('id', $validated['id'])
                     ->where('people_id', $people_id)
                     ->firstOrFail();
-                    
+
                 $qualification->update([
                     'qualifications_id' => $validated['qualification'],
                     'institution' => $validated['institution_university'],
@@ -1138,14 +1170,14 @@ class TeacherApiController extends Controller
                     'description' => $validated['additional_details'],
                     'active_status' => 1,
                 ]);
-                
+
                 Log::info('Education Qualification Saved', [
                     'qualification_id' => $qualification->id,
                     'people_id' => $people_id,
                     'qualifications_id' => $validated['qualification'],
                     'active_status' => $qualification->active_status,
                 ]);
-                
+
                 $statusCode = 201;
                 $message = 'Education qualification saved successfully.';
             }

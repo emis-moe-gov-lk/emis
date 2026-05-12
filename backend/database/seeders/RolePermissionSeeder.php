@@ -579,209 +579,209 @@ class RolePermissionSeeder extends Seeder
 
             // 'slacs.profile.pension-and-payment.update',
             
-            // 'slacs.profile.family.create',
-            // 'slacs.profile.family.delete',
+            'slacs.profile.family.create',
+            'slacs.profile.family.delete',
 
 
-            // /*
-            // |--------------------------------------------------------------------------
-            // | User Management
-            // |--------------------------------------------------------------------------
-            // */
-            // 'user.list.view',
-            // 'user.create',
-            // 'user.update',
-            // 'user.password.reset',
-            // 'user.status.update',
-            // 'user.delete',
-            // 'user.edit',
+            /*
+            |--------------------------------------------------------------------------
+            | User Management
+            |--------------------------------------------------------------------------
+            */
+            'user.list.view',
+            'user.create',
+            'user.update',
+            'user.password.reset',
+            'user.status.update',
+            'user.delete',
+            'user.edit',
 
 
-            // /*
-            // |--------------------------------------------------------------------------
-            // | Institution Management
-            // |--------------------------------------------------------------------------
-            // */
-            // 'institution.list.view',
-            // 'institution.create',
-            // 'institution.update',
+            /*
+            |--------------------------------------------------------------------------
+            | Institution Management
+            |--------------------------------------------------------------------------
+            */
+            'institution.list.view',
+            'institution.create',
+            'institution.update',
 
-            // 'institution.profile.view',
-            // 'institution.profile.overview.view',
-            // 'institution.profile.staff.view',
-            // 'institution.profile.report-module.view',
-            // 'institution.profile.report-module.pdf',
-            // 'institution.profile.report-module.xls',
+            'institution.profile.view',
+            'institution.profile.overview.view',
+            'institution.profile.staff.view',
+            'institution.profile.report-module.view',
+            'institution.profile.report-module.pdf',
+            'institution.profile.report-module.xls',
 
-            // 'institution.basic_information.update',
-            // 'institution.contact_details.update',
-            // 'institution.location_administration.update',
-            // 'institution.mission_vision.update',
-
-
-            // "institution.view.create",
-            // "institution.view.profile",
-            // "institution.view",
-
-            // /*
-            // |--------------------------------------------------------------------------
-            // | Appointment Subject Management
-            // |--------------------------------------------------------------------------
-            // */
-            // 'appointment_subject.list.view',
-            // 'appointment_subject.create',
-            // 'appointment_subject.update',
-            // 'appointment_subject.delete',
-            // 'appointment_subject.view',
+            'institution.basic_information.update',
+            'institution.contact_details.update',
+            'institution.location_administration.update',
+            'institution.mission_vision.update',
 
 
-            // "appointment_subject.create",
-            // "appointment_subject.delete",
-            // "appointment_subject.update",
-            // "appointment_subject.view",
-            // "appointment_subject.list.view",
+            "institution.view.create",
+            "institution.view.profile",
+            "institution.view",
+
+            /*
+            |--------------------------------------------------------------------------
+            | Appointment Subject Management
+            |--------------------------------------------------------------------------
+            */
+            'appointment_subject.list.view',
+            'appointment_subject.create',
+            'appointment_subject.update',
+            'appointment_subject.delete',
+            'appointment_subject.view',
 
 
-            // /*
-            // |--------------------------------------------------------------------------
-            // | Teaching Subject Management
-            // |--------------------------------------------------------------------------
-            // */
-            // 'teaching_subject.list.view',
-            // 'teaching_subject.create',
-            // 'teaching_subject.update',
-            // 'teaching_subject.delete',
-            // 'teaching_subject.view',
+            "appointment_subject.create",
+            "appointment_subject.delete",
+            "appointment_subject.update",
+            "appointment_subject.view",
+            "appointment_subject.list.view",
 
 
-
-            // /*
-            // |--------------------------------------------------------------------------
-            // | School Management
-            // |--------------------------------------------------------------------------
-            // */
-
-            // "school.view",
-            // "teacher.view",
-            // "principal.view",
-            // "schooldeo.view",
-            // "schoolclerk.view",
-            // "teacher.bulk.upload",
-            // "teacher.create",
-            // "teacher.delete",
-            // "teacher.profile.confirm",
-            // "teacher.profile.view",
-            // "teacher.update",
-            // "teacher.profile.printid",
-            // "teacher.profile.exportpdf",
+            /*
+            |--------------------------------------------------------------------------
+            | Teaching Subject Management
+            |--------------------------------------------------------------------------
+            */
+            'teaching_subject.list.view',
+            'teaching_subject.create',
+            'teaching_subject.update',
+            'teaching_subject.delete',
+            'teaching_subject.view',
 
 
 
-            // /*
-            // |--------------------------------------------------------------------------
-            // | Office Management (MOE / PMOE / PEO / ZEO / DEO)
-            // |--------------------------------------------------------------------------
-            // */
-            // // Lists
-            // 'office.moe.list.view',
-            // 'office.pmoe.list.view',
-            // 'office.peo.list.view',
-            // 'office.zeo.list.view',
-            // 'office.deo.list.view',
-            // 'office.institution.list.view',
+            /*
+            |--------------------------------------------------------------------------
+            | School Management
+            |--------------------------------------------------------------------------
+            */
 
-            // // Create
-            // 'office.moe.create',
-            // 'office.pmoe.create',
-            // 'office.peo.create',
-            // 'office.zeo.create',
-            // 'office.deo.create',
-            // 'office.institution.create',
-
-            // // Profile
-            // 'office.moe.profile.overview.view',
-            // 'office.pmoe.profile.overview.view',
-            // 'office.peo.profile.overview.view',
-            // 'office.zeo.profile.overview.view',
-            // 'office.deo.profile.overview.view',
-
-            // // Update
-            // 'office.moe.update',
-            // 'office.pmoe.update',
-            // 'office.peo.update',
-            // 'office.zeo.update',
-            // 'office.deo.update',
-            // 'office.institution.update',
-
-            // // Delete
-            // 'office.moe.delete',
-            // 'office.pmoe.delete',
-            // 'office.peo.delete',
-            // 'office.zeo.delete',
-            // 'office.deo.delete',
-            // 'office.institution.delete',
-
-            // // institution profile
-            // 'office.institution.profile.overview.view',
-            // 'office.institution.profile.profile.view',
-            // 'office.institution.profile.staff.view',
-            // 'office.institution.profile.report-module.view',
-            // 'office.institution.profile.report-module.pdf',
-            // 'office.institution.profile.report-module.xls',
+            "school.view",
+            "teacher.view",
+            "principal.view",
+            "schooldeo.view",
+            "schoolclerk.view",
+            "teacher.bulk.upload",
+            "teacher.create",
+            "teacher.delete",
+            "teacher.profile.confirm",
+            "teacher.profile.view",
+            "teacher.update",
+            "teacher.profile.printid",
+            "teacher.profile.exportpdf",
 
 
-            // "office.overview",
-            // "office.moe",
-            // "office.zeo",
-            // "office.deo",
-            // "office.pmoe",
-            // "office.peo",
-            // "office.moe.profile.view",
-            // "office.zeo.profile.view",
-            // "office.deo.profile.view",
-            // "office.pmoe.profile.view",
-            // "office.zeo.create",
-            // "office.deo.create",
 
-            // // Cadre DMS Approved
-            // 'cadre-dms-approved.index.view',
-            // 'cadre-dms-approved.add',
-            // 'cadre-dms-approved.institution.view',
-            // 'cadre-dms-approved.edit',
+            /*
+            |--------------------------------------------------------------------------
+            | Office Management (MOE / PMOE / PEO / ZEO / DEO)
+            |--------------------------------------------------------------------------
+            */
+            // Lists
+            'office.moe.list.view',
+            'office.pmoe.list.view',
+            'office.peo.list.view',
+            'office.zeo.list.view',
+            'office.deo.list.view',
+            'office.institution.list.view',
 
-            // 'institution.profile.cadre-dms-approved.view',
-            // 'office.institution.profile.cadre-dms-approved.view',
+            // Create
+            'office.moe.create',
+            'office.pmoe.create',
+            'office.peo.create',
+            'office.zeo.create',
+            'office.deo.create',
+            'office.institution.create',
 
-            // 'alerts.overview.view',
+            // Profile
+            'office.moe.profile.overview.view',
+            'office.pmoe.profile.overview.view',
+            'office.peo.profile.overview.view',
+            'office.zeo.profile.overview.view',
+            'office.deo.profile.overview.view',
 
-            // // Alters 
+            // Update
+            'office.moe.update',
+            'office.pmoe.update',
+            'office.peo.update',
+            'office.zeo.update',
+            'office.deo.update',
+            'office.institution.update',
 
-            // "alerts.view",
-            // "alerts.view.profile",
+            // Delete
+            'office.moe.delete',
+            'office.pmoe.delete',
+            'office.peo.delete',
+            'office.zeo.delete',
+            'office.deo.delete',
+            'office.institution.delete',
 
-            // // Division Management
-            // "division.view",
+            // institution profile
+            'office.institution.profile.overview.view',
+            'office.institution.profile.profile.view',
+            'office.institution.profile.staff.view',
+            'office.institution.profile.report-module.view',
+            'office.institution.profile.report-module.pdf',
+            'office.institution.profile.report-module.xls',
 
-            // //Provincial Management
-            // "provincial.view",
 
-            // //MOE
-            // "moe.view",
+            "office.overview",
+            "office.moe",
+            "office.zeo",
+            "office.deo",
+            "office.pmoe",
+            "office.peo",
+            "office.moe.profile.view",
+            "office.zeo.profile.view",
+            "office.deo.profile.view",
+            "office.pmoe.profile.view",
+            "office.zeo.create",
+            "office.deo.create",
 
-            // //Index
-            // "inbox.overview.view",
+            // Cadre DMS Approved
+            'cadre-dms-approved.index.view',
+            'cadre-dms-approved.add',
+            'cadre-dms-approved.institution.view',
+            'cadre-dms-approved.edit',
 
-            // //Admin User Management
-            // "admin.overview.view",
+            'institution.profile.cadre-dms-approved.view',
+            'office.institution.profile.cadre-dms-approved.view',
 
-            // //Timetable Management
-            // "timetable.overview.view",
+            'alerts.overview.view',
 
-            // //Zonal Management
+            // Alters 
 
-            // "zonal.view",
-            // "zonaladmin.view",
-            // "zonaldeo.view"
+            "alerts.view",
+            "alerts.view.profile",
+
+            // Division Management
+            "division.view",
+
+            //Provincial Management
+            "provincial.view",
+
+            //MOE
+            "moe.view",
+
+            //Index
+            "inbox.overview.view",
+
+            //Admin User Management
+            "admin.overview.view",
+
+            //Timetable Management
+            "timetable.overview.view",
+
+            //Zonal Management
+
+            "zonal.view",
+            "zonaladmin.view",
+            "zonaldeo.view",
 
 
 
@@ -791,7 +791,7 @@ class RolePermissionSeeder extends Seeder
     "alerts.profile-verify.view",
    "alerts.profile-revise.view",
     "alerts.profile-confirm.view",
-    “alerts.profile-reject.view"
+    "alerts.profile-reject.view",
 
    "menu.roles",
     "roles.create",
@@ -866,7 +866,7 @@ class RolePermissionSeeder extends Seeder
     "principal.profile.employment.previous-service.create",
     "principal.profile.employment.previous-record.view",
      "principal.profile.pension-and-payment.update",
-   "principal.profile.family.create"
+   "principal.profile.family.create",
 
 
  "menu.students",
@@ -892,7 +892,7 @@ class RolePermissionSeeder extends Seeder
      "teacher.profile.employment.previous-service.create",
     "teacher.profile.employment.previous-record.view",
     "teacher.profile.pension-and-payment.update",
-    "teacher.profile.family.create"
+    "teacher.profile.family.create",
   
     
 "menu.division",

@@ -52,6 +52,7 @@ const formatDate = (value) => {
   return String(value).slice(0, 10);
 };
 
+
 const QUALIFICATION_OPTIONS = [
   "Doctoral Degree, MD with Board Certification",
   "Master of Philosophy, Masters by Full-time Research, DM",
@@ -73,6 +74,7 @@ const GRADE_OPTIONS = [
   "Merit",
   "Distinction",
 ];
+
 
 const DEFAULT_QUALIFICATION_FORM = {
   qualification: "Honours Bachelors",
@@ -384,7 +386,7 @@ const TeacherProfile = () => {
     try {
       const res = await api.get(`/teacher/${id}`);
       console.log("DEBUG: Full API response:", res.data);
-      
+
       if (res.data?.status !== "success") return;
 
       const d = res.data.data;
@@ -599,7 +601,7 @@ const TeacherProfile = () => {
   const handleEditQualification = useCallback((qualificationDisplay) => {
     // Find the raw qualification data by ID
     const qualification = rawQualifications.find(q => q.id === qualificationDisplay.id);
-    
+
     if (!qualification) {
       toast.error("Unable to load qualification data");
       return;
@@ -1252,8 +1254,11 @@ const TeacherProfile = () => {
             />
           )}
           {activeTab === "employment" && (
-            <EmploymentTab employment={employment} />
-          )}
+        <EmploymentTab
+          employment={employment}
+        onEdit={setModalSection}  // ← මෙය add කරන්න
+    />
+)}
           {activeTab === "wop" && <WopTab wopAndPayment={wopAndPayment} />}
           {activeTab === "family" && <FamilyTab family={family} />}
           {activeTab === "edit" && (
@@ -1924,7 +1929,7 @@ function QualificationTab({ qualifications, onAddQualification, onEditQualificat
             <td className={tableCellClass}>{q.completionDate}</td>
             <td className={tableCellClass}>{q.grade}</td>
             <td className="px-5 py-4">
-              <button 
+              <button
                 onClick={() => onEditQualification(q)}
                 className={tableActionButtonClass}
               >
@@ -1950,7 +1955,7 @@ function QualificationAchievementModal({
   isLoadingOptions = false,
 }) {
   const isEditing = form?.id ? true : false;
-  
+
   const footer = (
     <>
       <button
@@ -2088,7 +2093,7 @@ function QualificationAchievementModal({
    TAB: Employment (ALL sections kept)
 ========================================================= */
 
-function EmploymentTab({ employment }) {
+function EmploymentTab({ employment,onEdit }) {
   const ecs = employment?.appointmentCurrentStatus || {};
   const ma = employment?.myAppointment || {};
   const ti = employment?.teachingInfo || {};
@@ -2102,11 +2107,11 @@ function EmploymentTab({ employment }) {
         title="Appointment current status"
         color="slate"
         right={
-          <RoundedActionButton onClick={() => {}} variant="outline">
+          <RoundedActionButton onClick={() => { }} variant="outline">
             Edit
-          </RoundedActionButton>
-        }
-      >
+        </RoundedActionButton>
+    }
+>
         <div className="flex items-center gap-2 mb-4 text-xs font-extrabold text-gray-600">
           <span className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1">
             <span className="h-2 w-2 rounded-full bg-gray-600" />
