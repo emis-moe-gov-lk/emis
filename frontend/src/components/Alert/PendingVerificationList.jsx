@@ -1,5 +1,6 @@
 import React from "react";
 import AlertTeacherList from "./AlertTeacherList";
+import { PermissionGroups } from "@/data/permissionGroups";
 
 const PendingVerificationList = () => (
   <AlertTeacherList
@@ -10,6 +11,7 @@ const PendingVerificationList = () => (
     headerBadge={{ color: "yellow", label: "Pending" }}
     rowBadge={{ color: "warning", label: "Pending" }}
     emptyText="No teachers pending verification."
+    viewPermission={PermissionGroups.ALERTS.PROFILE_VERIFY}
   />
 );
 

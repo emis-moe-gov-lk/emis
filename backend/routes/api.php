@@ -124,16 +124,22 @@ Route::prefix('')->group(function () {
         Route::get('/teachers/appointment-form-data', 'getAppoinmentFromData');                         // first appointment
         Route::get('/teachers/current-appointment-form-data', 'getCurrentAppointmentFormData');      // current appointment (role-filtered)
         Route::post('/teachers/check-contact', 'checkContact');                                       // POST check email/phone
+        Route::post('/teachers/{people_id}/education-qualifications', 'saveEducationQualification');
+        Route::get('/education-qualifications', 'getEducationQualifications');                           // GET qualification lookup
+        Route::get('/education-qualification-grades', 'getEducationQualificationGrades');               // GET grade lookup
     });
 
     Route::controller(PrincipalApiController::class)->middleware('auth:jwt')->group(function () {
         Route::get('/principals-list', 'principalList');  // GET all principals
+        Route::post('/principal-create', 'store');
+        Route::get('/principal-recruitment-categories', 'recruitmentCategories');
         Route::get('/principal/{people_id}', 'getPrincipal');
     });
 
     Route::controller(\App\Http\Controllers\API\AlertController::class)->middleware('auth:jwt')->group(function () {
         Route::get('/alerts/counts', 'counts');
         Route::get('/alerts/pending-verification', 'pendingVerification');
+        Route::get('/alerts/revised', 'revised');
         Route::get('/alerts/pending-confirmation', 'pendingConfirmation');
         Route::get('/alerts/rejected', 'rejected');
     });
@@ -144,6 +150,7 @@ Route::prefix('')->group(function () {
         Route::patch('/employer-appointment-reject-comments/{id}', 'updateRejectComment');
         Route::patch('/teachers/{people_id}/verify', 'verify');
         Route::patch('/teachers/{people_id}/confirm', 'confirm');
+        Route::patch('/principals/{people_id}/confirm', 'confirm');
         Route::patch('/teachers/{people_id}/promote', 'promote');
         Route::patch('/teachers/{people_id}/reject', 'reject');
         Route::patch('/teachers/{people_id}/update', 'updateRejectedStatus');
@@ -163,6 +170,7 @@ Route::prefix('')->group(function () {
     Route::get('/identity', AuthIdentityController::class)->middleware('auth:jwt');
     Route::get('/mobile/identity', MobileTeacherProfileController::class)->middleware('auth:jwt');
     Route::patch('/profile', [ProfileController::class, 'update'])->middleware('auth:jwt');
+    Route::post('/profile/photo', [ProfileController::class, 'uploadPhoto']);
     Route::patch('/profile/password', [ProfileController::class, 'changePassword'])->middleware('auth:jwt');
     Route::post('/profile/password/complete-external', [ProfileController::class, 'completeExternalPasswordChange'])->middleware('auth:jwt');
     Route::get('/user/{people_id}', UserApiController::class)->middleware('auth:jwt');

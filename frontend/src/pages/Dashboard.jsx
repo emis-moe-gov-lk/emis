@@ -44,7 +44,7 @@ export default function Dashboard() {
   }, [getDecodedIDToken, state.isAuthenticated, user?.name]);
 
   return (
-    <div className="p-6 lg:p-10 max-w-7xl mx-auto space-y-6">
+    <div className="p-6 lg:p-10 w-full px-4 sm:px-6 lg:px-8 mx-auto space-y-6">
 
         <div className="grid grid-cols-3">
       {/* Welcome Banner (Figma) */}

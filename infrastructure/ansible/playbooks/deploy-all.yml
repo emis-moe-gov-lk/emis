@@ -1,0 +1,45 @@
+---
+# ---PLAY-DEPLOY-EMIS-ALL-SERVICES-----
+- name: Deploy EMIS UAT Environment
+  hosts: frontend_service:backend_service
+  become: true
+  vars:
+    remote_project_path: "/opt/emis-uat"
+    docker_compose_file: "../../docker/docker-compose.yml"
+  vars_files:
+    - ../vars.yml
+
+  tasks:
+    - name: Ensure project directory exists
+      ansible.builtin.file:
+        path: "{{ remote_project_path }}"
+        state: directory
+        mode: '0755'
+
+    - name: Render and copy environment files from templates
+      ansible.builtin.template:
+        src: "{{ item.src }}"
+        dest: "{{ remote_project_path }}/{{ item.dest }}"
+        mode: '0600'
+      loop:
+        - { src: "../templates/frontend.env.j2",  dest: "frontend.env" }
+        - { src: "../templates/backend.env.j2",   dest: "backend.env" }
+        - { src: "../templates/docker.env.j2",    dest: ".env" }
+
+    - name: Copy Docker Compose file
+      ansible.builtin.copy:
+        src: "{{ docker_compose_file }}"
+        dest: "{{ remote_project_path }}/docker-compose.yml"
+        mode: '0644'
+
+    - name: Pull images and start containers
+      community.docker.docker_compose_v2:
+        project_src: "{{ remote_project_path }}"
+        state: present
+        pull: always
+        build: always
+      register: output
+
+    - name: Show Docker Compose output
+      ansible.builtin.debug:
+        var: output

@@ -1,8 +1,11 @@
 import { useEffect, useRef } from "react";
 import { FiX } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
 
-const SettingsPop = ({ isOpen, onClose }) => {
+const SettingsPop = ({ isOpen, onClose, className = "" }) => {
+  const navigate = useNavigate();
   const closeButtonRef = useRef(null);
+  const containerRef = useRef(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -19,25 +22,46 @@ const SettingsPop = ({ isOpen, onClose }) => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
+  // Close when clicking/tapping outside the popover
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handlePointerDown = (e) => {
+      const target = e.target || e.srcElement;
+      if (containerRef.current && !containerRef.current.contains(target)) {
+        onClose();
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("touchstart", handlePointerDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("touchstart", handlePointerDown);
+    };
+  }, [isOpen, onClose]);
+
   const handleSystemSettingsClick = () => {
-    // Logic to navigate to system settings page
-    window.location.href = "/dashboard/settings"; // replace with your route
+    onClose();
+    navigate("/dashboard/settings");
   };
   const handleSystemSettingsClick1 = () => {
-    // Logic to navigate to system settings page
-    window.location.href = "/dashboard/VersionPage"; // replace with your route
+    onClose();
+    navigate("/dashboard/VersionPage");
   };
 
   return (
     <div
       id="settings-popover"
+      ref={containerRef}
       role="menu"
       aria-label="Settings options"
       aria-hidden={!isOpen}
       className={`
-        absolute right-16 bottom-10 w-56
-        surface backdrop-blur-md rounded-xl p-4 z-50
+        absolute surface backdrop-blur-md rounded-xl p-4 z-50
         transition-all duration-300 ease-out
+        ${className}
         ${isOpen ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0 pointer-events-none"}
       `}
     >

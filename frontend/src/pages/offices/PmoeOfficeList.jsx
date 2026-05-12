@@ -6,7 +6,7 @@ export default function PmoeOfficeList() {
             title="Provincial Ministry of Education"
             subtitle="Manage Provincial Ministry of Education office profile and account"
             endpoint="/pmoe-list"
-            createLabel="Create Provincial Ministry of Education"
+            // createLabel="Create Provincial Ministry of Education"
         />
     );
 }

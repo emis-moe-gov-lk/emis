@@ -1,0 +1,222 @@
+name: Deploy to UAT
+run-name: "Deploy to UAT — v${{ vars.UAT_VERSION }}"
+
+on:
+  push:
+    branches:
+      - uat     # uat environment
+  workflow_dispatch:
+
+    
+jobs:
+  detect-changes:
+    name: Detect Changed Directories
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.changes.outputs.frontend }}
+      backend: ${{ steps.changes.outputs.backend }}
+      infrastructure: ${{ steps.changes.outputs.infrastructure }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2   # need at least 2 commits to diff against
+
+      - name: Detect changes
+        id: changes
+        run: |
+          echo "frontend=$(git diff --name-only HEAD~1 HEAD | grep -q '^frontend/' && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "backend=$(git diff --name-only HEAD~1 HEAD | grep -q '^backend/' && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "infrastructure=$(git diff --name-only HEAD~1 HEAD | grep -q '^infrastructure/' && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+
+  deploy-frontend:
+    name: Deploy Frontend
+    needs: detect-changes
+    if: needs.detect-changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      # ------------------------------------------------
+      # Docker — build and push to GHCR
+      # ------------------------------------------------
+      - name: Read frontend version
+        id: version
+        run: echo "value=$(head -1 frontend/DEPLOY_VERSION | tr -d '[:space:]')" >> $GITHUB_OUTPUT
+ 
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build frontend Docker image
+        run: |
+          docker build \
+            -t ghcr.io/emis-moe-gov-lk/emis-frontend:${{ steps.version.outputs.value }} \
+            -t ghcr.io/emis-moe-gov-lk/emis-frontend:latest \
+            ./frontend
+ 
+      - name: Push frontend Docker image
+        run: |
+          docker push ghcr.io/emis-moe-gov-lk/emis-frontend:${{ steps.version.outputs.value }}
+          docker push ghcr.io/emis-moe-gov-lk/emis-frontend:latest
+
+
+      # ------------------------------------------------
+      # Ansible — deploy to UAT server
+      # ------------------------------------------------
+      - name: Install Ansible collections
+        run: ansible-galaxy collection install community.general
+
+      - name: Write secrets to disk
+        run: |
+          echo "${{ secrets.ANSIBLE_VAULT_PASSWORD }}" > infrastructure/ansible/.vault_pass
+          echo "${{ secrets.UAT_INVENTORY }}" > infrastructure/ansible/inventory/hosts.yml
+          echo "${{ secrets.ANSIBLE_VARS }}" > infrastructure/ansible/vars.yml
+        # Files are written to disk and lives only for the duration of this job runner. 
+        
+      - name: Configure SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }} # stored in GHA Secrets
+
+      - name: Run deploy-frontend playbook
+        env:
+          ANSIBLE_CONFIG: infrastructure/ansible/ansible.cfg
+        run: |
+          ansible-playbook infrastructure/ansible/playbooks/deploy-frontend.yml \
+            -e "varsfl_frontend_dockerimg_tag=${{ steps.version.outputs.value }}"
+
+      - name: Cleanup secrets
+        if: always()   # runs even if playbook fails
+        run: |
+          rm -f infrastructure/ansible/.vault_pass
+          rm -f infrastructure/ansible/inventory/hosts.yml
+          rm -f infrastructure/ansible/vars.yml
+
+  deploy-backend:
+    name: Deploy Backend
+    needs: detect-changes
+    if: needs.detect-changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+
+      # ------------------------------------------------
+      # Docker — build and push to GHCR
+      # ------------------------------------------------
+      - name: Read backend version
+        id: version
+        run: echo "value=$(head -1 backend/DEPLOY_VERSION | tr -d '[:space:]')" >> $GITHUB_OUTPUT
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build backend Docker image
+        run: |
+          docker build \
+            -t ghcr.io/emis-moe-gov-lk/emis-backend:${{ steps.version.outputs.value }} \
+            -t ghcr.io/emis-moe-gov-lk/emis-backend:latest \
+            ./backend
+ 
+      - name: Push backend Docker image
+        run: |
+          docker push ghcr.io/emis-moe-gov-lk/emis-backend:${{ steps.version.outputs.value }}
+          docker push ghcr.io/emis-moe-gov-lk/emis-backend:latest
+
+ 
+      # ------------------------------------------------
+      # Ansible — deploy to UAT server
+      # ------------------------------------------------
+      - name: Install Ansible collections
+        run: ansible-galaxy collection install community.general
+
+      - name: Write secrets to disk
+        run: |
+          echo "${{ secrets.ANSIBLE_VAULT_PASSWORD }}" > infrastructure/ansible/.vault_pass
+          echo "${{ secrets.UAT_INVENTORY }}" > infrastructure/ansible/inventory/hosts.yml
+          echo "${{ secrets.ANSIBLE_VARS }}" > infrastructure/ansible/vars.yml
+        # Files are written to disk and lives only for the duration of this job runner. 
+          
+      - name: Configure SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Run deploy-backend playbook
+        env:
+          ANSIBLE_CONFIG: infrastructure/ansible/ansible.cfg
+        run: |
+          ansible-playbook infrastructure/ansible/playbooks/deploy-backend.yml \
+            -e "varsfl_backend_dockerimg_tag=${{ steps.version.outputs.value }}"
+
+      - name: Cleanup secrets
+        if: always()
+        run: |
+          rm -f infrastructure/ansible/.vault_pass
+          rm -f infrastructure/ansible/inventory/hosts.yml
+          rm -f infrastructure/ansible/vars.yml
+
+
+  infrastructure-changes:
+    name: Infrastructure Changes Detected
+    needs: detect-changes
+    if: needs.detect-changes.outputs.infrastructure == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      # TODO: decide what to do with infrastructure changes
+      - name: Placeholder
+        run: echo "Infrastructure changes detected — manual review required"
+
+
+  update-versions:
+    name: Update Version Variables
+    needs: [detect-changes, deploy-frontend, deploy-backend]
+    if: |
+      always() &&
+      (needs.deploy-frontend.result == 'success' || needs.deploy-backend.result == 'success')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Update frontend version variable
+        if: needs.deploy-frontend.result == 'success'
+        run: |
+          VERSION=$(head -1 frontend/DEPLOY_VERSION | tr -d '[:space:]')
+          curl -s -X PATCH \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/${{ github.repository }}/actions/variables/FRONTEND_STABLE_VERSION \
+            -d "{\"name\":\"FRONTEND_STABLE_VERSION\",\"value\":\"${VERSION}\"}"
+
+      - name: Update backend version variable
+        if: needs.deploy-backend.result == 'success'
+        run: |
+          VERSION=$(head -1 backend/DEPLOY_VERSION | tr -d '[:space:]')
+          curl -s -X PATCH \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/${{ github.repository }}/actions/variables/BACKEND_STABLE_VERSION \
+            -d "{\"name\":\"BACKEND_STABLE_VERSION\",\"value\":\"${VERSION}\"}"
+
+      - name: Update UAT version variable
+        run: |
+          VERSION=$(head -1 UAT_VERSION | tr -d '[:space:]')
+          curl -s -X PATCH \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/${{ github.repository }}/actions/variables/UAT_VERSION \
+            -d "{\"name\":\"UAT_VERSION\",\"value\":\"${VERSION}\"}"

@@ -1,5 +1,8 @@
 import React from "react";
 
+import Can from "@/components/common/Can";
+import { PermissionGroups } from "@/data/permissionGroups";
+
 const OfficeGrid = ({ workplaceLevel, officeLists, search }) => {
   // Utility function to check if an office matches search
   const matchesSearch = (region) => {
@@ -58,27 +61,29 @@ const OfficeGrid = ({ workplaceLevel, officeLists, search }) => {
   // 🔴 Disabled link (always disabled)
   const renderLink = () => {
     return (
-      <a
-        href="#"
-        onClick={(e) => e.preventDefault()}
-        className="flex items-center justify-center w-full py-3 rounded-xl text-xs font-bold
+      <Can permission={PermissionGroups.DASHBOARD.GEOGRAPHIC_MORE}>
+        <a
+          href="#"
+          onClick={(e) => e.preventDefault()}
+          className="flex items-center justify-center w-full py-3 rounded-xl text-xs font-bold
         bg-gray-300 text-gray-500 cursor-not-allowed pointer-events-none"
-      >
-        View More Details
-        <svg
-          className="w-4 h-4 ml-2"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            d="M14 5l7 7m0 0l-7 7m7-7H3"
-          ></path>
-        </svg>
-      </a>
+          View More Details
+          <svg
+            className="w-4 h-4 ml-2"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M14 5l7 7m0 0l-7 7m7-7H3"
+            ></path>
+          </svg>
+        </a>
+      </Can>
     );
   };
 
@@ -100,7 +105,9 @@ const OfficeGrid = ({ workplaceLevel, officeLists, search }) => {
           </div>
 
           {/* Stats */}
-          <div className="p-6 bg-slate-50/50 dark:bg-gray-700/20">{renderStatsCards(region)}</div>
+          <div className="p-6 bg-slate-50/50 dark:bg-gray-700/20">
+            {renderStatsCards(region)}
+          </div>
 
           {/* Total Institutions / Staff */}
           <div className="p-6">
