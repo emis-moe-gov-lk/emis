@@ -1,13 +1,44 @@
+/**
+ * StepNICVerification - DOS Officer NIC Verification Step
+ * 
+ * This component handles the verification of the National Identity Card (NIC) number
+ * for DOS Officer registration. It:
+ * - Validates NIC format (supports both old 9-digit and new 12-digit formats)
+ * - Checks if NIC exists in the system via API
+ * - Pre-loads existing DOS Officer data if found
+ * - Initiates new registration flow if NIC is not found
+ * 
+ * NIC Validation Rules:
+ * - Old format: 9 digits followed by V or X (e.g., 900000000V)
+ * - New format: 12 digits (e.g., 900000000001)
+ * - Day value must be between 1-866 (accounting for leap years)
+ * - Must be issued within the last 100 years
+ * 
+ * API Integration:
+ * - Endpoint: GET /teachers/check-nic/{nicNumber}
+ * - Returns: Existing DOS Officer data or 404 if not found
+ * 
+ * @component
+ * @param {Object} props
+ * @param {Object} props.formData - Current form data from context
+ * @param {Function} props.setFormData - Updates form data in context
+ * @param {Function} props.onVerified - Callback triggered after successful verification
+ * @returns {JSX.Element} NIC verification form with validation feedback
+ */
 import { useState, useCallback } from "react";
 import api from "@/api/axios";
 import { Button, TextInput, Label, Alert } from "flowbite-react";
 import { HiXCircle, HiCheckCircle, HiExclamationCircle } from "react-icons/hi";
 
+/**
+ * NIC validation patterns and constraints
+ * Supports both old (9-digit with V/X) and new (12-digit) Sri Lankan NIC formats
+ */
 const NIC_VALIDATION = {
-  OLD_FORMAT: /^[0-9]{9}[VX]$/,
-  NEW_FORMAT: /^[0-9]{12}$/,
-  MIN_DAY: 1,
-  MAX_DAY: 866,
+  OLD_FORMAT: /^[0-9]{9}[VX]$/,          // Legacy format: 900000000V
+  NEW_FORMAT: /^[0-9]{12}$/,             // New format: 900000000001
+  MIN_DAY: 1,                             // Minimum valid day of year
+  MAX_DAY: 866,                           // Maximum valid day (accounting for leap years)
 };
 
 export default function StepNICVerification({
@@ -15,19 +46,47 @@ export default function StepNICVerification({
   setFormData,
   onVerified,
 }) {
+  // Local NIC input value (separate from formData)
   const [nic, setNic] = useState(formData.nic || "");
-  const [status, setStatus] = useState(null); // null | checking | result | invalid
-  const [resultTone, setResultTone] = useState(null); // green | orange | red
+
+  /**
+   * Verification status states:
+   * - null: initial state or user typing
+   * - checking: API request in progress
+   * - result: API responded (successful or error)
+   * - invalid: client-side validation failed
+   */
+  const [status, setStatus] = useState(null);
+
+  /**
+   * Result tone indicates the type of result:
+   * - green: NIC verified, new registration
+   * - orange: NIC found, but needs appointment details
+   * - red: NIC found with active appointment (conflict)
+   * - null: invalid/error state
+   */
+  const [resultTone, setResultTone] = useState(null);
+
+  // Message displayed to user based on verification result
   const [message, setMessage] = useState("");
 
+  /**
+   * Validates NIC format according to Sri Lankan standards
+   * Checks both old and new formats, validates day value range
+   * 
+   * @param {string} value - NIC number to validate
+   * @returns {boolean} True if NIC format is valid
+   */
   const isValidSriLankaNIC = useCallback((value) => {
     const v = value.trim().toUpperCase();
 
+    // Old format validation (9 digits + V/X)
     if (NIC_VALIDATION.OLD_FORMAT.test(v)) {
       const days = parseInt(v.substring(2, 5), 10);
       return days >= NIC_VALIDATION.MIN_DAY && days <= NIC_VALIDATION.MAX_DAY;
     }
 
+    // New format validation (12 digits)
     if (NIC_VALIDATION.NEW_FORMAT.test(v)) {
       const days = parseInt(v.substring(4, 7), 10);
       return days >= NIC_VALIDATION.MIN_DAY && days <= NIC_VALIDATION.MAX_DAY;
@@ -36,15 +95,24 @@ export default function StepNICVerification({
     return false;
   }, []);
 
+  /**
+   * Validates if NIC is within acceptable age range for NEMIS system
+   * DOS Officers should be within 100 years of current date
+   * 
+   * @param {string} value - NIC number to validate
+   * @returns {boolean} True if NIC's birth year is within acceptable range
+   */
   const isAppropriateNICForNEMIS = useCallback((value) => {
     const v = value.trim().toUpperCase();
     const minYear = new Date().getFullYear() - 100;
 
+    // Check new format (first 4 digits = birth year)
     if (NIC_VALIDATION.NEW_FORMAT.test(v)) {
       const firstFourDigits = parseInt(v.substring(0, 4), 10);
       return firstFourDigits > minYear;
     }
 
+    // Check old format (first 2 digits = birth year, relative to century)
     if (NIC_VALIDATION.OLD_FORMAT.test(v)) {
       const thresholdTwoDigits = parseInt(String(minYear).slice(-2), 10);
       const firstTwoDigits = parseInt(v.substring(0, 2), 10);
@@ -54,10 +122,19 @@ export default function StepNICVerification({
     return false;
   }, []);
 
+  /**
+   * Verifies NIC via API and handles three outcomes:
+   * 1. NIC exists with active appointment → Warning (red)
+   * 2. NIC exists without active appointment → Load data (orange)
+   * 3. NIC not found → New registration (green)
+   * 
+   * Also handles client-side validation errors
+   */
   const verifyNIC = useCallback(async () => {
     const clean = nic.trim().toUpperCase();
 
-    // Validation checks
+    // ===== CLIENT-SIDE VALIDATION =====
+
     if (!clean) {
       setStatus("invalid");
       setResultTone(null);
@@ -82,6 +159,7 @@ export default function StepNICVerification({
     try {
       setStatus("checking");
 
+      // ===== API VERIFICATION =====
       const res = await api.get(`/teachers/check-nic/${clean}`);
       const teacher = res.data?.data;
       const activeAppointment = !!res.data?.active_appointment;
@@ -92,7 +170,9 @@ export default function StepNICVerification({
         teacher?.appointment?.workplace_id?.trim?.() ||
         "";
 
+      // ===== NIC FOUND IN SYSTEM =====
       if (nicAvailable) {
+        // Pre-populate form with existing DOS Officer data
         setFormData((prev) => ({
           ...prev,
           nic: clean,
@@ -136,12 +216,15 @@ export default function StepNICVerification({
         }));
 
         setStatus("result");
+
+        // Warn if DOS Officer already has active appointment
         if (activeAppointment) {
           setResultTone("red");
           setMessage(
             `NIC Already Exists with Current Workplace: ${workplaceInstitutionName}`,
           );
         } else {
+          // Allow updating if no active appointment
           setResultTone("orange");
           setMessage(
             "NIC Found - Data Loaded. Please add appointment details.",
@@ -151,12 +234,13 @@ export default function StepNICVerification({
         return;
       }
 
-      // NIC not found - new teacher
+      // ===== NIC NOT FOUND - NEW REGISTRATION =====
       setFormData((prev) => ({
         ...prev,
         nic: clean,
         people_id: null,
         is_new_registration: true,
+        // Clear all other fields for fresh registration
         titleId: "",
         fullName: "",
         dateOfBirth: "",
@@ -204,6 +288,9 @@ export default function StepNICVerification({
     onVerified,
   ]);
 
+  /**
+   * Resets status when user changes NIC input
+   */
   const handleInputChange = useCallback((e) => {
     setNic(e.target.value);
     setStatus(null);
@@ -211,6 +298,9 @@ export default function StepNICVerification({
     setMessage("");
   }, []);
 
+  /**
+   * Handles form submission
+   */
   const handleFormSubmit = useCallback(
     (e) => {
       e.preventDefault();
@@ -221,7 +311,7 @@ export default function StepNICVerification({
 
   return (
     <div className="flex flex-col justify-center px-4 py-2">
-      {/* Title */}
+      {/* Step title */}
       <div className="mb-6 flex items-center gap-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-md bg-blue-600 text-xs font-bold text-white">
           01
@@ -232,7 +322,7 @@ export default function StepNICVerification({
       </div>
 
       <div className="w-full max-w-2xl">
-        {/* Info Alert */}
+        {/* Information banner */}
         <div className="mb-6 bg-amber-50 border border-amber-200 rounded-2xl p-4">
           <p className="text-sm text-amber-800">
             Before starting the registration, ensure that the National Identity

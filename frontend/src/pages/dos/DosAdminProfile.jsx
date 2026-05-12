@@ -127,10 +127,10 @@ export default function DosAdminProfile() {
           <div className="rounded-2xl surface overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/70">
               <div className="text-sm font-semibold text-gray-800 dark:text-gray-100">
-                Admin Profile
+                DEO Profile
               </div>
               <div className="text-xs text-gray-500 dark:text-gray-400">
-                Education administrator profile
+                Development Officer profile
               </div>
             </div>
 

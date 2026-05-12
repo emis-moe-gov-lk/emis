@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { HiUser } from "react-icons/hi";
 import DirectoryCard from "../common/DirectoryCard";
 import profileMale from "../../assets/images/profile_m.png";
@@ -6,6 +6,18 @@ import profileFemale from "../../assets/images/profile_f.png";
 
 export default function DosList({ employees }) {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Determine the base route for navigation
+  const getProfileRoute = (employeeId) => {
+    const currentPath = location.pathname;
+    if (currentPath.includes("edu-directors")) {
+      return `/employees/edu-directors/${employeeId}`;
+    } else if (currentPath.includes("zonaldirector")) {
+      return `/employees/zonaldirector/${employeeId}`;
+    }
+    return `/employees/development-officers/${employeeId}`;
+  };
 
   if (!employees.length) {
     return (
@@ -45,7 +57,7 @@ export default function DosList({ employees }) {
           genderId={emp.gender_id}
           permissions={{}}
           onView={(employee) =>
-            navigate(`/dashboard/profile/${employee.people_id}`)
+            navigate(getProfileRoute(employee.people_id))
           }
           onPrintId={(employee) => {
             window.open(`/print-id/${employee.id}`, "_blank");

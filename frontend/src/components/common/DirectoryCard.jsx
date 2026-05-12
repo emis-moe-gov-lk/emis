@@ -4,8 +4,6 @@ import {
   HiLocationMarker,
   HiPhone,
   HiEye,
-  HiIdentification,
-  HiDocumentText,
 } from "react-icons/hi";
 import { useNavigate } from "react-router-dom";
 import Can from "./Can";
@@ -140,7 +138,7 @@ export default function DirectoryCard({
               Contact
             </p>
             <a
-              href={`tel:${phone}`}
+            //   href={`tel:${phone}`}
               className="flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors truncate"
             >
               <HiPhone className="w-4 h-4 text-gray-400 dark:text-gray-500 shrink-0" />
@@ -187,50 +185,6 @@ export default function DirectoryCard({
               <span className="hidden sm:inline">View</span>
             </Button>
           ) : null}
-
-          {/* More Actions Dropdown */}
-          {(onPrintId || onExportPdf) && (
-            <div className="relative group/menu">
-              <button className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors">
-                <svg
-                  className="w-5 h-5 text-gray-600 dark:text-gray-400"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                </svg>
-              </button>
-
-              {/* Dropdown Menu */}
-              <div className="absolute right-0 top-10 z-50 w-44 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-100 dark:border-gray-700 py-1 opacity-0 invisible group-hover/menu:opacity-100 group-hover/menu:visible transition-all">
-                {onPrintId && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onPrintId(employee);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
-                  >
-                    <HiIdentification className="w-4 h-4 text-gray-400" />
-                    Print ID
-                  </button>
-                )}
-
-                {onExportPdf && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onExportPdf(employee);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
-                  >
-                    <HiDocumentText className="w-4 h-4 text-gray-400" />
-                    Export PDF
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>
