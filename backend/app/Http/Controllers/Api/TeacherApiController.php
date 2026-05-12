@@ -1054,7 +1054,7 @@ class TeacherApiController extends Controller
             'institutionCategory' => InstitutionCategory::active()->get(),
             'zonalEducationOffices' => ZonalEducationOffice::active()->get(),
             'institutions' => $zone && $institutionCategory ? Institution::where('zeo_wp_id', $zone)->where('institution_category_id', $institutionCategory)->get() : [],
-            'recruitmentCategories' => RecruitmentCategory::active()->orderBy('category_id')->get(),
+            
             'zonalPositions' => Position::where('service_id', 'SER005')
                 ->where('position_name', 'like', '%Zonal%')
                 ->active()
