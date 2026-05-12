@@ -1,6 +1,6 @@
 # Enforcing Branch Naming Convention
 
-name: Branch Naming Convention
+name: Branch Naming Enforce
 run-name: "Evaluate new branch [${{ github.ref_name }}]"
 on:
   create:
@@ -20,8 +20,10 @@ jobs:
 
           # Exempt Branches
           EXEMPT_LIST="${{ vars.EXEMPT_BRANCHES }}"
-          # convert comma separated list to regex like ^(main|dev|staging)$
-          EXEMPT="^($(echo "$EXEMPT_LIST" | tr ',' '|'))$"
+          
+          # Convert comma-separated list to regex, turning glob * into regex .*
+          EXEMPT="^($(echo "$EXEMPT_LIST" | tr ',' '\n' | tr -d ' ' | sed 's/\*/\.*/g' | paste -sd '|'))$"
+
           if echo "$BRANCH" | grep -Eq "$EXEMPT"; then
             echo "✅ Exempt branch '$BRANCH' — skipping check"
             exit 0

@@ -7,11 +7,11 @@ all:
     # ansible vars
     ansible_user: ansible
     ansible_port: 22
-    ansible_ssh_private_key_file: ~/.ssh/gha_emis_ed25519
+    ansible_ssh_private_key_file: [##-SSH-PRIVATE-KEY-PATH-##]
     ansible_python_interpreter: /usr/bin/python3
     ansible_ssh_common_args: >-
       -o StrictHostKeyChecking=no
-      -o ProxyJump=ansible@124.43.177.235
+      -o ProxyJump=ansible@[##-JUMPBOX_IP-##]
 
   children:                  
     services:                 
@@ -20,29 +20,29 @@ all:
         frontend_service:          
           hosts:                   
             uat_frontend:          
-              ansible_host: 192.168.200.2
+              ansible_host: [##-HOST-IP-##]
         
         # PHP + Laravel Backend
         backend_service:           
           hosts:                
             uat_backend:           
-              ansible_host: 192.168.200.2
+              ansible_host: [##-HOST-IP-##]
 
         # WSO2 Identity Server
         is_service:                
           hosts:                   
             uat_is:               
-              ansible_host: 192.168.200.2
+              ansible_host: [##-HOST-IP-##]
 
         # WSO2 API Manager
         apim_service:              
           hosts:                   
             uat_apim:            
-              ansible_host: 192.168.200.2
+              ansible_host: [##-HOST-IP-##]
 
 
     # MYSQL Databases for services
     databases:                
       hosts:                  
         uat_db:               
-          ansible_host: 192.168.200.2
+          ansible_host: [##-HOST-IP-##]

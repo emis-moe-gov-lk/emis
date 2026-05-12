@@ -9,7 +9,10 @@ import {
   HiPhone,
   HiSearch,
   HiUser,
+  HiPlus,
 } from "react-icons/hi";
+import Can from "@/components/common/Can";
+import { PermissionGroups } from "@/data/permissionGroups";
 import api from "@/api/axios";
 
 const PrincipalList = () => {
@@ -90,6 +93,15 @@ const PrincipalList = () => {
           <Badge color="blue" size="lg">
             Total: {total}
           </Badge>
+          <Can permission={PermissionGroups.SCHOOLS.CREATE}>
+            <button
+              onClick={() => navigate("/employees/principal/create")}
+              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors shadow-sm"
+            >
+              <HiPlus className="w-4 h-4" />
+              Create Principal
+            </button>
+          </Can>
         </div>
       </div>
 

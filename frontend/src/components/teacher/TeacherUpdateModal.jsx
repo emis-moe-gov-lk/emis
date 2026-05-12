@@ -372,6 +372,7 @@ export default function TeacherUpdateModal({
 									className={darkSafeInputClass}
 									value={form.initialsName ?? ""}
 									onChange={(e) => setField("initialsName", e.target.value)}
+									disabled
 								/>
 							</div>
 							<div className="grid grid-cols-2 gap-3">

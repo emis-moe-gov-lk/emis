@@ -21,7 +21,7 @@
     mysql_is_db: "{{ varsfl_mysql_is_db | default('wso2_is_db', true) }}"
     mysql_is_shared_db: "{{ varsfl_mysql_is_shared_db | default('wso2_is_shared_db', true) }}"
     # Paths
-    resources_dir: "{{ playbook_dir }}/resources"
+    resources_dir: "../resources"
     remote_tmp_dir: "/tmp/sql_imports"
     # APIM scripts
     apim_db_script: "{{ remote_tmp_dir }}/wso2_apim_4.6.0_db_script.sql"

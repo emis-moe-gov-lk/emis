@@ -6,7 +6,7 @@ export default function ZeoOfficeList() {
             title="Zonal Education Office"
             subtitle="Manage Zonal Education Office profile and account"
             endpoint="/zeo-list"
-            createLabel="Create Zonal Education Office"
+            // createLabel="Create Zonal Education Office"
         />
     );
 }

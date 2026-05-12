@@ -15,21 +15,24 @@ class TeacherAccountProvisioningService
         return 'Pw' . $nic;
     }
 
-    public function provisionFromPerson(People $person, bool $resetDefaultPassword = false): array
+    public function provisionFromPerson(People $person, bool $resetDefaultPassword = false, string $role = 'teacher'): array
     {
+        $normalizedRole = strtolower(trim($role)) ?: 'teacher';
+        $roleLabel = ucfirst($normalizedRole);
+
         $email = strtolower(trim((string) ($person->email ?? '')));
         $nic = NicHelper::normalize((string) ($person->nic ?? ''));
         $defaultPassword = $this->buildDefaultTeacherPassword($nic);
 
         if ($email === '') {
             throw ValidationException::withMessages([
-                'email' => 'Teacher email is required before confirming the profile.',
+                'email' => "{$roleLabel} email is required before confirming the profile.",
             ]);
         }
 
         if ($nic === '') {
             throw ValidationException::withMessages([
-                'nic' => 'Teacher NIC is required before confirming the profile.',
+                'nic' => "{$roleLabel} NIC is required before confirming the profile.",
             ]);
         }
 
@@ -40,7 +43,7 @@ class TeacherAccountProvisioningService
 
         if ($conflict) {
             throw ValidationException::withMessages([
-                'email' => 'Teacher email is already used by another user account.',
+                'email' => "{$roleLabel} email is already used by another user account.",
             ]);
         }
 
@@ -74,11 +77,17 @@ class TeacherAccountProvisioningService
         }
 
         $user->save();
-        $user->assignRole('teacher');
+        if ($normalizedRole === 'principal' && $user->hasRole('teacher')) {
+            $user->removeRole('teacher');
+        }
+        if (! $user->hasRole($normalizedRole)) {
+            $user->assignRole($normalizedRole);
+        }
 
         return [
             'user' => $user->fresh(['roles']),
             'password_initialized' => $shouldInitializePassword,
+            'role' => $normalizedRole,
             'remote' => [
                 'provider' => 'local',
                 'enabled' => false,

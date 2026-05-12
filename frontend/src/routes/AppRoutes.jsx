@@ -24,6 +24,7 @@ import TeacherList from "@/pages/teacher/TeacherList";
 import TeacherProfile from "@/pages/teacher/TeacherProfile";
 import PrincipalList from "@/pages/principal/PrincipalList";
 import PrincipalProfile from "@/pages/principal/PrincipalProfile";
+import RegPrincipal from "@/pages/principal/RegPrincipal";
 
 import OfficesOverview from "@/pages/offices/OfficesOverview";
 import MoeOfficeList from "@/pages/offices/MoeOfficeList";
@@ -38,6 +39,8 @@ import MyProfileLayout from "../components/UserProfile/MyProfileLayout";
 
 import VersionPage from "../components/UserProfile/SettingsPage/VersionPage/VersionPage";
 import Settings from "../components/UserProfile/SettingsPage/Settings.jsx";
+import NotificationsSettings from "../components/UserProfile/SettingsPage/NotificationsSettings.jsx";
+import PrivacySettings from "../components/UserProfile/SettingsPage/PrivacySettings.jsx";
 import TeacherReport from "../pages/timetable/TeacherReport.jsx";
 import RecordBook from "../pages/timetable/RecordBook.jsx";
 import DayTable from "../pages/timetable/DayTable.jsx";
@@ -114,9 +117,18 @@ export default function AppRoutes() {
 
             <Route path="/dashboard" element={<UpdateDashbord />} />
 
+            <Route path="dashboard/versionpage" element={<VersionPage />} />
             <Route path="dashboard/VersionPage" element={<VersionPage />} />
             <Route path="dashboard/profile" element={<MyProfileLayout />} />
             <Route path="dashboard/Settings" element={<Settings />} />
+            <Route
+              path="dashboard/settings/notifications"
+              element={<NotificationsSettings />}
+            />
+            <Route
+              path="dashboard/settings/privacy"
+              element={<PrivacySettings />}
+            />
 
             {/* Institution routes */}
             <Route path="institution">
@@ -211,6 +223,7 @@ export default function AppRoutes() {
               element={<DosDirectory />}
             />
             <Route path="employees/principal" element={<PrincipalList />} />
+            <Route path="employees/principal/create" element={<RegPrincipal />} />
             <Route
               path="employees/principal/:id"
               element={<PrincipalProfile />}
