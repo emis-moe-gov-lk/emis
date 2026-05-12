@@ -1,4 +1,5 @@
 import React from "react";
+import AlertTeacherList from "./AlertTeacherList";
 
 const AlertsOverview = ({
   pendingConfirmationCount = 0,
@@ -33,7 +34,7 @@ const AlertsOverview = ({
             Pending Verification
           </span>
           <a
-            href="/alerts/pending-verification"
+            href="/alert/pending-verification"
             className="mt-2 w-full flex justify-center"
           >
             <button className="bg-yellow-500 hover:bg-yellow-600 text-white py-1 px-4 rounded text-sm font-bold">
@@ -67,7 +68,7 @@ const AlertsOverview = ({
           <span className="text-sm font-semibold text-purple-700 mt-2 mb-2">
             Revised
           </span>
-          <a href="/alerts/revised" className="mt-2 w-full flex justify-center">
+          <a href="/alert/revised" className="mt-2 w-full flex justify-center">
             <button className="bg-purple-500 hover:bg-purple-600 text-white py-1 px-4 rounded text-sm font-bold">
               View
             </button>
@@ -100,7 +101,7 @@ const AlertsOverview = ({
             Pending Confirmation
           </span>
           <a
-            href="/alerts/pending-confirmation"
+            href="/alert/pending-confirmation"
             className="mt-2 w-full flex justify-center"
           >
             <button className="bg-green-500 hover:bg-green-600 text-white py-1 px-4 rounded text-sm font-bold">
@@ -134,10 +135,7 @@ const AlertsOverview = ({
           <span className="text-sm font-semibold text-red-700 mt-2 mb-2">
             Rejected
           </span>
-          <a
-            href="/alerts/rejection"
-            className="mt-2 w-full flex justify-center"
-          >
+          <a href="/alert/rejected" className="mt-2 w-full flex justify-center">
             <button className="bg-red-500 hover:bg-red-600 text-white py-1 px-4 rounded text-sm font-bold">
               View
             </button>

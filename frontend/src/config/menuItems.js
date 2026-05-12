@@ -62,7 +62,7 @@ export const menuItems = [
         label: "Users",
         icon: HiUserGroup,
         to: "/users",
-        permission: "menu.users",
+        permission: "menu.user",
       },
       {
         id: "DMSApprovedCader",

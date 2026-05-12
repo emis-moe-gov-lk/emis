@@ -7,6 +7,9 @@ import {
   deleteVersion,
 } from "@/api/VersionService";
 
+import Can from "@/components/common/Can";
+import { PermissionGroups } from "@/data/permissionGroups";
+
 export default function VersionPage() {
   const [versions, setVersions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -239,13 +242,15 @@ export default function VersionPage() {
           </h5>
         </div>
 
-        <button
-          onClick={handleNewVersionClick}
-          className="flex items-center gap-2 px-5 py-2 bg-blue-600 text-white rounded-lg"
-        >
-          <Plus className="w-4 h-4" />
-          New Version
-        </button>
+        <Can permission={PermissionGroups.SETTINGS.VERSION_ADD}>
+          <button
+            onClick={handleNewVersionClick}
+            className="flex items-center gap-2 px-5 py-2 bg-blue-600 text-white rounded-lg"
+          >
+            <Plus className="w-4 h-4" />
+            New Version
+          </button>
+        </Can>
       </div>
 
       <div className="space-y-6">
@@ -335,13 +340,18 @@ export default function VersionPage() {
                     </div>
 
                     <div className="flex gap-2">
-                      <button onClick={() => handleEdit(v.id)}>
-                        <Pencil className="w-4 h-4 text-yellow-600" />
-                      </button>
-
-                      <button onClick={() => openDeleteModal(v.id)}>
-                        <Trash2 className="w-4 h-4 text-red-600" />
-                      </button>
+                      <Can permission={PermissionGroups.SETTINGS.VERSION_EDIT}>
+                        <button onClick={() => handleEdit(v.id)}>
+                          <Pencil className="w-4 h-4 text-yellow-600" />
+                        </button>
+                      </Can>
+                      <Can
+                        permission={PermissionGroups.SETTINGS.VERSION_DELETE}
+                      >
+                        <button onClick={() => openDeleteModal(v.id)}>
+                          <Trash2 className="w-4 h-4 text-red-600" />
+                        </button>
+                      </Can>
                     </div>
                   </div>
                 </div>
