@@ -7,7 +7,7 @@ export default function DosList({ employees }) {
   return (
     <div className="space-y-4">
       {employees.map((emp) => (
-        <DosCard key={emp.id} employee={emp} />
+        <DosCard key={emp.people_id} employee={emp} />
       ))}
     </div>
   );
