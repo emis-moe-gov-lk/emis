@@ -202,15 +202,17 @@ export const menuItems = [
           {
             id: "zonaldirector",
             label: "Zonal Administrators",
-            to: "/employees/zonaldirector",
+            to: "/employees/edu-directors",
             permission: "menu.zonal.admin",
           },
-          {
+
+            {
             id: "zonaldeo",
             label: "Zonal Deo",
             to: "/employees/development-officers",
             permission: "menu.zonal.deo",
           },
+
           // {
           //   id: "zonalclerk",
           //   label: "Zonal Clerk",

@@ -39,6 +39,10 @@ use Illuminate\Validation\Rules\In;
 use App\Http\Controllers\Controller;
 use App\Models\DivisionalEducationOffice;
 use App\Models\ZonalEducationOffice;
+use App\Models\OfficeLevel;
+use App\Models\MinistryOfEducationOffice;
+use App\Models\ProvincialMinistryOfEducationOffice;
+use App\Models\ProvincialEducationOffice;
 use Illuminate\Support\Facades\Hash;
 use App\Models\EmployerCurrentAppointment;
 use App\Models\DivisionalSecretariatOffice;
@@ -1002,6 +1006,16 @@ class TeacherApiController extends Controller
         $service = $request->query('service');
         $institutionCategory = $request->query('ins_cat');
         $zone = $request->query('zone');
+        $officeLevel = $request->query('office_level');
+
+        $workplacesByLevel = match ($officeLevel) {
+            'OLID001' => MinistryOfEducationOffice::active()->get(),
+            'OLID002' => ProvincialMinistryOfEducationOffice::active()->get(),
+            'OLID003' => ProvincialEducationOffice::active()->get(),
+            'OLID004' => ZonalEducationOffice::active()->get(),
+            'OLID005' => DivisionalEducationOffice::active()->get(),
+            default   => [],
+        };
 
         return response()->json([
             'status' => 'success',
@@ -1018,6 +1032,13 @@ class TeacherApiController extends Controller
             'institutionCategory' => InstitutionCategory::active()->get(),
             'zonalEducationOffices' => ZonalEducationOffice::active()->get(),
             'institutions' => $zone && $institutionCategory ? Institution::where('zeo_wp_id', $zone)->where('institution_category_id', $institutionCategory)->get() : [],
+            'recruitmentCategories' => RecruitmentCategory::active()->orderBy('category_id')->get(),
+            'zonalPositions' => Position::where('service_id', 'SER005')
+                ->where('position_name', 'like', '%Zonal%')
+                ->active()
+                ->get(),
+            'officeLevels' => OfficeLevel::active()->orderBy('office_level_rank')->get(),
+            'workplacesByLevel' => $workplacesByLevel,
         ]);
     }
 

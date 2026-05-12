@@ -104,22 +104,32 @@ const SideBar = ({
                               {/* Children */}
                                   {openMenu === item.id && (
                                 <div className="ml-6 mt-1 space-y-1">
-                                  {item.children.map((child, childIndex) => (
-                                    <NavLink
-                                      key={`${child.id}-${childIndex}`}
-                                      to={child.to}
-                                      className={({ isActive }) =>
-                                        `block px-2 py-1.5 text-xs rounded-md transition focus-ring
-                                        ${
-                                          isActive
-                                            ? "bg-gray-200 dark:bg-gray-800 text-blue-600 dark:text-blue-300 font-semibold"
-                                            : "text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-white/5"
-                                        }`
-                                      }
-                                    >
-                                      {child.label}
-                                    </NavLink>
-                                  ))}
+                                  {item.children.map((child, childIndex) => {
+                                    const isDisabled = !child.to;
+                                    return isDisabled ? (
+                                      <div
+                                        key={`${child.id}-${childIndex}`}
+                                        className="block px-2 py-1.5 text-xs rounded-md text-gray-400 dark:text-gray-500"
+                                      >
+                                        {child.label}
+                                      </div>
+                                    ) : (
+                                      <NavLink
+                                        key={`${child.id}-${childIndex}`}
+                                        to={child.to}
+                                        className={({ isActive }) =>
+                                          `block px-2 py-1.5 text-xs rounded-md transition focus-ring
+                                          ${
+                                            isActive
+                                              ? "bg-gray-200 dark:bg-gray-800 text-blue-600 dark:text-blue-300 font-semibold"
+                                              : "text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-white/5"
+                                          }`
+                                        }
+                                      >
+                                        {child.label}
+                                      </NavLink>
+                                    );
+                                  })}
                                 </div>
                               )}
                             </>

@@ -56,7 +56,7 @@ export default function StepFirstAppointment({
     const fetchData = async () => {
       try {
         const res = await api.get(
-          `/teachers/appointment-form-data?service=${formData.firstAppointmentService}&ins_cat=${formData.firstAppointmentInstCategory}&zone=${formData.firstAppointmentZone}`,
+          `/register/appointment-form-data?service=${formData.firstAppointmentService}&ins_cat=${formData.firstAppointmentInstCategory}&zone=${formData.firstAppointmentZone}`,
         );
 
         const data = res.data;
