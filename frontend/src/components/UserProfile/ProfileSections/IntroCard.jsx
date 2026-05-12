@@ -33,9 +33,9 @@ const IntroCard = ({ myprofile, permissions, children }) => {
             <Alert type="warning" text="Profile Not Verified" />
           )}
 
-          {!isConfirmed && isVerified && permissions?.canConfirm && (
-            <Alert type="warning" text="Profile Not Confirmed" />
-          )}
+        {!!(!isConfirmed && isVerified && permissions?.canConfirm) && (
+  <Alert type="warning" text="Profile Not Confirmed" />
+)}
 
           {children}
         </div>
