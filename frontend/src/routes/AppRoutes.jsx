@@ -64,6 +64,13 @@ import RegDos from "../pages/dos/RegDos.jsx";
 import DosList from "../components/dos/DosList.jsx";
 import DosAdminProfile from "../pages/dos/DosAdminProfile.jsx";
 
+import AlertsOverview from "../components/Alert/AlertsOverview.jsx";
+
+import PendingConfirmationList from "../components/Alert/PendingConfirmationList.jsx";
+import PendingVerificationList from "../components/Alert/PendingVerificationList.jsx";
+import RejectedList from "../components/Alert/RejectedList.jsx";
+import RevisedList from "../components/Alert/RevisedList.jsx";
+
 export default function AppRoutes() {
   return (
     <AbilityProvider>
@@ -139,6 +146,21 @@ export default function AppRoutes() {
             </Route>
 
             <Route path="alert" element={<Alert />} />
+
+            <Route
+              path="alert/pending-confirmation"
+              element={<PendingConfirmationList />}
+            />
+
+            <Route
+              path="alert/pending-verification"
+              element={<PendingVerificationList />}
+            />
+
+            <Route path="alert/revised" element={<RevisedList />} />
+
+            <Route path="alert/rejected" element={<RejectedList />} />
+
             <Route
               path="roles/create"
               element={
@@ -234,7 +256,10 @@ export default function AppRoutes() {
               <Route path=":id" element={<DosAdminProfile />} />
             </Route>
             <Route path="employees/principal" element={<PrincipalList />} />
-            <Route path="employees/principal/create" element={<RegPrincipal />} />
+            <Route
+              path="employees/principal/create"
+              element={<RegPrincipal />}
+            />
             <Route
               path="employees/principal/:id"
               element={<PrincipalProfile />}

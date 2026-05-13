@@ -102,6 +102,18 @@ export const PermissionGroups = {
     DELETE: "principal.delete",
     PRINCIPAL_VIEW: "menu.schools.principals",
     UPDATE: "principal.update",
+    PROFILE_VIEW: "principal.profile.view",
+    PROFILE_EDIT: "principal.profile.edit.view",
+    EDIT_REQUEST: "principal.profile.edit-request.view",
+    PROFILE_QUALIFICATION: "principal.profile.qualification.view",
+    PROFILE_EMPLOYMENT: "principal.profile.employment.view",
+    PROFILE_PREVIOUS_SERVICE: "principal.profile.employment.previous-service.create",
+    PROFILE_PREVIOUS_RECORD: "principal.profile.employment.previous-record.view",
+    PROFILE_WOP: "principal.profile.pension-and-payment.update",
+    PROFILE_FAMILY: "principal.profile.family.create"
+
+
+
   },
 
   
@@ -147,7 +159,7 @@ export const PermissionGroups = {
     PRINCIPAL: "menu.schools.principals",
     DEO: "menu.schools.deo",
     CLERK: "menu.schools.clerk",
-    BULK_UPLOAD: "schools.teachers.bulk.upload",
+    BULK_UPLOAD: "teacher.bulk.upload",
     CREATE: "teacher.create",
     DELETE: "teacher.delete",
     CONFIRM: "teacher.profile.confirm",
@@ -208,6 +220,17 @@ export const PermissionGroups = {
   TIMETABLE: {
     TIMETABLE_VIEW: "menu.timetable",
   },
+
+  SETTINGS: {
+    SETTINGS_VIEW: "menu.settings.system-settings",
+    VERSION: "menu.settings.version",
+    NOTIFICATIONS: "menu.settings.notifications",
+    PRIVACY: "menu.settings.privacy",
+    VERSION_ADD: "settings.version.add",
+    VERSION_DELETE: "settings.version.delete",
+    VERSION_EDIT: "settings.version.edit",
+  },
+
 };
 
 
