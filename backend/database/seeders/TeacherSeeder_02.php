@@ -250,13 +250,15 @@ class TeacherSeeder_02 extends Seeder
             DB::transaction(function () use ($data, $workplaceId) {
                 $nic = NicHelper::normalize($data['nic']);
 
-                // Skip if already seeded
-                if (People::where('nic_hash', NicHelper::hash($nic))->exists()) {
+                $existingPeople = People::where('nic_hash', NicHelper::hash($nic))->first();
+
+                // Skip only if both People AND Teacher already exist
+                if ($existingPeople && $existingPeople->teacher()->exists()) {
                     return;
                 }
 
-                // 1. People
-                $people = People::create([
+                // 1. People — reuse existing or create new
+                $people = $existingPeople ?? People::create([
                     'nic'                => $nic,
                     'title_id'           => $data['title_id'],
                     'full_name'          => $data['full_name'],
@@ -420,12 +422,14 @@ class TeacherSeeder_02 extends Seeder
 
                 // 10. System user
                 $user = User::create([
-                    'nic'       => $nic,
-                    'people_id' => $people->people_id,
-                    'name'      => $people->name_with_initials,
-                    'email'     => $data['email'],
-                    'contact'   => $data['phone'],
-                    'password'  => 'password@123',
+                    'nic'                   => $nic,
+                    'people_id'             => $people->people_id,
+                    'name'                  => $people->name_with_initials,
+                    'email'                 => $data['email'],
+                    'contact'               => $data['phone'],
+                    'password'              => 'User@' . $nic,
+                    'identity_provider'     => 'local',
+                    'must_change_password'  => true,
                 ]);
 
                 $user->assignRole('teacher');
