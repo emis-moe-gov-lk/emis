@@ -297,7 +297,6 @@ class DeoOfficerController extends Controller
                 // APPOINTMENT
                 'appointmentDate'   => 'required|date',
                 'appointmentLetter' => 'required|string',
-                'serviceId'         => 'required|string',
                 'rankId'            => 'required|string',
                 'positionId'        => 'required|string',
                 'deoOfficeId'       => 'required|string',
@@ -305,8 +304,10 @@ class DeoOfficerController extends Controller
 
             DB::beginTransaction();
 
-            $nic      = NicHelper::normalize($validated['nic']);
-            $initials = People::generateInitials($validated['fullName']);
+            $nic        = NicHelper::normalize($validated['nic']);
+            $initials   = People::generateInitials($validated['fullName']);
+            $dosService = Service::where('service_name', 'DOS')->firstOrFail();
+            $serviceId  = $dosService->service_id;
 
             // ---- PEOPLE ----
             
@@ -366,7 +367,7 @@ class DeoOfficerController extends Controller
                 'employee_id'            => $people->people_id,
                 'first_appointment_date' => $validated['appointmentDate'],
                 'retirement_date'        => $retirementDate->toDateString(),
-                'service_id'             => $validated['serviceId'],
+                'service_id'             => $serviceId,
                 'rank_id'                => $validated['rankId'],
                 'position_id'            => $validated['positionId'],
                 'office_level_id'        => 'OLID001',
@@ -380,7 +381,7 @@ class DeoOfficerController extends Controller
                 'appointment_id'  => $appointmentId,
                 'employee_id'     => $people->people_id,
                 'appoint_date'    => $validated['appointmentDate'],
-                'service_id'      => $validated['serviceId'],
+                'service_id'      => $serviceId,
                 'rank_id'         => $validated['rankId'],
                 'office_level_id' => 'OLID001',
                 'position_id'     => $validated['positionId'],
