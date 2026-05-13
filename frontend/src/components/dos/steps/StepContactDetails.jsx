@@ -5,7 +5,7 @@ const VALIDATION_PATTERNS = {
   PHONE: /^0\d{9}$/,
   POSTAL_CODE: /^\d{5}$/,
   COORDINATE: /^\d{1,3}(\.\d{1,6})?$/,
-  EMAIL: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+  EMAIL: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[A-Za-z]{2,}$/,
 };
 
 const SRI_LANKA_BOUNDS = {
