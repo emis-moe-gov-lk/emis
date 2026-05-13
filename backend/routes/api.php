@@ -169,6 +169,7 @@ Route::prefix('')->group(function () {
     Route::controller(DeoOfficerController::class)->middleware('auth:jwt')->prefix('deo-officers')->group(function () {
         Route::get('/', 'index');                      // GET all DEO officers
         Route::get('/form-data', 'formData');          // GET form dropdown data
+        Route::get('/current-appointment-form-data', 'currentAppointmentFormData'); // GET DEO current appointment form data
         Route::post('/', 'store');                     // POST create
         Route::get('/{id}', 'show');            // GET single
         Route::patch('/{id}', 'update');        // PATCH update

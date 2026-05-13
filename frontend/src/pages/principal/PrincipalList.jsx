@@ -4,9 +4,6 @@ import { Badge, Button, Spinner, TextInput } from "flowbite-react";
 import {
   HiChevronLeft,
   HiChevronRight,
-  HiEye,
-  HiLocationMarker,
-  HiPhone,
   HiSearch,
   HiUser,
   HiPlus,
@@ -14,6 +11,7 @@ import {
 import Can from "@/components/common/Can";
 import { PermissionGroups } from "@/data/permissionGroups";
 import api from "@/api/axios";
+import DirectoryCard from "@/components/common/DirectoryCard";
 
 const PrincipalList = () => {
   const navigate = useNavigate();
@@ -131,80 +129,34 @@ const PrincipalList = () => {
                 const appointmentStatus = getAppointmentStatus(principal.appointment);
 
                 return (
-                  <div
+                  <DirectoryCard
                     key={principal.people_id}
-                    className="group flex flex-col md:flex-row md:items-start gap-4 p-4 sm:p-5 bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-md border border-gray-100 dark:border-gray-700 transition-all duration-200 hover:border-blue-100 dark:hover:border-blue-900/30"
-                  >
-                    <div className="flex items-center gap-4 min-w-[60px]">
-                      <div className="p-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
-                        <HiUser className="w-6 h-6" />
-                      </div>
-                    </div>
-
-                    <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-                      <div className="md:col-span-3">
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-white truncate group-hover:text-blue-600 transition-colors">
-                          {principal.full_name}
-                        </h3>
-                        <p className="text-xs font-bold text-blue-600 mt-0.5 truncate">
-                          NIC: {principal.nic || "-"}
-                        </p>
-                      </div>
-
-                      <div className="md:col-span-2">
-                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
-                          Recruitment Category
-                        </p>
-                        <div className="text-sm font-semibold text-gray-700 dark:text-gray-200 truncate">
-                          {principal.principal?.recruitmentCategory?.category_name || "-"}
-                        </div>
-                      </div>
-
-                      <div className="md:col-span-3">
-                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
-                          Workplace Address
-                        </p>
-                        <div className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300">
-                          <HiLocationMarker className="w-4 h-4 text-gray-400 shrink-0" />
-                          <span className="truncate">
-                            {principal.current_appointment?.workplace?.institution?.name ||
-                              "No Workplace"}
-                          </span>
-                        </div>
-                        <div className="text-xs text-blue-600 dark:text-gray-400 truncate">
-                          {principal.current_appointment?.workplace?.institution?.address || "-"}
-                        </div>
-                      </div>
-
-                      <div className="md:col-span-2">
-                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
-                          Contact
-                        </p>
-                        <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
-                          <HiPhone className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                          <span className="truncate">{principal.phone || "-"}</span>
-                        </div>
-                      </div>
-
-                      <div className="md:col-span-2 flex items-center justify-end gap-2 flex-nowrap mt-3 md:mt-0">
-                        <Badge color={appointmentStatus.color} className="px-3 py-1 whitespace-nowrap hidden sm:inline-flex">
-                          {appointmentStatus.label}
-                        </Badge>
-                        <div className="w-full md:w-auto flex-shrink-0">
-                          <Button
-                            size="sm"
-                            color="light"
-                            onClick={() => navigate(`/employees/principal/${principal.people_id}`)}
-                            className="border-gray-200 w-full md:w-auto flex items-center justify-center gap-2"
-                            aria-label={`View profile of ${principal.full_name}`}
-                          >
-                            <HiEye className="h-4 w-4" />
-                            <span className="truncate">View Profile</span>
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                    employee={principal}
+                    name={principal.full_name}
+                    nic={principal.nic}
+                    secondaryField={
+                      principal.principal?.recruitmentCategory?.category_name ||
+                      "-"
+                    }
+                    secondaryFieldLabel="Recruitment Category"
+                    workplace={
+                      principal.current_appointment?.workplace?.institution
+                        ?.name || "No Workplace"
+                    }
+                    address={
+                      principal.current_appointment?.workplace?.institution
+                        ?.address || "-"
+                    }
+                    phone={principal.phone || "-"}
+                    status={appointmentStatus.label}
+                    statusColor={appointmentStatus.color}
+                    permissions={{
+                      view: PermissionGroups.SCHOOLS.VIEW_PROFILE,
+                    }}
+                    onView={(employee) => {
+                      navigate(`/employees/principal/${employee.people_id}`);
+                    }}
+                  />
                 );
               })}
 
