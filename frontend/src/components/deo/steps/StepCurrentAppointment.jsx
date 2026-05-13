@@ -15,7 +15,7 @@ export default function StepCurrentAppointment({ formData, setFormData, onValid 
   const [services, setServices] = useState([]);
   const [ranks, setRanks] = useState([]);
   const [positions, setPositions] = useState([]);
-  const [deoOffices, setDeoOffices] = useState([]);
+  const [zonalOffices, setZonalOffices] = useState([]);
 
   const developmentOfficerPositions = positions.filter(
     (position) => String(position?.position_name || "").trim().toLowerCase() === "development officer",
@@ -32,7 +32,7 @@ export default function StepCurrentAppointment({ formData, setFormData, onValid 
         setServices(data.services ?? []);
         setRanks(data.serviceRanks ?? []);
         setPositions(data.positions ?? []);
-        setDeoOffices(data.deoOffices ?? []);
+        setZonalOffices(data.zonalOffices ?? []);
       } catch (error) {
         console.error("Failed to load current appointment form data", error);
       } finally {
@@ -85,7 +85,7 @@ export default function StepCurrentAppointment({ formData, setFormData, onValid 
       e.currentAppointmentDate = "Current appointment date must be same or after first appointment date";
     }
     if (!formData.currentAppointmentLetter) e.currentAppointmentLetter = "Required";
-    if (!formData.currentAppointmentOffice) e.currentAppointmentOffice = "Required";
+    if (!formData.currentAppointmentZone) e.currentAppointmentZone = "Required";
     if (!formData.currentAppointmentPosition) e.currentAppointmentPosition = "Required";
 
     setErrors(e);
@@ -214,20 +214,20 @@ export default function StepCurrentAppointment({ formData, setFormData, onValid 
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-4 gap-y-2">
         <div>
-          <Label htmlFor="currentAppointmentOffice">DEO Office <span className="text-red-600">*</span></Label>
+          <Label htmlFor="currentAppointmentZone">Zonal Education Office <span className="text-red-600">*</span></Label>
           <Select
-            id="currentAppointmentOffice"
-            value={formData.currentAppointmentOffice || ""}
+            id="currentAppointmentZone"
+            value={formData.currentAppointmentZone || ""}
             disabled={loading}
-            color={errors.currentAppointmentOffice ? "failure" : "gray"}
-            onChange={(e) => update("currentAppointmentOffice", e.target.value)}
+            color={errors.currentAppointmentZone ? "failure" : "gray"}
+            onChange={(e) => update("currentAppointmentZone", e.target.value)}
           >
             <option value="">{selectPlaceholder}</option>
-            {deoOffices.map((o) => (
+            {zonalOffices.map((o) => (
               <option key={o.id} value={o.workplace_id}>{o.name}</option>
             ))}
           </Select>
-          {errors.currentAppointmentOffice && <p className="text-sm text-red-600 mt-1">{errors.currentAppointmentOffice}</p>}
+          {errors.currentAppointmentZone && <p className="text-sm text-red-600 mt-1">{errors.currentAppointmentZone}</p>}
         </div>
 
         <div>

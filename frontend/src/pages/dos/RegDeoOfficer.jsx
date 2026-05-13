@@ -428,10 +428,9 @@ function RegDeoOfficerInner() {
           postalCode: formData.postalCode,
           appointmentDate: formData.currentAppointmentDate,
           appointmentLetter: formData.currentAppointmentLetter,
-          serviceId: formData.currentAppointmentService,
           rankId: formData.currentAppointmentRank,
           positionId: formData.currentAppointmentPosition,
-          deoOfficeId: formData.currentAppointmentOffice,
+          zonalOfficeId: formData.currentAppointmentZone,
         };
 
         const result = await registerDeoOfficer(payload);

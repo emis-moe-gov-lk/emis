@@ -93,7 +93,7 @@ class DeoOfficerController extends Controller
                 : [],
             'positions'    => Position::where('position_name', 'Development Officer')->active()->get(),
 
-            'deoOffices'   => DivisionalEducationOffice::active()->get(),
+            'zonalOffices' => ZonalEducationOffice::active()->get(),
         ]);
     }
 
@@ -299,7 +299,7 @@ class DeoOfficerController extends Controller
                 'appointmentLetter' => 'required|string',
                 'rankId'            => 'required|string',
                 'positionId'        => 'required|string',
-                'deoOfficeId'       => 'required|string',
+                'zonalOfficeId'     => 'required|string',
             ]);
 
             DB::beginTransaction();
@@ -370,8 +370,8 @@ class DeoOfficerController extends Controller
                 'service_id'             => $serviceId,
                 'rank_id'                => $validated['rankId'],
                 'position_id'            => $validated['positionId'],
-                'office_level_id'        => 'OLID001',
-                'workplace_id'           => $validated['deoOfficeId'],
+                'office_level_id'        => 'OLID004',
+                'workplace_id'           => $validated['zonalOfficeId'],
                 'appointment_letter_no'  => $validated['appointmentLetter'],
                 'appointment_letter'     => 'none.pdf',
             ]);
@@ -385,7 +385,7 @@ class DeoOfficerController extends Controller
                 'rank_id'         => $validated['rankId'],
                 'office_level_id' => 'OLID001',
                 'position_id'     => $validated['positionId'],
-                'workplace_id'    => $validated['deoOfficeId'],
+                'workplace_id'    => $validated['zonalOfficeId'],
             ]);
 
             // ---- USER ----
