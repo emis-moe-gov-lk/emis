@@ -17,10 +17,10 @@ use App\Services\TeacherAccountProvisioningService;
 class ProfileController extends Controller
 {
     // -------------------------------------------------------
-    // GET /profile
-    // Fetch the authenticated user's own profile.
+    // GET /profile/avatar  
+    // Fetch the authenticated user's own profile avatar.
     // -------------------------------------------------------
-    public function show(Request $request)
+    public function getAvatar(Request $request)
     {
         $user = $request->user() ?: User::where('email', $request->attributes->get('jwt_email'))->first();
 
@@ -56,10 +56,10 @@ class ProfileController extends Controller
     }
 
     // -------------------------------------------------------
-    // PATCH /profile
-    // Update the authenticated user's own profile.
+    // PATCH /profile/avatar
+    // Update the authenticated user's own profile avatar.
     // -------------------------------------------------------
-    public function update(Request $request)
+    public function updateAvatar(Request $request)
     {
         $user = $request->user() ?: User::where('email', $request->attributes->get('jwt_email'))->first();
 
@@ -187,10 +187,10 @@ class ProfileController extends Controller
 }
 
     // -------------------------------------------------------
-    // POST /profile/photo
-    // Upload or replace the authenticated user's profile photo.
+    // POST /profile/avatar
+    // Upload or replace the authenticated user's profile avatar.
     // -------------------------------------------------------
-    public function uploadPhoto(Request $request)
+    public function uploadProfileAvatar(Request $request)
     {
         $user = $request->user() ?: User::where('email', $request->attributes->get('jwt_email'))->first();
 

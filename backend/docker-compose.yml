@@ -1,5 +1,5 @@
 services:
-    app:
+    backend:
         build:
             context: .
             dockerfile: Dockerfile
@@ -33,7 +33,7 @@ services:
             - .:/var/www/html:ro
             - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
         depends_on:
-            - app
+            - backend
         networks:
             - emis
 
