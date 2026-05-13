@@ -11,7 +11,6 @@ import StepNavigation from "@/components/teacher/StepNavigation";
 import StepNICVerification from "@/components/teacher/steps/StepNICVerification";
 import StepPersonalDetails from "@/components/teacher/steps/StepPersonalDetails";
 import StepContactDetails from "@/components/teacher/steps/StepContactDetails";
-import StepFirstAppointment from "@/components/deo/steps/StepFirstAppointment";
 import StepCurrentAppointment from "@/components/deo/steps/StepCurrentAppointment";
 
 import {
@@ -25,15 +24,14 @@ import { useAuthUser } from "@/context/useAuthUser";
 
 const REG_DEO_OFFICER_HISTORY_OWNER = "regDeoOfficerCreate";
 const REG_DEO_OFFICER_HISTORY_STEP_KEY = "regDeoOfficerStep";
-const REG_DEO_OFFICER_TOTAL_STEPS = 6;
+const REG_DEO_OFFICER_TOTAL_STEPS = 5;
 
 const STEPS = [
   { id: 1, label: "Verification" },
   { id: 2, label: "Personal" },
   { id: 3, label: "Contact" },
-  { id: 4, label: "First Appt" },
-  { id: 5, label: "Current Appt" },
-  { id: 6, label: "Finishing" },
+  { id: 4, label: "Current Appt" },
+  { id: 5, label: "Finishing" },
 ];
 
 function RegDeoOfficerInner() {
@@ -58,7 +56,6 @@ function RegDeoOfficerInner() {
     isNicVerified,
     isPersonalValid,
     isContactValid,
-    isFirstApptValid,
     isCurrentApptValid,
     error,
     isRestored,
@@ -344,8 +341,7 @@ function RegDeoOfficerInner() {
     if (currentStep === 1 && !isNicVerified) return;
     if (currentStep === 2 && !isPersonalValid) return;
     if (currentStep === 3 && !isContactValid) return;
-    if (currentStep === 4 && !isFirstApptValid) return;
-    if (currentStep === 5 && !isCurrentApptValid) return;
+    if (currentStep === 4 && !isCurrentApptValid) return;
 
     if (stepId === currentStep + 1) {
       dispatch({ type: "SET_STEP", payload: stepId });
@@ -399,21 +395,46 @@ function RegDeoOfficerInner() {
         }
       }
     }
-    if (currentStep === 4 && !isFirstApptValid) {
-      showErrorToast("Compulsory fields should be completed.", "first-appointment-required");
-      return;
-    }
-    if (currentStep === 5 && !isCurrentApptValid) {
+    if (currentStep === 4 && !isCurrentApptValid) {
       showErrorToast("Compulsory fields should be completed.", "current-appointment-required");
       return;
     }
 
-    if (currentStep === 5) {
+    if (currentStep === 4) {
       try {
         setIsSubmitting(true);
         dispatch({ type: "SET_ERROR", payload: null });
 
-        const result = await registerDeoOfficer(formData);
+        const payload = {
+          nic: formData.nic,
+          titleId: formData.titleId,
+          fullName: formData.fullName,
+          dateOfBirth: formData.dateOfBirth,
+          genderId: formData.genderId,
+          religionId: formData.religionId,
+          ethnicityId: formData.ethnicityId,
+          civilStatusId: formData.civilStatusId,
+          bloodGroupId: formData.bloodGroupId,
+          healthCondition: formData.healthCondition,
+          healthConditionDescription: formData.healthConditionDescription,
+          districtId: formData.districtId,
+          gnDivisionId: formData.gnDivisionId,
+          dsOfficeId: formData.dsOfficeId,
+          email: formData.email,
+          contact: formData.contact,
+          addressLine1: formData.addressLine1,
+          addressLine2: formData.addressLine2,
+          addressLine3: formData.addressLine3,
+          postalCode: formData.postalCode,
+          appointmentDate: formData.currentAppointmentDate,
+          appointmentLetter: formData.currentAppointmentLetter,
+          serviceId: formData.currentAppointmentService,
+          rankId: formData.currentAppointmentRank,
+          positionId: formData.currentAppointmentPosition,
+          deoOfficeId: formData.currentAppointmentOffice,
+        };
+
+        const result = await registerDeoOfficer(payload);
 
         if (result.status === "success") {
           const responseData = result.data || {};
@@ -442,7 +463,7 @@ function RegDeoOfficerInner() {
           dispatch({ type: "COMPLETE_REGISTRATION" });
           setIsRegistrationComplete(true);
           showSuccessToast("Development Officer registered successfully", "deo-officer-registration-success");
-          dispatch({ type: "SET_STEP", payload: 6 });
+          dispatch({ type: "SET_STEP", payload: 5 });
         } else {
           dispatch({
             type: "SET_ERROR",
@@ -473,7 +494,7 @@ function RegDeoOfficerInner() {
   };
 
   const back = async () => {
-    if (currentStep === 6) return;
+    if (currentStep === 5) return;
 
     const targetStep = Math.max(currentStep - 1, 1);
     if (targetStep === 1 && currentStep > 1) {
@@ -538,14 +559,6 @@ function RegDeoOfficerInner() {
           )}
 
           {currentStep === 4 && (
-            <StepFirstAppointment
-              formData={formData}
-              setFormData={setFormData}
-              onValid={(isValid) => dispatch({ type: "SET_FIRST_APPT_VALID", payload: isValid })}
-            />
-          )}
-
-          {currentStep === 5 && (
             <StepCurrentAppointment
               formData={formData}
               setFormData={setFormData}
@@ -553,7 +566,7 @@ function RegDeoOfficerInner() {
             />
           )}
 
-          {currentStep === 6 && (
+          {currentStep === 5 && (
             <div className="space-y-8">
               <div className="flex items-start gap-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900/40 rounded-2xl p-6">
                 <HiCheckCircle className="text-green-600 dark:text-green-500 w-8 h-8 mt-1" />
@@ -594,7 +607,7 @@ function RegDeoOfficerInner() {
           </div>
         )}
 
-        {currentStep !== 6 && (
+        {currentStep !== 5 && (
           <div className="border-t">
             <StepNavigation
               currentStep={currentStep}

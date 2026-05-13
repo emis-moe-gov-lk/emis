@@ -16,6 +16,9 @@ use App\Models\GnDivision;
 use App\Models\CivilStatus;
 use App\Models\Service;
 use App\Models\ServiceRank;
+use App\Models\Institution;
+use App\Models\ZonalEducationOffice;
+use App\Models\InstitutionCategory;
 use App\Models\DistrictsList;
 use App\Models\EmployerAppointment;
 use App\Models\EmployerCurrentAppointment;
@@ -88,11 +91,52 @@ class DeoOfficerController extends Controller
             'serviceRanks' => $serviceId
                 ? ServiceRank::where('service_id', $serviceId)->active()->get()
                 : [],
-            'positions'    => $serviceId
-                ? Position::where('service_id', $serviceId)->active()->get()
-                : [],
+            'positions'    => Position::where('position_name', 'Development Officer')->active()->get(),
 
             'deoOffices'   => DivisionalEducationOffice::active()->get(),
+        ]);
+    }
+
+    public function currentAppointmentFormData(Request $request)
+    {
+        $service = $request->query('service');
+        $institutionCategory = $request->query('ins_cat');
+        $zone = $request->query('zone');
+
+        $positions = $service
+            ? Position::where('service_id', $service)->active()->get()
+            : Position::where('position_name', 'Development Officer')->active()->get();
+
+        $roles = $request->attributes->get('jwt_roles', []);
+        $isSuperAdmin = in_array('super admin', $roles);
+
+        if ($isSuperAdmin) {
+            $zonalOffices = ZonalEducationOffice::active()->get();
+        } else {
+            $workplaceId = auth()->user()?->currentAppointment?->workplace_id;
+
+            $zeo = ZonalEducationOffice::where('workplace_id', $workplaceId)->active()->first();
+
+            if ($zeo) {
+                $zonalOffices = collect([$zeo]);
+            } else {
+                $zeoWpId = DivisionalEducationOffice::where('workplace_id', $workplaceId)->value('zeo_wp_id');
+                $zonalOffices = $zeoWpId
+                    ? ZonalEducationOffice::where('workplace_id', $zeoWpId)->active()->get()
+                    : collect();
+            }
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'service' => Service::active()->get(),
+            'serviceRanks' => $service ? ServiceRank::where('service_id', $service)->active()->get() : [],
+            'positions' => $positions,
+            'institutionCategory' => InstitutionCategory::active()->get(),
+            'zonalEducationOffices' => $zonalOffices,
+            'institutions' => $zone && $institutionCategory
+                ? Institution::where('zeo_wp_id', $zone)->where('institution_category_id', $institutionCategory)->get()
+                : [],
         ]);
     }
  

@@ -3,43 +3,36 @@ import { HiInformationCircle } from "react-icons/hi";
 import { useEffect, useState } from "react";
 import api from "@/api/axios";
 
-export default function StepCurrentAppointment({ formData, setFormData, onValid }) {
-  const isSLPSService = (service) =>
-    [service?.service_name, service?.name, service?.service_code, service?.code]
-      .filter(Boolean)
-      .some((value) => String(value).trim().toUpperCase() === "SLPS");
+const isSLTSService = (service) =>
+  [service?.service_name, service?.name, service?.service_code, service?.code]
+    .filter(Boolean)
+    .some((value) => String(value).trim().toUpperCase() === "SLTS");
 
+export default function StepCurrentAppointment({ formData, setFormData, onValid }) {
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState({});
 
-  const [currentAppointmentServices, setCurrentAppointmentServices] = useState([]);
-  const [currentAppointmentRanks, setCurrentAppointmentRanks] = useState([]);
-  const [currentAppointmentSubjects, setCurrentAppointmentSubjects] = useState([]);
-  const [currentAppointmentZonalOffices, setCurrentAppointmentZonalOffices] = useState([]);
-  const [currentAppointmentInstCategories, setCurrentAppointmentInstCategories] = useState([]);
-  const [currentAppointmentInstitutions, setCurrentAppointmentInstitutions] = useState([]);
-  const [currentAppointmentPositions, setCurrentAppointmentPositions] = useState([]);
+  const [services, setServices] = useState([]);
+  const [ranks, setRanks] = useState([]);
+  const [positions, setPositions] = useState([]);
+  const [deoOffices, setDeoOffices] = useState([]);
+
+  const developmentOfficerPositions = positions.filter(
+    (position) => String(position?.position_name || "").trim().toLowerCase() === "development officer",
+  );
 
   const minCurrentAppointmentDate = formData.firstAppointmentDate || undefined;
-  const slpsCurrentAppointmentServices = currentAppointmentServices.filter(isSLPSService);
-  const isAllowedCurrentAppointmentService = (serviceId) =>
-    slpsCurrentAppointmentServices.some((service) => String(service.service_id) === String(serviceId));
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await api.get(
-          `/teachers/current-appointment-form-data?service=${formData.currentAppointmentService || ""}&ins_cat=${formData.currentAppointmentInstCategory || ""}&zone=${formData.currentAppointmentZone || ""}`,
-        );
+        const res = await api.get(`/deo-officers/form-data?service=${formData.currentAppointmentService || ""}`);
         const data = res.data || {};
 
-        setCurrentAppointmentServices(data.service ?? []);
-        setCurrentAppointmentRanks(data.serviceRanks ?? []);
-        setCurrentAppointmentSubjects(data.mainTeachingSubjects ?? []);
-        setCurrentAppointmentZonalOffices(data.zonalEducationOffices ?? []);
-        setCurrentAppointmentInstCategories(data.institutionCategory ?? []);
-        setCurrentAppointmentInstitutions(data.institutions ?? []);
-        setCurrentAppointmentPositions(data.positions ?? []);
+        setServices(data.services ?? []);
+        setRanks(data.serviceRanks ?? []);
+        setPositions(data.positions ?? []);
+        setDeoOffices(data.deoOffices ?? []);
       } catch (error) {
         console.error("Failed to load current appointment form data", error);
       } finally {
@@ -48,7 +41,36 @@ export default function StepCurrentAppointment({ formData, setFormData, onValid 
     };
 
     fetchData();
-  }, [formData.currentAppointmentService, formData.currentAppointmentInstCategory, formData.currentAppointmentZone]);
+  }, [formData.currentAppointmentService]);
+
+  useEffect(() => {
+    if (!services.length || formData.currentAppointmentService) return;
+
+    const selectedService = services.find(isSLTSService) || services[0];
+    if (!selectedService?.service_id) return;
+
+    update("currentAppointmentService", selectedService.service_id);
+  }, [services, formData.currentAppointmentService]);
+
+  useEffect(() => {
+    if (!ranks.length || formData.currentAppointmentRank) return;
+
+    const selectedRank = ranks[0];
+    if (!selectedRank?.rank_id) return;
+
+    update("currentAppointmentRank", selectedRank.rank_id);
+  }, [ranks, formData.currentAppointmentRank]);
+
+  useEffect(() => {
+    if (!developmentOfficerPositions.length) return;
+
+    const selectedPositionId = String(formData.currentAppointmentPosition || "");
+    const validIds = developmentOfficerPositions.map((position) => String(position.position_id));
+
+    if (!selectedPositionId || !validIds.includes(selectedPositionId)) {
+      update("currentAppointmentPosition", developmentOfficerPositions[0].position_id);
+    }
+  }, [developmentOfficerPositions, formData.currentAppointmentPosition]);
 
   const validate = () => {
     const e = {};
@@ -63,16 +85,7 @@ export default function StepCurrentAppointment({ formData, setFormData, onValid 
       e.currentAppointmentDate = "Current appointment date must be same or after first appointment date";
     }
     if (!formData.currentAppointmentLetter) e.currentAppointmentLetter = "Required";
-    if (!formData.currentAppointmentService) {
-      e.currentAppointmentService = "Required";
-    } else if (!isAllowedCurrentAppointmentService(formData.currentAppointmentService)) {
-      e.currentAppointmentService = "Only SLPS service can be selected";
-    }
-    if (!formData.currentAppointmentRank) e.currentAppointmentRank = "Required";
-    if (!formData.currentAppointmentSubject) e.currentAppointmentSubject = "Required";
-    if (!formData.currentAppointmentZone) e.currentAppointmentZone = "Required";
-    if (!formData.currentAppointmentInstCategory) e.currentAppointmentInstCategory = "Required";
-    if (!formData.currentAppointmentInstitution) e.currentAppointmentInstitution = "Required";
+    if (!formData.currentAppointmentOffice) e.currentAppointmentOffice = "Required";
     if (!formData.currentAppointmentPosition) e.currentAppointmentPosition = "Required";
 
     setErrors(e);
@@ -81,7 +94,7 @@ export default function StepCurrentAppointment({ formData, setFormData, onValid 
 
   useEffect(() => {
     onValid?.(validate());
-  }, [formData, loading, slpsCurrentAppointmentServices.length]);
+  }, [formData, loading]);
 
   useEffect(() => {
     if (!formData.currentAppointmentRegType) {
@@ -93,9 +106,9 @@ export default function StepCurrentAppointment({ formData, setFormData, onValid 
     setFormData((prev) => {
       const next = { ...prev, [key]: value };
 
-      if (key === "currentAppointmentService") next.currentAppointmentRank = "";
-      if (key === "currentAppointmentZone" || key === "currentAppointmentInstCategory") {
-        next.currentAppointmentInstitution = "";
+      if (key === "currentAppointmentService") {
+        next.currentAppointmentRank = "";
+        next.currentAppointmentPosition = "";
       }
 
       return next;
@@ -109,7 +122,7 @@ export default function StepCurrentAppointment({ formData, setFormData, onValid 
   return (
     <div className="space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-500 px-6 py-0 [&_input]:bg-white dark:[&_input]:bg-gray-800 [&_select]:bg-white dark:[&_select]:bg-gray-800 [&_textarea]:bg-white dark:[&_textarea]:bg-gray-800 [&_label]:text-xs [&_label]:font-bold [&_label]:text-gray-700 dark:[&_label]:text-gray-300">
       <div className="mb-3 flex items-center gap-3">
-        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-600 text-xs font-bold text-white">05</div>
+        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-600 text-xs font-bold text-white">04</div>
         <h2 className="text-lg font-semibold">Current Appointment Details</h2>
       </div>
 
@@ -173,93 +186,60 @@ export default function StepCurrentAppointment({ formData, setFormData, onValid 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-4 gap-y-2">
         <div>
           <Label htmlFor="currentAppointmentDate">Current Appointment Date <span className="text-red-600">*</span></Label>
-          <TextInput id="currentAppointmentDate" type="date" value={formData.currentAppointmentDate || ""} min={minCurrentAppointmentDate} color={errors.currentAppointmentDate ? "failure" : "gray"} onChange={(e) => update("currentAppointmentDate", e.target.value)} shadow />
+          <TextInput
+            id="currentAppointmentDate"
+            type="date"
+            value={formData.currentAppointmentDate || ""}
+            min={minCurrentAppointmentDate}
+            color={errors.currentAppointmentDate ? "failure" : "gray"}
+            onChange={(e) => update("currentAppointmentDate", e.target.value)}
+            shadow
+          />
           {errors.currentAppointmentDate && <p className="text-sm text-red-600 mt-1">{errors.currentAppointmentDate}</p>}
         </div>
 
         <div>
           <Label htmlFor="currentAppointmentLetter">Appointment / Transfer Letter No <span className="text-red-600">*</span></Label>
-          <TextInput id="currentAppointmentLetter" placeholder="Enter letter number" value={formData.currentAppointmentLetter || ""} color={errors.currentAppointmentLetter ? "failure" : "gray"} onChange={(e) => update("currentAppointmentLetter", e.target.value)} shadow />
+          <TextInput
+            id="currentAppointmentLetter"
+            placeholder="Enter letter number"
+            value={formData.currentAppointmentLetter || ""}
+            color={errors.currentAppointmentLetter ? "failure" : "gray"}
+            onChange={(e) => update("currentAppointmentLetter", e.target.value)}
+            shadow
+          />
           {errors.currentAppointmentLetter && <p className="text-sm text-red-600 mt-1">{errors.currentAppointmentLetter}</p>}
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-4 gap-y-2">
         <div>
-          <Label htmlFor="currentAppointmentService">Current Service <span className="text-red-600">*</span></Label>
-          <Select id="currentAppointmentService" value={formData.currentAppointmentService || ""} disabled={loading} color={errors.currentAppointmentService ? "failure" : "gray"} onChange={(e) => update("currentAppointmentService", e.target.value)}>
+          <Label htmlFor="currentAppointmentOffice">DEO Office <span className="text-red-600">*</span></Label>
+          <Select
+            id="currentAppointmentOffice"
+            value={formData.currentAppointmentOffice || ""}
+            disabled={loading}
+            color={errors.currentAppointmentOffice ? "failure" : "gray"}
+            onChange={(e) => update("currentAppointmentOffice", e.target.value)}
+          >
             <option value="">{selectPlaceholder}</option>
-            {slpsCurrentAppointmentServices.map((s) => (
-              <option key={s.id} value={s.service_id}>{s.service_name}</option>
+            {deoOffices.map((o) => (
+              <option key={o.id} value={o.workplace_id}>{o.name}</option>
             ))}
           </Select>
-          {errors.currentAppointmentService && <p className="text-sm text-red-600 mt-1">{errors.currentAppointmentService}</p>}
+          {errors.currentAppointmentOffice && <p className="text-sm text-red-600 mt-1">{errors.currentAppointmentOffice}</p>}
         </div>
 
         <div>
-          <Label htmlFor="currentAppointmentRank">Current Service Rank <span className="text-red-600">*</span></Label>
-          <Select id="currentAppointmentRank" value={formData.currentAppointmentRank || ""} disabled={loading} color={errors.currentAppointmentRank ? "failure" : "gray"} onChange={(e) => update("currentAppointmentRank", e.target.value)}>
+          <Label htmlFor="currentAppointmentPosition">Current Appointment Position <span className="text-red-600">*</span></Label>
+          <Select
+            id="currentAppointmentPosition"
+            value={formData.currentAppointmentPosition || ""}
+            color={errors.currentAppointmentPosition ? "failure" : "gray"}
+            onChange={(e) => update("currentAppointmentPosition", e.target.value)}
+          >
             <option value="">{selectPlaceholder}</option>
-            {currentAppointmentRanks.map((r) => (
-              <option key={r.id} value={r.rank_id}>{r.name || r.rank_name}</option>
-            ))}
-          </Select>
-          {errors.currentAppointmentRank && <p className="text-sm text-red-600 mt-1">{errors.currentAppointmentRank}</p>}
-        </div>
-      </div>
-
-      <div>
-        <Label htmlFor="currentAppointmentSubject">Current teaching subject <span className="text-red-600">*</span></Label>
-        <Select id="currentAppointmentSubject" value={formData.currentAppointmentSubject || ""} disabled={loading} color={errors.currentAppointmentSubject ? "failure" : "gray"} onChange={(e) => update("currentAppointmentSubject", e.target.value)}>
-          <option value="">{selectPlaceholder}</option>
-          {currentAppointmentSubjects.map((s) => (
-            <option key={s.id} value={s.subject_id}>{s.name_en}</option>
-          ))}
-        </Select>
-        {errors.currentAppointmentSubject && <p className="text-sm text-red-600 mt-1">{errors.currentAppointmentSubject}</p>}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-4 gap-y-2">
-        <div>
-          <Label htmlFor="currentAppointmentZone">Zonal Education Office</Label>
-          <Select id="currentAppointmentZone" value={formData.currentAppointmentZone || ""} disabled={loading} color={errors.currentAppointmentZone ? "failure" : "gray"} onChange={(e) => update("currentAppointmentZone", e.target.value)}>
-            <option value="">{selectPlaceholder}</option>
-            {currentAppointmentZonalOffices.map((z) => (
-              <option key={z.id} value={z.workplace_id}>{z.name}</option>
-            ))}
-          </Select>
-          {errors.currentAppointmentZone && <p className="text-sm text-red-600 mt-1">{errors.currentAppointmentZone}</p>}
-        </div>
-
-        <div>
-          <Label htmlFor="currentAppointmentInstCategory">Institution Category</Label>
-          <Select id="currentAppointmentInstCategory" value={formData.currentAppointmentInstCategory || ""} disabled={loading} color={errors.currentAppointmentInstCategory ? "failure" : "gray"} onChange={(e) => update("currentAppointmentInstCategory", e.target.value)}>
-            <option value="">{selectPlaceholder}</option>
-            {currentAppointmentInstCategories.map((c) => (
-              <option key={c.id} value={c.institution_category_id}>{c.institution_category_name || c.name}</option>
-            ))}
-          </Select>
-          {errors.currentAppointmentInstCategory && <p className="text-sm text-red-600 mt-1">{errors.currentAppointmentInstCategory}</p>}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-4 gap-y-2">
-        <div>
-          <Label htmlFor="currentAppointmentInstitution">Current Appointment Institution</Label>
-          <Select id="currentAppointmentInstitution" value={formData.currentAppointmentInstitution || ""} disabled={loading} color={errors.currentAppointmentInstitution ? "failure" : "gray"} onChange={(e) => update("currentAppointmentInstitution", e.target.value)}>
-            <option value="">{selectPlaceholder}</option>
-            {currentAppointmentInstitutions.map((i) => (
-              <option key={i.id} value={i.workplace_id}>{i.census_no} - {i.name}</option>
-            ))}
-          </Select>
-          {errors.currentAppointmentInstitution && <p className="text-sm text-red-600 mt-1">{errors.currentAppointmentInstitution}</p>}
-        </div>
-
-        <div>
-          <Label htmlFor="currentAppointmentPosition">Current Appointment Position</Label>
-          <Select id="currentAppointmentPosition" value={formData.currentAppointmentPosition || ""} disabled={loading} color={errors.currentAppointmentPosition ? "failure" : "gray"} onChange={(e) => update("currentAppointmentPosition", e.target.value)}>
-            <option value="">{selectPlaceholder}</option>
-            {currentAppointmentPositions.map((p) => (
+            {developmentOfficerPositions.map((p) => (
               <option key={p.id} value={p.position_id}>{p.position_name}</option>
             ))}
           </Select>

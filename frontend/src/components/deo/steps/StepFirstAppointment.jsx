@@ -1,8 +1,12 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { Label, Select, TextInput } from "flowbite-react";
 import api from "@/api/axios";
 
-export default function StepFirstAppointment({ formData, setFormData, onValid }) {
+export default function StepFirstAppointment({
+  formData,
+  setFormData,
+  onValid,
+}) {
   const formatDate = (date) => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -12,54 +16,73 @@ export default function StepFirstAppointment({ formData, setFormData, onValid })
 
   const getMinimumFirstAppointmentDate = (dateOfBirth) => {
     if (!dateOfBirth) return undefined;
+
     const birthDate = new Date(`${dateOfBirth}T00:00:00`);
     if (Number.isNaN(birthDate.getTime())) return undefined;
+
     birthDate.setDate(birthDate.getDate() + 1);
     return formatDate(birthDate);
   };
 
+  const isSLTSService = (service) =>
+    [service?.service_name, service?.name, service?.service_code, service?.code]
+      .filter(Boolean)
+      .some((value) => String(value).trim().toUpperCase() === "SLTS");
+
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState({});
 
-  const [categories, setCategories] = useState([]);
-  const [services, setServices] = useState([]);
-  const [ranks, setRanks] = useState([]);
-  const [zonalOffices, setZonalOffices] = useState([]);
-  const [instCategories, setInstCategories] = useState([]);
-  const [institutions, setInstitutions] = useState([]);
-  const [positions, setPositions] = useState([]);
-
+  const [firstAppointmentCategories, setFirstAppointmentCategories] = useState([]);
+  const [firstAppointmentTypes, setFirstAppointmentTypes] = useState([]);
+  const [firstAppointmentSubjects, setFirstAppointmentSubjects] = useState([]);
+  const [firstAppointmentMediums, setFirstAppointmentMediums] = useState([]);
+  const [firstAppointmentServices, setFirstAppointmentServices] = useState([]);
+  const [firstAppointmentRanks, setFirstAppointmentRanks] = useState([]);
+  const [firstAppointmentTeachingSubjects, setFirstAppointmentTeachingSubjects] = useState([]);
+  const [firstAppointmentZonalOffices, setFirstAppointmentZonalOffices] = useState([]);
+  const [firstAppointmentInstCategories, setFirstAppointmentInstCategories] = useState([]);
+  const [firstAppointmentInstitutions, setFirstAppointmentInstitutions] = useState([]);
+  const [firstAppointmentPositions, setFirstAppointmentPositions] = useState([]);
   const minFirstAppointmentDate = getMinimumFirstAppointmentDate(formData.dateOfBirth);
+  const sltsFirstAppointmentServices = firstAppointmentServices.filter(isSLTSService);
+  const isAllowedFirstAppointmentService = (serviceId) =>
+    sltsFirstAppointmentServices.some(
+      (service) => String(service.service_id) === String(serviceId),
+    );
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const res = await api.get(
-          `/teachers/appointment-form-data?service=${formData.firstAppointmentService || ""}&ins_cat=${formData.firstAppointmentInstCategory || ""}&zone=${formData.firstAppointmentZone || ""}`,
+          `/register/appointment-form-data?service=${formData.firstAppointmentService}&ins_cat=${formData.firstAppointmentInstCategory}&zone=${formData.firstAppointmentZone}`,
         );
-        const data = res.data || {};
-        try {
-          const catRes = await api.get(`/principal-recruitment-categories`);
-          const catData = catRes.data;
-          setCategories(catData?.data ?? catData ?? []);
-        } catch {
-          setCategories(data.teacherCategorys ?? []);
-        }
-        setServices(data.service ?? []);
-        setRanks(data.serviceRanks ?? []);
-        setZonalOffices(data.zonalEducationOffices ?? []);
-        setInstCategories(data.institutionCategory ?? []);
-        setInstitutions(data.institutions ?? []);
-        setPositions(data.positions ?? []);
+
+        const data = res.data;
+
+        setFirstAppointmentCategories(data.teacherCategorys ?? []);
+        setFirstAppointmentTypes(data.teacherTypes ?? []);
+        setFirstAppointmentSubjects(data.apointmentSubjects ?? []);
+        setFirstAppointmentMediums(data.appointmentMedium ?? []);
+        setFirstAppointmentServices(data.service ?? []);
+        setFirstAppointmentRanks(data.serviceRanks ?? []);
+        setFirstAppointmentTeachingSubjects(data.mainTeachingSubjects ?? []);
+        setFirstAppointmentZonalOffices(data.zonalEducationOffices ?? []);
+        setFirstAppointmentInstCategories(data.institutionCategory ?? []);
+        setFirstAppointmentInstitutions(data.institutions ?? []);
+        setFirstAppointmentPositions(data.positions ?? []);
       } catch (error) {
-        console.error(error);
+        console.error("Failed to load appointment form data", error);
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [formData.firstAppointmentService, formData.firstAppointmentInstCategory, formData.firstAppointmentZone]);
+  }, [
+    formData.firstAppointmentService,
+    formData.firstAppointmentInstCategory,
+    formData.firstAppointmentZone,
+  ]);
 
   const validate = () => {
     const e = {};
@@ -73,10 +96,18 @@ export default function StepFirstAppointment({ formData, setFormData, onValid })
       e.firstAppointmentDate = "First appointment date must be after date of birth";
     }
     if (!formData.firstAppointmentLetter) e.firstAppointmentLetter = "Required";
-    if (!formData.firstAppointmentService) e.firstAppointmentService = "Required";
+    if (!formData.firstAppointmentService) {
+      e.firstAppointmentService = "Required";
+    } else if (!isAllowedFirstAppointmentService(formData.firstAppointmentService)) {
+      e.firstAppointmentService = "Only SLTS service can be selected";
+    }
     if (!formData.firstAppointmentRank) e.firstAppointmentRank = "Required";
-    if (!formData.firstAppointmentInstCategory) e.firstAppointmentInstCategory = "Required";
+    if (!formData.firstAppointmentType) e.firstAppointmentType = "Required";
+    if (!formData.firstAppointmentSubject) e.firstAppointmentSubject = "Required";
+    if (!formData.firstAppointmentMedium) e.firstAppointmentMedium = "Required";
+    if (!formData.firstAppointmentTeachingSubject) e.firstAppointmentTeachingSubject = "Required";
     if (!formData.firstAppointmentZone) e.firstAppointmentZone = "Required";
+    if (!formData.firstAppointmentInstCategory) e.firstAppointmentInstCategory = "Required";
     if (!formData.firstAppointmentInstitution) e.firstAppointmentInstitution = "Required";
     if (!formData.firstAppointmentPosition) e.firstAppointmentPosition = "Required";
 
@@ -86,17 +117,26 @@ export default function StepFirstAppointment({ formData, setFormData, onValid })
 
   useEffect(() => {
     onValid?.(validate());
-  }, [formData, loading]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData, loading, sltsFirstAppointmentServices.length]);
 
-  const renderError = (key) => (errors[key] ? <p className="mt-1 text-xs text-red-600">{errors[key]}</p> : null);
+  const renderError = (key) =>
+    errors[key] ? <p className="mt-1 text-xs text-red-600">{errors[key]}</p> : null;
 
   const update = (key, value) => {
     setFormData((prev) => {
       const next = { ...prev, [key]: value };
-      if (key === "firstAppointmentService") next.firstAppointmentRank = "";
-      if (key === "firstAppointmentZone" || key === "firstAppointmentInstCategory") next.firstAppointmentInstitution = "";
+
+      if (key === "firstAppointmentService") {
+        next.firstAppointmentRank = "";
+      }
+      if (key === "firstAppointmentZone" || key === "firstAppointmentInstCategory") {
+        next.firstAppointmentInstitution = "";
+      }
+
       return next;
     });
+
     setErrors((prev) => ({ ...prev, [key]: undefined }));
   };
 
@@ -109,12 +149,16 @@ export default function StepFirstAppointment({ formData, setFormData, onValid })
           <div className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-600 text-xs font-bold text-white">
             04
           </div>
-          <h2 className="text-lg font-semibold">First Appointment Details</h2>
+          <h2 className="text-lg font-semibold">
+            First Appointment Details
+          </h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2">
           <div>
-            <Label>DEO Recruitment Category <span className="text-red-600">*</span></Label>
+            <Label>
+              Teacher Appointment Category <span className="text-red-600">*</span>
+            </Label>
             <Select
               value={formData.firstAppointmentCategory || ""}
               disabled={loading}
@@ -122,92 +166,262 @@ export default function StepFirstAppointment({ formData, setFormData, onValid })
               onChange={(e) => update("firstAppointmentCategory", e.target.value)}
             >
               <option value="">{selectPlaceholder}</option>
-              {categories.map((c) => {
-                const id = c.category_id ?? c.principal_recruitment_category_id ?? c.categories_id ?? c.id ?? c.value ?? "";
-                const label = c.category_name ?? c.recruitment_category_name ?? c.name ?? c.label ?? String(id);
-                return (
-                  <option key={id || JSON.stringify(c)} value={id}>
-                    {label}
-                  </option>
-                );
-              })}
+              {firstAppointmentCategories.map((c) => (
+                <option key={c.id} value={c.categories_id}>
+                  {c.name}
+                </option>
+              ))}
             </Select>
             {renderError("firstAppointmentCategory")}
           </div>
 
           <div>
-            <Label>First Appointment Date <span className="text-red-600">*</span></Label>
-            <TextInput type="date" value={formData.firstAppointmentDate || ""} min={minFirstAppointmentDate} color={errors.firstAppointmentDate ? "failure" : "gray"} onChange={(e) => update("firstAppointmentDate", e.target.value)} />
-            {renderError("firstAppointmentDate")}
+            <Label>
+              Types of Teachers <span className="text-red-600">*</span>
+            </Label>
+            <Select
+              value={formData.firstAppointmentType || ""}
+              disabled={loading}
+              color={errors.firstAppointmentType ? "failure" : "gray"}
+              onChange={(e) => update("firstAppointmentType", e.target.value)}
+            >
+              <option value="">{selectPlaceholder}</option>
+              {firstAppointmentTypes.map((t) => (
+                <option key={t.id} value={t.teacher_types_id}>
+                  {t.type_name}
+                </option>
+              ))}
+            </Select>
+            {renderError("firstAppointmentType")}
           </div>
 
           <div>
-            <Label>Appointment Letter No <span className="text-red-600">*</span></Label>
-            <TextInput value={formData.firstAppointmentLetter || ""} color={errors.firstAppointmentLetter ? "failure" : "gray"} onChange={(e) => update("firstAppointmentLetter", e.target.value)} />
+            <Label>
+              Appointment Letter No <span className="text-red-600">*</span>
+            </Label>
+            <TextInput
+              value={formData.firstAppointmentLetter || ""}
+              color={errors.firstAppointmentLetter ? "failure" : "gray"}
+              onChange={(e) => update("firstAppointmentLetter", e.target.value)}
+            />
             {renderError("firstAppointmentLetter")}
           </div>
 
           <div>
-            <Label>Service <span className="text-red-600">*</span></Label>
-            <Select value={formData.firstAppointmentService || ""} disabled={loading} color={errors.firstAppointmentService ? "failure" : "gray"} onChange={(e) => update("firstAppointmentService", e.target.value)}>
+            <Label>
+              First Appointment Date <span className="text-red-600">*</span>
+            </Label>
+            <TextInput
+              type="date"
+              value={formData.firstAppointmentDate || ""}
+              min={minFirstAppointmentDate}
+              color={errors.firstAppointmentDate ? "failure" : "gray"}
+              onChange={(e) => update("firstAppointmentDate", e.target.value)}
+            />
+            {renderError("firstAppointmentDate")}
+          </div>
+
+          <div>
+            <Label>
+              Service <span className="text-red-600">*</span>
+            </Label>
+            <Select
+              value={formData.firstAppointmentService || ""}
+              disabled={loading}
+              color={errors.firstAppointmentService ? "failure" : "gray"}
+              onChange={(e) => update("firstAppointmentService", e.target.value)}
+            >
               <option value="">{selectPlaceholder}</option>
-              {services.map((s) => (
-                <option key={s.id} value={s.service_id}>{s.service_name}</option>
+              {sltsFirstAppointmentServices.map((s) => (
+                <option key={s.id} value={s.service_id}>
+                  {s.service_name}
+                </option>
               ))}
             </Select>
             {renderError("firstAppointmentService")}
           </div>
 
           <div>
-            <Label>Service Rank <span className="text-red-600">*</span></Label>
-            <Select value={formData.firstAppointmentRank || ""} disabled={loading} color={errors.firstAppointmentRank ? "failure" : "gray"} onChange={(e) => update("firstAppointmentRank", e.target.value)}>
+            <Label>
+              Service Rank <span className="text-red-600">*</span>
+            </Label>
+            <Select
+              value={formData.firstAppointmentRank || ""}
+              disabled={loading}
+              color={errors.firstAppointmentRank ? "failure" : "gray"}
+              onChange={(e) => update("firstAppointmentRank", e.target.value)}
+            >
               <option value="">{selectPlaceholder}</option>
-              {ranks.map((r) => (
-                <option key={r.id} value={r.rank_id}>{r.name || r.rank_name}</option>
+              {firstAppointmentRanks.map((r) => (
+                <option key={r.id} value={r.rank_id}>
+                  {r.name || r.rank_name}
+                </option>
               ))}
             </Select>
             {renderError("firstAppointmentRank")}
           </div>
 
           <div>
-            <Label>Zonal Education Office <span className="text-red-600">*</span></Label>
-            <Select value={formData.firstAppointmentZone || ""} disabled={loading} color={errors.firstAppointmentZone ? "failure" : "gray"} onChange={(e) => update("firstAppointmentZone", e.target.value)}>
+            <Label>
+              Appointment Subject <span className="text-red-600">*</span>
+            </Label>
+            <Select
+              value={formData.firstAppointmentSubject || ""}
+              disabled={loading}
+              color={errors.firstAppointmentSubject ? "failure" : "gray"}
+              onChange={(e) => update("firstAppointmentSubject", e.target.value)}
+            >
               <option value="">{selectPlaceholder}</option>
-              {zonalOffices.map((z) => (
-                <option key={z.id} value={z.workplace_id}>{z.name}</option>
+              {firstAppointmentSubjects.map((s) => (
+                <option key={s.id} value={s.a_subject_id}>
+                  {s.name_en}
+                </option>
               ))}
             </Select>
-            {renderError("firstAppointmentZone")}
+            {renderError("firstAppointmentSubject")}
           </div>
 
           <div>
-            <Label>Institution Category <span className="text-red-600">*</span></Label>
-            <Select value={formData.firstAppointmentInstCategory || ""} disabled={loading} color={errors.firstAppointmentInstCategory ? "failure" : "gray"} onChange={(e) => update("firstAppointmentInstCategory", e.target.value)}>
+            <Label>
+              Appointment Medium <span className="text-red-600">*</span>
+            </Label>
+            <Select
+              value={formData.firstAppointmentMedium || ""}
+              disabled={loading}
+              color={errors.firstAppointmentMedium ? "failure" : "gray"}
+              onChange={(e) => update("firstAppointmentMedium", e.target.value)}
+            >
               <option value="">{selectPlaceholder}</option>
-              {instCategories.map((c) => (
-                <option key={c.id} value={c.institution_category_id}>{c.institution_category_name || c.name}</option>
+              {firstAppointmentMediums.map((m) => (
+                <option key={m.id} value={m.medium_id}>
+                  {m.name}
+                </option>
+              ))}
+            </Select>
+            {renderError("firstAppointmentMedium")}
+          </div>
+
+          <div>
+            <Label>
+              Main Teaching Subject <span className="text-red-600">*</span>
+            </Label>
+            <Select
+              value={formData.firstAppointmentTeachingSubject || ""}
+              disabled={loading}
+              color={errors.firstAppointmentTeachingSubject ? "failure" : "gray"}
+              onChange={(e) =>
+                update("firstAppointmentTeachingSubject", e.target.value)
+              }
+            >
+              <option value="">{selectPlaceholder}</option>
+              {firstAppointmentTeachingSubjects.map((s) => (
+                <option key={s.id} value={s.subject_id}>
+                  {s.name_en}
+                </option>
+              ))}
+            </Select>
+            {renderError("firstAppointmentTeachingSubject")}
+          </div>
+
+          <div>
+            <Label>Secondary Teaching Subject</Label>
+            <Select
+              value={formData.firstAppointmentSecondarySubject || ""}
+              disabled={loading}
+              onChange={(e) =>
+                update("firstAppointmentSecondarySubject", e.target.value)
+              }
+            >
+              <option value="">{selectPlaceholder}</option>
+              {firstAppointmentTeachingSubjects.map((s) => (
+                <option key={s.id} value={s.subject_id}>
+                  {s.name_en}
+                </option>
+              ))}
+            </Select>
+          </div>
+
+          <div>
+            <Label>
+              Institution Category <span className="text-red-600">*</span>
+            </Label>
+            <Select
+              value={formData.firstAppointmentInstCategory || ""}
+              disabled={loading}
+              color={errors.firstAppointmentInstCategory ? "failure" : "gray"}
+              onChange={(e) =>
+                update("firstAppointmentInstCategory", e.target.value)
+              }
+            >
+              <option value="">{selectPlaceholder}</option>
+              {firstAppointmentInstCategories.map((c) => (
+                <option key={c.id} value={c.institution_category_id}>
+                  {c.institution_category_name || c.name}
+                </option>
               ))}
             </Select>
             {renderError("firstAppointmentInstCategory")}
           </div>
 
           <div>
-            <Label>First Appointment Institution <span className="text-red-600">*</span></Label>
-            <Select value={formData.firstAppointmentInstitution || ""} disabled={loading} color={errors.firstAppointmentInstitution ? "failure" : "gray"} onChange={(e) => update("firstAppointmentInstitution", e.target.value)}>
+            <Label>
+              Zonal Education Office <span className="text-red-600">*</span>
+            </Label>
+            <Select
+              value={formData.firstAppointmentZone || ""}
+              disabled={loading}
+              color={errors.firstAppointmentZone ? "failure" : "gray"}
+              onChange={(e) => update("firstAppointmentZone", e.target.value)}
+            >
               <option value="">{selectPlaceholder}</option>
-              {institutions.map((i) => (
-                <option key={i.id} value={i.workplace_id}>{i.census_no} - {i.name}</option>
+              {firstAppointmentZonalOffices.map((z) => (
+                <option key={z.id} value={z.workplace_id}>
+                  {z.name}
+                </option>
+              ))}
+            </Select>
+            {renderError("firstAppointmentZone")}
+          </div>
+
+          <div>
+            <Label>
+              First Appointment Institution <span className="text-red-600">*</span>
+            </Label>
+            <Select
+              value={formData.firstAppointmentInstitution || ""}
+              disabled={loading}
+              color={errors.firstAppointmentInstitution ? "failure" : "gray"}
+              onChange={(e) =>
+                update("firstAppointmentInstitution", e.target.value)
+              }
+            >
+              <option value="">{selectPlaceholder}</option>
+              {firstAppointmentInstitutions.map((i) => (
+                <option key={i.id} value={i.workplace_id}>
+                  {i.census_no} - {i.name}
+                </option>
               ))}
             </Select>
             {renderError("firstAppointmentInstitution")}
           </div>
 
           <div>
-            <Label>Appointed Position <span className="text-red-600">*</span></Label>
-            <Select value={formData.firstAppointmentPosition || ""} disabled={loading} color={errors.firstAppointmentPosition ? "failure" : "gray"} onChange={(e) => update("firstAppointmentPosition", e.target.value)}>
+            <Label>
+              Appointed Position <span className="text-red-600">*</span>
+            </Label>
+            <Select
+              value={formData.firstAppointmentPosition || ""}
+              disabled={loading}
+              color={errors.firstAppointmentPosition ? "failure" : "gray"}
+              onChange={(e) =>
+                update("firstAppointmentPosition", e.target.value)
+              }
+            >
               <option value="">{selectPlaceholder}</option>
-              {positions.map((p) => (
-                <option key={p.id} value={p.position_id}>{p.position_name}</option>
+              {firstAppointmentPositions.map((p) => (
+                <option key={p.id} value={p.position_id}>
+                  {p.position_name}
+                </option>
               ))}
             </Select>
             {renderError("firstAppointmentPosition")}
