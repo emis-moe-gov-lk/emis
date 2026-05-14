@@ -1,7 +1,8 @@
 name: Build and Push WSO2 AM Image
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # call manually
+  workflow_call: # To be called by other workflows
 
 env:
   REGISTRY: ghcr.io

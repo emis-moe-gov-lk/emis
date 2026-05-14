@@ -1,7 +1,8 @@
 name: Build and Push WSO2 IS Image
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # For the manual calls
+  workflow_call: # To be called by other workflows
 
 env:
   REGISTRY: ghcr.io
