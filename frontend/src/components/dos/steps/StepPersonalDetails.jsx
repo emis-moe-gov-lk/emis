@@ -2,6 +2,16 @@ import { Label, TextInput, Select, Textarea } from "flowbite-react";
 import { useEffect, useState, useCallback } from "react";
 import api from "@/api/axios";
 
+const FormGroup = ({ label, required = false, error, children }) => (
+  <div>
+    <Label className="mb-2 text-xs font-semibold text-gray-700">
+      {label} {required && <span className="text-red-600">*</span>}
+    </Label>
+    {children}
+    {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+  </div>
+);
+
 const ENGLISH_NAME_REGEX = /^[A-Za-z ]+$/;
 
 export default function StepPersonalDetails({
@@ -155,15 +165,6 @@ export default function StepPersonalDetails({
       <p className="mt-1 text-xs text-red-600">{errors[key]}</p>
     ) : null;
 
-  const FormGroup = ({ label, required = false, error, children }) => (
-    <div>
-      <Label className="mb-2 text-xs font-semibold text-gray-700">
-        {label} {required && <span className="text-red-600">*</span>}
-      </Label>
-      {children}
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
-    </div>
-  );
 
   return (
     <div className="flex justify-center px-4 py-2">

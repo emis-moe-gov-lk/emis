@@ -260,20 +260,20 @@ function RegDosInner() {
         setIsSubmitting(true);
         dispatch({ type: "SET_ERROR", payload: null });
 
-        const res = await api.post("/deo-officers", formData);
+        const res = await api.post("/dos-admins", formData);
         const result = res?.data ?? {};
 
         if (result.status === "success" || res.status === 201) {
-          toast.success("Development Officer registered successfully");
+          toast.success("Zonal Administrator registered successfully");
           dispatch({ type: "SET_STEP", payload: 5 });
         } else {
           dispatch({
             type: "SET_ERROR",
-            payload: result.message || "Failed to register development officer",
+            payload: result.message || "Failed to register zonal administrator",
           });
         }
       } catch (err) {
-        console.error("DEO create error:", err);
+        console.error("Zonal admin create error:", err);
         dispatch({
           type: "SET_ERROR",
           payload:

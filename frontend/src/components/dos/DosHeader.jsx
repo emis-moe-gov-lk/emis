@@ -3,8 +3,13 @@ import { HiSearch, HiUpload, HiPlus } from "react-icons/hi";
 import { useNavigate } from "react-router-dom";
 import Can from "../common/Can";
 
-export default function DosHeader({ count, onSearch }) {
+export default function DosHeader({ count, onSearch, isZonalAdmins }) {
   const navigate = useNavigate();
+
+  const title = isZonalAdmins ? "Zonal Administrator Directory" : "Development Officer Directory";
+  const description = isZonalAdmins
+    ? "Manage zonal administrator profiles and records."
+    : "Manage development officer profiles and records.";
 
   return (
     <div className="space-y-6">
@@ -12,10 +17,10 @@ export default function DosHeader({ count, onSearch }) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Development Officer Directory
+            {title}
           </h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
-            Manage development officer profiles and records.
+            {description}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -33,7 +38,7 @@ export default function DosHeader({ count, onSearch }) {
             className="w-full inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
           >
             <HiSearch className="h-4 w-4" />
-            Search DOS Officers
+            {isZonalAdmins ? "Search Zonal Administrators" : "Search DOS Officers"}
           </button>
         </div>
 
@@ -54,7 +59,7 @@ export default function DosHeader({ count, onSearch }) {
               className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors shadow-sm"
             >
               <HiPlus />
-              Add DOS Officer
+              {isZonalAdmins ? "Add Zonal Administrator" : "Add DOS Officer"}
             </button>
           </Can>
         </div>
