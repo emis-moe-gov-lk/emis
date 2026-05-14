@@ -3,6 +3,16 @@ import { HiInformationCircle } from "react-icons/hi";
 import { useState, useEffect, useCallback } from "react";
 import api from "@/api/axios";
 
+const FormGroup = ({ label, error, required = false, children }) => (
+  <div>
+    <Label className="mb-2 text-xs font-semibold text-gray-700">
+      {label} {required && <span className="text-red-600">*</span>}
+    </Label>
+    {children}
+    {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+  </div>
+);
+
 const isSLTSService = (service) =>
   [service?.service_name, service?.name, service?.service_code, service?.code]
     .filter(Boolean)
@@ -41,7 +51,7 @@ export default function StepCurrentAppointment({
     const fetchData = async () => {
       try {
         const res = await api.get(
-          `/teachers/appointment-form-data?service=${formData.currentAppointmentService || ""}&ins_cat=${formData.currentAppointmentInstCategory || ""}&zone=${formData.currentAppointmentZone || ""}`,
+          `/register/appointment-form-data?service=${formData.currentAppointmentService || ""}&ins_cat=${formData.currentAppointmentInstCategory || ""}&zone=${formData.currentAppointmentZone || ""}`,
         );
 
         setData({
@@ -136,15 +146,6 @@ export default function StepCurrentAppointment({
     [setFormData],
   );
 
-  const FormGroup = ({ label, error, required = false, children }) => (
-    <div>
-      <Label className="mb-2 text-xs font-semibold text-gray-700">
-        {label} {required && <span className="text-red-600">*</span>}
-      </Label>
-      {children}
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
-    </div>
-  );
 
   const selectPlaceholder = loading ? "Loading..." : "Select";
 

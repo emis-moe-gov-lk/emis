@@ -15,6 +15,16 @@ const SRI_LANKA_BOUNDS = {
   LNG_MAX: 81.9,
 };
 
+const FormGroup = ({ label, error, required = false, children }) => (
+  <div>
+    <Label className="mb-2 text-xs font-semibold text-gray-700">
+      {label} {required && <span className="text-red-600">*</span>}
+    </Label>
+    {children}
+    {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+  </div>
+);
+
 export default function StepContactDetails({ formData, setFormData, onValid }) {
   const [errors, setErrors] = useState({});
 
@@ -108,16 +118,6 @@ export default function StepContactDetails({ formData, setFormData, onValid }) {
   useEffect(() => {
     onValid?.(validateContactDetails());
   }, [formData, validateContactDetails, onValid]);
-
-  const FormGroup = ({ label, error, required = false, children }) => (
-    <div>
-      <Label className="mb-2 text-xs font-semibold text-gray-700">
-        {label} {required && <span className="text-red-600">*</span>}
-      </Label>
-      {children}
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
-    </div>
-  );
 
   return (
     <div className="flex justify-center px-4 py-2">

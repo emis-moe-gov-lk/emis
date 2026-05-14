@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { Spinner } from "flowbite-react";
 import { HiUser } from "react-icons/hi";
 import DosHeader from "../components/dos/DosHeader";
 import DosList from "../components/dos/DosList";
 import DosSearchModal from "../components/dos/DosSearchModal";
 import { useDosService } from "../services/dosService";
+import { getAllDosAdmins } from "../api/dosAdminService";
 
 export default function DosDirectory() {
   const [employees, setEmployees] = useState([]);
@@ -12,24 +14,30 @@ export default function DosDirectory() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const { getAllDos } = useDosService(); // custom hook
+  const { getAllDos } = useDosService();
+  const location = useLocation();
+  const isZonalAdmins = location.pathname.includes("/employees/edu-directors");
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [location.pathname]);
 
   const fetchData = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const data = await getAllDos();
-      console.log("Fetched DOs:", data.data.data);
-      // if API returns { data: [...] }, adjust below
-      setEmployees(data.data || data);
+      let data;
+      if (isZonalAdmins) {
+        data = await getAllDosAdmins();
+        setEmployees(data.data || data);
+      } else {
+        data = await getAllDos();
+        setEmployees(data.data || data);
+      }
     } catch (err) {
       console.error(err);
-      setError(err.message || "Failed to fetch DOs");
+      setError(err.message || "Failed to fetch employees");
     } finally {
       setLoading(false);
     }
@@ -40,6 +48,7 @@ export default function DosDirectory() {
       <DosHeader
         count={employees.length}
         onSearch={() => setShowSearch(true)}
+        isZonalAdmins={isZonalAdmins}
       />
 
       {/* ================= LIST / LOADING ================= */}
@@ -47,7 +56,7 @@ export default function DosDirectory() {
         <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700">
           <Spinner size="xl" color="info" />
           <p className="mt-4 text-gray-500 dark:text-gray-400 animate-pulse font-medium">
-            Loading Development Officers List...
+            {isZonalAdmins ? "Loading Zonal Administrators List..." : "Loading Development Officers List..."}
           </p>
         </div>
       ) : error ? (

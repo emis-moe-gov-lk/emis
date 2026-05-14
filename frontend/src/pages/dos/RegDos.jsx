@@ -35,6 +35,7 @@ import { HiCheckCircle, HiArrowLeft } from "react-icons/hi";
 import StepNICVerification from "../../components/dos/steps/StepNICVerification";
 import StepPersonalDetails from "../../components/dos/steps/StepPersonalDetails";
 import StepContactDetails from "../../components/dos/steps/StepContactDetails";
+import StepFirstAppointment from "../../components/dos/steps/StepFirstAppointment";
 import StepCurrentAppointment from "../../components/dos/steps/StepCurrentAppointment";
 import { useAuthUser } from "@/context/useAuthUser";
 
@@ -46,8 +47,9 @@ const STEPS = [
   { id: 1, label: "Verification" },   // NIC verification step
   { id: 2, label: "Personal" },       // Personal details (name, DOB, etc.)
   { id: 3, label: "Contact" },        // Contact information (email, phone)
-  { id: 4, label: "Current Appt" },   // Current appointment details
-  { id: 5, label: "Finishing" },      // Completion confirmation
+  { id: 4, label: "First Appt" },     // First appointment details
+  { id: 5, label: "Current Appt" },   // Current appointment details
+  { id: 6, label: "Finishing" },      // Completion confirmation
 ];
 
 /** Session storage key for persisting DOS form draft data */
@@ -84,6 +86,7 @@ function RegDosInner() {
     isNicVerified,
     isPersonalValid,
     isContactValid,
+    isFirstApptValid,
     isCurrentApptValid,
     error,
     isRestored,
@@ -156,14 +159,15 @@ function RegDosInner() {
       if (currentStep === 1 && !isNicVerified) return;
       if (currentStep === 2 && !isPersonalValid) return;
       if (currentStep === 3 && !isContactValid) return;
-      if (currentStep === 4 && !isCurrentApptValid) return;
+      if (currentStep === 4 && !isFirstApptValid) return;
+      if (currentStep === 5 && !isCurrentApptValid) return;
 
       // Only allow navigation to next step
       if (stepId === currentStep + 1) {
         dispatch({ type: "SET_STEP", payload: stepId });
       }
     },
-    [currentStep, isNicVerified, isPersonalValid, isContactValid, isCurrentApptValid, confirmDiscardAndRun, dispatch],
+    [currentStep, isNicVerified, isPersonalValid, isContactValid, isFirstApptValid, isCurrentApptValid, confirmDiscardAndRun, dispatch],
   );
 
   /**
@@ -185,7 +189,11 @@ function RegDosInner() {
       toast.error("Compulsory fields should be completed.");
       return false;
     }
-    if (currentStep === 4 && !isCurrentApptValid) {
+    if (currentStep === 4 && !isFirstApptValid) {
+      toast.error("Compulsory fields should be completed.");
+      return false;
+    }
+    if (currentStep === 5 && !isCurrentApptValid) {
       toast.error("Compulsory fields should be completed.");
       return false;
     }
@@ -198,7 +206,7 @@ function RegDosInner() {
    * Confirms discard when returning from step 2+ to step 1
    */
   const back = useCallback(() => {
-    if (currentStep === 5) return;
+    if (currentStep === 6) return;
 
     const targetStep = Math.max(currentStep - 1, 1);
     if (targetStep === 1 && currentStep > 1) {
@@ -254,26 +262,26 @@ function RegDosInner() {
   const handleNext = useCallback(async () => {
     if (!validateCurrentStep()) return;
 
-    // If on the last data step, submit to DEO endpoint
-    if (currentStep === 4) {
+    // If on the last data step, submit to dos-admins endpoint
+    if (currentStep === 5) {
       try {
         setIsSubmitting(true);
         dispatch({ type: "SET_ERROR", payload: null });
 
-        const res = await api.post("/deo-officers", formData);
+        const res = await api.post("/dos-admins", formData);
         const result = res?.data ?? {};
 
         if (result.status === "success" || res.status === 201) {
-          toast.success("Development Officer registered successfully");
-          dispatch({ type: "SET_STEP", payload: 5 });
+          toast.success("Zonal Administrator registered successfully");
+          dispatch({ type: "SET_STEP", payload: 6 });
         } else {
           dispatch({
             type: "SET_ERROR",
-            payload: result.message || "Failed to register development officer",
+            payload: result.message || "Failed to register zonal administrator",
           });
         }
       } catch (err) {
-        console.error("DEO create error:", err);
+        console.error("Zonal admin create error:", err);
         dispatch({
           type: "SET_ERROR",
           payload:
@@ -394,19 +402,24 @@ function RegDosInner() {
             <StepContactDetails formData={formData} setFormData={setFormData} onValid={(isValid) => dispatch({ type: "SET_CONTACT_VALID", payload: isValid })} />
           )}
 
-          {/* Step 4: Current Appointment (Service, Rank, Position, Workplace) */}
+          {/* Step 4: First Appointment (Service, Rank, Position, Institution) */}
           {currentStep === 4 && (
+            <StepFirstAppointment formData={formData} setFormData={setFormData} onValid={(isValid) => dispatch({ type: "SET_FIRST_APPT_VALID", payload: isValid })} />
+          )}
+
+          {/* Step 5: Current Appointment (Service, Rank, Position, Workplace) */}
+          {currentStep === 5 && (
             <StepCurrentAppointment formData={formData} setFormData={setFormData} onValid={(isValid) => dispatch({ type: "SET_CURRENT_APPT_VALID", payload: isValid })} />
           )}
 
-          {/* Step 5: Completion Confirmation - displays success message and summary */}
-          {currentStep === 5 && (
+          {/* Step 6: Completion Confirmation - displays success message and summary */}
+          {currentStep === 6 && (
             <div className="space-y-8">
               {/* Success banner */}
               <div className="flex items-start gap-4 bg-green-50 border border-green-200 rounded-2xl p-6">
                 <HiCheckCircle className="text-green-600 w-8 h-8 mt-1 flex-shrink-0" />
                 <div>
-                  <h3 className="font-semibold text-green-800">Development Officer Registration Successful</h3>
+                  <h3 className="font-semibold text-green-800">Zonal Administrator Registration Successful</h3>
                   <p className="text-sm text-green-700 mt-1">Registration has been completed successfully.</p>
                 </div>
               </div>
@@ -442,7 +455,7 @@ function RegDosInner() {
         </div>
 
         {/* Step navigation footer - hidden on completion step */}
-        {currentStep !== 5 && (
+        {currentStep !== 6 && (
           <div className="border-t">
             {/* Error message display */}
             {error && (
