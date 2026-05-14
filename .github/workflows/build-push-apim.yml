@@ -6,7 +6,7 @@ on:
 env:
   REGISTRY: ghcr.io
   # Converts repository name to lowercase for registry compatibility
-  IMAGE_NAME: ${{ github.repository_owner }}/wso2am
+  IMAGE_NAME: ${{ github.repository_owner }}/emis-apim
 
 jobs:
   build-and-push:
