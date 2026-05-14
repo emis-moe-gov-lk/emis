@@ -1,8 +1,8 @@
-import { useNavigate } from "react-router";
+import { useAuthContext } from "@asgardeo/auth-react";
 import PasswordForm from "@/components/UserProfile/SettingsPage/PasswordForm";
 
 export default function ForcePasswordChange() {
-  const navigate = useNavigate();
+  const { signOut } = useAuthContext();
 
   return (
     <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center px-6 py-10">
@@ -19,7 +19,7 @@ export default function ForcePasswordChange() {
             </p>
           </div>
           <button
-            onClick={() => navigate("/logout")}
+            onClick={() => signOut()}
             className="ml-6 shrink-0 text-sm text-slate-400 hover:text-white underline underline-offset-2 transition"
           >
             Logout
