@@ -1,12 +1,13 @@
 name: Build and Push WSO2 AM Image
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # call manually
+  workflow_call: # To be called by other workflows
 
 env:
   REGISTRY: ghcr.io
   # Converts repository name to lowercase for registry compatibility
-  IMAGE_NAME: ${{ github.repository_owner }}/wso2am
+  IMAGE_NAME: ${{ github.repository_owner }}/emis-apim
 
 jobs:
   build-and-push:

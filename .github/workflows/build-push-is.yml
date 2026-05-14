@@ -1,11 +1,12 @@
 name: Build and Push WSO2 IS Image
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # For the manual calls
+  workflow_call: # To be called by other workflows
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}/wso2is
+  IMAGE_NAME: ${{ github.repository_owner }}/emis-is
 
 jobs:
   build-and-push:
