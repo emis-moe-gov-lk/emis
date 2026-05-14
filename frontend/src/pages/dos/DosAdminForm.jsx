@@ -32,12 +32,10 @@ import StepNavigation from "@/components/teacher/StepNavigation";
 import StepNICVerification from "@/components/dos/steps/StepNICVerification";
 import StepPersonalDetails from "@/components/dos/steps/StepPersonalDetails";
 import StepContactDetails from "@/components/dos/steps/StepContactDetails";
-import StepCurrentAppointment from "@/components/dos/steps/StepCurrentAppointment";
+import StepFirstAppointment from "@/components/dosAdmin/steps/StepFirstAppointment";
+import StepCurrentAppointment from "@/components/dosAdmin/steps/StepCurrentAppointment";
 
-import {
-  registerDosAdmin,
-  downloadDosAdminProfileDocument,
-} from "@/api/dosAdminService";
+import api from "@/api/axios";
 import toast from "react-hot-toast";
 import { HiCheckCircle, HiArrowLeft } from "react-icons/hi";
 import { useAuthUser } from "@/context/useAuthUser";
@@ -57,8 +55,8 @@ const STEPS = [
   { id: 1, label: "Verification" },
   { id: 2, label: "Personal" },
   { id: 3, label: "Contact" },
-  { id: 4, label: "Current Appt" },
-  { id: 5, label: "Review" },
+  { id: 4, label: "First Appt" },
+  { id: 5, label: "Current Appt" },
   { id: 6, label: "Finishing" },
 ];
 
@@ -113,6 +111,7 @@ function DosAdminFormInner() {
     isNicVerified,
     isPersonalValid,
     isContactValid,
+    isFirstApptValid,
     isCurrentApptValid,
     error,
     isRestored,
@@ -438,7 +437,7 @@ function DosAdminFormInner() {
    * Navigates back to DOS Admin list with draft protection
    */
   const handleBackToList = async () => {
-    await confirmDiscardAndRun(() => navigate("/employees/dos-admins"));
+    await confirmDiscardAndRun(() => navigate("/employees/edu-directors"));
   };
 
   /**
@@ -454,7 +453,8 @@ function DosAdminFormInner() {
     if (currentStep === 1 && !isNicVerified) return;
     if (currentStep === 2 && !isPersonalValid) return;
     if (currentStep === 3 && !isContactValid) return;
-    if (currentStep === 4 && !isCurrentApptValid) return;
+    if (currentStep === 4 && !isFirstApptValid) return;
+    if (currentStep === 5 && !isCurrentApptValid) return;
 
     if (stepId === currentStep + 1) {
       dispatch({ type: "SET_STEP", payload: stepId });
@@ -474,28 +474,31 @@ function DosAdminFormInner() {
    * Handle step progression and form submission
    */
   const handleNext = async () => {
-    // Review step shows summary before submission
+    // Current Appointment step — submit to backend
     if (currentStep === 5) {
-      dispatch({ type: "SET_STEP", payload: 6 });
-      return;
-    }
-
-    // Final submission on step 5
-    if (currentStep === 6) {
       try {
         setIsSubmitting(true);
-        const res = await registerDosAdmin(formData);
-        
-        if (res.status === "success") {
-          toast.success("DOS Admin registered successfully");
+        const payload = {
+          ...formData,
+          is_new_registration: formData.currentAppointmentRegType === "new",
+          currentAppointmentWorkplace: formData.currentAppointmentZone,
+        };
+        const res = await api.post("/dos-admins", payload);
+        const result = res?.data ?? {};
+
+        if (result.status === "success" || res.status === 201) {
+          toast.success("Zonal Administrator registered successfully");
           setIsRegistrationComplete(true);
-          setRegistrationSummary(res.data);
+          setRegistrationSummary(result.data);
+          dispatch({ type: "SET_STEP", payload: 6 });
         } else {
-          toast.error(res.message || "Registration failed");
+          toast.error(result.message || "Registration failed");
         }
       } catch (err) {
         console.error("Registration error:", err);
-        toast.error("Unable to complete registration. Please try again.");
+        toast.error(
+          err?.response?.data?.message || "Unable to complete registration. Please try again.",
+        );
       } finally {
         setIsSubmitting(false);
       }
@@ -550,28 +553,22 @@ function DosAdminFormInner() {
             />
           )}
 
-          {/* Step 4: Current Appointment */}
+          {/* Step 4: First Appointment */}
           {currentStep === 4 && (
+            <StepFirstAppointment
+              formData={formData}
+              setFormData={setFormData}
+              onValid={(isValid) => dispatch({ type: "SET_FIRST_APPT_VALID", payload: isValid })}
+            />
+          )}
+
+          {/* Step 5: Current Appointment */}
+          {currentStep === 5 && (
             <StepCurrentAppointment
               formData={formData}
               setFormData={setFormData}
               onValid={(isValid) => dispatch({ type: "SET_CURRENT_APPT_VALID", payload: isValid })}
             />
-          )}
-
-          {/* Step 5: Review Summary */}
-          {currentStep === 5 && (
-            <div className="space-y-6">
-              <h3 className="text-lg font-semibold">Review Your Information</h3>
-              <div className="bg-gray-50 rounded-2xl p-6 space-y-4 text-sm">
-                <div className="grid grid-cols-2 gap-4">
-                  <p><strong>Name:</strong> {formData.fullName}</p>
-                  <p><strong>NIC:</strong> {formData.nic}</p>
-                  <p><strong>Email:</strong> {formData.email}</p>
-                  <p><strong>Contact:</strong> {formData.contact}</p>
-                </div>
-              </div>
-            </div>
           )}
 
           {/* Step 6: Completion */}
@@ -580,14 +577,15 @@ function DosAdminFormInner() {
               <div className="flex items-start gap-4 bg-green-50 border border-green-200 rounded-2xl p-6">
                 <HiCheckCircle className="text-green-600 w-8 h-8 mt-1 flex-shrink-0" />
                 <div>
-                  <h3 className="font-semibold text-green-800">DOS Admin Registration Successful</h3>
+                  <h3 className="font-semibold text-green-800">Zonal Administrator Registration Successful</h3>
                   <p className="text-sm text-green-700 mt-1">Registration has been completed successfully.</p>
                 </div>
               </div>
 
               {registrationSummary && (
-                <div className="bg-gray-50 rounded-2xl p-6">
-                  <p className="text-sm text-gray-600">Admin ID: {registrationSummary.id}</p>
+                <div className="bg-gray-50 rounded-2xl p-6 space-y-2 text-sm">
+                  <p><strong className="text-gray-700">Name:</strong> <span className="text-gray-600">{registrationSummary.fullName}</span></p>
+                  <p><strong className="text-gray-700">NIC:</strong> <span className="text-gray-600">{registrationSummary.nic}</span></p>
                 </div>
               )}
             </div>

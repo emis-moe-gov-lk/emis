@@ -2,6 +2,16 @@ import { useState, useEffect, useCallback } from "react";
 import { Label, Select, TextInput } from "flowbite-react";
 import api from "@/api/axios";
 
+const FormGroup = ({ label, error, required = false, children }) => (
+  <div>
+    <Label className="mb-2 text-xs font-semibold text-gray-700">
+      {label} {required && <span className="text-red-600">*</span>}
+    </Label>
+    {children}
+    {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+  </div>
+);
+
 const isSLTSService = (service) =>
   [service?.service_name, service?.name, service?.service_code, service?.code]
     .filter(Boolean)
@@ -140,16 +150,6 @@ export default function StepFirstAppointment({
       setErrors((prev) => ({ ...prev, [key]: undefined }));
     },
     [setFormData],
-  );
-
-  const FormGroup = ({ label, error, required = false, children }) => (
-    <div>
-      <Label className="mb-2 text-xs font-semibold text-gray-700">
-        {label} {required && <span className="text-red-600">*</span>}
-      </Label>
-      {children}
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
-    </div>
   );
 
   const selectPlaceholder = loading ? "Loading..." : "Select";
