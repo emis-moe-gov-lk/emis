@@ -16,6 +16,9 @@ use App\Models\GnDivision;
 use App\Models\CivilStatus;
 use App\Models\Service;
 use App\Models\ServiceRank;
+use App\Models\Institution;
+use App\Models\ZonalEducationOffice;
+use App\Models\InstitutionCategory;
 use App\Models\DistrictsList;
 use App\Models\EmployerAppointment;
 use App\Models\EmployerCurrentAppointment;
@@ -88,11 +91,52 @@ class DeoOfficerController extends Controller
             'serviceRanks' => $serviceId
                 ? ServiceRank::where('service_id', $serviceId)->active()->get()
                 : [],
-            'positions'    => $serviceId
-                ? Position::where('service_id', $serviceId)->active()->get()
-                : [],
+            'positions'    => Position::where('position_name', 'Development Officer')->active()->get(),
 
-            'deoOffices'   => DivisionalEducationOffice::active()->get(),
+            'zonalOffices' => ZonalEducationOffice::active()->get(),
+        ]);
+    }
+
+    public function currentAppointmentFormData(Request $request)
+    {
+        $service = $request->query('service');
+        $institutionCategory = $request->query('ins_cat');
+        $zone = $request->query('zone');
+
+        $positions = $service
+            ? Position::where('service_id', $service)->active()->get()
+            : Position::where('position_name', 'Development Officer')->active()->get();
+
+        $roles = $request->attributes->get('jwt_roles', []);
+        $isSuperAdmin = in_array('super admin', $roles);
+
+        if ($isSuperAdmin) {
+            $zonalOffices = ZonalEducationOffice::active()->get();
+        } else {
+            $workplaceId = auth()->user()?->currentAppointment?->workplace_id;
+
+            $zeo = ZonalEducationOffice::where('workplace_id', $workplaceId)->active()->first();
+
+            if ($zeo) {
+                $zonalOffices = collect([$zeo]);
+            } else {
+                $zeoWpId = DivisionalEducationOffice::where('workplace_id', $workplaceId)->value('zeo_wp_id');
+                $zonalOffices = $zeoWpId
+                    ? ZonalEducationOffice::where('workplace_id', $zeoWpId)->active()->get()
+                    : collect();
+            }
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'service' => Service::active()->get(),
+            'serviceRanks' => $service ? ServiceRank::where('service_id', $service)->active()->get() : [],
+            'positions' => $positions,
+            'institutionCategory' => InstitutionCategory::active()->get(),
+            'zonalEducationOffices' => $zonalOffices,
+            'institutions' => $zone && $institutionCategory
+                ? Institution::where('zeo_wp_id', $zone)->where('institution_category_id', $institutionCategory)->get()
+                : [],
         ]);
     }
  
@@ -253,16 +297,17 @@ class DeoOfficerController extends Controller
                 // APPOINTMENT
                 'appointmentDate'   => 'required|date',
                 'appointmentLetter' => 'required|string',
-                'serviceId'         => 'required|string',
                 'rankId'            => 'required|string',
                 'positionId'        => 'required|string',
-                'deoOfficeId'       => 'required|string',
+                'zonalOfficeId'     => 'required|string',
             ]);
 
             DB::beginTransaction();
 
-            $nic      = NicHelper::normalize($validated['nic']);
-            $initials = People::generateInitials($validated['fullName']);
+            $nic        = NicHelper::normalize($validated['nic']);
+            $initials   = People::generateInitials($validated['fullName']);
+            $dosService = Service::where('service_name', 'DOS')->firstOrFail();
+            $serviceId  = $dosService->service_id;
 
             // ---- PEOPLE ----
             
@@ -322,11 +367,11 @@ class DeoOfficerController extends Controller
                 'employee_id'            => $people->people_id,
                 'first_appointment_date' => $validated['appointmentDate'],
                 'retirement_date'        => $retirementDate->toDateString(),
-                'service_id'             => $validated['serviceId'],
+                'service_id'             => $serviceId,
                 'rank_id'                => $validated['rankId'],
                 'position_id'            => $validated['positionId'],
-                'office_level_id'        => 'OLID001',
-                'workplace_id'           => $validated['deoOfficeId'],
+                'office_level_id'        => 'OLID004',
+                'workplace_id'           => $validated['zonalOfficeId'],
                 'appointment_letter_no'  => $validated['appointmentLetter'],
                 'appointment_letter'     => 'none.pdf',
             ]);
@@ -336,11 +381,11 @@ class DeoOfficerController extends Controller
                 'appointment_id'  => $appointmentId,
                 'employee_id'     => $people->people_id,
                 'appoint_date'    => $validated['appointmentDate'],
-                'service_id'      => $validated['serviceId'],
+                'service_id'      => $serviceId,
                 'rank_id'         => $validated['rankId'],
                 'office_level_id' => 'OLID001',
                 'position_id'     => $validated['positionId'],
-                'workplace_id'    => $validated['deoOfficeId'],
+                'workplace_id'    => $validated['zonalOfficeId'],
             ]);
 
             // ---- USER ----

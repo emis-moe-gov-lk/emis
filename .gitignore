@@ -43,4 +43,6 @@ hosts.yml
 *actual*.yml
 *.retry
 
+# Backup Files
+*.bck
 serviceminutes
