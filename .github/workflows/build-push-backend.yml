@@ -28,4 +28,4 @@ jobs:
         with:
           context: ./backend
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/emis-backend:${{ secrets.BACKEND_IMG_VERSION }}
+          tags: ghcr.io/${{ github.repository_owner }}/emis-backend:${{ vars.BACKEND_IMG_VERSION }}
