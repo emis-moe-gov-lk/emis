@@ -13,7 +13,9 @@ const TITLES = {
 	health: "Health Information",
 	contact: "Contact & Location",
 	temporary: "Temporary Location",
-	appointment: "Current Appointment Status",
+	current_appointment: "Appointment current status",
+	my_appointment: "My Appointment",
+	teaching_info: "Teaching Info",
 };
 
 const EMPTY_OPTS = {
@@ -29,6 +31,11 @@ const EMPTY_OPTS = {
 	services: [],
 	serviceRanks: [],
 	positions: [],
+	teacherCategories: [],
+	teacherTypes: [],
+	mediums: [],
+	subjects: [],
+	appointedSubjects: [],
 };
 
 const formatDate = (value) => {
@@ -45,6 +52,8 @@ const normalizeGnDivisionOption = (gn) => ({
 	id: gn?.gn_division_id ?? gn?.id ?? "",
 	name: gn?.gn_division_name ?? gn?.name ?? "",
 });
+
+const safeStr = (val) => (val != null ? String(val) : "");
 
 export default function TeacherUpdateModal({
 	isOpen,
@@ -104,11 +113,10 @@ export default function TeacherUpdateModal({
 	}, [isOpen, teacherId, onClose]);
 
 	// ============================================================
-	// 1. LOAD TEACHER DATA (for all sections except appointment)
+	// 1. LOAD TEACHER DATA
 	// ============================================================
 	useEffect(() => {
 		if (!isOpen || !teacherId || !section) return;
-		if (section === "appointment") return; // Appointment uses separate endpoint
 
 		let ignore = false;
 		setLoading(true);
@@ -178,6 +186,51 @@ export default function TeacherUpdateModal({
 						tPostalCode: d.t_postal_code ?? "",
 					});
 				}
+
+				if (section === "current_appointment") {
+					setForm({
+						currentAppointmentService: safeStr(d.current_appointment?.service_id),
+						currentAppointmentRank: safeStr(d.current_appointment?.rank_id),
+						currentAppointmentPosition: safeStr(d.current_appointment?.position_id),
+						currentAppointmentDate: formatDate(d.current_appointment?.appoint_date) || "",
+						currentAppointmentInstitution: safeStr(d.current_appointment?.workplace_id),
+						workplace_name: safeStr(d.current_appointment?.workplace?.institution?.name),
+					});
+				}
+
+				if (section === "my_appointment") {
+					setForm({
+						firstAppointmentService: safeStr(d.appointment?.service_id),
+						firstAppointmentRank: safeStr(d.appointment?.rank_id),
+						firstAppointmentPosition: safeStr(d.appointment?.position_id),
+						firstAppointmentDate: formatDate(d.appointment?.first_appointment_date) || "",
+						firstAppointmentLetter: safeStr(d.appointment?.appointment_letter_no),
+						firstAppointmentInstitution: safeStr(d.appointment?.workplace_id),
+						workplace_name: safeStr(d.appointment?.workplace?.institution?.name),
+					});
+				}
+
+				if (section === "teaching_info") {
+					const t = d.teacher || {};
+					const getId = (val, ...keys) => {
+						if (typeof val === 'object' && val !== null) {
+							for (const k of keys) {
+								if (val[k]) return safeStr(val[k]);
+							}
+							return safeStr(val.id);
+						}
+						return safeStr(val);
+					};
+
+					setForm({
+						teacherCategory: getId(t.teacher_category, 'categories_id', 'teacher_category_id', 'category_id') || safeStr(t.teacher_category_id ?? t.categories_id),
+						teacherType: getId(t.teacher_type, 'teacher_types_id', 'teacher_type_id', 'type_id') || safeStr(t.teacher_types_id ?? t.teacher_type_id),
+						appointmentMedium: getId(t.medium || t.appointment_medium, 'medium_id') || safeStr(t.appointment_medium ?? t.medium),
+						appointmentSubject: getId(t.appointment_subject, 'a_subject_id', 'subject_id', 'appointed_subject_id', 'apointed_subject_id', 'apointment_subject_id') || safeStr(t.appointment_subject),
+						mainSubject: getId(t.main_subject, 'subject_id', 'main_subject_id') || safeStr(t.main_subject),
+						currentTeachingSubject: getId(t.current_teaching_subject, 'subject_id') || safeStr(t.current_teaching_subject),
+					});
+				}
 			})
 			.catch(() => toast.error("Failed to load teacher data"))
 			.finally(() => {
@@ -190,44 +243,7 @@ export default function TeacherUpdateModal({
 	}, [isOpen, teacherId, section]);
 
 	// ============================================================
-	// 2. LOAD APPOINTMENT DATA (for appointment section)
-	// ============================================================
-	useEffect(() => {
-		if (!isOpen || !teacherId || section !== "appointment") return;
-
-		let ignore = false;
-		setLoading(true);
-
-		api
-			.get(`/teacher/${teacherId}`)
-			.then((res) => {
-				if (ignore || res.data?.status !== "success") return;
-				const d = res.data.data;
-
-				setForm({
-					service_id: d.current_appointment?.service?.service_id ?? d.current_appointment?.service_id ?? "",
-					service_name: d.current_appointment?.service?.service_name ?? "",
-					rank_id: d.current_appointment?.rank?.rank_id ?? d.current_appointment?.rank_id ?? "",
-					rank_name: d.current_appointment?.rank?.name ?? "",
-					position_id: d.current_appointment?.position?.position_id ?? d.current_appointment?.position_id ?? "",
-					position_name: d.current_appointment?.position?.position_name ?? "",
-					appoint_date: formatDate(d.current_appointment?.appoint_date) || "",
-					appointment_letter_no: d.appointment?.appointment_letter_no ?? "",
-					workplace_name: d.current_appointment?.workplace?.institution?.name ?? "",
-				});
-			})
-			.catch(() => toast.error("Failed to load appointment data"))
-			.finally(() => {
-				if (!ignore) setLoading(false);
-			});
-
-		return () => {
-			ignore = true;
-		};
-	}, [isOpen, teacherId, section]);  // ✅ මෙය එක් වරක් පමණයි - duplicate එක ඉවත් කර ඇත
-
-	// ============================================================
-	// 3. LOAD FORM DROPDOWN OPTIONS (Services, Ranks, Positions)
+	// 2. LOAD FORM DROPDOWN OPTIONS (Personal/Contact)
 	// ============================================================
 	useEffect(() => {
 		if (!isOpen) return;
@@ -257,31 +273,24 @@ export default function TeacherUpdateModal({
 	}, [isOpen, section]);
 
 	// ============================================================
-	// 4. LOAD APPOINTMENT DROPDOWN OPTIONS (Services, Ranks, Positions)
+	// 3. LOAD APPOINTMENT DROPDOWN OPTIONS (Services, Ranks, Positions)
 	// ============================================================
 	useEffect(() => {
-		if (!isOpen || section !== "appointment") return;
+		if (!isOpen || !["current_appointment", "my_appointment"].includes(section)) return;
 
 		let ignore = false;
-		console.log("Loading appointment form options...");
 		
 		api
 			.get("/teachers/current-appointment-form-data")
 			.then((res) => {
 				if (ignore) return;
 				
-				console.log("Appointment form options response:", res.data);
-				
 				// Handle different possible field names from API
 				const servicesData = res.data?.service ?? res.data?.services ?? [];
-				const ranksData = res.data?.serviceRanks ?? res.data?.service_ranks ?? res.data?.ranks ?? [];
-				const positionsData = res.data?.positions ?? res.data?.position ?? [];
 				
 				setOpts((prev) => ({
 					...prev,
 					services: servicesData,
-					serviceRanks: ranksData,
-					positions: positionsData,
 				}));
 			})
 			.catch((err) => console.error("Failed to load appointment options:", err));
@@ -292,30 +301,28 @@ export default function TeacherUpdateModal({
 	}, [isOpen, section]);
 
 	// ============================================================
-	// 5. LOAD RANKS WHEN SERVICE CHANGES (Appointment section)
+	// 4. LOAD RANKS WHEN SERVICE CHANGES (Appointment section)
 	// ============================================================
 	useEffect(() => {
-		if (!isOpen || section !== "appointment") return;
-		if (!form.service_id) {
+		if (!isOpen || !["current_appointment", "my_appointment"].includes(section)) return;
+		
+		const serviceId = section === "current_appointment" ? form.currentAppointmentService : form.firstAppointmentService;
+		
+		if (!serviceId) {
 			setOpts((prev) => ({ ...prev, serviceRanks: [], positions: [] }));
 			return;
 		}
 
 		let ignore = false;
-		console.log("Loading ranks for service:", form.service_id);
 		
 		api
-			.get(`/teachers/current-appointment-form-data?service=${form.service_id}`)
+			.get(`/teachers/current-appointment-form-data?service=${serviceId}`)
 			.then((res) => {
 				if (ignore) return;
-				
-				console.log("Ranks API Response:", res.data);
 				
 				// Handle different possible field names from API
 				const ranksData = res.data?.serviceRanks ?? res.data?.service_ranks ?? res.data?.ranks ?? [];
 				const positionsData = res.data?.positions ?? res.data?.position ?? [];
-				
-				console.log("Parsed ranks:", ranksData);
 				
 				setOpts((prev) => ({
 					...prev,
@@ -323,14 +330,57 @@ export default function TeacherUpdateModal({
 					positions: positionsData,
 				}));
 			})
-			.catch((err) => {
-				console.error("Failed to load ranks for service:", form.service_id, err);
-			});
+			.catch(() => {});
 
 		return () => {
 			ignore = true;
 		};
-	}, [isOpen, section, form.service_id]);
+	}, [isOpen, section, form.currentAppointmentService, form.firstAppointmentService]);
+
+	// ============================================================
+	// 5. LOAD TEACHING INFO DROPDOWNS
+	// ============================================================
+	useEffect(() => {
+		if (!isOpen || section !== "teaching_info") return;
+
+		let ignore = false;
+		
+		const fetchTeachingInfo = async () => {
+			try {
+				let res;
+				
+				const response = await api.get("/teachers/current-appointment-form-data");
+				if (response?.data) {
+					res = response;
+				}
+
+				if (ignore) return;
+				
+				if (!res) {
+					console.error("All endpoints failed to provide teaching info options.");
+					toast.error("Failed to load teaching dropdowns.");
+					return;
+				}
+				
+				setOpts((prev) => ({
+					...prev,
+					teacherCategories: res.data?.teacherCategorys ?? res.data?.teacher_categories ?? [],
+					teacherTypes: res.data?.teacherTypes ?? res.data?.teacher_types ?? [],
+					mediums: res.data?.appointmentMedium ?? res.data?.mediums ?? [],
+					subjects: res.data?.mainTeachingSubjects ?? res.data?.subjects ?? [],
+					appointedSubjects: res.data?.aapointedSubjects ?? res.data?.apointmentSubjects ?? res.data?.appointed_subjects ?? [],
+				}));
+			} catch (err) {
+				console.error("Failed to load teaching info options:", err);
+			}
+		};
+
+		fetchTeachingInfo();
+
+		return () => {
+			ignore = true;
+		};
+	}, [isOpen, section]);
 
 	// ============================================================
 	// 6. LOAD DS OFFICES WHEN DISTRICT CHANGES (Contact section)
@@ -404,16 +454,6 @@ export default function TeacherUpdateModal({
 					section,
 					...form,
 					knownProblems: form.healthCondition === "1" ? null : form.knownProblems,
-				};
-			} else if (section === "appointment") {
-				// For appointment, only send the necessary fields
-				payload = {
-					section,
-					service_id: form.service_id,
-					rank_id: form.rank_id,
-					position_id: form.position_id,
-					appoint_date: form.appoint_date,
-					appointment_letter_no: form.appointment_letter_no,
 				};
 			} else {
 				payload = { section, ...form };
@@ -852,9 +892,9 @@ export default function TeacherUpdateModal({
 					)}
 
 					{/* ============================================================ */}
-					{/* APPOINTMENT SECTION */}
+					{/* CURRENT APPOINTMENT SECTION */}
 					{/* ============================================================ */}
-					{section === "appointment" && (
+					{section === "current_appointment" && (
 						<>
 							<div>
 								<FormLabel text="Current Workplace" />
@@ -863,17 +903,18 @@ export default function TeacherUpdateModal({
 									value={form.workplace_name ?? ""}
 									disabled
 								/>
+								<p className="text-xs text-gray-500 mt-1">Workplace updates are handled through the transfer module.</p>
 							</div>
 
 							<div>
 								<FormLabel text="Service" required />
 								<select
 									className={darkSafeSelectClass}
-									value={form.service_id ?? ""}
+									value={form.currentAppointmentService ?? ""}
 									onChange={(e) => {
-										setField("service_id", e.target.value);
-										setField("rank_id", "");
-										setField("position_id", "");
+										setField("currentAppointmentService", e.target.value);
+										setField("currentAppointmentRank", "");
+										setField("currentAppointmentPosition", "");
 									}}
 								>
 									<option value="">Select Service</option>
@@ -889,14 +930,14 @@ export default function TeacherUpdateModal({
 								<FormLabel text="Current Service Rank" required />
 								<select
 									className={darkSafeSelectClass}
-									value={form.rank_id ?? ""}
-									disabled={!form.service_id}
-									onChange={(e) => setField("rank_id", e.target.value)}
+									value={form.currentAppointmentRank ?? ""}
+									disabled={!form.currentAppointmentService}
+									onChange={(e) => setField("currentAppointmentRank", e.target.value)}
 								>
 									<option value="">Select Rank</option>
 									{opts.serviceRanks.map((r) => (
 										<option key={r.rank_id} value={r.rank_id}>
-											{r.name}
+											{r.rank_name || r.name}
 										</option>
 									))}
 								</select>
@@ -906,14 +947,14 @@ export default function TeacherUpdateModal({
 								<FormLabel text="Position / Designation" required />
 								<select
 									className={darkSafeSelectClass}
-									value={form.position_id ?? ""}
-									disabled={!form.service_id}
-									onChange={(e) => setField("position_id", e.target.value)}
+									value={form.currentAppointmentPosition ?? ""}
+									disabled={!form.currentAppointmentService}
+									onChange={(e) => setField("currentAppointmentPosition", e.target.value)}
 								>
 									<option value="">Select Position</option>
 									{opts.positions.map((p) => (
 										<option key={p.position_id} value={p.position_id}>
-											{p.position_name}
+											{p.position_name || p.name}
 										</option>
 									))}
 								</select>
@@ -924,19 +965,205 @@ export default function TeacherUpdateModal({
 								<input
 									type="date"
 									className={darkSafeInputClass}
-									value={form.appoint_date ?? ""}
-									onChange={(e) => setField("appoint_date", e.target.value)}
+									value={form.currentAppointmentDate ?? ""}
+									onChange={(e) => setField("currentAppointmentDate", e.target.value)}
+								/>
+							</div>
+						</>
+					)}
+
+					{/* ============================================================ */}
+					{/* MY APPOINTMENT SECTION */}
+					{/* ============================================================ */}
+					{section === "my_appointment" && (
+						<>
+							<div>
+								<FormLabel text="First Workplace" />
+								<input
+									className={`${darkSafeInputClass} bg-gray-800 text-gray-400`}
+									value={form.workplace_name ?? ""}
+									disabled
 								/>
 							</div>
 
 							<div>
-								<FormLabel text="Appointment/Transfer Letter No" />
+								<FormLabel text="Service" required />
+								<select
+									className={darkSafeSelectClass}
+									value={form.firstAppointmentService ?? ""}
+									onChange={(e) => {
+										setField("firstAppointmentService", e.target.value);
+										setField("firstAppointmentRank", "");
+										setField("firstAppointmentPosition", "");
+									}}
+								>
+									<option value="">Select Service</option>
+									{opts.services.map((s) => (
+										<option key={s.service_id} value={s.service_id}>
+											{s.service_name}
+										</option>
+									))}
+								</select>
+							</div>
+
+							<div>
+								<FormLabel text="Service Rank" required />
+								<select
+									className={darkSafeSelectClass}
+									value={form.firstAppointmentRank ?? ""}
+									disabled={!form.firstAppointmentService}
+									onChange={(e) => setField("firstAppointmentRank", e.target.value)}
+								>
+									<option value="">Select Rank</option>
+									{opts.serviceRanks.map((r) => (
+										<option key={r.rank_id} value={r.rank_id}>
+											{r.rank_name || r.name}
+										</option>
+									))}
+								</select>
+							</div>
+
+							<div>
+								<FormLabel text="Position / Designation" required />
+								<select
+									className={darkSafeSelectClass}
+									value={form.firstAppointmentPosition ?? ""}
+									disabled={!form.firstAppointmentService}
+									onChange={(e) => setField("firstAppointmentPosition", e.target.value)}
+								>
+									<option value="">Select Position</option>
+									{opts.positions.map((p) => (
+										<option key={p.position_id} value={p.position_id}>
+											{p.position_name || p.name}
+										</option>
+									))}
+								</select>
+							</div>
+
+							<div>
+								<FormLabel text="First Appointment Date" required />
+								<input
+									type="date"
+									className={darkSafeInputClass}
+									value={form.firstAppointmentDate ?? ""}
+									onChange={(e) => setField("firstAppointmentDate", e.target.value)}
+								/>
+							</div>
+
+							<div>
+								<FormLabel text="Appointment Letter No" required />
 								<input
 									className={darkSafeInputClass}
-									value={form.appointment_letter_no ?? ""}
-									onChange={(e) => setField("appointment_letter_no", e.target.value)}
-									placeholder="e.g. AD/E/2024/001"
+									value={form.firstAppointmentLetter ?? ""}
+									onChange={(e) => setField("firstAppointmentLetter", e.target.value)}
+									placeholder="e.g. AD/E/2020/001"
 								/>
+							</div>
+						</>
+					)}
+
+					{/* ============================================================ */}
+					{/* TEACHING INFO SECTION */}
+					{/* ============================================================ */}
+					{section === "teaching_info" && (
+						<>
+							<div>
+								<FormLabel text="Teacher Category" required />
+								<select
+									className={darkSafeSelectClass}
+									value={form.teacherCategory ?? ""}
+									onChange={(e) => setField("teacherCategory", e.target.value)}
+								>
+									<option value="">Select Category</option>
+									{opts.teacherCategories?.map((c) => (
+										<option key={c.categories_id || c.teacher_category_id || c.id} value={c.categories_id || c.teacher_category_id || c.id}>
+											{c.name || c.teacher_category_name || c.category_name || c.teacher_category || c.title || "Unnamed Category"}
+										</option>
+									))}
+								</select>
+							</div>
+
+							<div>
+								<FormLabel text="Teacher Type" required />
+								<select
+									className={darkSafeSelectClass}
+									value={form.teacherType ?? ""}
+									onChange={(e) => setField("teacherType", e.target.value)}
+								>
+									<option value="">Select Type</option>
+									{opts.teacherTypes?.map((t) => (
+										<option key={t.teacher_types_id || t.teacher_type_id || t.id} value={t.teacher_types_id || t.teacher_type_id || t.id}>
+											{t.type_name || t.name || t.teacher_type || t.title || "Unnamed Type"}
+										</option>
+									))}
+								</select>
+							</div>
+
+							<div>
+								<FormLabel text="Medium" required />
+								<select
+									className={darkSafeSelectClass}
+									value={form.appointmentMedium ?? ""}
+									onChange={(e) => setField("appointmentMedium", e.target.value)}
+								>
+									<option value="">Select Medium</option>
+									{opts.mediums?.map((m) => (
+										<option key={m.medium_id || m.id} value={m.medium_id || m.id}>
+											{m.name || m.medium_name || m.medium || m.title || "Unnamed Medium"}
+										</option>
+									))}
+								</select>
+							</div>
+
+							<div>
+								<FormLabel text="Appointment Subject" required />
+								<select
+									className={darkSafeSelectClass}
+									value={form.appointmentSubject ?? ""}
+									onChange={(e) => setField("appointmentSubject", e.target.value)}
+								>
+									<option value="">Select Subject</option>
+									{opts.appointedSubjects?.map((s) => {
+										const val = s.a_subject_id || s.subject_id || s.appointed_subject_id || s.apointed_subject_id || s.apointment_subject_id || s.id;
+										return (
+											<option key={val} value={val}>
+												{s.name_en || s.name || s.subject_name || s.title || "Unnamed Subject"}
+											</option>
+										);
+									})}
+								</select>
+							</div>
+
+							<div>
+								<FormLabel text="Main Subject" required />
+								<select
+									className={darkSafeSelectClass}
+									value={form.mainSubject ?? ""}
+									onChange={(e) => setField("mainSubject", e.target.value)}
+								>
+									<option value="">Select Subject</option>
+									{opts.subjects?.map((s) => (
+										<option key={s.subject_id || s.id} value={s.subject_id || s.id}>
+											{s.name_en || s.name || s.subject_name || s.title || "Unnamed Subject"}
+										</option>
+									))}
+								</select>
+							</div>
+
+							<div>
+								<FormLabel text="Current Teaching Subject" required />
+								<select
+									className={darkSafeSelectClass}
+									value={form.currentTeachingSubject ?? ""}
+									onChange={(e) => setField("currentTeachingSubject", e.target.value)}
+								>
+									<option value="">Select Subject</option>
+									{opts.subjects?.map((s) => (
+										<option key={s.subject_id || s.id} value={s.subject_id || s.id}>
+											{s.name_en || s.name || s.subject_name || s.title || "Unnamed Subject"}
+										</option>
+									))}
+								</select>
 							</div>
 						</>
 					)}

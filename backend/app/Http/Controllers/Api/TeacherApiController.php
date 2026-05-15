@@ -761,7 +761,7 @@ class TeacherApiController extends Controller
 
         $section = (string) $request->input('section');
 
-        if (! in_array($section, ['personal', 'health', 'contact', 'temporary'], true)) {
+        if (! in_array($section, ['personal', 'health', 'contact', 'temporary', 'current_appointment', 'my_appointment', 'teaching_info'], true)) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Invalid update section',
@@ -801,6 +801,29 @@ class TeacherApiController extends Controller
                 'tAddressLine2' => 'nullable|string|max:255',
                 'tAddressLine3' => 'nullable|string|max:255',
                 'tPostalCode' => 'nullable|string|max:20',
+            ],
+            'current_appointment' => [
+                'currentAppointmentDate' => 'required|date',
+                'currentAppointmentService' => 'required',
+                'currentAppointmentRank' => 'required',
+                'currentAppointmentInstitution' => 'nullable',
+                'currentAppointmentPosition' => 'required',
+            ],
+            'my_appointment' => [
+                'firstAppointmentDate' => 'required|date',
+                'firstAppointmentLetter' => 'nullable',
+                'firstAppointmentService' => 'required',
+                'firstAppointmentRank' => 'required',
+                'firstAppointmentInstitution' => 'nullable',
+                'firstAppointmentPosition' => 'required',
+            ],
+            'teaching_info' => [
+                'teacherCategory' => 'nullable',
+                'teacherType' => 'nullable',
+                'appointmentMedium' => 'nullable',
+                'appointmentSubject' => 'nullable',
+                'mainSubject' => 'nullable',
+                'currentTeachingSubject' => 'nullable',
             ],
         };
 
@@ -885,6 +908,36 @@ class TeacherApiController extends Controller
                     't_address_line2' => $validated['tAddressLine2'] ?? null,
                     't_address_line3' => $validated['tAddressLine3'] ?? null,
                     't_postal_code' => $validated['tPostalCode'] ?? null,
+                ]);
+            }
+
+            if ($section === 'current_appointment') {
+                $teacher->currentAppointment()->update([
+                    'appoint_date' => $validated['currentAppointmentDate'],
+                    'service_id' => $validated['currentAppointmentService'],
+                    'rank_id' => $validated['currentAppointmentRank'],
+                    'position_id' => $validated['currentAppointmentPosition'],
+                ]);
+            }
+
+            if ($section === 'my_appointment') {
+                $teacher->appointment()->update([
+                    'first_appointment_date' => $validated['firstAppointmentDate'],
+                    'appointment_letter_no' => ($validated['firstAppointmentLetter'] ?? null) ?: null,
+                    'service_id' => $validated['firstAppointmentService'],
+                    'rank_id' => $validated['firstAppointmentRank'],
+                    'position_id' => $validated['firstAppointmentPosition'],
+                ]);
+            }
+
+            if ($section === 'teaching_info') {
+                $teacher->teacher()->update([
+                    'teacher_category' => ($validated['teacherCategory'] ?? null) ?: null,
+                    'teacher_type' => ($validated['teacherType'] ?? null) ?: null,
+                    'appointment_medium' => ($validated['appointmentMedium'] ?? null) ?: null,
+                    'appointment_subject' => ($validated['appointmentSubject'] ?? null) ?: null,
+                    'main_subject' => ($validated['mainSubject'] ?? null) ?: null,
+                    'current_teaching_subject' => ($validated['currentTeachingSubject'] ?? null) ?: null,
                 ]);
             }
         });
@@ -1103,6 +1156,10 @@ class TeacherApiController extends Controller
             'institutionCategory' => InstitutionCategory::active()->get(),
             'zonalEducationOffices' => $zonalOffices,
             'institutions' => $zone && $institutionCategory ? Institution::where('zeo_wp_id', $zone)->where('institution_category_id', $institutionCategory)->get() : [],
+            'teacherCategorys' => TeacherCategory::active()->get(),
+            'teacherTypes' => TeacherType::active()->get(),
+            'apointmentSubjects' => ApointedSubject::active()->orderBy('name_en')->get(),
+            'appointmentMedium' => MediumOfInstruction::active()->get(),
         ]);
     }
 

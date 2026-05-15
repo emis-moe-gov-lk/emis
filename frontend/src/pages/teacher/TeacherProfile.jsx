@@ -1252,7 +1252,7 @@ const TeacherProfile = () => {
             />
           )}
           {activeTab === "employment" && (
-            <EmploymentTab employment={employment} />
+            <EmploymentTab employment={employment} onEdit={setModalSection} />
           )}
           {activeTab === "wop" && <WopTab wopAndPayment={wopAndPayment} />}
           {activeTab === "family" && <FamilyTab family={family} />}
@@ -2092,7 +2092,7 @@ function QualificationAchievementModal({
    TAB: Employment (ALL sections kept)
 ========================================================= */
 
-function EmploymentTab({ employment }) {
+function EmploymentTab({ employment, onEdit }) {
   const ecs = employment?.appointmentCurrentStatus || {};
   const ma = employment?.myAppointment || {};
   const ti = employment?.teachingInfo || {};
@@ -2106,9 +2106,11 @@ function EmploymentTab({ employment }) {
         title="Appointment current status"
         color="slate"
         right={
-          <RoundedActionButton onClick={() => { }} variant="outline">
-            Edit
-          </RoundedActionButton>
+          <Can permission={PermissionGroups.SCHOOLS.PROFILE_EDIT}>
+            <RoundedActionButton onClick={() => onEdit("current_appointment")} variant="outline">
+              Edit
+            </RoundedActionButton>
+          </Can>
         }
       >
         <div className="flex items-center gap-2 mb-4 text-xs font-extrabold text-gray-600">
@@ -2148,9 +2150,11 @@ function EmploymentTab({ employment }) {
         title="My Appointment"
         color="indigo"
         right={
-          <RoundedActionButton onClick={() => { }} variant="outline">
-            Edit
-          </RoundedActionButton>
+          <Can permission={PermissionGroups.SCHOOLS.PROFILE_EDIT}>
+            <RoundedActionButton onClick={() => onEdit("my_appointment")} variant="outline">
+              Edit
+            </RoundedActionButton>
+          </Can>
         }
       >
         <div className="flex items-center gap-2 mb-4 text-xs font-extrabold text-gray-600">
@@ -2183,9 +2187,11 @@ function EmploymentTab({ employment }) {
         title="Teaching Info"
         color="teal"
         right={
-          <RoundedActionButton onClick={() => { }} variant="outline">
-            Edit
-          </RoundedActionButton>
+          <Can permission={PermissionGroups.SCHOOLS.PROFILE_EDIT}>
+            <RoundedActionButton onClick={() => onEdit("teaching_info")} variant="outline">
+              Edit
+            </RoundedActionButton>
+          </Can>
         }
       >
         <div className="flex items-center gap-2 mb-4 text-xs font-extrabold text-gray-600">
