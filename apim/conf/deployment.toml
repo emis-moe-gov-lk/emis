@@ -1,5 +1,5 @@
 [server]
-hostname = "localhost"
+hostname = "$env{APIM_HOSTNAME}"
 #offset=0
 base_path = "https://${carbon.host}"
 #discard_empty_caches = false
@@ -10,7 +10,7 @@ proxyHost = "$env{APIM_PROXY_HOST}"
 proxyPort = "$env{APIM_PROXY_PORT}"
 
 [super_admin]
-username = "$env{APIM_ADMIN_NAME}"
+username = "$env{APIM_ADMIN_USERNAME}"
 password = "$env{APIM_ADMIN_PASSWORD}"
 create_admin_account = true
 
@@ -83,10 +83,10 @@ username= "$env{APIM_ADMIN_NAME}"
 password= "$env{APIM_ADMIN_PASSWORD}"
 ws_endpoint = ""
 wss_endpoint = ""
-http_endpoint = "http://$env{APIM_HOSTNAME}"
-https_endpoint = "https://$env{APIM_HOSTNAME}"
+http_endpoint = ""
+https_endpoint = "https://$env{APIM_GATEWAY_URL}"
 websub_event_receiver_http_endpoint = ""
-websub_event_receiver_https_endpoint = ""
+websub_event_receiver_https_endpoint = "https://$env{APIM_GATEWAY_URL}"
 
 [apim.sync_runtime_artifacts.gateway]
 gateway_labels =["Default"]
@@ -280,9 +280,9 @@ name = "org.wso2.is.notification.ApimOauthEventInterceptor"
 order = 1
 
 [event_listener.properties]
-notification_endpoint = "https://localhost:${mgt.transport.https.port}/internal/data/v1/notify"
-username = "${admin.username}"
-password = "${admin.password}"
+notification_endpoint = "https://$env{IS_HOSTNAME}:${mgt.transport.https.port}/internal/data/v1/notify"
+username = "$env{IS_ADMIN_USERNAME}"
+password = "${IS_ADMIN_PASSWORD}"
 'header.X-WSO2-KEY-MANAGER' = "default"
 
 [oauth.grant_type.token_exchange]
