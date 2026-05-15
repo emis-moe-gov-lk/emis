@@ -135,11 +135,9 @@ export const parseUserApiError = (error, fallbackMessage) => {
 };
 
 
-const peopleId = localStorage.getItem("peopleId");
 // Get logged-in user profile - FIXED to match your API
 export const getUserProfile = () => {
-  // Get user ID from localStorage (should be stored during login)
-  
+  const peopleId = localStorage.getItem("peopleId");
   return api.get(`/user/${peopleId}`);
 };
 
