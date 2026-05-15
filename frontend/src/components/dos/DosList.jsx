@@ -26,7 +26,7 @@ export default function DosList({ employees }) {
           <HiUser className="w-8 h-8 text-gray-400" />
         </div>
         <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-          No Development Officers found
+          {location.pathname.includes("edu-directors") ? "No Zonal Administrators found" : "No Development Officers found"}
         </h3>
         <p className="text-gray-500 max-w-sm mx-auto mt-2">
           No officers match this search.

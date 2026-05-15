@@ -26,6 +26,7 @@ use Illuminate\Http\Request;
 use App\Models\DistrictsList;
 use App\Models\ApointedSubject;
 use App\Models\TeacherCategory;
+use App\Models\RecruitmentCategory;
 use Illuminate\Support\Facades\DB;
 use App\Models\EmployerAppointment;
 use App\Models\InstitutionCategory;
@@ -1047,6 +1048,7 @@ class TeacherApiController extends Controller
             'status' => 'success',
 
             'teacherCategorys' => TeacherCategory::active()->get(),
+            'recruitmentCategories' => RecruitmentCategory::active()->get(),
             'teacherTypes' => TeacherType::active()->get(),
             'apointmentSubjects' => ApointedSubject::active()->orderBy('name_en')->get(),
             'appointmentMedium' => MediumOfInstruction::active()->get(),
