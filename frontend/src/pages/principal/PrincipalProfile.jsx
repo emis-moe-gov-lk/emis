@@ -879,7 +879,7 @@ const PrincipalProfile = () => {
             <QualificationTab qualifications={qualifications} />
           )}
           {activeTab === "employment" && (
-            <EmploymentTab employment={employment} />
+            <EmploymentTab employment={employment} onEdit={setModalSection} />
           )}
           {activeTab === "wop" && <WopTab wopAndPayment={wopAndPayment} />}
           {activeTab === "family" && <FamilyTab family={family} />}
@@ -1476,7 +1476,7 @@ function QualificationTab({ qualifications }) {
   );
 }
 
-function EmploymentTab({ employment }) {
+function EmploymentTab({ employment, onEdit }) {
   const ecs = employment?.appointmentCurrentStatus || {};
   const ma = employment?.myAppointment || {};
 
@@ -1486,9 +1486,11 @@ function EmploymentTab({ employment }) {
         title="Appointment Current Status"
         color="slate"
         right={
-          <RoundedActionButton onClick={() => {}} variant="outline">
-            Edit
-          </RoundedActionButton>
+          <Can permission={PermissionGroups.SCHOOLS.PROFILE_EDIT}>
+            <RoundedActionButton onClick={() => onEdit("current_appointment")} variant="outline">
+              Edit
+            </RoundedActionButton>
+          </Can>
         }
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1521,9 +1523,11 @@ function EmploymentTab({ employment }) {
         title="First Appointment"
         color="indigo"
         right={
-          <RoundedActionButton onClick={() => {}} variant="outline">
-            Edit
-          </RoundedActionButton>
+          <Can permission={PermissionGroups.SCHOOLS.PROFILE_EDIT}>
+            <RoundedActionButton onClick={() => onEdit("my_appointment")} variant="outline">
+              Edit
+            </RoundedActionButton>
+          </Can>
         }
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
