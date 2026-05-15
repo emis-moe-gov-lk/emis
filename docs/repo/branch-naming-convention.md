@@ -14,9 +14,13 @@
 |------|---------|
 | `fe` | Frontend |
 | `be` | Backend |
+| `fs` | Fullstack (Frontend + Backend changes) |
 | `infra` | Infrastructure |
 | `config` | Configuration |
+| `wkflw` | GH Actions Workflow | 
+| `docs` | Documentation Update |
 
+*use **fs** branch naming sparingly as it triggers different lengthy ci/cd actions. always try to stic to **fe**/**be** area names when branching*
 ---
 
 ## Types
@@ -24,12 +28,10 @@
 | Type | Meaning |
 |------|---------|
 | `feat` | New feature |
-| `fix` | Bug or issue fix |
+| `bug` | Bug or issue fix |
 | `hotfix` | Urgent production fix |
-| `docs` | Documentation |
 | `refactor` | Code cleanup, no behavior change |
 | `chore` | Maintenance, dependencies, tooling |
-| `release` | Release branches |
 
 ---
 
@@ -47,7 +49,7 @@
 |--------|---------|
 | `fe/feat/ed-110` | Frontend feature, ticket ED-110 |
 | `be/fix/ed-45` | Backend bug fix, ticket ED-45 |
-| `fe/docs/update-auth-docs` | Frontend documentation update |
+| `docs/refactor/frontend-run-local` | Frontend documentation update |
 | `infra/chore/update-ansible` | Infrastructure maintenance |
 | `be/hotfix/ed-88` | Urgent backend production fix |
 | `config/chore/update-env-vars` | Config/environment update |
@@ -61,9 +63,12 @@ The following branches are exempt from this convention:
 - `main`
 - `dev`
 - `uat`
+- `uat-release/*`
 - `prod*`
 
+*Exempt main branches are defined in GH Actions variable [EXEMPT_BRANCHES]*
 ---
+
 
 ## Enforcement
 
