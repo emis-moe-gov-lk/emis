@@ -122,7 +122,7 @@ class ProfileController extends Controller
         }
 
         $user->update([
-            'password' => Hash::make($validated['new_password']),
+            'password' => $validated['new_password'],
             'must_change_password' => false,
             'password_changed_at' => now(),
         ]);
