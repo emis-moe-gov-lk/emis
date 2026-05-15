@@ -675,6 +675,10 @@ class TeacherApiController extends Controller
             $teacherData['educationQualifications'] = $teacher?->educationQualifications?->toArray() ?? [];
         }
 
+        // Manually fetch spouses to avoid undefined relationship error
+        $teacherData['spouses'] = \App\Models\Spouse::where('people_id', $people_id)->get()->toArray();
+        $teacherData['children'] = \App\Models\Child::where('people_id', $people_id)->get()->toArray();
+
         $currentRejectComments = $teacher?->currentAppointment?->appointment?->rejectComments;
         $teacherData = $this->appendRejectCommentSummary($teacherData, $currentRejectComments);
         $profileStatus = $this->resolveProfileStatus((int) ($teacher?->currentAppointment?->appointment?->is_verified ?? 0));
@@ -1054,7 +1058,7 @@ class TeacherApiController extends Controller
             'institutionCategory' => InstitutionCategory::active()->get(),
             'zonalEducationOffices' => ZonalEducationOffice::active()->get(),
             'institutions' => $zone && $institutionCategory ? Institution::where('zeo_wp_id', $zone)->where('institution_category_id', $institutionCategory)->get() : [],
-            
+
             'zonalPositions' => Position::where('service_id', 'SER005')
                 ->where('position_name', 'like', '%Zonal%')
                 ->active()
@@ -1235,7 +1239,7 @@ class TeacherApiController extends Controller
                 'data' => $qualifications,
             ], 200);
         } catch (\Throwable $e) {
-            Log::error('Get Education Qualifications Error', [
+            Log::error('Fetch Education Qualifications Error', [
                 'message' => $e->getMessage(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine()
@@ -1243,7 +1247,7 @@ class TeacherApiController extends Controller
 
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to fetch education qualifications.',
+                'message' => 'Internal server error: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -1251,7 +1255,7 @@ class TeacherApiController extends Controller
     public function getEducationQualificationGrades()
     {
         try {
-            $grades = EducationalQualificationGrade::where('active_status', 1)
+            $grades = EducationalQualificationGrade::active()
                 ->select('grade_id', 'grade')
                 ->orderBy('grade', 'asc')
                 ->get();
@@ -1261,7 +1265,7 @@ class TeacherApiController extends Controller
                 'data' => $grades,
             ], 200);
         } catch (\Throwable $e) {
-            Log::error('Get Education Qualification Grades Error', [
+            Log::error('Fetch Education Qualification Grades Error', [
                 'message' => $e->getMessage(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine()
@@ -1269,7 +1273,7 @@ class TeacherApiController extends Controller
 
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to fetch education qualification grades.',
+                'message' => 'Internal server error: ' . $e->getMessage(),
             ], 500);
         }
     }

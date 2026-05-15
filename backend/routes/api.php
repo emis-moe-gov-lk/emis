@@ -29,6 +29,8 @@ use App\Http\Controllers\API\MobileTeacherProfileController;
 use App\Http\Controllers\API\EmployerAppointmentConfirmationController;
 use App\Http\Controllers\API\ProfileController;
 use App\Http\Controllers\Pdf\TeacherPdf;
+use App\Http\Controllers\API\SpouseController;
+use App\Http\Controllers\API\ChildController;
 
 // Route::get('/user', function (Request $request) {
 //     return $request->user();
@@ -129,6 +131,24 @@ Route::prefix('')->group(function () {
         Route::post('/teachers/{people_id}/education-qualifications', 'saveEducationQualification');
         Route::get('/education-qualifications', 'getEducationQualifications');                           // GET qualification lookup
         Route::get('/education-qualification-grades', 'getEducationQualificationGrades');               // GET grade lookup
+    });
+
+    Route::controller(SpouseController::class)->middleware('auth:jwt')->group(function () {
+        Route::post('/teachers/{people_id}/spouses', 'store');
+        Route::put('/teachers/{people_id}/spouses/{spouse_id}', 'update');
+        Route::delete('/teachers/{people_id}/spouses/{spouse_id}', 'destroy');
+        Route::post('/principals/{people_id}/spouses', 'store');
+        Route::put('/principals/{people_id}/spouses/{spouse_id}', 'update');
+        Route::delete('/principals/{people_id}/spouses/{spouse_id}', 'destroy');
+    });
+
+    Route::controller(ChildController::class)->middleware('auth:jwt')->group(function () {
+        Route::post('/teachers/{people_id}/children', 'store');
+        Route::put('/teachers/{people_id}/children/{child_id}', 'update');
+        Route::delete('/teachers/{people_id}/children/{child_id}', 'destroy');
+        Route::post('/principals/{people_id}/children', 'store');
+        Route::put('/principals/{people_id}/children/{child_id}', 'update');
+        Route::delete('/principals/{people_id}/children/{child_id}', 'destroy');
     });
 
     Route::controller(PrincipalApiController::class)->middleware('auth:jwt')->group(function () {

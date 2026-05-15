@@ -397,10 +397,14 @@ class PrincipalApiController extends Controller
             }
 
             $dsOfficeId = $principal?->ds_office_id;
+            
+            $principalData = $principal->toArray();
+            $principalData['spouses'] = \App\Models\Spouse::where('people_id', $people_id)->get()->toArray();
+            $principalData['children'] = \App\Models\Child::where('people_id', $people_id)->get()->toArray();
 
             return response()->json([
                 'status' => 'success',
-                'data' => $principal,
+                'data' => $principalData,
                 'divisionalSecretariats' => $principal?->district_id
                     ? DivisionalSecretariatOffice::where('district_id', $principal->district_id)
                         ->active()

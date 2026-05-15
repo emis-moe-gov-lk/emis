@@ -1807,25 +1807,6 @@ function SpouseModal({
             disabled={isSubmitting}
           />
         </div>
-
-        {isEditing && (
-          <div>
-            <label className="mb-1.5 block text-xs font-semibold text-gray-600 dark:text-gray-400">
-              Status
-            </label>
-            <select
-              className={darkSafeInputClass}
-              value={form.status}
-              onChange={(e) => onChange("status", e.target.value)}
-              disabled={isSubmitting}
-            >
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-              <option value="Divorced">Divorced</option>
-              <option value="Deceased">Deceased</option>
-            </select>
-          </div>
-        )}
       </div>
     </DarkSafeModal>
   );
@@ -1920,6 +1901,25 @@ function ChildModal({
             </select>
           </div>
         </div>
+
+        {isEditing && (
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-gray-600 dark:text-gray-400">
+              Status
+            </label>
+            <select
+              className={darkSafeInputClass}
+              value={form.status}
+              onChange={(e) => onChange("status", e.target.value)}
+              disabled={isSubmitting}
+            >
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+              <option value="Divorced">Divorced</option>
+              <option value="Deceased">Deceased</option>
+            </select>
+          </div>
+        )}
       </div>
     </DarkSafeModal>
   );

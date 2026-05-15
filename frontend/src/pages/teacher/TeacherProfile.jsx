@@ -82,6 +82,23 @@ const DEFAULT_QUALIFICATION_FORM = {
   additionalDetails: "",
 };
 
+const DEFAULT_SPOUSE_FORM = {
+  id: "",
+  spouseName: "",
+  dob: "",
+  marriedDate: "",
+  marriedCfNo: "",
+  status: "Active",
+};
+
+const DEFAULT_CHILD_FORM = {
+  id: "",
+  childName: "",
+  dob: "",
+  gender: "Male", // Default selection
+  status: "Active",
+};
+
 const TeacherProfile = () => {
   const { id } = useParams();
   const { state: authState, getDecodedIDToken } = useAuthContext();
@@ -372,6 +389,14 @@ const TeacherProfile = () => {
     useState(false);
   const [isSavingQualification, setIsSavingQualification] = useState(false);
 
+  const [isSpouseModalOpen, setIsSpouseModalOpen] = useState(false);
+  const [spouseForm, setSpouseForm] = useState(DEFAULT_SPOUSE_FORM);
+  const [isSavingSpouse, setIsSavingSpouse] = useState(false);
+
+  const [isChildModalOpen, setIsChildModalOpen] = useState(false);
+  const [childForm, setChildForm] = useState(DEFAULT_CHILD_FORM);
+  const [isSavingChild, setIsSavingChild] = useState(false);
+
   /**
    * API Integration Hook (later)
    * - When you get API for teacher profile, replace state with response.
@@ -576,7 +601,26 @@ const TeacherProfile = () => {
         setQualifications([]);
       }
 
-      setFamily({ spouses: [] });
+      const mappedSpouses = Array.isArray(d.spouses)
+        ? d.spouses.map((s) => ({
+            id: s.id,
+            spouseName: s.name || s.spouse_name || "—",
+            dob: formatDate(s.date_of_birth || s.dob) || "—",
+            marriedDate: formatDate(s.married_date || s.marriedDate) || "—",
+            marriedCfNo: s.married_cf_no || s.marriedCfNo || "—",
+            status: s.status || "Active",
+          }))
+        : [];
+      
+      const mappedChildren = Array.isArray(d.children)
+        ? d.children.map((c) => ({
+            id: c.id,
+            childName: c.name || c.child_name || "—",
+            dob: formatDate(c.date_of_birth || c.dob) || "—",
+            gender: c.gender || "—",
+          }))
+        : [];
+      setFamily({ spouses: mappedSpouses, children: mappedChildren });
       setEditRequests([]);
     } catch (error) {
       console.error(error);
@@ -707,6 +751,165 @@ const TeacherProfile = () => {
     closeQualificationModal,
     loadTeacherProfile,
   ]);
+
+  const openSpouseModal = useCallback(() => {
+    setSpouseForm(DEFAULT_SPOUSE_FORM);
+    setIsSpouseModalOpen(true);
+  }, []);
+
+  const closeSpouseModal = useCallback(() => {
+    setIsSpouseModalOpen(false);
+    setSpouseForm(DEFAULT_SPOUSE_FORM);
+  }, []);
+
+  const handleSpouseFieldChange = useCallback((key, value) => {
+    setSpouseForm((prev) => ({ ...prev, [key]: value }));
+  }, []);
+
+  const handleSpouseSave = useCallback(async () => {
+    const spouseName = String(spouseForm.spouseName || "").trim();
+    const dob = String(spouseForm.dob || "").trim();
+    const marriedDate = String(spouseForm.marriedDate || "").trim();
+
+    if (!spouseName || !dob || !marriedDate) {
+      toast.error("Please complete all required spouse fields.");
+      return;
+    }
+
+    if (!teacher?.id) {
+      toast.error("Teacher ID not found.");
+      return;
+    }
+
+    setIsSavingSpouse(true);
+    try {
+      const payload = {
+        name: spouseName,
+        date_of_birth: dob,
+        married_date: marriedDate,
+        married_cf_no: spouseForm.marriedCfNo,
+        status: spouseForm.status || "Active",
+      };
+
+      if (spouseForm.id) {
+        await api.put(`/teachers/${teacher.id}/spouses/${spouseForm.id}`, payload);
+      } else {
+        await api.post(`/teachers/${teacher.id}/spouses`, payload);
+      }
+
+      toast.success(spouseForm.id ? "Spouse updated successfully." : "Spouse added successfully.");
+      closeSpouseModal();
+      await loadTeacherProfile();
+    } catch (error) {
+      const errorMessage =
+        error?.response?.data?.message || "Failed to save spouse details.";
+      toast.error(errorMessage);
+    } finally {
+      setIsSavingSpouse(false);
+    }
+  }, [spouseForm, teacher?.id, closeSpouseModal, loadTeacherProfile]);
+
+  const handleEditSpouse = useCallback((spouse) => {
+    setSpouseForm({
+      id: spouse.id,
+      spouseName: spouse.spouseName !== "—" ? spouse.spouseName : "",
+      dob: spouse.dob !== "—" ? spouse.dob : "",
+      marriedDate: spouse.marriedDate !== "—" ? spouse.marriedDate : "",
+      marriedCfNo: spouse.marriedCfNo !== "—" ? spouse.marriedCfNo : "",
+      status: spouse.status !== "—" ? spouse.status : "Active",
+    });
+    setIsSpouseModalOpen(true);
+  }, []);
+
+  const handleDeleteSpouse = useCallback(async (spouse) => {
+    if (!window.confirm(`Are you sure you want to remove ${spouse.spouseName}? This will mark their status as Inactive.`)) return;
+    
+    try {
+      await api.delete(`/teachers/${teacher.id}/spouses/${spouse.id}`);
+      toast.success("Spouse removed (marked as Inactive).");
+      await loadTeacherProfile();
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Failed to remove spouse.");
+    }
+  }, [teacher?.id, loadTeacherProfile]);
+
+  const openChildModal = useCallback(() => {
+    setChildForm(DEFAULT_CHILD_FORM);
+    setIsChildModalOpen(true);
+  }, []);
+
+  const closeChildModal = useCallback(() => {
+    setIsChildModalOpen(false);
+    setChildForm(DEFAULT_CHILD_FORM);
+  }, []);
+
+  const handleChildFieldChange = useCallback((key, value) => {
+    setChildForm((prev) => ({ ...prev, [key]: value }));
+  }, []);
+
+  const handleChildSave = useCallback(async () => {
+    const childName = String(childForm.childName || "").trim();
+    const dob = String(childForm.dob || "").trim();
+    const gender = String(childForm.gender || "").trim();
+
+    if (!childName || !dob || !gender) {
+      toast.error("Please complete all required child fields.");
+      return;
+    }
+
+    if (!teacher?.id) {
+      toast.error("Teacher ID not found.");
+      return;
+    }
+
+    setIsSavingChild(true);
+    try {
+      const payload = {
+        name: childName,
+        date_of_birth: dob,
+        gender: gender,
+        status: childForm.status || "Active",
+      };
+
+      if (childForm.id) {
+        await api.put(`/teachers/${teacher.id}/children/${childForm.id}`, payload);
+      } else {
+        await api.post(`/teachers/${teacher.id}/children`, payload);
+      }
+
+      toast.success(childForm.id ? "Child updated successfully." : "Child added successfully.");
+      closeChildModal();
+      await loadTeacherProfile();
+    } catch (error) {
+      const errorMessage = error?.response?.data?.message || "Failed to save child details.";
+      toast.error(errorMessage);
+    } finally {
+      setIsSavingChild(false);
+    }
+  }, [childForm, teacher?.id, closeChildModal, loadTeacherProfile]);
+
+  const handleEditChild = useCallback((child) => {
+    setChildForm({
+      id: child.id,
+      childName: child.childName !== "—" ? child.childName : "",
+      dob: child.dob !== "—" ? child.dob : "",
+      gender: child.gender !== "—" ? child.gender : "Male",
+      status: child.status !== "—" ? child.status : "Active",
+    });
+    setIsChildModalOpen(true);
+  }, []);
+
+  const handleDeleteChild = useCallback(async (child) => {
+    if (!window.confirm(`Are you sure you want to remove ${child.childName}? This will mark their status as Inactive.`)) return;
+    
+    try {
+      await api.delete(`/teachers/${teacher.id}/children/${child.id}`);
+      toast.success("Child removed (marked as Inactive).");
+      await loadTeacherProfile();
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Failed to remove child.");
+    }
+  }, [teacher?.id, loadTeacherProfile]);
 
   const handleDownloadDocument = useCallback(async () => {
     if (!teacher?.id) return;
@@ -1086,6 +1289,20 @@ const TeacherProfile = () => {
     );
   }
 
+  if (!teacher) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 m-6">
+        <HiOutlineExclamationCircle className="h-12 w-12 text-rose-500 mb-4" />
+        <p className="text-gray-500 dark:text-gray-400">
+          Failed to load teacher profile data.
+        </p>
+        <Button onClick={loadTeacherProfile} className="mt-4" color="light">
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       {/* Back link (top) */}
@@ -1255,7 +1472,17 @@ const TeacherProfile = () => {
             <EmploymentTab employment={employment} />
           )}
           {activeTab === "wop" && <WopTab wopAndPayment={wopAndPayment} />}
-          {activeTab === "family" && <FamilyTab family={family} />}
+          {activeTab === "family" && (
+            <FamilyTab 
+              family={family} 
+              onAddSpouse={openSpouseModal} 
+              onEditSpouse={handleEditSpouse} 
+              onDeleteSpouse={handleDeleteSpouse}
+              onAddChild={openChildModal}
+              onEditChild={handleEditChild}
+              onDeleteChild={handleDeleteChild}
+            />
+          )}
           {activeTab === "edit" && (
             <EditRequestTab editRequests={editRequests} />
           )}
@@ -1328,6 +1555,24 @@ const TeacherProfile = () => {
         onSubmit={handleQualificationSave}
         isSubmitting={isSavingQualification}
         isLoadingOptions={isLoadingQualificationOptions}
+      />
+
+      <SpouseModal
+        isOpen={isSpouseModalOpen}
+        form={spouseForm}
+        onChange={handleSpouseFieldChange}
+        onClose={closeSpouseModal}
+        onSubmit={handleSpouseSave}
+        isSubmitting={isSavingSpouse}
+      />
+
+      <ChildModal
+        isOpen={isChildModalOpen}
+        form={childForm}
+        onChange={handleChildFieldChange}
+        onClose={closeChildModal}
+        onSubmit={handleChildSave}
+        isSubmitting={isSavingChild}
       />
     </div>
   );
@@ -1788,24 +2033,6 @@ function GeneralTab({ teacher, onEdit }) {
         }
       >
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {/* <div className="rounded-2xl border px-4 py-3 ">
-            <div className="text-[11px] font-semibold uppercase tracking-wide ">
-              Blood Group
-            </div>
-            <div className="mt-0.5 text-sm font-extrabold text-rose-700">
-              {teacher.bloodGroup || "—"}
-          </RoundedActionButton>
-        }
-      >
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {/* <div className="rounded-2xl border px-4 py-3 ">
-            <div className="text-[11px] font-semibold uppercase tracking-wide ">
-              Blood Group
-            </div>
-            <div className="mt-0.5 text-sm font-extrabold text-rose-700">
-              {teacher.bloodGroup || "—"}
-            </div>
-          </div> */}
           <FieldCell label="Blood Group" value={teacher.bloodGroup || "—"} />
           <FieldCell
             label="Overall Condition"
@@ -1863,24 +2090,6 @@ function GeneralTab({ teacher, onEdit }) {
         }
       >
         <div className="grid grid-cols-1 gap-3">
-          {/* <div className="rounded-2xl border px-4 py-3 bg-white">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-              Residential Address
-            </div>
-            <div className="mt-0.5 text-sm font-extrabold text-gray-900 whitespace-pre-line">
-              {teacher.tempAddress || "—"}
-          </RoundedActionButton>
-        }
-      >
-        <div className="grid grid-cols-1 gap-3">
-          {/* <div className="rounded-2xl border px-4 py-3 bg-white">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-              Residential Address
-            </div>
-            <div className="mt-0.5 text-sm font-extrabold text-gray-900 whitespace-pre-line">
-              {teacher.tempAddress || "—"}
-            </div>
-          </div> */}
           <FieldCell
             label=" Residential Address"
             value={teacher.tempAddress || "—"}
@@ -2362,50 +2571,318 @@ function WopTab({ wopAndPayment }) {
    TAB: Family (Spouse list table)
 ========================================================= */
 
-function FamilyTab({ family }) {
+function FamilyTab({ family, onAddSpouse, onEditSpouse, onDeleteSpouse, onAddChild, onEditChild, onDeleteChild }) {
   const spouses = family?.spouses || [];
+  const children = family?.children || [];
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
-          Spouse List
-        </h2>
-        <RoundedActionButton onClick={() => { }} variant="outline">
-          Add spouse
-        </RoundedActionButton>
+    <div className="space-y-10">
+      {/* SPOUSE SECTION */}
+      <div className="space-y-5">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
+            Spouse List
+          </h2>
+          {spouses.length === 0 && (
+            <RoundedActionButton icon={HiPlus} onClick={onAddSpouse} variant="outline">
+              Add spouse
+            </RoundedActionButton>
+          )}
+        </div>
+
+        <ProfileDataTable
+          columns={[
+            { key: "spouseName", label: "Spouse Names" },
+            { key: "dob", label: "Date of Birth" },
+            { key: "marriedDate", label: "Married Date" },
+            { key: "marriedCfNo", label: "Married CF No." },
+            { key: "status", label: "Status" },
+            { key: "action", label: "Action" },
+          ]}
+          rows={spouses}
+          emptyMessage="No spouses have been added yet."
+          emptyCellClassName="px-5 py-10 text-center text-gray-600 dark:text-gray-400"
+          renderRow={(s) => (
+            <tr key={s.id}>
+              <td className={tablePrimaryCellClass}>{s.spouseName}</td>
+              <td className={tableCellClass}>{s.dob}</td>
+              <td className={tableCellClass}>{s.marriedDate}</td>
+              <td className={tableCellClass}>{s.marriedCfNo}</td>
+              <td className="px-5 py-4">
+                <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-extrabold text-green-800">
+                  {s.status || "—"}
+                </span>
+              </td>
+              <td className="px-5 py-4 flex gap-2">
+                <button onClick={() => onEditSpouse(s)} className={tableActionButtonClass}>
+                  Edit
+                </button>
+                <button onClick={() => onDeleteSpouse(s)} className={tableActionButtonClass}>
+                  🗑
+                </button>
+              </td>
+            </tr>
+          )}
+        />
       </div>
 
-      <ProfileDataTable
-        columns={[
-          { key: "spouseName", label: "Spouse Names" },
-          { key: "dob", label: "Date of Birth" },
-          { key: "marriedDate", label: "Married Date" },
-          { key: "marriedCfNo", label: "Married CF No." },
-          { key: "status", label: "Status" },
-          { key: "action", label: "Action" },
-        ]}
-        rows={spouses}
-        emptyMessage="No spouses have been added yet."
-        emptyCellClassName="px-5 py-10 text-center text-gray-600 dark:text-gray-400"
-        renderRow={(s) => (
-          <tr key={s.id}>
-            <td className={tablePrimaryCellClass}>{s.spouseName}</td>
-            <td className={tableCellClass}>{s.dob}</td>
-            <td className={tableCellClass}>{s.marriedDate}</td>
-            <td className={tableCellClass}>{s.marriedCfNo}</td>
-            <td className="px-5 py-4">
-              <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-extrabold text-green-800">
-                {s.status || "—"}
-              </span>
-            </td>
-            <td className="px-5 py-4">
-              <button className={tableActionButtonClass}>🗑</button>
-            </td>
-          </tr>
-        )}
-      />
+      {/* CHILDREN SECTION */}
+      <div className="space-y-5">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
+            Children List
+          </h2>
+          <RoundedActionButton icon={HiPlus} onClick={onAddChild} variant="outline">
+            Add child
+          </RoundedActionButton>
+        </div>
+
+        <ProfileDataTable
+          columns={[
+            { key: "childName", label: "Child Name" },
+            { key: "dob", label: "Date of Birth" },
+            { key: "gender", label: "Gender" },
+            { key: "action", label: "Action" },
+          ]}
+          rows={children}
+          emptyMessage="No children have been added yet."
+          emptyCellClassName="px-5 py-10 text-center text-gray-600 dark:text-gray-400"
+          renderRow={(c) => (
+            <tr key={c.id}>
+              <td className={tablePrimaryCellClass}>{c.childName}</td>
+              <td className={tableCellClass}>{c.dob}</td>
+              <td className={tableCellClass}>{c.gender}</td>
+              <td className="px-5 py-4 flex gap-2">
+                <button onClick={() => onEditChild(c)} className={tableActionButtonClass}>
+                  Edit
+                </button>
+              </td>
+            </tr>
+          )}
+        />
+      </div>
     </div>
+  );
+}
+
+function SpouseModal({
+  isOpen,
+  form,
+  onChange,
+  onClose,
+  onSubmit,
+  isSubmitting = false,
+}) {
+  const isEditing = form?.id ? true : false;
+
+  const footer = (
+    <>
+      <button
+        type="button"
+        onClick={onClose}
+        disabled={isSubmitting}
+        className={darkSafeButtonClasses.cancel}
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        onClick={onSubmit}
+        disabled={isSubmitting}
+        className="flex-1 rounded-xl bg-gray-900 py-2.5 text-sm font-semibold text-white shadow-lg shadow-gray-900/20 transition-colors hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {isSubmitting ? (isEditing ? "Updating..." : "Saving...") : (isEditing ? "Update Spouse" : "Save Spouse")}
+      </button>
+    </>
+  );
+
+  return (
+    <DarkSafeModal
+      isOpen={isOpen}
+      title={isEditing ? "Edit Spouse" : "Add Spouse"}
+      subtitle="Enter the spouse details carefully."
+      onClose={onClose}
+      maxWidth="md"
+      footer={footer}
+    >
+      <div className="space-y-4">
+        <div>
+          <label className="mb-1.5 block text-xs font-semibold text-gray-600 dark:text-gray-400">
+            Spouse Name
+            <span className="ml-0.5 text-rose-500 dark:text-rose-400">*</span>
+          </label>
+          <input
+            className={darkSafeInputClass}
+            value={form.spouseName}
+            onChange={(e) => onChange("spouseName", e.target.value)}
+            placeholder="Full Name"
+            disabled={isSubmitting}
+          />
+        </div>
+        
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-gray-600 dark:text-gray-400">
+              Date of Birth
+              <span className="ml-0.5 text-rose-500 dark:text-rose-400">*</span>
+            </label>
+            <div className="relative">
+              <HiCalendar className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+              <input
+                type="date"
+                className={`${darkSafeInputClass} pl-10`}
+                value={form.dob}
+                onChange={(e) => onChange("dob", e.target.value)}
+                disabled={isSubmitting}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-gray-600 dark:text-gray-400">
+              Married Date
+              <span className="ml-0.5 text-rose-500 dark:text-rose-400">*</span>
+            </label>
+            <div className="relative">
+              <HiCalendar className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+              <input
+                type="date"
+                className={`${darkSafeInputClass} pl-10`}
+                value={form.marriedDate}
+                onChange={(e) => onChange("marriedDate", e.target.value)}
+                disabled={isSubmitting}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-xs font-semibold text-gray-600 dark:text-gray-400">
+            Married CF No.
+          </label>
+          <input
+            className={darkSafeInputClass}
+            value={form.marriedCfNo}
+            onChange={(e) => onChange("marriedCfNo", e.target.value)}
+            placeholder="Certificate Number"
+            disabled={isSubmitting}
+          />
+        </div>
+
+        {isEditing && (
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-gray-600 dark:text-gray-400">
+              Status
+            </label>
+            <select
+              className={darkSafeInputClass}
+              value={form.status}
+              onChange={(e) => onChange("status", e.target.value)}
+              disabled={isSubmitting}
+            >
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+              <option value="Divorced">Divorced</option>
+              <option value="Deceased">Deceased</option>
+            </select>
+          </div>
+        )}
+      </div>
+    </DarkSafeModal>
+  );
+}
+
+function ChildModal({
+  isOpen,
+  form,
+  onChange,
+  onClose,
+  onSubmit,
+  isSubmitting = false,
+}) {
+  const isEditing = form?.id ? true : false;
+
+  const footer = (
+    <>
+      <button
+        type="button"
+        onClick={onClose}
+        disabled={isSubmitting}
+        className={darkSafeButtonClasses.cancel}
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        onClick={onSubmit}
+        disabled={isSubmitting}
+        className="flex-1 rounded-xl bg-gray-900 py-2.5 text-sm font-semibold text-white shadow-lg shadow-gray-900/20 transition-colors hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {isSubmitting ? (isEditing ? "Updating..." : "Saving...") : (isEditing ? "Update Child" : "Save Child")}
+      </button>
+    </>
+  );
+
+  return (
+    <DarkSafeModal
+      isOpen={isOpen}
+      title={isEditing ? "Edit Child" : "Add Child"}
+      subtitle="Enter the child details carefully."
+      onClose={onClose}
+      maxWidth="md"
+      footer={footer}
+    >
+      <div className="space-y-4">
+        <div>
+          <label className="mb-1.5 block text-xs font-semibold text-gray-600 dark:text-gray-400">
+            Child Name
+            <span className="ml-0.5 text-rose-500 dark:text-rose-400">*</span>
+          </label>
+          <input
+            className={darkSafeInputClass}
+            value={form.childName}
+            onChange={(e) => onChange("childName", e.target.value)}
+            placeholder="Full Name"
+            disabled={isSubmitting}
+          />
+        </div>
+        
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-gray-600 dark:text-gray-400">
+              Date of Birth
+              <span className="ml-0.5 text-rose-500 dark:text-rose-400">*</span>
+            </label>
+            <div className="relative">
+              <HiCalendar className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+              <input
+                type="date"
+                className={`${darkSafeInputClass} pl-10`}
+                value={form.dob}
+                onChange={(e) => onChange("dob", e.target.value)}
+                disabled={isSubmitting}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-gray-600 dark:text-gray-400">
+              Gender
+              <span className="ml-0.5 text-rose-500 dark:text-rose-400">*</span>
+            </label>
+            <select
+              className={darkSafeInputClass}
+              value={form.gender}
+              onChange={(e) => onChange("gender", e.target.value)}
+              disabled={isSubmitting}
+            >
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </DarkSafeModal>
   );
 }
 
