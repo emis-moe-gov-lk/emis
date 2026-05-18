@@ -68,6 +68,17 @@ https_endpoint = "https://$env{APIM_GATEWAY_URL}"
 websub_event_receiver_http_endpoint = ""
 websub_event_receiver_https_endpoint = "https://$env{APIM_GATEWAY_URL}"
 
+# --------
+# Portals
+# -------
+
+[apim.devportal]
+url = "https://$env{APIM_HOSTNAME}/devportal"
+
+[apim.publisher]
+url = "https://$env{APIM_HOSTNAME}/publisher"
+
+
 # ----------
 #   IDP
 # ----------
