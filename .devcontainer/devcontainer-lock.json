@@ -1,0 +1,14 @@
+{
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {
+      "version": "1.1.0",
+      "resolved": "ghcr.io/devcontainers/features/github-cli@sha256:d22f50b70ed75339b4eed1ba9ecde3a1791f90e88d37936517e3bace0bbad671",
+      "integrity": "sha256:d22f50b70ed75339b4eed1ba9ecde3a1791f90e88d37936517e3bace0bbad671"
+    },
+    "ghcr.io/rosstaco/devcontainer-features/ohmyposh:1": {
+      "version": "1.0.0",
+      "resolved": "ghcr.io/rosstaco/devcontainer-features/ohmyposh@sha256:ce53cc1a13eccd8c6a04d54b5b2f8d6a3833b6e588d0d74766283089e57469fb",
+      "integrity": "sha256:ce53cc1a13eccd8c6a04d54b5b2f8d6a3833b6e588d0d74766283089e57469fb"
+    }
+  }
+}
