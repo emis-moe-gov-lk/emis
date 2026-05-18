@@ -34,12 +34,6 @@ password =  "wso2carbon"
 alias =  "wso2carbon"
 key_password =  "wso2carbon"
 
-[apim.devportal]
-url = "https://$env{APIM_HOSTNAME}/devportal"
-
-[apim.publisher]
-url = "https://$env{APIM_HOSTNAME}/publisher"
-
 # ----------
 #  GATEWAY
 # ----------
