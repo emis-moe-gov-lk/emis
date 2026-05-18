@@ -83,16 +83,16 @@ class MobileTeacherProfileController extends Controller
                 'status' => 'success',
                 'data'   => [
                     'identity' => [
-                        "id"          => $user?->id,
+                        'id'          => $user?->id,
                         'people_id'   => $peopleId,
                         'email'       => $email,
                         'name'        => $user?->name,
+                        'contact'     => $user?->contact,
                         'gender'      => $user?->people?->gender?->gender_name,
                         'roles'       => $roles,
                         'permissions' => $permissions,
                     ],
                     'user' => [
-                        'contact'              => $user?->contact,
                         'profile_picture'      => $user?->profile_picture,
                         'must_change_password' => (bool) ($user?->must_change_password ?? false),
                         'password_changed_at'  => $user?->password_changed_at,
