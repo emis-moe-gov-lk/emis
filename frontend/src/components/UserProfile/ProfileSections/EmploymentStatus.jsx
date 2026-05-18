@@ -64,14 +64,14 @@ const EmploymentStatus = ({
           <Badge size="sm" color="blue">
             {employee.current_appointment?.service_years ?? 0} Service
           </Badge>
-          {canEdit && (
+          {/* {canEdit && (
             <button
               onClick={() => setShowModal(true)}
               className="px-3 py-1 text-sm rounded-full border hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-1"
             >
               Edit
             </button>
-          )}
+          )} */}
         </div>
       </div>
 

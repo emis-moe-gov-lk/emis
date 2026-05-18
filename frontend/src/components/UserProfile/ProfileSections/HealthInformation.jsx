@@ -1,5 +1,8 @@
 import React, { useState } from "react";
 
+import Can from "@/components/common/Can";
+import { PermissionGroups } from "@/data/permissionGroups";
+
 const HealthInformation = ({ employee, canEdit }) => {
   const [showModal, setShowModal] = useState(false);
   const [bloodGroup, setBloodGroup] = useState(employee?.bloodGroup || "");
@@ -29,12 +32,14 @@ const HealthInformation = ({ employee, canEdit }) => {
           </div>
 
           {canEdit && (
-            <button
-              onClick={() => setShowModal(true)}
-              className="px-4 py-2 text-sm rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition"
-            >
-              ✏ Edit Details
-            </button>
+            <Can permission={PermissionGroups.PROFILE.PERSONAL_EDIT}>
+              <button
+                onClick={() => setShowModal(true)}
+                className="px-4 py-2 text-sm rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+              >
+                ✏ Edit Details
+              </button>
+            </Can>
           )}
         </div>
 
@@ -107,7 +112,7 @@ const HealthInformation = ({ employee, canEdit }) => {
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-            <div className="surface w-full max-w-md rounded-2xl p-6 shadow-xl">
+          <div className="surface w-full max-w-md rounded-2xl p-6 shadow-xl">
             <h3 className="text-lg font-bold mb-4">Health Details</h3>
 
             <form onSubmit={handleSubmit} className="space-y-4">

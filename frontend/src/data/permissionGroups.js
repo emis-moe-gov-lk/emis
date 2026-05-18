@@ -110,13 +110,17 @@ export const PermissionGroups = {
     PROFILE_PREVIOUS_SERVICE: "principal.profile.employment.previous-service.create",
     PROFILE_PREVIOUS_RECORD: "principal.profile.employment.previous-record.view",
     PROFILE_WOP: "principal.profile.pension-and-payment.update",
-    PROFILE_FAMILY: "principal.profile.family.create"
+    PROFILE_FAMILY: "principal.profile.family.create",
+    EXPORT_PDF: "principal.profile.exportpdf",
+    PRINCIPAL_VERIFY: "principal.profile.verify",
+    PRINCIPAL_CONFIRM: "principal.profile.confirm",
+    PRINCIPAL_REJECT: "principal.profile.reject",
 
 
 
   },
 
-  
+
 
   // SLAS: {
   //   CREATE: "slas.create",
@@ -188,8 +192,16 @@ export const PermissionGroups = {
     ZONAL_VIEW: "menu.zonal",
     ADMIN: "menu.zonal.admin",
     DEO: "menu.zonal.deo",
-    CREATE: "zonal.create",
-    PROFILE_VIEW: "zonal.profile.view",
+    ADMIN_CREATE: "zonal.admin.create",
+    ADMIN_PROFILE_VIEW: "zonal.admin.profile.view",
+    ADMIN_PROFILE_EDIT: "zonal.admin.profile.edit",
+    ADMIN_BULK_UPLOAD: "zonal.admin.bulk-upload",
+    ADMIN_DELETE: "zonal.admin.delete",
+    DEO_CREATE: "zonal.deo.create",
+    DEO_PROFILE_VIEW: "zonal.deo.profile.view",
+    DEO_PROFILE_EDIT: "zonal.deo.profile.edit",
+    DEO_BULK_UPLOAD: "zonal.deo.bulk-upload",
+    DEO_DELETE: "zonal.deo.delete",
   },
 
   PROVINCIAL: {
@@ -229,6 +241,14 @@ export const PermissionGroups = {
     VERSION_ADD: "settings.version.add",
     VERSION_DELETE: "settings.version.delete",
     VERSION_EDIT: "settings.version.edit",
+
+  },
+
+  PROFILE: {
+    EDIT_REQUEST: "my-profile.edit-request.view",
+    EXPORT_PDF: "my-profile.exportpdf",
+    PERSONAL_EDIT: "my-profile.personal.edit",
+
   },
 
 };

@@ -38,7 +38,7 @@ export default function PensionPaymentDetails({ employee, canEdit, onSave }) {
           </div>
         </div>
 
-        {canEdit && (
+        {/* {canEdit && (
           <button
             onClick={() => setIsOpen(true)}
             className="flex items-center gap-2 px-4 py-2 text-sm rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"
@@ -46,7 +46,7 @@ export default function PensionPaymentDetails({ employee, canEdit, onSave }) {
             <Pencil size={16} />
             Edit Details
           </button>
-        )}
+        )} */}
       </div>
 
       {/* Data Cards */}

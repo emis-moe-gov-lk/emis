@@ -52,7 +52,7 @@ const EducationalQualifications = ({
           </p>
         </div>
 
-        {canCreate && (
+        {/* {canCreate && (
           <button
             onClick={() => setShowModal(true)}
             className="px-4 py-2 text-sm font-medium rounded-full border hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-1"
@@ -60,7 +60,7 @@ const EducationalQualifications = ({
             <HiAcademicCap className="w-5 h-5" />
             Add New
           </button>
-        )}
+        )} */}
       </div>
 
       {/* QUALIFICATIONS LIST */}

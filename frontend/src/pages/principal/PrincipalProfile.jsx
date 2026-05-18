@@ -1004,21 +1004,23 @@ function HeaderStrip({ principal, onDownloadDocument, isDownloadingDocument }) {
 
           {/* RIGHT: Actions */}
           <div className="flex flex-col sm:flex-row xl:flex-col gap-3 min-w-[200px]">
-            <Can permission={PermissionGroups.SCHOOLS.EDIT_REQUEST}>
+            <Can permission={PermissionGroups.PRINCIPAL.EDIT_REQUEST}>
               <button className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm font-bold text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm">
                 <HiPencilAlt className="h-4 w-4 text-blue-600" />
                 Send Edit Request
               </button>
             </Can>
 
-            <button
-              onClick={onDownloadDocument}
-              disabled={isDownloadingDocument}
-              className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed transition-all shadow-md shadow-blue-200 dark:shadow-none"
-            >
-              <HiDocumentText className="h-4 w-4" />
-              {isDownloadingDocument ? "Preparing PDF..." : "Get Document"}
-            </button>
+            <Can permission={PermissionGroups.PRINCIPAL.EXPORT_PDF}>
+              <button
+                onClick={onDownloadDocument}
+                disabled={isDownloadingDocument}
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed transition-all shadow-md shadow-blue-200 dark:shadow-none"
+              >
+                <HiDocumentText className="h-4 w-4" />
+                {isDownloadingDocument ? "Preparing PDF..." : "Get Document"}
+              </button>
+            </Can>
           </div>
         </div>
       </div>
@@ -1124,26 +1126,30 @@ function VerifyStrip({
         {/* Right: Action */}
         <div className="flex flex-wrap items-center gap-2">
           {!hideRejectAction && !isVerified && !showUpdateAction && (
-            <button
-              onClick={onReject}
-              type="button"
-              disabled={isRejecting}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-white px-5 py-2 text-sm font-black text-rose-700 hover:bg-rose-50 transition-all shadow-sm disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              <HiX className="h-4 w-4" />
-              {isRejecting ? "Rejecting..." : "Reject"}
-            </button>
+            <Can permission={PermissionGroups.PRINCIPAL.PRINCIPAL_REJECT}>
+              <button
+                onClick={onReject}
+                type="button"
+                disabled={isRejecting}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-white px-5 py-2 text-sm font-black text-rose-700 hover:bg-rose-50 transition-all shadow-sm disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                <HiX className="h-4 w-4" />
+                {isRejecting ? "Rejecting..." : "Reject"}
+              </button>
+            </Can>
           )}
 
           {!hideVerifyAction && (
-            <button
-              onClick={onVerify}
-              disabled={isVerifying}
-              className={buttonClass}
-            >
-              <HiCheckCircle className="h-4 w-4" />
-              {buttonLabel}
-            </button>
+            <Can permission={PermissionGroups.PRINCIPAL.PRINCIPAL_VERIFY}>
+              <button
+                onClick={onVerify}
+                disabled={isVerifying}
+                className={buttonClass}
+              >
+                <HiCheckCircle className="h-4 w-4" />
+                {buttonLabel}
+              </button>
+            </Can>
           )}
         </div>
       </div>
@@ -1321,7 +1327,12 @@ function FieldCell({ label, value, span = 1 }) {
   );
 }
 
-function RoundedActionButton({ icon: Icon, children, onClick, variant = "outline" }) {
+function RoundedActionButton({
+  icon: Icon,
+  children,
+  onClick,
+  variant = "outline",
+}) {
   const base =
     "inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-black transition-all duration-200 shadow-sm";
   const styles =
@@ -1345,7 +1356,7 @@ function GeneralTab({ principal, onEdit }) {
         title="Personal & Cultural"
         color="slate"
         right={
-          <Can permission={PermissionGroups.SCHOOLS.PROFILE_EDIT}>
+          <Can permission={PermissionGroups.PRINCIPAL.PROFILE_EDIT}>
             <RoundedActionButton
               onClick={() => onEdit("personal")}
               variant="outline"
@@ -1372,7 +1383,7 @@ function GeneralTab({ principal, onEdit }) {
         title="Health Information"
         color="teal"
         right={
-          <Can permission={PermissionGroups.SCHOOLS.PROFILE_EDIT}>
+          <Can permission={PermissionGroups.PRINCIPAL.PROFILE_EDIT}>
             <RoundedActionButton
               onClick={() => onEdit("health")}
               variant="outline"
@@ -1396,7 +1407,7 @@ function GeneralTab({ principal, onEdit }) {
         title="Contact & Location"
         color="indigo"
         right={
-          <Can permission={PermissionGroups.SCHOOLS.PROFILE_EDIT}>
+          <Can permission={PermissionGroups.PRINCIPAL.PROFILE_EDIT}>
             <RoundedActionButton
               onClick={() => onEdit("contact")}
               variant="outline"
@@ -1429,7 +1440,7 @@ function GeneralTab({ principal, onEdit }) {
         title="Temporary Location"
         color="blue"
         right={
-          <Can permission={PermissionGroups.SCHOOLS.PROFILE_EDIT}>
+          <Can permission={PermissionGroups.PRINCIPAL.PROFILE_EDIT}>
             <RoundedActionButton
               onClick={() => onEdit("temporary")}
               variant="outline"
@@ -1457,9 +1468,11 @@ function QualificationTab({ qualifications }) {
         <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
           Educational Qualification
         </h2>
-        <RoundedActionButton variant="outline">
-          Add qualification
-        </RoundedActionButton>
+        <Can permission={PermissionGroups.PRINCIPAL.PROFILE_QUALIFICATION}>
+          <RoundedActionButton variant="outline">
+            Add qualification
+          </RoundedActionButton>
+        </Can>
       </div>
 
       <ProfileDataTable
@@ -1486,9 +1499,11 @@ function EmploymentTab({ employment }) {
         title="Appointment Current Status"
         color="slate"
         right={
-          <RoundedActionButton onClick={() => {}} variant="outline">
-            Edit
-          </RoundedActionButton>
+          <Can permission={PermissionGroups.PRINCIPAL.ROFILE_EMPLOYMENT}>
+            <RoundedActionButton onClick={() => {}} variant="outline">
+              Edit
+            </RoundedActionButton>
+          </Can>
         }
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1521,9 +1536,11 @@ function EmploymentTab({ employment }) {
         title="First Appointment"
         color="indigo"
         right={
-          <RoundedActionButton onClick={() => {}} variant="outline">
-            Edit
-          </RoundedActionButton>
+          <Can permission={PermissionGroups.PRINCIPAL.PROFILE_EMPLOYMENT}>
+            <RoundedActionButton onClick={() => {}} variant="outline">
+              Edit
+            </RoundedActionButton>
+          </Can>
         }
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1549,9 +1566,11 @@ function WopTab({ wopAndPayment }) {
         <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
           W&OP & Payment Details
         </h2>
-        <RoundedActionButton onClick={() => {}} variant="outline">
-          Edit
-        </RoundedActionButton>
+        <Can permission={PermissionGroups.PRINCIPAL.PROFILE_WOP}>
+          <RoundedActionButton onClick={() => {}} variant="outline">
+            Edit
+          </RoundedActionButton>
+        </Can>
       </div>
 
       <div className="rounded-2xl overflow-hidden border surface">
@@ -1573,9 +1592,9 @@ function FamilyTab({ family }) {
         <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
           Spouse List
         </h2>
-        <RoundedActionButton variant="outline">
-          Add Spouse
-        </RoundedActionButton>
+        <Can permission={PermissionGroups.PRINCIPAL.PROFILE_WOP}>
+          <RoundedActionButton variant="outline">Add Spouse</RoundedActionButton>
+        </Can>
       </div>
 
       <ProfileDataTable

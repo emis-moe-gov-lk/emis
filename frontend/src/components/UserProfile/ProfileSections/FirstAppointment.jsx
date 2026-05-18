@@ -68,14 +68,14 @@ const FirstAppointment = ({ employee, canEdit, options }) => {
               {employee?.appointment?.service_years ?? 0} Active
             </Badge>
 
-            {canEdit && (
+            {/* {canEdit && (
               <button
                 className="px-3 py-1 border rounded-full text-sm hover:bg-gray-50"
                 onClick={() => setShowModal(true)}
               >
                 Edit
               </button>
-            )}
+            )} */}
           </div>
         </div>
 

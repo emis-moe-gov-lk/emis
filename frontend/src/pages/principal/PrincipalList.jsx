@@ -24,8 +24,9 @@ const PrincipalList = () => {
 
   const getAppointmentStatus = (appointment) => {
     if (
-      String(appointment?.profile_status ?? "").trim().toLowerCase() ===
-        "revised" ||
+      String(appointment?.profile_status ?? "")
+        .trim()
+        .toLowerCase() === "revised" ||
       appointment?.is_verified === 3
     ) {
       return { label: "Revised", color: "purple" };
@@ -91,7 +92,7 @@ const PrincipalList = () => {
           <Badge color="blue" size="lg">
             Total: {total}
           </Badge>
-          <Can permission={PermissionGroups.SCHOOLS.CREATE}>
+          <Can permission={PermissionGroups.PRINCIPAL.CREATE}>
             <button
               onClick={() => navigate("/employees/principal/create")}
               className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors shadow-sm"
@@ -126,7 +127,9 @@ const PrincipalList = () => {
           {principals.length > 0 ? (
             <>
               {principals.map((principal) => {
-                const appointmentStatus = getAppointmentStatus(principal.appointment);
+                const appointmentStatus = getAppointmentStatus(
+                  principal.appointment,
+                );
 
                 return (
                   <DirectoryCard
@@ -151,7 +154,7 @@ const PrincipalList = () => {
                     status={appointmentStatus.label}
                     statusColor={appointmentStatus.color}
                     permissions={{
-                      view: PermissionGroups.SCHOOLS.VIEW_PROFILE,
+                      view: PermissionGroups.PRINCIPAL.PROFILE_VIEW,
                     }}
                     onView={(employee) => {
                       navigate(`/employees/principal/${employee.people_id}`);
@@ -162,8 +165,14 @@ const PrincipalList = () => {
 
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
                 <span className="text-sm text-gray-500 dark:text-gray-400 order-2 sm:order-1">
-                  Showing page <span className="font-semibold text-gray-900 dark:text-white">{page}</span> of{' '}
-                  <span className="font-semibold text-gray-900 dark:text-white">{lastPage}</span>
+                  Showing page{" "}
+                  <span className="font-semibold text-gray-900 dark:text-white">
+                    {page}
+                  </span>{" "}
+                  of{" "}
+                  <span className="font-semibold text-gray-900 dark:text-white">
+                    {lastPage}
+                  </span>
                 </span>
 
                 <div className="flex gap-2 order-1 sm:order-2 w-full sm:w-auto">

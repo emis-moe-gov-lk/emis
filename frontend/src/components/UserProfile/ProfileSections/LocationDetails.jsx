@@ -1,5 +1,8 @@
 import React, { useState } from "react";
 
+import Can from "@/components/common/Can";
+import { PermissionGroups } from "@/data/permissionGroups";
+
 const LocationDetails = ({ employee, canEdit }) => {
   const [showModal, setShowModal] = useState(false);
 
@@ -54,12 +57,14 @@ const LocationDetails = ({ employee, canEdit }) => {
           </div>
 
           {canEdit && (
-            <button
-              onClick={() => setShowModal(true)}
-              className="px-4 py-2 text-sm rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition"
-            >
-              ✏ Edit Details
-            </button>
+            <Can permission={PermissionGroups.PROFILE.PERSONAL_EDIT}>
+              <button
+                onClick={() => setShowModal(true)}
+                className="px-4 py-2 text-sm rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+              >
+                ✏ Edit Details
+              </button>
+            </Can>
           )}
         </div>
 
