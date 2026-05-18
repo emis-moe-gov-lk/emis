@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { Badge, Button, Select, Spinner, TextInput } from "flowbite-react";
+import { Badge, Button, Spinner, TextInput } from "flowbite-react";
 import {
   HiOfficeBuilding,
   HiLocationMarker,
@@ -15,11 +15,6 @@ import { NavLink } from "react-router-dom";
 import Can from "@/components/common/Can";
 import { PermissionGroups } from "@/data/permissionGroups";
 
-const authorityOptions = [
-  { value: "AUID01", label: "National School" },
-  { value: "AUID02", label: "Provincial School" },
-];
-
 export default function InstitutionIndex() {
   const navigate = useNavigate();
   const [institutions, setInstitutions] = useState([]);
@@ -29,33 +24,13 @@ export default function InstitutionIndex() {
   const [loading, setLoading] = useState(false);
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState("");
-  const [filters, setFilters] = useState({
-    authorityId: "",
-    provinceId: "",
-    zeoWpId: "",
-    deoWpId: "",
-    activeStatus: "",
-  });
 
-  const updateFilter = (key, value) => {
-    setFilters((current) => ({ ...current, [key]: value }));
-  };
-
-  const fetchInstitutions = useCallback(async (pageNumber = 1) => {
+  const fetchInstitutions = async (pageNumber = 1) => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ page: pageNumber });
-
-      if (search.trim()) params.set("search", search.trim());
-      if (filters.authorityId) params.set("authority_id", filters.authorityId);
-      if (filters.provinceId) params.set("province_id", filters.provinceId);
-      if (filters.zeoWpId) params.set("zeo_wp_id", filters.zeoWpId);
-      if (filters.deoWpId) params.set("deo_wp_id", filters.deoWpId);
-      if (filters.activeStatus) {
-        params.set("active_status", filters.activeStatus);
-      }
-
-      const response = await api.get(`/institutions?${params.toString()}`);
+      const response = await api.get(
+        `/institutions?page=${pageNumber}&search=${search}`,
+      );
       const payload = response.data.data;
 
       setInstitutions(payload.data);
@@ -68,22 +43,18 @@ export default function InstitutionIndex() {
     } finally {
       setLoading(false);
     }
-  }, [filters, search]);
+  };
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
-      setPage(1);
       fetchInstitutions(1);
     }, 500);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [fetchInstitutions, search, filters]);
+  }, [search]);
 
   useEffect(() => {
-    if (page === 1) return;
     fetchInstitutions(page);
-    // Page changes should use the latest debounced search/filter state.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
   return (
@@ -106,61 +77,8 @@ export default function InstitutionIndex() {
       </div>
 
       {/* Search and Filters */}
-      <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
-          <Select
-            aria-label="Filter by authority"
-            value={filters.authorityId}
-            onChange={(e) => updateFilter("authorityId", e.target.value)}
-          >
-            <option value="">All Authorities</option>
-            {authorityOptions.map((authority) => (
-              <option key={authority.value} value={authority.value}>
-                {authority.label}
-              </option>
-            ))}
-          </Select>
-
-          <Select
-            aria-label="Filter by province"
-            value={filters.provinceId}
-            onChange={(e) => updateFilter("provinceId", e.target.value)}
-          >
-            <option value="" hidden>
-              All Provinces
-            </option>
-          </Select>
-
-          <Select
-            aria-label="Filter by zonal office"
-            value={filters.zeoWpId}
-            onChange={(e) => updateFilter("zeoWpId", e.target.value)}
-          >
-            <option value="" hidden>
-              All Zonal Office
-            </option>
-          </Select>
-
-          <Select
-            aria-label="Filter by divisional office"
-            value={filters.deoWpId}
-            onChange={(e) => updateFilter("deoWpId", e.target.value)}
-          >
-            <option value="" hidden>
-              All Divisional Office
-            </option>
-          </Select>
-
-          <Select
-            aria-label="Filter by status"
-            value={filters.activeStatus}
-            onChange={(e) => updateFilter("activeStatus", e.target.value)}
-          >
-            <option value="">Any Status</option>
-            <option value="1">Active</option>
-            <option value="0">Inactive</option>
-          </Select>
-
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="w-full sm:max-w-md">
           <TextInput
             id="search"
             type="text"
@@ -170,9 +88,7 @@ export default function InstitutionIndex() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-      </div>
 
-      <div className="flex justify-end">
         <Can permission={PermissionGroups.INSTITUTION.CREATE}>
           <NavLink
             to="/institution/create"
