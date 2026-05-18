@@ -110,9 +110,10 @@ Route::prefix('')->group(function () {
     });
 
     Route::controller(InstitutionController::class)->middleware('auth:jwt')->group(function () {
-        Route::get('/institutions', 'index');         // GET all
-        Route::get('/institutions/{id}', 'show');     // GET one
-        Route::put('/institutions/{id}', 'update');   // UPDATE
+        Route::get('/institutions', 'index');             // GET all
+        Route::get('/institutions/filters', 'filters'); // GET filter options
+        Route::get('/institutions/{id}', 'show');       // GET one
+        Route::put('/institutions/{id}', 'update');     // UPDATE
     });
 
     Route::controller(TeacherApiController::class)->middleware('auth:jwt')->group(function () {

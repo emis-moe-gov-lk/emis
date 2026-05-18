@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Models\DivisionalEducationOffice;
 use App\Models\Institution;
+use App\Models\ProvincialEducationOffice;
+use App\Models\ZonalEducationOffice;
 use Illuminate\Http\Request;
 
 class InstitutionController extends Controller
@@ -109,31 +112,37 @@ class InstitutionController extends Controller
         /* -------------------------
         | Filters
         |--------------------------*/
-        if ($request->active === "1") {
-            $query->active();
+        if ($request->filled('active_status')) {
+            $query->where('active_status', (int) $request->active_status);
         }
 
-        if ($request->zeo_wp_id) {
+        if ($request->filled('peo_wp_id')) {
+            $query->whereHas('zonalEducationOffice', function ($q) use ($request) {
+                $q->where('peo_wp_id', $request->peo_wp_id);
+            });
+        }
+
+        if ($request->filled('zeo_wp_id')) {
             $query->where('zeo_wp_id', $request->zeo_wp_id);
         }
 
-        if ($request->deo_wp_id) {
+        if ($request->filled('deo_wp_id')) {
             $query->where('deo_wp_id', $request->deo_wp_id);
         }
 
-        if ($request->district_id) {
+        if ($request->filled('district_id')) {
             $query->where('district_id', $request->district_id);
         }
 
-        if ($request->category_id) {
+        if ($request->filled('category_id')) {
             $query->where('institution_category_id', $request->category_id);
         }
 
-        if ($request->authority_id) {
+        if ($request->filled('authority_id')) {
             $query->where('authority_id', $request->authority_id);
         }
 
-        if ($request->type_id) {
+        if ($request->filled('type_id')) {
             $query->where('institution_types_id', $request->type_id);
         }
 
@@ -165,6 +174,81 @@ class InstitutionController extends Controller
     }
 
 
+
+    /**
+     * GET filter options for institution dropdowns (role-scoped)
+     */
+    public function filters(Request $request)
+    {
+        $authed = auth()->user();
+        $roles  = $request->attributes->get('jwt_roles', []);
+
+        $isAdmin    = in_array('super admin', $roles) || in_array('admin', $roles);
+        $isZonalDeo = in_array('Zonal DEO', $roles) || in_array('zonal deo head', $roles);
+        $isDeo      = in_array('development officer', $roles) || in_array('development officer head', $roles);
+
+        $workplaceId = $authed?->currentAppointment?->workplace_id;
+
+        $statuses = [
+            ['value' => 1, 'label' => 'Active'],
+            ['value' => 0, 'label' => 'Inactive'],
+        ];
+
+        if ($isAdmin) {
+            return response()->json([
+                'status' => 'success',
+                'data'   => [
+                    'provinces' => ProvincialEducationOffice::active()
+                        ->orderBy('name')
+                        ->get(['workplace_id', 'short_name']),
+                    'zones'     => ZonalEducationOffice::active()
+                        ->orderBy('name')
+                        ->get(['workplace_id', 'short_name', 'peo_wp_id']),
+                    'divisions' => DivisionalEducationOffice::active()
+                        ->orderBy('name')
+                        ->get(['workplace_id', 'short_name', 'zeo_wp_id']),
+                    'statuses'  => $statuses,
+                ],
+            ]);
+        }
+
+        if ($isZonalDeo) {
+            $zone = ZonalEducationOffice::where('workplace_id', $workplaceId)->first(['workplace_id', 'name']);
+
+            return response()->json([
+                'status' => 'success',
+                'data'   => [
+                    'zones'     => $zone ? [$zone] : [],
+                    'divisions' => $zone
+                        ? DivisionalEducationOffice::active()
+                            ->where('zeo_wp_id', $workplaceId)
+                            ->orderBy('name')
+                            ->get(['workplace_id', 'name', 'zeo_wp_id'])
+                        : [],
+                    'statuses'  => $statuses,
+                ],
+            ]);
+        }
+
+        if ($isDeo) {
+            $division = DivisionalEducationOffice::where('workplace_id', $workplaceId)->first(['workplace_id', 'name', 'zeo_wp_id']);
+
+            return response()->json([
+                'status' => 'success',
+                'data'   => [
+                    'divisions' => $division ? [$division] : [],
+                    'statuses'  => $statuses,
+                ],
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data'   => [
+                'statuses' => $statuses,
+            ],
+        ]);
+    }
 
     /**
      * GET a single institution
