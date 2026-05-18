@@ -113,6 +113,16 @@ class InstitutionController extends Controller
             $query->active();
         }
 
+        if ($request->has('active_status') && $request->active_status !== '') {
+            $query->where('active_status', $request->active_status);
+        }
+
+        if ($request->province_id) {
+            $query->whereHas('district', function ($districtQuery) use ($request) {
+                $districtQuery->where('province_id', $request->province_id);
+            });
+        }
+
         if ($request->zeo_wp_id) {
             $query->where('zeo_wp_id', $request->zeo_wp_id);
         }
