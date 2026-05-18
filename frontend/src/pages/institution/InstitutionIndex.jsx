@@ -15,10 +15,6 @@ import { NavLink } from "react-router-dom";
 import Can from "@/components/common/Can";
 import { PermissionGroups } from "@/data/permissionGroups";
 
-const authorityOptions = [
-  { value: "AUID01", label: "National School" },
-  { value: "AUID02", label: "Provincial School" },
-];
 
 export default function InstitutionIndex() {
   const navigate = useNavigate();
@@ -31,14 +27,39 @@ export default function InstitutionIndex() {
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState({
     authorityId: "",
-    provinceId: "",
+    peoWpId: "",
     zeoWpId: "",
     deoWpId: "",
     activeStatus: "",
   });
+  const [filterOptions, setFilterOptions] = useState({
+    authorities: [],
+    provinces: [],
+    zones: [],
+    divisions: [],
+  });
+
+  useEffect(() => {
+    api.get("/institutions/filters").then((res) => {
+      setFilterOptions((prev) => ({ ...prev, ...res.data.data }));
+    });
+  }, []);
+
+  const visibleZones = filters.peoWpId
+    ? filterOptions.zones.filter((z) => z.peo_wp_id === filters.peoWpId)
+    : filterOptions.zones;
+
+  const visibleDivisions = filters.zeoWpId
+    ? filterOptions.divisions.filter((d) => d.zeo_wp_id === filters.zeoWpId)
+    : filterOptions.divisions;
 
   const updateFilter = (key, value) => {
-    setFilters((current) => ({ ...current, [key]: value }));
+    setFilters((current) => {
+      const next = { ...current, [key]: value };
+      if (key === "peoWpId") { next.zeoWpId = ""; next.deoWpId = ""; }
+      if (key === "zeoWpId") { next.deoWpId = ""; }
+      return next;
+    });
   };
 
   const fetchInstitutions = useCallback(async (pageNumber = 1) => {
@@ -48,7 +69,7 @@ export default function InstitutionIndex() {
 
       if (search.trim()) params.set("search", search.trim());
       if (filters.authorityId) params.set("authority_id", filters.authorityId);
-      if (filters.provinceId) params.set("province_id", filters.provinceId);
+      if (filters.peoWpId) params.set("peo_wp_id", filters.peoWpId);
       if (filters.zeoWpId) params.set("zeo_wp_id", filters.zeoWpId);
       if (filters.deoWpId) params.set("deo_wp_id", filters.deoWpId);
       if (filters.activeStatus) {
@@ -114,21 +135,24 @@ export default function InstitutionIndex() {
             onChange={(e) => updateFilter("authorityId", e.target.value)}
           >
             <option value="">All Authorities</option>
-            {authorityOptions.map((authority) => (
-              <option key={authority.value} value={authority.value}>
-                {authority.label}
+            {filterOptions.authorities.map((a) => (
+              <option key={a.authority_id} value={a.authority_id}>
+                {a.authority_name}
               </option>
             ))}
           </Select>
 
           <Select
             aria-label="Filter by province"
-            value={filters.provinceId}
-            onChange={(e) => updateFilter("provinceId", e.target.value)}
+            value={filters.peoWpId}
+            onChange={(e) => updateFilter("peoWpId", e.target.value)}
           >
-            <option value="" hidden>
-              All Provinces
-            </option>
+            <option value="">All Provinces</option>
+            {filterOptions.provinces.map((p) => (
+              <option key={p.workplace_id} value={p.workplace_id}>
+                {p.short_name}
+              </option>
+            ))}
           </Select>
 
           <Select
@@ -136,9 +160,12 @@ export default function InstitutionIndex() {
             value={filters.zeoWpId}
             onChange={(e) => updateFilter("zeoWpId", e.target.value)}
           >
-            <option value="" hidden>
-              All Zonal Office
-            </option>
+            <option value="">All Zonal Offices</option>
+            {visibleZones.map((z) => (
+              <option key={z.workplace_id} value={z.workplace_id}>
+                {z.short_name}
+              </option>
+            ))}
           </Select>
 
           <Select
@@ -146,9 +173,12 @@ export default function InstitutionIndex() {
             value={filters.deoWpId}
             onChange={(e) => updateFilter("deoWpId", e.target.value)}
           >
-            <option value="" hidden>
-              All Divisional Office
-            </option>
+            <option value="">All Divisional Offices</option>
+            {visibleDivisions.map((d) => (
+              <option key={d.workplace_id} value={d.workplace_id}>
+                {d.name}
+              </option>
+            ))}
           </Select>
 
           <Select
