@@ -78,7 +78,7 @@ provider = "wso2"
 display_in_api_console = true
 description = "This is a hybrid gateway that handles both production and sandbox token traffic."
 show_as_token_endpoint_url = true
-service_url = "https://$env{APIM_HOSTNAME}/services/"
+service_url = "https://$env{APIM_HOSTNAME}:${mgt.transport.https.port}/services/"
 username= "$env{APIM_ADMIN_USERNAME}"
 password= "$env{APIM_ADMIN_PASSWORD}"
 ws_endpoint = ""
@@ -129,20 +129,20 @@ key = ""
 
 [apim.key_manager]
 enable_lightweight_apikey_generation = true
-#service_url = "https://localhost:${mgt.transport.https.port}/services/"
-#username = "$ref{super_admin.username}"
-#password = "$ref{super_admin.password}"
+service_url = "https://localhost:${mgt.transport.https.port}/services/"
+username = "$ref{super_admin.username}"
+password = "$ref{super_admin.password}"
 #pool.init_idle_capacity = 50
 #pool.max_idle = 100
 #key_validation_handler_type = "default"
 #key_validation_handler_type = "custom"
 #key_validation_handler_impl = "org.wso2.carbon.apimgt.keymgt.handlers.DefaultKeyValidationHandler"
 
-#[apim.idp]
-#server_url = "https://localhost:${mgt.transport.https.port}"
-#authorize_endpoint = "https://localhost:${mgt.transport.https.port}/oauth2/authorize"
-#oidc_logout_endpoint = "https://localhost:${mgt.transport.https.port}/oidc/logout"
-#oidc_check_session_endpoint = "https://localhost:${mgt.transport.https.port}/oidc/checksession"
+[apim.idp]
+server_url = "https://localhost:${mgt.transport.https.port}"
+authorize_endpoint = "https://localhost:${mgt.transport.https.port}/oauth2/authorize"
+oidc_logout_endpoint = "https://localhost:${mgt.transport.https.port}/oidc/logout"
+oidc_check_session_endpoint = "https://localhost:${mgt.transport.https.port}/oidc/checksession"
 
 #[apim.jwt]
 #enable = true
@@ -273,17 +273,17 @@ sp_name_regex = "^[\\sa-zA-Z0-9._-]*$"
 [database.local]
 url = "jdbc:h2:./repository/database/WSO2CARBON_DB;DB_CLOSE_ON_EXIT=FALSE"
 
-[[event_listener]]
-id = "token_revocation"
-type = "org.wso2.carbon.identity.core.handler.AbstractIdentityHandler"
-name = "org.wso2.is.notification.ApimOauthEventInterceptor"
-order = 1
+# [[event_listener]]
+# id = "token_revocation"
+# type = "org.wso2.carbon.identity.core.handler.AbstractIdentityHandler"
+# name = "org.wso2.is.notification.ApimOauthEventInterceptor"
+# order = 1
 
-[event_listener.properties]
-notification_endpoint = "https://$env{IS_HOSTNAME}:${mgt.transport.https.port}/internal/data/v1/notify"
-username = "$env{IS_ADMIN_USERNAME}"
-password = "${IS_ADMIN_PASSWORD}"
-'header.X-WSO2-KEY-MANAGER' = "default"
+# [event_listener.properties]
+# notification_endpoint = "https://$env{IS_HOSTNAME}:${mgt.transport.https.port}/internal/data/v1/notify"
+# username = "$env{IS_ADMIN_USERNAME}"
+# password = "$env{IS_ADMIN_PASSWORD}"
+# 'header.X-WSO2-KEY-MANAGER' = "default"
 
 [oauth.grant_type.token_exchange]
 enable = true
