@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\DivisionalEducationOffice;
 use App\Models\Institution;
+use App\Models\InstitutionAuthority;
 use App\Models\ProvincialEducationOffice;
 use App\Models\ZonalEducationOffice;
 use Illuminate\Http\Request;
@@ -116,17 +117,13 @@ class InstitutionController extends Controller
             $query->where('active_status', (int) $request->active_status);
         }
 
-        if ($request->has('active_status') && $request->active_status !== '') {
-            $query->where('active_status', $request->active_status);
-        }
-
-        if ($request->province_id) {
-            $query->whereHas('district', function ($districtQuery) use ($request) {
-                $districtQuery->where('province_id', $request->province_id);
+        if ($request->filled('peo_wp_id')) {
+            $query->whereHas('zonalEducationOffice', function ($q) use ($request) {
+                $q->where('peo_wp_id', $request->peo_wp_id);
             });
         }
 
-        if ($request->zeo_wp_id) {
+        if ($request->filled('zeo_wp_id')) {
             $query->where('zeo_wp_id', $request->zeo_wp_id);
         }
 
@@ -193,64 +190,63 @@ class InstitutionController extends Controller
 
         $workplaceId = $authed?->currentAppointment?->workplace_id;
 
-        $statuses = [
-            ['value' => 1, 'label' => 'Active'],
-            ['value' => 0, 'label' => 'Inactive'],
-        ];
+        $authorities = InstitutionAuthority::active()
+            ->orderBy('authority_name')
+            ->get(['authority_id', 'authority_name']);
 
         if ($isAdmin) {
             return response()->json([
                 'status' => 'success',
                 'data'   => [
-                    'provinces' => ProvincialEducationOffice::active()
+                    'authorities' => $authorities,
+                    'provinces'   => ProvincialEducationOffice::active()
                         ->orderBy('name')
                         ->get(['workplace_id', 'short_name']),
-                    'zones'     => ZonalEducationOffice::active()
+                    'zones'       => ZonalEducationOffice::active()
                         ->orderBy('name')
                         ->get(['workplace_id', 'short_name', 'peo_wp_id']),
-                    'divisions' => DivisionalEducationOffice::active()
+                    'divisions'   => DivisionalEducationOffice::active()
                         ->orderBy('name')
-                        ->get(['workplace_id', 'short_name', 'zeo_wp_id']),
-                    'statuses'  => $statuses,
+                        ->get(['workplace_id', 'name', 'zeo_wp_id']),
                 ],
             ]);
         }
 
         if ($isZonalDeo) {
-            $zone = ZonalEducationOffice::where('workplace_id', $workplaceId)->first(['workplace_id', 'name']);
+            $zone = ZonalEducationOffice::where('workplace_id', $workplaceId)
+                ->first(['workplace_id', 'short_name', 'peo_wp_id']);
 
             return response()->json([
                 'status' => 'success',
                 'data'   => [
-                    'zones'     => $zone ? [$zone] : [],
-                    'divisions' => $zone
+                    'authorities' => $authorities,
+                    'zones'       => $zone ? [$zone] : [],
+                    'divisions'   => $zone
                         ? DivisionalEducationOffice::active()
                             ->where('zeo_wp_id', $workplaceId)
                             ->orderBy('name')
                             ->get(['workplace_id', 'name', 'zeo_wp_id'])
                         : [],
-                    'statuses'  => $statuses,
                 ],
             ]);
         }
 
         if ($isDeo) {
-            $division = DivisionalEducationOffice::where('workplace_id', $workplaceId)->first(['workplace_id', 'name', 'zeo_wp_id']);
+            $division = DivisionalEducationOffice::where('workplace_id', $workplaceId)
+                ->first(['workplace_id', 'name', 'zeo_wp_id']);
 
             return response()->json([
                 'status' => 'success',
                 'data'   => [
-                    'divisions' => $division ? [$division] : [],
-                    'statuses'  => $statuses,
+                    'authorities' => $authorities,
+                    'divisions'   => $division ? [$division] : [],
                 ],
             ]);
         }
 
         return response()->json([
             'status' => 'success',
-            'data'   => [
-                'statuses' => $statuses,
-            ],
+            'data'   => ['authorities' => $authorities],
         ]);
     }
 
