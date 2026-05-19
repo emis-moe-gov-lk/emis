@@ -319,6 +319,12 @@ class TeacherApiController extends Controller
                 'addressLine2' => 'required|string',
                 'addressLine3' => 'nullable|string',
                 'postalCode' => 'required|string',
+                'latitude' => 'nullable|numeric',
+                'longitude' => 'nullable|numeric',
+                'tAddressLine1' => 'nullable|string',
+                'tAddressLine2' => 'nullable|string',
+                'tAddressLine3' => 'nullable|string',
+                'tPostalCode' => 'nullable|string',
 
                 // FIRST APPOINTMENT
                 'firstAppointmentCategory' => 'required|string',
@@ -331,6 +337,7 @@ class TeacherApiController extends Controller
                 'firstAppointmentSubject' => 'required|string',
                 'firstAppointmentMedium' => 'required|string',
                 'firstAppointmentTeachingSubject' => 'required|string',
+                'firstAppointmentSecondarySubject' => 'nullable|string',
 
                 'firstAppointmentZone' => 'required|string',
                 'firstAppointmentInstCategory' => 'required|string',
@@ -392,6 +399,12 @@ class TeacherApiController extends Controller
                     'address_line2' => $validated['addressLine2'],
                     'address_line3' => $validated['addressLine3'],
                     'postal_code' => $validated['postalCode'],
+                    'latitude' => $validated['latitude'] ?? null,
+                    'longitude' => $validated['longitude'] ?? null,
+                    't_address_line1' => $validated['tAddressLine1'] ?? null,
+                    't_address_line2' => $validated['tAddressLine2'] ?? null,
+                    't_address_line3' => $validated['tAddressLine3'] ?? null,
+                    't_postal_code' => $validated['tPostalCode'] ?? null,
                     'profile_picture' => 'default.png',
                 ]
             );
@@ -451,6 +464,7 @@ class TeacherApiController extends Controller
                 'appointment_medium' => $validated['firstAppointmentMedium'],
                 'appointment_subject' => $validated['firstAppointmentSubject'],
                 'main_subject' => $validated['firstAppointmentTeachingSubject'],
+                'secondary_subject' => $validated['firstAppointmentSecondarySubject'] ?? null,
                 'current_teaching_subject' => $validated['currentAppointmentSubject'],
             ]);
 
