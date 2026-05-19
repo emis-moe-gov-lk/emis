@@ -19,13 +19,13 @@ type = "database_unique_id"
 # --- Databases ---
 [database.identity_db]
 type = "mysql"
-url = "jdbc:mysql://$env{IS_DB_HOST}:$env{IS_DB_PORT}/$env{IS_DB_IDENTITY}?useSSL=false&allowPublicKeyRetrieval=true&autoReconnect=true"
+url = "jdbc:mysql://$env{IS_DB_HOST}:$env{IS_DB_PORT}/$env{IS_DB_IDENTITY}?useSSL=false&amp;allowPublicKeyRetrieval=true&amp;autoReconnect=true"
 username = "$env{IS_DB_WSO2USER_USERNAME}"
 password = "$env{IS_DB_WSO2USER_PASSWORD}"
 
 [database.shared_db]
 type = "mysql"
-url = "jdbc:mysql://$env{IS_DB_HOST}:$env{IS_DB_PORT}/$env{IS_DB_SHARED}?useSSL=false&allowPublicKeyRetrieval=true&autoReconnect=true"
+url = "jdbc:mysql://$env{IS_DB_HOST}:$env{IS_DB_PORT}/$env{IS_DB_SHARED}?useSSL=false&amp;allowPublicKeyRetrieval=true&amp;autoReconnect=true"
 username = "$env{IS_DB_WSO2USER_USERNAME}"
 password = "$env{IS_DB_WSO2USER_PASSWORD}"
 
