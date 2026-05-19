@@ -1,13 +1,13 @@
 import { useRef, useState } from "react";
-import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
-  HiArrowLeft,
   HiDocumentDownload,
   HiOutlineUpload,
   HiPaperClip,
   HiX,
 } from "react-icons/hi";
+import BackToListButton from "@/components/UiComponents/BackToListButton";
+import Button from "@/components/UiComponents/Button";
 
 const TeacherBulkUpload = () => {
   const inputRef = useRef(null);
@@ -40,13 +40,7 @@ const TeacherBulkUpload = () => {
   return (
     <div className="mx-auto flex w-full w-full px-4 sm:px-6 lg:px-8 flex-col gap-8 px-6 py-6 lg:px-10 lg:py-10">
       <div className="flex flex-col gap-3 border-b border-gray-200 pb-6">
-        <Link
-          to="/employees/teacher"
-          className="inline-flex w-fit items-center gap-2 text-sm font-medium text-blue-600 transition-colors hover:text-blue-700"
-        >
-          <HiArrowLeft className="h-4 w-4" />
-          Back to Teachers
-        </Link>
+        <BackToListButton to="/employees/teacher" label="Back to Teachers" />
 
         <div>
           <h1 className="text-3xl font-semibold tracking-tight text-gray-900">
@@ -116,24 +110,15 @@ const TeacherBulkUpload = () => {
           </div>
 
           <div className="mt-10 flex flex-col-reverse gap-3 border-t border-gray-100 pt-6 sm:flex-row sm:justify-end">
-            <button
-              type="button"
-              onClick={handleClear}
-              className="inline-flex items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-            >
+            <Button type="button" variant="secondary" onClick={handleClear}>
               <HiX className="h-4 w-4" />
               Clear
-            </button>
+            </Button>
 
-            <button
-              type="button"
-              onClick={handleImport}
-              className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
-              disabled={!selectedFile}
-            >
+            <Button type="button" variant="primary" onClick={handleImport} disabled={!selectedFile}>
               <HiOutlineUpload className="h-4 w-4" />
               Import Teachers
-            </button>
+            </Button>
           </div>
       </section>
     </div>

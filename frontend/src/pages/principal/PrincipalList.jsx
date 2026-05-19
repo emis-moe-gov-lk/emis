@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { Badge, Button, Spinner, TextInput } from "flowbite-react";
+import { Badge, Spinner, TextInput } from "flowbite-react";
 import {
   HiChevronLeft,
   HiChevronRight,
@@ -12,6 +12,7 @@ import Can from "@/components/common/Can";
 import { PermissionGroups } from "@/data/permissionGroups";
 import api from "@/api/axios";
 import DirectoryCard from "@/components/common/DirectoryCard";
+import Button from "@/components/UiComponents/Button";
 
 const PrincipalList = () => {
   const navigate = useNavigate();
@@ -92,13 +93,9 @@ const PrincipalList = () => {
             Total: {total}
           </Badge>
           <Can permission={PermissionGroups.SCHOOLS.CREATE}>
-            <button
-              onClick={() => navigate("/employees/principal/create")}
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors shadow-sm"
-            >
-              <HiPlus className="w-4 h-4" />
+            <Button onClick={() => navigate("/employees/principal/create")} icon={<HiPlus className="w-4 h-4" />}>
               Create Principal
-            </button>
+            </Button>
           </Can>
         </div>
       </div>
@@ -168,19 +165,19 @@ const PrincipalList = () => {
 
                 <div className="flex gap-2 order-1 sm:order-2 w-full sm:w-auto">
                   <Button
-                    color="gray"
+                    variant="secondary"
                     disabled={page === 1}
                     onClick={() => setPage(page - 1)}
-                    className="flex-1 sm:flex-none border-gray-200 dark:border-gray-700 shadow-sm enabled:hover:text-blue-600"
+                    className="flex-1 sm:flex-none"
                   >
                     <HiChevronLeft className="w-5 h-5 mr-1" />
                     Previous
                   </Button>
                   <Button
-                    color="gray"
+                    variant="secondary"
                     disabled={page === lastPage}
                     onClick={() => setPage(page + 1)}
-                    className="flex-1 sm:flex-none border-gray-200 dark:border-gray-700 shadow-sm enabled:hover:text-blue-600"
+                    className="flex-1 sm:flex-none"
                   >
                     Next
                     <HiChevronRight className="w-5 h-5 ml-1" />

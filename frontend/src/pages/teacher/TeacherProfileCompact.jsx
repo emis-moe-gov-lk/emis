@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { NavLink, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import {
-  HiArrowLeft,
   HiCheckCircle,
   HiDocumentText,
   HiPencilAlt,
 } from "react-icons/hi";
+import BackToListButton from "@/components/UiComponents/BackToListButton";
 
 /* ------------------------------
   TAB CONFIG
@@ -43,13 +43,7 @@ const TeacherProfileCompact = () => {
   return (
     <div className="space-y-4">
       {/* BACK */}
-      <NavLink
-        to="/teacher"
-        className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700 focus-ring"
-      >
-        <HiArrowLeft />
-        Back to List
-      </NavLink>
+      <BackToListButton to="/teacher" label="Back to List" />
 
       {/* STICKY PROFILE HEADER */}
       <div className="sticky top-16 z-20 rounded-2xl surface shadow-sm">

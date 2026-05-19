@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { NavLink, useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useAuthContext } from "@asgardeo/auth-react";
 import {
-  HiArrowLeft,
   HiCalendar,
   HiDocumentText,
   HiPencilAlt,
@@ -41,6 +40,8 @@ import DarkSafeModal, {
 
 import Can from "@/components/common/Can";
 import { PermissionGroups } from "@/data/permissionGroups";
+import BackToListButton from "@/components/UiComponents/BackToListButton";
+import UIButton from "@/components/UiComponents/Button";
 /**
  * Teacher Profile (Finalized Style)
  * - Professional, colorful, compact (less “cardy”), rounded corners everywhere
@@ -473,7 +474,9 @@ const TeacherProfile = () => {
         phone: d.phone,
 
         district: d.district?.district_name,
+        dsOffice: d.ds_office?.dso_name,
         gnDivision: d.gn_division?.gn_division_name,
+        postalCode: d.postal_code,
         permanentAddress: [d.address_line1, d.address_line2, d.address_line3]
           .filter(Boolean)
           .join("\n"),
@@ -1090,13 +1093,7 @@ const TeacherProfile = () => {
     <div className="space-y-5">
       {/* Back link (top) */}
       <div className="pt-1">
-        <NavLink
-          to="/employees/teacher"
-          className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50"
-        >
-          <HiArrowLeft className="h-4 w-4" />
-          Back to Teacher List
-        </NavLink>
+        <BackToListButton to="/employees/teacher" label="Back to Teacher List" />
       </div>
 
       {/* Header strip (finalized style) */}
@@ -1717,19 +1714,16 @@ function FieldCell({ label, value, span = 1 }) {
 }
 
 function RoundedActionButton({ icon, children, onClick, variant = "outline" }) {
-  const base =
-    "inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-black transition-all duration-200 shadow-sm";
-  const styles =
-    variant === "primary"
-      ? "bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md"
-      : "border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-blue-200 dark:hover:border-blue-800";
-
   const Icon = icon;
   return (
-    <button onClick={onClick} className={`${base} ${styles}`}>
-      {Icon ? <Icon className="h-4 w-4 text-blue-500" /> : null}
+    <UIButton
+      onClick={onClick}
+      variant={variant === "primary" ? "primary" : "secondary"}
+      className="rounded-xl text-sm font-black"
+      icon={Icon ? <Icon className="h-4 w-4" /> : null}
+    >
       {children}
-    </button>
+    </UIButton>
   );
 }
 
@@ -1834,7 +1828,9 @@ function GeneralTab({ teacher, onEdit }) {
           <FieldCell label="Phone" value={teacher.phone} />
 
           <FieldCell label="District" value={teacher.district} />
+          <FieldCell label="DS Office" value={teacher.dsOffice} />
           <FieldCell label="GN Division" value={teacher.gnDivision} />
+          <FieldCell label="Postal Code" value={teacher.postalCode} />
 
           <div className="md:col-span-2">
             <FieldCell
@@ -1928,12 +1924,7 @@ function QualificationTab({ qualifications, onAddQualification, onEditQualificat
             <td className={tableCellClass}>{q.completionDate}</td>
             <td className={tableCellClass}>{q.grade}</td>
             <td className="px-5 py-4">
-              <button 
-                onClick={() => onEditQualification(q)}
-                className={tableActionButtonClass}
-              >
-                Edit
-              </button>
+              <UIButton onClick={() => onEditQualification(q)} variant="secondary" size="sm">Edit</UIButton>
             </td>
           </tr>
         )}
@@ -2262,7 +2253,7 @@ function EmploymentTab({ employment, onEdit }) {
               </span>
             </td>
             <td className="px-5 py-4">
-              <button className={tableActionButtonClass}>🗑</button>
+              <UIButton className={tableActionButtonClass} variant="danger" size="sm">Delete</UIButton>
             </td>
           </tr>
         )}
@@ -2297,7 +2288,7 @@ function EmploymentTab({ employment, onEdit }) {
             <td className={tableCellClass}>{row.startDate}</td>
             <td className={tableCellClass}>{row.endDate}</td>
             <td className="px-5 py-4">
-              <button className={tableActionButtonClass}>🗑</button>
+              <UIButton className={tableActionButtonClass} variant="danger" size="sm">Delete</UIButton>
             </td>
           </tr>
         )}
@@ -2329,7 +2320,7 @@ function EmploymentTab({ employment, onEdit }) {
             <td className={tableCellClass}>{row.releaseDate}</td>
             <td className={tableCellClass}>{row.servicePeriod}</td>
             <td className="px-5 py-4">
-              <button className={tableActionButtonClass}>🗑</button>
+              <UIButton className={tableActionButtonClass} variant="danger" size="sm">Delete</UIButton>
             </td>
           </tr>
         )}
@@ -2406,7 +2397,7 @@ function FamilyTab({ family }) {
               </span>
             </td>
             <td className="px-5 py-4">
-              <button className={tableActionButtonClass}>🗑</button>
+              <UIButton className={tableActionButtonClass} variant="danger" size="sm">Delete</UIButton>
             </td>
           </tr>
         )}
@@ -2456,3 +2447,4 @@ function EditRequestTab({ editRequests }) {
     </div>
   );
 }
+

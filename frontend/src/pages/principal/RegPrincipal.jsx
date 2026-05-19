@@ -1,7 +1,6 @@
 "use client";
 import { useState, useContext, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "flowbite-react";
 import { TeacherFormContext, TeacherFormProvider } from "@/context/TeacherFormContext";
 import Swal from "sweetalert2";
 
@@ -20,8 +19,10 @@ import {
   registerPrincipal,
 } from "@/api/principalService";
 import toast from "react-hot-toast";
-import { HiCheckCircle, HiArrowLeft } from "react-icons/hi";
+import { HiCheckCircle } from "react-icons/hi";
 import { useAuthUser } from "@/context/useAuthUser";
+import BackToListButton from "@/components/UiComponents/BackToListButton";
+import Button from "@/components/UiComponents/Button";
 
 const REG_PRINCIPAL_HISTORY_OWNER = "regPrincipalCreate";
 const REG_PRINCIPAL_HISTORY_STEP_KEY = "regPrincipalStep";
@@ -526,7 +527,7 @@ function RegPrincipalInner() {
 
   return (
     <div className="p-6 lg:p-10 max-w-5xl mx-auto space-y-8">
-      <Button
+      <BackToListButton
         onClick={async () => {
           if (isRegistrationComplete) {
             await confirmDiscardAndRun(
@@ -538,11 +539,9 @@ function RegPrincipalInner() {
 
           await confirmDiscardAndRun(() => navigate("/employees/principal"));
         }}
-        color="blue"
-        className="mb-8 rounded-full px-6 py-2"
-      >
-        <HiArrowLeft /> Back To List
-      </Button>
+        label="Back To List"
+        className="mb-8"
+      />
       <div className="border border-gray-200 overflow-hidden">
         <StepperHeader
           steps={steps}
@@ -641,19 +640,8 @@ function RegPrincipalInner() {
               </div>
 
               <div className="flex justify-center gap-4 pt-4">
-                <button
-                  className="px-6 py-2 rounded-full bg-gray-600 dark:bg-gray-700 text-white hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors font-semibold"
-                  onClick={resetRegistration}
-                >
-                  New Registration
-                </button>
-
-                <button
-                  className="px-6 py-2 rounded-full bg-blue-600 dark:bg-blue-700 text-white hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-semibold"
-                  onClick={handleDownloadProfile}
-                >
-                  Download Profile
-                </button>
+                <Button variant="secondary" onClick={resetRegistration}>New Registration</Button>
+                <Button variant="primary" onClick={handleDownloadProfile}>Download Profile</Button>
               </div>
             </div>
           )}

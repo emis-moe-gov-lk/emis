@@ -20,7 +20,6 @@
 "use client";
 import { useState, useContext, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "flowbite-react";
 import {
   TeacherFormContext,
   TeacherFormProvider,
@@ -31,13 +30,15 @@ import StepNavigation from "@/components/teacher/StepNavigation";
 
 import api from "@/api/axios";
 import toast from "react-hot-toast";
-import { HiCheckCircle, HiArrowLeft } from "react-icons/hi";
+import { HiCheckCircle } from "react-icons/hi";
 import StepNICVerification from "../../components/dos/steps/StepNICVerification";
 import StepPersonalDetails from "../../components/dos/steps/StepPersonalDetails";
 import StepContactDetails from "../../components/dos/steps/StepContactDetails";
 import StepFirstAppointment from "../../components/dos/steps/StepFirstAppointment";
 import StepCurrentAppointment from "../../components/dos/steps/StepCurrentAppointment";
 import { useAuthUser } from "@/context/useAuthUser";
+import BackToListButton from "@/components/UiComponents/BackToListButton";
+import Button from "@/components/UiComponents/Button";
 
 /**
  * Step configuration for the DOS registration form.
@@ -376,9 +377,7 @@ function RegDosInner() {
   return (
     <div className="p-6 lg:p-10 max-w-5xl mx-auto space-y-8">
       {/* Back button - navigates to DOS officers list */}
-      <Button onClick={handleBackToList} color="blue" className="mb-8 rounded-full px-6 py-2">
-        <HiArrowLeft /> Back To List
-      </Button>
+      <BackToListButton onClick={handleBackToList} label="Back To List" className="mb-8" />
 
       {/* Main form container with stepper */}
       <div className="border border-gray-200 overflow-hidden rounded-lg">
@@ -447,8 +446,8 @@ function RegDosInner() {
 
               {/* Completion actions: New Registration or Download Profile */}
               <div className="flex justify-center gap-4 pt-4">
-                <button className="px-6 py-2 rounded-full bg-gray-600 text-white hover:bg-gray-700 transition-colors" onClick={resetRegistration}>New Registration</button>
-                <button className="px-6 py-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors">Download Profile</button>
+                <Button variant="secondary" onClick={resetRegistration}>New Registration</Button>
+                <Button variant="primary">Download Profile</Button>
               </div>
             </div>
           )}

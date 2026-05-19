@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { HiArrowLeft, HiDocumentText, HiPlus } from "react-icons/hi";
+import { HiDocumentText, HiPlus } from "react-icons/hi";
 import { Badge, Spinner } from "flowbite-react";
 import { getDosAdmin } from "@/api/deoOfficerService";
 import ProfileDataTable from "@/components/common/ProfileDataTable";
+import BackToListButton from "@/components/UiComponents/BackToListButton";
 
 const formatDate = (value) => {
   if (!value) return null;
@@ -108,13 +109,7 @@ export default function DosAdminProfile() {
     <div className="space-y-5">
       {/* Back link */}
       <div className="pt-1">
-        <button
-          onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50"
-        >
-          <HiArrowLeft className="h-4 w-4" />
-          Back to List
-        </button>
+        <BackToListButton onClick={() => navigate(-1)} label="Back to List" />
       </div>
 
       {/* Header strip */}

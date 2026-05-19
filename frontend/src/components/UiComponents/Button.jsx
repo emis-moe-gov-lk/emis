@@ -8,24 +8,49 @@ const widthClasses = {
   lg: "w-56",
 };
 
-const Button = ({ text, icon, width = "auto" }) => {
+const variantClasses = {
+  primary:
+    "text-white bg-blue-600 hover:bg-blue-700 shadow-sm",
+  secondary:
+    "text-gray-700 bg-white border border-gray-300 hover:bg-gray-50",
+  ghost:
+    "text-blue-700 bg-transparent hover:bg-blue-50",
+  danger:
+    "text-white bg-red-600 hover:bg-red-700 shadow-sm",
+};
+
+const sizeClasses = {
+  sm: "px-3 py-1.5 text-sm",
+  md: "px-4 py-2 text-sm",
+  lg: "px-5 py-3 text-base",
+};
+
+const Button = ({
+  text,
+  children,
+  icon,
+  width = "auto",
+  variant = "primary",
+  size = "md",
+  className = "",
+  type = "button",
+  ...props
+}) => {
   return (
     <button
+      type={type}
       className={`
-        flex items-center justify-center gap-2
-        rounded-full px-4 py-3 text-sm font-semibold
-        text-white
-        border-2 border-white/40
-        bg-gradient-to-r from-blue-600 to-indigo-700
-        shadow-md shadow-blue-500/30
-        transition-all duration-300
-        hover:border-white hover:shadow-lg
-        focus:outline-none focus:ring-2 focus:ring-indigo-400
-        ${widthClasses[width]}
+        inline-flex items-center justify-center gap-2 rounded-full font-semibold
+        transition-colors focus:outline-none focus:ring-2 focus:ring-blue-300
+        ${variantClasses[variant] || variantClasses.primary}
+        ${sizeClasses[size] || sizeClasses.md}
+        ${widthClasses[width] || widthClasses.auto}
+        ${className}
       `}
+      {...props}
     >
-      <span className="text-white text-lg flex items-center">{icon}</span>
-      {text}
+      {icon ? <span className="flex items-center">{icon}</span> : null}
+      {children || text}
     </button>
   );
 };

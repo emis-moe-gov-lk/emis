@@ -9,6 +9,7 @@ import {
 
 import Can from "@/components/common/Can";
 import { PermissionGroups } from "@/data/permissionGroups";
+import Button from "@/components/UiComponents/Button";
 
 export default function VersionPage() {
   const [versions, setVersions] = useState([]);
@@ -243,13 +244,15 @@ export default function VersionPage() {
         </div>
 
         <Can permission={PermissionGroups.SETTINGS.VERSION_ADD}>
-          <button
+          <Button
             onClick={handleNewVersionClick}
-            className="flex items-center gap-2 px-5 py-2 bg-blue-600 text-white rounded-lg"
+            variant="secondary"
+            size="md"
+            className="rounded-xl px-5"
           >
             <Plus className="w-4 h-4" />
             New Version
-          </button>
+          </Button>
         </Can>
       </div>
 
