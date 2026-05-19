@@ -2,7 +2,7 @@
 hostname = "$env{IS_HOSTNAME}"
 node_ip = "127.0.0.1"
 offset = 1
-base_path = "https://$ref{server.hostname}"
+base_path = "https://$ref{server.hostname}:${carbon.management.port}"
 
 [transport_https.properties]
 proxyHost = "$env{IS_PROXY_HOST}"
@@ -28,6 +28,9 @@ type = "mysql"
 url = "jdbc:mysql://$env{IS_DB_HOST}:$env{IS_DB_PORT}/$env{IS_DB_SHARED}?useSSL=false&amp;allowPublicKeyRetrieval=true&amp;autoReconnect=true"
 username = "$env{IS_DB_WSO2USER_USERNAME}"
 password = "$env{IS_DB_WSO2USER_PASSWORD}"
+
+[agent_identity]
+enabled = false
 
 # --- Keystores ---
 [keystore.primary]
