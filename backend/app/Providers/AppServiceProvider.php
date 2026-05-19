@@ -46,6 +46,13 @@ class AppServiceProvider extends ServiceProvider
             URL::forceScheme('https');
         }
 
+        Scramble::configure()
+            ->useConfig(config('scramble'))
+            ->expose(
+                ui: 'api/docs/api',
+                document: 'api/docs/api.json',
+            );
+
         Scramble::afterOpenApiGenerated(function (OpenApi $openApi) {
             $openApi->secure(
                 SecurityScheme::http('bearer', 'JWT')
@@ -53,7 +60,8 @@ class AppServiceProvider extends ServiceProvider
         });
 
         Scramble::routes(function (Route $route) {
-            return str_starts_with($route->uri, 'api/');
+            return str_starts_with($route->uri, 'api/')
+                && ! str_starts_with($route->uri, 'api/docs/');
         });
     }
 }
