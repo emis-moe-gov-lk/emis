@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { NavLink, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useAuthContext } from "@asgardeo/auth-react";
 import {
-  HiArrowLeft,
   HiDocumentText,
   HiPencilAlt,
   HiCheckCircle,
@@ -23,6 +22,8 @@ import DarkSafeModal, {
 } from "@/components/common/DarkSafeModal";
 import Can from "@/components/common/Can";
 import { PermissionGroups } from "@/data/permissionGroups";
+import BackToListButton from "@/components/UiComponents/BackToListButton";
+import UIButton from "@/components/UiComponents/Button";
 
 /**
  * Principal Profile (Finalized Style)
@@ -780,13 +781,7 @@ const PrincipalProfile = () => {
     <div className="space-y-5">
       {/* Back link (top) */}
       <div className="pt-1">
-        <NavLink
-          to="/employees/principal"
-          className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50"
-        >
-          <HiArrowLeft className="h-4 w-4" />
-          Back to Principal List
-        </NavLink>
+        <BackToListButton to="/employees/principal" label="Back to Principal List" />
       </div>
 
       {/* Header strip (finalized style) */}
@@ -844,7 +839,7 @@ const PrincipalProfile = () => {
               {tabs.map((t) => {
                 const active = activeTab === t.id;
                 return (
-                  <button
+                  <UIButton
                     key={t.id}
                     onClick={() => setActiveTab(t.id)}
                     className={[
@@ -863,7 +858,7 @@ const PrincipalProfile = () => {
                         active ? "bg-white/90" : "bg-transparent",
                       ].join(" ")}
                     />
-                  </button>
+                  </UIButton>
                 );
               })}
             </div>
@@ -1005,20 +1000,22 @@ function HeaderStrip({ principal, onDownloadDocument, isDownloadingDocument }) {
           {/* RIGHT: Actions */}
           <div className="flex flex-col sm:flex-row xl:flex-col gap-3 min-w-[200px]">
             <Can permission={PermissionGroups.SCHOOLS.EDIT_REQUEST}>
-              <button className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm font-bold text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm">
+              <UIButton variant="secondary" size="md" className="flex-1">
                 <HiPencilAlt className="h-4 w-4 text-blue-600" />
                 Send Edit Request
-              </button>
+              </UIButton>
             </Can>
 
-            <button
+            <UIButton
               onClick={onDownloadDocument}
               disabled={isDownloadingDocument}
-              className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed transition-all shadow-md shadow-blue-200 dark:shadow-none"
+              variant="primary"
+              size="md"
+              className="flex-1"
             >
               <HiDocumentText className="h-4 w-4" />
               {isDownloadingDocument ? "Preparing PDF..." : "Get Document"}
-            </button>
+            </UIButton>
           </div>
         </div>
       </div>
@@ -1124,26 +1121,29 @@ function VerifyStrip({
         {/* Right: Action */}
         <div className="flex flex-wrap items-center gap-2">
           {!hideRejectAction && !isVerified && !showUpdateAction && (
-            <button
+            <UIButton
               onClick={onReject}
               type="button"
               disabled={isRejecting}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-white px-5 py-2 text-sm font-black text-rose-700 hover:bg-rose-50 transition-all shadow-sm disabled:cursor-not-allowed disabled:opacity-70"
+              variant="danger"
+              size="md"
             >
               <HiX className="h-4 w-4" />
               {isRejecting ? "Rejecting..." : "Reject"}
-            </button>
+            </UIButton>
           )}
 
           {!hideVerifyAction && (
-            <button
+            <UIButton
               onClick={onVerify}
               disabled={isVerifying}
+              variant="primary"
+              size="md"
               className={buttonClass}
             >
               <HiCheckCircle className="h-4 w-4" />
               {buttonLabel}
-            </button>
+            </UIButton>
           )}
         </div>
       </div>
@@ -1163,22 +1163,24 @@ function RejectReasonModal({
 
   const footerContent = (
     <>
-      <button
+      <UIButton
         type="button"
         onClick={onClose}
         disabled={isRejecting}
-        className={darkSafeButtonClasses.cancel}
+        variant="secondary"
+        size="md"
       >
         Cancel
-      </button>
-      <button
+      </UIButton>
+      <UIButton
         type="button"
         onClick={onSubmit}
         disabled={isRejecting}
-        className={darkSafeButtonClasses.danger}
+        variant="danger"
+        size="md"
       >
         {isRejecting ? "Rejecting..." : "Submit Rejection"}
-      </button>
+      </UIButton>
     </>
   );
 
@@ -1220,22 +1222,24 @@ function UpdateCommentModal({
 
   const footerContent = (
     <>
-      <button
+      <UIButton
         type="button"
         onClick={onClose}
         disabled={isSubmitting}
-        className={darkSafeButtonClasses.cancel}
+        variant="secondary"
+        size="md"
       >
         Cancel
-      </button>
-      <button
+      </UIButton>
+      <UIButton
         type="button"
         onClick={onSubmit}
         disabled={isSubmitting}
-        className={darkSafeButtonClasses.warning}
+        variant="primary"
+        size="md"
       >
         {isSubmitting ? "Updating..." : "Update Details"}
-      </button>
+      </UIButton>
     </>
   );
 
@@ -1322,18 +1326,15 @@ function FieldCell({ label, value, span = 1 }) {
 }
 
 function RoundedActionButton({ icon: Icon, children, onClick, variant = "outline" }) {
-  const base =
-    "inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-black transition-all duration-200 shadow-sm";
-  const styles =
-    variant === "primary"
-      ? "bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md"
-      : "border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-blue-200 dark:hover:border-blue-800";
-
   return (
-    <button onClick={onClick} className={`${base} ${styles}`}>
-      {Icon ? <Icon className="h-4 w-4 text-blue-500" /> : null}
+    <UIButton
+      onClick={onClick}
+      variant={variant === "primary" ? "primary" : "secondary"}
+      className="rounded-xl text-sm font-black"
+      icon={Icon ? <Icon className="h-4 w-4" /> : null}
+    >
       {children}
-    </button>
+    </UIButton>
   );
 }
 

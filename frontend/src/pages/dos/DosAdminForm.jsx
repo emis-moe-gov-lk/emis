@@ -37,8 +37,9 @@ import StepCurrentAppointment from "@/components/dosAdmin/steps/StepCurrentAppoi
 
 import api from "@/api/axios";
 import toast from "react-hot-toast";
-import { HiCheckCircle, HiArrowLeft } from "react-icons/hi";
+import { HiCheckCircle } from "react-icons/hi";
 import { useAuthUser } from "@/context/useAuthUser";
+import BackToListButton from "@/components/UiComponents/BackToListButton";
 
 /**
  * History state management constants
@@ -515,9 +516,7 @@ function DosAdminFormInner() {
   return (
     <div className="p-6 lg:p-10 max-w-5xl mx-auto space-y-8">
       {/* Back button */}
-      <Button onClick={handleBackToList} color="blue" className="mb-8 rounded-full px-6 py-2">
-        <HiArrowLeft /> Back To List
-      </Button>
+      <BackToListButton onClick={handleBackToList} label="Back To List" className="mb-8" />
 
       {/* Main form container */}
       <div className="border border-gray-200 overflow-hidden rounded-lg">

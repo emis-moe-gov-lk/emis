@@ -4,7 +4,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Badge, Button, Spinner, Tooltip } from "flowbite-react";
 import {
-  HiArrowLeft,
   HiLocationMarker,
   HiCalendar,
   HiOfficeBuilding,
@@ -22,6 +21,7 @@ import { motion } from "framer-motion";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import api from "@/api/axios";
+import BackToListButton from "@/components/UiComponents/BackToListButton";
 
 import Can from "@/components/common/Can";
 import { PermissionGroups } from "@/data/permissionGroups";
@@ -280,9 +280,7 @@ export default function InstitutionProfile() {
         <h2 className="text-xl font-bold text-gray-700 dark:text-gray-300">
           School not found
         </h2>
-        <Button className="mt-4 rounded-full" onClick={() => navigate(-1)}>
-          Go Back
-        </Button>
+        <BackToListButton className="mt-4" onClick={() => navigate(-1)} label="Go Back" />
       </div>
     );
   }
@@ -296,15 +294,7 @@ export default function InstitutionProfile() {
     >
       {/* Back */}
       <motion.div variants={fadeUp}>
-        <Button
-          color="blue"
-          size="sm"
-          onClick={() => navigate(-1)}
-          className="rounded-full shadow-sm hover:shadow-md transition-shadow"
-        >
-          <HiArrowLeft className="mr-2 h-4 w-4" />
-          Back to List
-        </Button>
+        <BackToListButton onClick={() => navigate(-1)} label="Back to List" />
       </motion.div>
 
       {/* HEADER (match your sample: light, no black) */}

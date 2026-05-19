@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { Badge, Button, Spinner, TextInput } from "flowbite-react";
+import { Badge, Spinner, TextInput } from "flowbite-react";
 import {
   HiOfficeBuilding,
   HiLocationMarker,
@@ -14,6 +14,7 @@ import { NavLink } from "react-router-dom";
 
 import Can from "@/components/common/Can";
 import { PermissionGroups } from "@/data/permissionGroups";
+import Button from "@/components/UiComponents/Button";
 
 export default function InstitutionIndex() {
   const navigate = useNavigate();
@@ -90,12 +91,10 @@ export default function InstitutionIndex() {
         </div>
 
         <Can permission={PermissionGroups.INSTITUTION.CREATE}>
-          <NavLink
-            to="/institution/create"
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-          >
-            <HiPlus />
-            Create Institution
+          <NavLink to="/institution/create">
+            <Button variant="secondary" icon={<HiPlus />}>
+              Create Institution
+            </Button>
           </NavLink>
         </Can>
       </div>
@@ -213,19 +212,19 @@ export default function InstitutionIndex() {
 
           <div className="flex gap-2 order-1 sm:order-2 w-full sm:w-auto">
             <Button
-              color="gray"
+              variant="secondary"
               disabled={page === 1}
               onClick={() => setPage(page - 1)}
-              className="flex-1 sm:flex-none border-gray-200 dark:border-gray-700 shadow-sm enabled:hover:text-blue-600"
+              className="flex-1 sm:flex-none"
             >
               <HiChevronLeft className="w-5 h-5 mr-1" />
               Previous
             </Button>
             <Button
-              color="gray"
+              variant="secondary"
               disabled={page === lastPage}
               onClick={() => setPage(page + 1)}
-              className="flex-1 sm:flex-none border-gray-200 dark:border-gray-700 shadow-sm enabled:hover:text-blue-600"
+              className="flex-1 sm:flex-none"
             >
               Next
               <HiChevronRight className="w-5 h-5 ml-1" />
