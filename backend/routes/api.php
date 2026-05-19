@@ -152,12 +152,12 @@ Route::prefix('')->group(function () {
         Route::get('/employer-appointment-reject-comments/profile/{people_id}', 'rejectCommentsByProfile');
         Route::patch('/employer-appointment-reject-comments/{id}', 'updateRejectComment');
         Route::patch('/teachers/{people_id}/verify', 'verify');
-        Route::patch('/teachers/{people_id}/confirm', 'confirm');
-        Route::patch('/principals/{people_id}/confirm', 'confirm');
+        Route::patch('/teachers/{people_id}/confirm', 'confirm')->name('teachers.confirm');
+        Route::patch('/principals/{people_id}/confirm', 'confirm')->name('principals.confirm');
         Route::patch('/teachers/{people_id}/promote', 'promote');
         Route::patch('/teachers/{people_id}/reject', 'reject');
-        Route::patch('/teachers/{people_id}/update', 'updateRejectedStatus');
-        Route::patch('/teachers/{people_id}/rejected-status', 'updateRejectedStatus');
+        Route::patch('/teachers/{people_id}/rejected-status', 'updateRejectedStatus')->name('teachers.rejected-status');
+        Route::patch('/principals/{people_id}/rejected-status', 'updateRejectedStatus')->name('principals.rejected-status');
     });
 
 
