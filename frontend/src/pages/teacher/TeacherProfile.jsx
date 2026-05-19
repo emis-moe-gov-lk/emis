@@ -486,6 +486,7 @@ const TeacherProfile = () => {
         tempAddress: [d.t_address_line1, d.t_address_line2, d.t_address_line3]
           .filter(Boolean)
           .join("\n"),
+        tempPostalCode: d.t_postal_code,
       });
 
       /* ---------------------------
@@ -522,6 +523,9 @@ const TeacherProfile = () => {
           positionDesignation:
             d.appointment?.position?.position_name ??
             d.appointment?.position_id,
+          workplaceNameAddress: d.appointment?.workplace?.institution
+            ? `[${d.appointment.workplace.institution.census_no}] ${d.appointment.workplace.institution.name}\n${d.appointment.workplace.institution.address}`
+            : "",
           createdAt: formatDate(d.appointment?.created_at),
         },
         teachingInfo: {
@@ -530,7 +534,7 @@ const TeacherProfile = () => {
           medium: d.teacher?.medium?.name,
           appointmentSubject: d.teacher?.appointment_subject?.name_en,
           mainTeachingSubject: d.teacher?.main_subject?.name_en,
-          secondarySubjectOptional: d.teacher?.secondary_subject?.name_en,
+          secondarySubjectOptional: d.teacher?.secondary_subject?.name_en ?? d.teacher?.secondary_subject,
           currentTeachingSubjectAssignedBySchool:
             d.teacher?.current_teaching_subject?.name_en,
         },
@@ -1858,28 +1862,16 @@ function GeneralTab({ teacher, onEdit }) {
           </Can>
         }
       >
-        <div className="grid grid-cols-1 gap-3">
-          {/* <div className="rounded-2xl border px-4 py-3 bg-white">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-              Residential Address
-            </div>
-            <div className="mt-0.5 text-sm font-extrabold text-gray-900 whitespace-pre-line">
-              {teacher.tempAddress || "—"}
-          </RoundedActionButton>
-        }
-      >
-        <div className="grid grid-cols-1 gap-3">
-          {/* <div className="rounded-2xl border px-4 py-3 bg-white">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-              Residential Address
-            </div>
-            <div className="mt-0.5 text-sm font-extrabold text-gray-900 whitespace-pre-line">
-              {teacher.tempAddress || "—"}
-            </div>
-          </div> */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="md:col-span-2">
+            <FieldCell
+              label="Residential Address"
+              value={teacher.tempAddress || "—"}
+            />
+          </div>
           <FieldCell
-            label=" Residential Address"
-            value={teacher.tempAddress || "—"}
+            label="Postal Code"
+            value={teacher.tempPostalCode || "—"}
           />
         </div>
       </ColorSection>
