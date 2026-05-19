@@ -2,7 +2,7 @@
 hostname = "$env{IS_HOSTNAME}"
 node_ip = "127.0.0.1"
 offset = 1
-base_path = "https://$ref{server.hostname}:${carbon.management.port}"
+base_path = "https://$ref{server.hostname}"
 
 [transport_https.properties]
 proxyHost = "$env{IS_PROXY_HOST}"
