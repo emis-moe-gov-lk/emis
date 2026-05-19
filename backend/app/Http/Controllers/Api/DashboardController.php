@@ -276,6 +276,7 @@ class DashboardController extends Controller
     {
         $officeLevelId   = $workplace->office_level_id;
         $childWorkplaces = $workplace->getAllChildWorkplaces();
+        $geoScope        = $this->resolveZoneAndProvince($workplace);
 
         $institutionCount = Institution::whereIn('workplace_id', $childWorkplaces)->active()->count();
         $teacherCount     = Teacher::whereHas('currentAppointment', function ($q) use ($childWorkplaces) {
@@ -355,23 +356,20 @@ class DashboardController extends Controller
                 'institution_count' => $institutionCount,
                 'teacher_count'     => $teacherCount,
             ],
+            'zone'             => $geoScope['zone'],
+            'province'         => $geoScope['province'],
             'office_breakdown' => $breakdown,
         ];
     }
 
     private function deoOfficerData(Workplaces $workplace, int $institutionCount, int $teacherCount): array
     {
+        $geoScope = $this->resolveZoneAndProvince($workplace);
         $deo = DivisionalEducationOffice::where('workplace_id', $workplace->workplace_id)->first();
 
-        $zoneInfo      = null;
         $zoneBreakdown = collect();
 
         if ($deo && $deo->zeo_wp_id) {
-            $zeo      = ZonalEducationOffice::where('workplace_id', $deo->zeo_wp_id)->first();
-            $zoneInfo = $zeo
-                ? ['name' => $zeo->name, 'workplace_id' => $zeo->workplace_id]
-                : null;
-
             $zoneBreakdown = DivisionalEducationOffice::query()
                 ->where('divisional_education_offices.zeo_wp_id', $deo->zeo_wp_id)
                 ->leftJoin('institutions', 'institutions.deo_wp_id', '=', 'divisional_education_offices.workplace_id')
@@ -396,8 +394,59 @@ class DashboardController extends Controller
                 'institution_count' => $institutionCount,
                 'teacher_count'     => $teacherCount,
             ],
-            'zone'             => $zoneInfo,
+            'zone'             => $geoScope['zone'],
+            'province'         => $geoScope['province'],
             'office_breakdown' => $zoneBreakdown,
+        ];
+    }
+
+    private function resolveZoneAndProvince(Workplaces $workplace): array
+    {
+        $zoneWorkplaceId = null;
+
+        if ($workplace->office_level_id === 'OLID004') {
+            $zoneWorkplaceId = $workplace->workplace_id;
+        } elseif ($workplace->office_level_id === 'OLID005') {
+            $zoneWorkplaceId = DivisionalEducationOffice::where('workplace_id', $workplace->workplace_id)
+                ->value('zeo_wp_id');
+        } elseif ($workplace->office_level_id === 'OLID006') {
+            $zoneWorkplaceId = Institution::where('workplace_id', $workplace->workplace_id)
+                ->value('zeo_wp_id');
+        }
+
+        if (! $zoneWorkplaceId) {
+            return [
+                'zone' => null,
+                'province' => null,
+            ];
+        }
+
+        $zone = ZonalEducationOffice::query()
+            ->with('district.province')
+            ->where('workplace_id', $zoneWorkplaceId)
+            ->first();
+
+        if (! $zone) {
+            return [
+                'zone' => null,
+                'province' => null,
+            ];
+        }
+
+        $province = $zone->district?->province;
+
+        return [
+            'zone' => [
+                'workplace_id' => $zone->workplace_id,
+                'name' => $zone->name,
+                'short_name' => $zone->short_name,
+            ],
+            'province' => $province
+                ? [
+                    'province_id' => $province->province_id,
+                    'province_name' => $province->province_name,
+                ]
+                : null,
         ];
     }
 }
