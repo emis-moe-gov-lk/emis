@@ -74,7 +74,7 @@ url = "https://$env{APIM_HOSTNAME}/publisher"
 
 
 # ----------
-#   IDP
+#   IDP - (Internal Portal Authentication)
 # ----------
 
 [apim.key_manager]
