@@ -73,17 +73,17 @@ const FullCalendar = ({ onClose, events = [], show }) => {
 
   return (
     <Modal show={show} onClose={onClose} size="5xl">
-      <div className="p-6 bg-white rounded-2xl shadow-2xl">
+      <div className="p-6 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl">
         {/* HEADER */}
         <div className="flex justify-between items-center mb-6">
           <button
             onClick={prevMonth}
-            className="p-2 rounded-full bg-gray-100 hover:bg-indigo-100 transition"
+            className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/10 transition"
           >
             <IoIosArrowDropleft size={22} />
           </button>
 
-          <h2 className="text-xl font-semibold text-gray-700">
+          <h2 className="text-xl font-semibold text-gray-700 dark:text-white">
             {currentDate.toLocaleDateString("en-US", {
               month: "long",
               year: "numeric",
@@ -92,7 +92,7 @@ const FullCalendar = ({ onClose, events = [], show }) => {
 
           <button
             onClick={nextMonth}
-            className="p-2 rounded-full bg-gray-100 hover:bg-indigo-100 transition"
+            className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/10 transition"
           >
             <IoIosArrowDropright size={22} />
           </button>
@@ -103,7 +103,7 @@ const FullCalendar = ({ onClose, events = [], show }) => {
           {/* LEFT → CALENDAR */}
           <div className="md:col-span-2">
             {/* WEEK DAYS */}
-            <div className="grid grid-cols-7 text-center text-xs font-semibold text-gray-400 mb-3 uppercase">
+            <div className="grid grid-cols-7 text-center text-xs font-semibold text-gray-400 dark:text-gray-400 mb-3 uppercase">
               {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
                 <div key={d}>{d}</div>
               ))}
@@ -121,8 +121,8 @@ const FullCalendar = ({ onClose, events = [], show }) => {
                         ? isSameDay(day, selectedDate)
                           ? "bg-indigo-600 text-white font-bold shadow-md"
                           : isToday(day)
-                            ? "bg-indigo-100 text-indigo-600 font-semibold"
-                            : "hover:bg-gray-100"
+                            ? "bg-indigo-100 text-indigo-600 font-semibold dark:bg-indigo-900/20 dark:text-indigo-200"
+                            : "hover:bg-gray-100 dark:hover:bg-gray-800"
                         : ""
                     }
                   `}
@@ -134,8 +134,8 @@ const FullCalendar = ({ onClose, events = [], show }) => {
           </div>
 
           {/* RIGHT → EVENTS PANEL */}
-          <div className="md:col-span-3 bg-gray-50 rounded-xl p-4 shadow-inner border">
-            <h3 className="text-sm font-semibold text-gray-600 mb-3">
+          <div className="md:col-span-3 bg-gray-50 dark:bg-gray-800 rounded-xl p-4 shadow-inner border dark:border-slate-700">
+            <h3 className="text-sm font-semibold text-gray-600 dark:text-slate-200 mb-3">
               Events on{" "}
               {selectedDate.toLocaleDateString("en-US", {
                 day: "numeric",
@@ -148,15 +148,15 @@ const FullCalendar = ({ onClose, events = [], show }) => {
                 filteredEvents.map((event, idx) => (
                   <div
                     key={idx}
-                    className="p-3 mb-2 rounded-lg bg-white shadow-sm hover:shadow-md transition border"
+                    className="p-3 mb-2 rounded-lg bg-white dark:bg-gray-700 shadow-sm hover:shadow-md transition border dark:border-slate-700"
                   >
-                    <div className="text-xs text-indigo-500 font-semibold">
+                    <div className="text-xs text-indigo-500 font-semibold dark:text-indigo-300">
                       {event.time}
                     </div>
-                    <div className="text-sm font-medium text-gray-700">
+                    <div className="text-sm font-medium text-gray-700 dark:text-slate-200">
                       {event.title}
                     </div>
-                    <div className="text-xs text-gray-400">
+                    <div className="text-xs text-gray-400 dark:text-gray-400">
                       {event.location}
                     </div>
                   </div>

@@ -270,7 +270,7 @@ function WeeklyTimetable() {
 
   return (
     <div className="p-3 sm:p-6">
-      <div className="print-area bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="print-area bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden">
         {/* Print-only header */}
         <div className="print-only hidden print-area-title py-4 px-6 relative">
           <h1 className="text-xl font-bold tracking-wide text-center">
@@ -283,14 +283,14 @@ function WeeklyTimetable() {
         </div>
 
         {/* Screen header */}
-        <div className="no-print px-6 py-4 border-b flex flex-col gap-3">
+        <div className="no-print px-6 py-4 border-b flex flex-col gap-3 dark:border-slate-700">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <div>
-                <h2 className="text-sm font-semibold text-gray-800">
+                <h2 className="text-sm font-semibold text-gray-800 dark:text-white">
                   Weekly Timetable
                 </h2>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-slate-300">
                   {isLocked
                     ? "Unlock to edit timetable"
                     : "Click a day header to toggle holiday"}
@@ -298,12 +298,12 @@ function WeeklyTimetable() {
               </div>
               <Link
                 to="../day"
-                className="hidden sm:inline-flex items-center gap-1.5 text-[13px] font-medium text-gray-500 hover:text-gray-800 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition"
+                className="hidden sm:inline-flex items-center gap-1.5 text-[13px] font-medium text-gray-500 dark:text-slate-300 hover:text-gray-800 dark:hover:text-white px-3 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
               >
                 ← Today
               </Link>
             </div>
-            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
               <Link
                 to="../monthly"
                 className="px-3 py-1.5 rounded-md text-xs font-medium bg-blue-600 text-white hover:bg-blue-500 transition"
@@ -324,7 +324,7 @@ function WeeklyTimetable() {
               </Link>
               <button
                 onClick={() => window.print()}
-                className="hidden sm:inline-flex px-3 py-1.5 rounded-md text-xs font-medium bg-gray-800 text-white hover:bg-gray-700 transition"
+                className="hidden sm:inline-flex px-3 py-1.5 rounded-md text-xs font-medium bg-gray-800 dark:bg-gray-700 text-white hover:bg-gray-700 dark:hover:bg-gray-600 transition"
               >
                 Print
               </button>
@@ -333,7 +333,7 @@ function WeeklyTimetable() {
                 className={`px-3 py-1.5 rounded-md text-xs font-medium transition
                                     ${
                                       isLocked
-                                        ? "bg-gray-100 text-gray-600"
+                                        ? "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-200"
                                         : "bg-violet-600 text-white"
                                     }
                                 `}
@@ -348,9 +348,9 @@ function WeeklyTimetable() {
         {/* Table */}
         <div className="overflow-x-auto snap-x snap-mandatory scroll-pl-[100px] sm:snap-none sm:scroll-pl-0">
           <table className="text-sm sm:w-full sm:table-fixed">
-            <thead className="bg-gray-50 text-gray-600">
+            <thead className="bg-gray-50 dark:bg-gray-900/10 text-gray-600 dark:text-gray-300">
               <tr>
-                <th className="px-4 py-3 text-left w-[100px] sticky left-0 z-10 bg-gray-50 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]">
+                <th className="px-4 py-3 text-left w-[100px] sticky left-0 z-10 bg-gray-50 dark:bg-gray-900/10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]">
                   Time
                 </th>
                 {ALL_DAYS.map((day, index) => {
@@ -359,7 +359,7 @@ function WeeklyTimetable() {
                   const isToday = dayDateISO === todayISO;
                   const holiday = getHoliday(dayDateISO);
                   return (
-                    <th
+                      <th
                       key={day}
                       onClick={async () => {
                         if (isLocked) return;
@@ -378,16 +378,17 @@ function WeeklyTimetable() {
                           alert("Failed to toggle holiday: " + err.message);
                         }
                       }}
-                      className={`px-4 py-3 text-left min-w-[calc(100vw-130px)] sm:min-w-0 sm:w-[160px] snap-start
-                                            ${holiday ? "bg-teal-50 text-teal-600" : ""}
-                                            ${isOff && !holiday ? "bg-red-50 text-red-400" : ""}
-                                            ${isToday && !holiday ? "bg-blue-50" : ""}
-                                            ${!isLocked ? "cursor-pointer hover:bg-teal-100/50" : ""}
-                                        `}
+                        className={`px-4 py-3 text-left min-w-[calc(100vw-130px)] sm:min-w-0 sm:w-[160px] snap-start
+                                  ${holiday ? "bg-teal-50 dark:bg-teal-900/20 text-teal-600 dark:text-teal-300" : ""}
+                                  ${isOff && !holiday ? "bg-red-50 dark:bg-red-900/10 text-red-400 dark:text-red-300" : ""}
+                                  ${isToday && !holiday ? "bg-blue-50 dark:bg-blue-900/10" : ""}
+                                  ${!isLocked ? "cursor-pointer hover:bg-teal-100/50 dark:hover:bg-teal-900/10" : ""}
+                                `}
                     >
                       <div>{day}</div>
                       <div
                         className={`text-[10px] font-normal ${holiday ? "text-teal-500" : isToday ? "text-blue-500" : "text-gray-400"}`}
+                      className={"px-6 py-3 text-sm text-left"}
                       >
                         {formatDateShort(dayDateISO)}
                         {isOff && !holiday && (
@@ -419,13 +420,9 @@ function WeeklyTimetable() {
                         onClick={() => {
                           if (!isLocked) setActivePeriod(period);
                         }}
-                        className={`px-4 py-4 whitespace-nowrap text-gray-500 sticky left-0 z-10 bg-white shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)]
-                                                    ${
-                                                      !isLocked
-                                                        ? "cursor-pointer hover:text-violet-600"
-                                                        : ""
-                                                    }
-                                                `}
+                        className={`px-4 py-4 whitespace-nowrap text-gray-500 dark:text-gray-200 sticky left-0 z-10 bg-white dark:bg-gray-800 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.06)] ${
+                          !isLocked ? "cursor-pointer hover:text-violet-600" : ""
+                        }`}
                       >
                         {period.startTime} – {period.endTime}
                       </td>
@@ -439,7 +436,7 @@ function WeeklyTimetable() {
                           return (
                             <td
                               key={day}
-                              className="px-3 py-3 h-0 min-w-[calc(100vw-130px)] sm:min-w-0 sm:w-[160px] bg-teal-50/40"
+                              className="px-3 py-3 h-0 min-w-[calc(100vw-130px)] sm:min-w-0 sm:w-[160px] bg-teal-50/40 dark:bg-teal-900/10"
                             >
                               <div className="min-h-[95px] h-full rounded-lg border border-teal-200 bg-teal-50 flex flex-col items-center justify-center text-xs gap-1">
                                 <svg
@@ -474,7 +471,7 @@ function WeeklyTimetable() {
                           return (
                             <td
                               key={day}
-                              className="px-3 py-3 h-0 min-w-[calc(100vw-130px)] sm:min-w-0 sm:w-[160px] bg-red-50/40"
+                              className="px-3 py-3 h-0 min-w-[calc(100vw-130px)] sm:min-w-0 sm:w-[160px] bg-red-50/40 dark:bg-red-900/10"
                             >
                               <div
                                 onClick={() => {
@@ -524,14 +521,15 @@ function WeeklyTimetable() {
                                   if (!isLocked) setActiveSlot(slot);
                                   else setSelectedDay(day);
                                 }}
-                                className="rounded-xl p-3 text-xs transition h-full min-h-[95px] cursor-pointer hover:shadow-md"
-                                style={{
-                                  backgroundColor: hasColor
-                                    ? color + "15"
-                                    : "#fff7ed",
-                                  border: `2px solid ${hasColor ? color : "#f97316"}`,
-                                  borderStyle: "solid",
-                                }}
+                                className={`rounded-xl p-3 text-xs transition h-full min-h-[95px] cursor-pointer ${hasColor ? '' : (!isLocked ? 'bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-900' : 'bg-red-50 dark:bg-gray-800 border border-red-200 dark:border-slate-700')}`}
+                                style={
+                                  hasColor
+                                    ? {
+                                        backgroundColor: color + "20",
+                                        border: `1px solid ${color}`,
+                                      }
+                                    : undefined
+                                }
                               >
                                 <div className="flex items-center gap-1 mb-1">
                                   <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-orange-100 text-orange-600">
@@ -654,28 +652,8 @@ function WeeklyTimetable() {
                                       if (!isLocked) setActiveSlot(slot);
                                       else setSelectedDay(day);
                                     }}
-                                    className={`rounded-xl p-3 text-xs transition h-full min-h-[95px] cursor-pointer
-                                                                    ${
-                                                                      !isLocked
-                                                                        ? "hover:shadow-md"
-                                                                        : "hover:opacity-80"
-                                                                    }
-                                                                `}
-                                    style={
-                                      hasColor
-                                        ? {
-                                            backgroundColor: color + "20",
-                                            border: `1px solid ${color}`,
-                                          }
-                                        : {
-                                            backgroundColor: !isLocked
-                                              ? "#ede9fe"
-                                              : "#f9fafb",
-                                            border: !isLocked
-                                              ? "1px solid #a78bfa"
-                                              : "1px solid #e5e7eb",
-                                          }
-                                    }
+                                    className={`rounded-xl p-3 text-xs transition h-full min-h-[95px] cursor-pointer ${!isLocked ? 'hover:shadow-md' : 'hover:opacity-80'} ${hasColor ? '' : (!isLocked ? 'bg-violet-50 dark:bg-violet-900/10 border border-violet-200 dark:border-violet-900' : 'bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-slate-700')}`}
+                                    style={hasColor ? { backgroundColor: color + "20", border: `1px solid ${color}` } : undefined}
                                   >
                                     <div className="flex items-center justify-between gap-2">
                                       <p
@@ -929,10 +907,10 @@ function WeeklyTimetable() {
           onClick={() => setSelectedDay(null)}
         >
           <div
-            className="bg-gray-50 w-full max-w-lg max-h-[90vh] rounded-2xl shadow-xl flex flex-col overflow-hidden"
+            className="bg-white dark:bg-gray-800 w-full max-w-lg max-h-[90vh] rounded-2xl shadow-xl flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-5 py-4 border-b bg-white flex items-center justify-between shrink-0">
+            <div className="px-5 py-4 border-b bg-white dark:bg-gray-900/10 flex items-center justify-between shrink-0">
               <div>
                 <h3 className="text-sm font-semibold text-gray-800">
                   {selectedDay}'s Schedule

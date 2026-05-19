@@ -1200,8 +1200,8 @@ const TeacherProfile = () => {
                   className={[
                     "w-full text-left px-4 py-3 rounded-xl text-sm transition flex items-center justify-between group",
                     isPromoting
-                      ? "bg-white-500 text-white shadow-md"
-                      : "bg-white-600 text-black hover:bg-emerald-700 shadow-md",
+                      ? "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-200 shadow-md"
+                      : "bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 hover:bg-emerald-700 dark:hover:bg-emerald-600 shadow-md",
                   ].join(" ")}
                 >
                   <span className="font-semibold">+ Promote to Principal</span>

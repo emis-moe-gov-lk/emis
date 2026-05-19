@@ -100,16 +100,16 @@ function MonthlyTimetable() {
 
   return (
     <div className="p-3 sm:p-6">
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden">
         {/* Header */}
         <div className="px-4 sm:px-6 py-4 border-b flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
-            <h2 className="text-sm font-semibold text-gray-800">
+            <h2 className="text-sm font-semibold text-gray-800 dark:text-white">
               Monthly Overview
             </h2>
             <Link
               to="../weekly"
-              className="text-[13px] font-medium text-gray-500 hover:text-gray-800 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition"
+              className="text-[13px] font-medium text-gray-500 dark:text-slate-300 hover:text-gray-800 dark:hover:text-white px-3 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
             >
               ← Week View
             </Link>
@@ -119,17 +119,17 @@ function MonthlyTimetable() {
             <button
               onClick={prevMonth}
               disabled={loading}
-              className="w-7 h-7 flex items-center justify-center rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-40 text-sm font-bold transition"
+              className="w-7 h-7 flex items-center justify-center rounded-md bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-40 text-sm font-bold transition"
             >
               &#8592;
             </button>
-            <span className="text-sm font-semibold text-gray-700 min-w-[140px] text-center">
+            <span className="text-sm font-semibold text-gray-700 dark:text-white min-w-[140px] text-center">
               {monthLabel}
             </span>
             <button
               onClick={nextMonth}
               disabled={loading}
-              className="w-7 h-7 flex items-center justify-center rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-40 text-sm font-bold transition"
+              className="w-7 h-7 flex items-center justify-center rounded-md bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-40 text-sm font-bold transition"
             >
               &#8594;
             </button>
@@ -154,7 +154,7 @@ function MonthlyTimetable() {
         <div className="overflow-x-auto">
           <div className="min-w-[600px]">
             {/* Day-of-week headers */}
-            <div className="grid grid-cols-7 border-b bg-gray-50">
+            <div className="grid grid-cols-7 border-b bg-gray-50 dark:bg-gray-900/10">
               {SHORT_DAYS.map((d) => (
                 <div
                   key={d}
@@ -182,7 +182,7 @@ function MonthlyTimetable() {
                                             ${!dayInfo.isCurrentMonth ? "bg-gray-50/60 opacity-50" : ""}
                                             ${holiday ? "bg-teal-50/40" : ""}
                                             ${isOff && dayInfo.isCurrentMonth && !holiday ? "bg-red-50/30" : ""}
-                                            ${isToday ? "ring-2 ring-inset ring-blue-400 bg-blue-50/20" : ""}
+                                            ${isToday ? "ring-2 ring-inset ring-blue-400 bg-blue-50/20 dark:bg-blue-900/20" : ""}
                                         `}
                   >
                     <div
