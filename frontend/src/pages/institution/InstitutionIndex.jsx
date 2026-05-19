@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { Badge, Spinner, TextInput } from "flowbite-react";
+import { Badge, Select, Spinner, TextInput } from "flowbite-react";
 import {
   HiOfficeBuilding,
   HiLocationMarker,
@@ -25,13 +25,58 @@ export default function InstitutionIndex() {
   const [loading, setLoading] = useState(false);
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState("");
+  const [filters, setFilters] = useState({
+    authorityId: "",
+    peoWpId: "",
+    zeoWpId: "",
+    deoWpId: "",
+    activeStatus: "",
+  });
+  const [filterOptions, setFilterOptions] = useState({
+    authorities: [],
+    provinces: [],
+    zones: [],
+    divisions: [],
+  });
 
-  const fetchInstitutions = async (pageNumber = 1) => {
+  useEffect(() => {
+    api.get("/institutions/filters").then((res) => {
+      setFilterOptions((prev) => ({ ...prev, ...res.data.data }));
+    });
+  }, []);
+
+  const visibleZones = filters.peoWpId
+    ? filterOptions.zones.filter((z) => z.peo_wp_id === filters.peoWpId)
+    : filterOptions.zones;
+
+  const visibleDivisions = filters.zeoWpId
+    ? filterOptions.divisions.filter((d) => d.zeo_wp_id === filters.zeoWpId)
+    : filterOptions.divisions;
+
+  const updateFilter = (key, value) => {
+    setFilters((current) => {
+      const next = { ...current, [key]: value };
+      if (key === "peoWpId") { next.zeoWpId = ""; next.deoWpId = ""; }
+      if (key === "zeoWpId") { next.deoWpId = ""; }
+      return next;
+    });
+  };
+
+  const fetchInstitutions = useCallback(async (pageNumber = 1) => {
     setLoading(true);
     try {
-      const response = await api.get(
-        `/institutions?page=${pageNumber}&search=${search}`,
-      );
+      const params = new URLSearchParams({ page: pageNumber });
+
+      if (search.trim()) params.set("search", search.trim());
+      if (filters.authorityId) params.set("authority_id", filters.authorityId);
+      if (filters.peoWpId) params.set("peo_wp_id", filters.peoWpId);
+      if (filters.zeoWpId) params.set("zeo_wp_id", filters.zeoWpId);
+      if (filters.deoWpId) params.set("deo_wp_id", filters.deoWpId);
+      if (filters.activeStatus) {
+        params.set("active_status", filters.activeStatus);
+      }
+
+      const response = await api.get(`/institutions?${params.toString()}`);
       const payload = response.data.data;
 
       setInstitutions(payload.data);
@@ -44,18 +89,22 @@ export default function InstitutionIndex() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters, search]);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
+      setPage(1);
       fetchInstitutions(1);
     }, 500);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [search]);
+  }, [fetchInstitutions, search, filters]);
 
   useEffect(() => {
+    if (page === 1) return;
     fetchInstitutions(page);
+    // Page changes should use the latest debounced search/filter state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
   return (
@@ -78,8 +127,70 @@ export default function InstitutionIndex() {
       </div>
 
       {/* Search and Filters */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="w-full sm:max-w-md">
+      <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
+          <Select
+            aria-label="Filter by authority"
+            value={filters.authorityId}
+            onChange={(e) => updateFilter("authorityId", e.target.value)}
+          >
+            <option value="">All Authorities</option>
+            {filterOptions.authorities.map((a) => (
+              <option key={a.authority_id} value={a.authority_id}>
+                {a.authority_name}
+              </option>
+            ))}
+          </Select>
+
+          <Select
+            aria-label="Filter by province"
+            value={filters.peoWpId}
+            onChange={(e) => updateFilter("peoWpId", e.target.value)}
+          >
+            <option value="">All Provinces</option>
+            {filterOptions.provinces.map((p) => (
+              <option key={p.workplace_id} value={p.workplace_id}>
+                {p.short_name}
+              </option>
+            ))}
+          </Select>
+
+          <Select
+            aria-label="Filter by zonal office"
+            value={filters.zeoWpId}
+            onChange={(e) => updateFilter("zeoWpId", e.target.value)}
+          >
+            <option value="">All Zonal Offices</option>
+            {visibleZones.map((z) => (
+              <option key={z.workplace_id} value={z.workplace_id}>
+                {z.short_name}
+              </option>
+            ))}
+          </Select>
+
+          <Select
+            aria-label="Filter by divisional office"
+            value={filters.deoWpId}
+            onChange={(e) => updateFilter("deoWpId", e.target.value)}
+          >
+            <option value="">All Divisional Offices</option>
+            {visibleDivisions.map((d) => (
+              <option key={d.workplace_id} value={d.workplace_id}>
+                {d.name}
+              </option>
+            ))}
+          </Select>
+
+          <Select
+            aria-label="Filter by status"
+            value={filters.activeStatus}
+            onChange={(e) => updateFilter("activeStatus", e.target.value)}
+          >
+            <option value="">Any Status</option>
+            <option value="1">Active</option>
+            <option value="0">Inactive</option>
+          </Select>
+
           <TextInput
             id="search"
             type="text"
@@ -89,7 +200,9 @@ export default function InstitutionIndex() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+      </div>
 
+      <div className="flex justify-end">
         <Can permission={PermissionGroups.INSTITUTION.CREATE}>
           <NavLink to="/institution/create">
             <Button variant="secondary" icon={<HiPlus />}>
