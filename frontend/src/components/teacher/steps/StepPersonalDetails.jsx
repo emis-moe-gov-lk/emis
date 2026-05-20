@@ -7,6 +7,20 @@ export default function StepPersonalDetails({
   setFormData,
   onValid, // optional: used by parent to enable Next
 }) {
+  const [hasAttempted, setHasAttempted] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({});
+  const [displayErrors, setDisplayErrors] = useState({});
+
+  // Expose validation trigger to parent via window
+  useEffect(() => {
+    window.__triggerPersonalDetailsValidation = () => {
+      setHasAttempted(true);
+    };
+    return () => {
+      delete window.__triggerPersonalDetailsValidation;
+    };
+  }, []);
+
   const ENGLISH_NAME_REGEX = /^[A-Za-z ]+$/;
   const pad2 = (num) => String(num).padStart(2, "0");
   const formatDate = (date) => {
@@ -23,7 +37,6 @@ export default function StepPersonalDetails({
   minDobDate.setFullYear(minDobDate.getFullYear() - 100);
   const minDateOfBirth = formatDate(minDobDate);
   const [loading, setLoading] = useState(true);
-  const [errors, setErrors] = useState({});
 
   const [titles, setTitles] = useState([]);
   const [genders, setGenders] = useState([]);
@@ -122,7 +135,7 @@ export default function StepPersonalDetails({
   =============================== */
   const update = (key, value) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
-    setErrors((prev) => ({ ...prev, [key]: undefined }));
+    setValidationErrors((prev) => ({ ...prev, [key]: undefined }));
   };
 
   /* ===============================
@@ -198,7 +211,7 @@ export default function StepPersonalDetails({
     if (!formData.dsOfficeId) e.dsOfficeId = "DS office is required";
     if (!formData.gnDivisionId) e.gnDivisionId = "GN division is required";
 
-    setErrors(e);
+    setValidationErrors(e);
     return Object.keys(e).length === 0;
   };
 
@@ -211,13 +224,25 @@ export default function StepPersonalDetails({
   }, [formData]);
 
   useEffect(() => {
+    if (hasAttempted) {
+      setDisplayErrors(validationErrors);
+    } else {
+      setDisplayErrors({});
+    }
+  }, [hasAttempted, validationErrors]);
+
+  useEffect(() => {
     if (!formData.dateOfBirth) return;
     setDobParts(parseDobParts(formData.dateOfBirth));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.dateOfBirth]);
 
   const renderError = (key) =>
-    errors[key] ? <p className="mt-1 text-xs text-red-600">{errors[key]}</p> : null;
+    displayErrors[key] ? (
+      <p className="mt-1 text-xs text-red-600">{displayErrors[key]}</p>
+    ) : null;
+
+  const getFieldColor = (key) => (displayErrors[key] ? "failure" : "gray");
 
   return (
     <div className="flex justify-center px-4 py-2">
@@ -242,7 +267,7 @@ export default function StepPersonalDetails({
               <Select
                 value={formData.titleId || ""}
                 disabled={loading}
-                color={errors.titleId ? "failure" : "gray"}
+                color={getFieldColor("titleId")}
                 onChange={(e) => update("titleId", e.target.value)}
               >
                 <option value="">{loading ? "Loading..." : "Select"}</option>
@@ -262,7 +287,7 @@ export default function StepPersonalDetails({
               <TextInput
                 value={formData.fullName || ""}
                 placeholder="Enter full name"
-                color={errors.fullName ? "failure" : "gray"}
+                color={getFieldColor("fullName")}
                 onChange={(e) =>
                   update("fullName", e.target.value.replace(/[^A-Za-z ]+/g, ""))
                 }
@@ -280,7 +305,7 @@ export default function StepPersonalDetails({
               <Select
                 value={formData.genderId || ""}
                 disabled={loading}
-                color={errors.genderId ? "failure" : "gray"}
+                color={getFieldColor("genderId")}
                 onChange={(e) => update("genderId", e.target.value)}
               >
                 <option value="">Select</option>
@@ -299,7 +324,7 @@ export default function StepPersonalDetails({
               </Label>
               <Select
                 value={formData.ethnicityId || ""}
-                color={errors.ethnicityId ? "failure" : "gray"}
+                color={getFieldColor("ethnicityId")}
                 onChange={(e) => update("ethnicityId", e.target.value)}
               >
                 <option value="">Select</option>
@@ -318,7 +343,7 @@ export default function StepPersonalDetails({
               </Label>
               <Select
                 value={formData.religionId || ""}
-                color={errors.religionId ? "failure" : "gray"}
+                color={getFieldColor("religionId")}
                 onChange={(e) => update("religionId", e.target.value)}
               >
                 <option value="">Select</option>
@@ -341,7 +366,7 @@ export default function StepPersonalDetails({
               <div className="grid grid-cols-3 gap-2">
                 <Select
                   value={dobParts.month}
-                  color={errors.dateOfBirth ? "failure" : "gray"}
+                  color={getFieldColor("dateOfBirth")}
                   onChange={(e) => updateDateOfBirthPart("month", e.target.value)}
                 >
                   <option value="">Month</option>
@@ -354,7 +379,7 @@ export default function StepPersonalDetails({
 
                 <Select
                   value={dobParts.day}
-                  color={errors.dateOfBirth ? "failure" : "gray"}
+                  color={getFieldColor("dateOfBirth")}
                   onChange={(e) => updateDateOfBirthPart("day", e.target.value)}
                 >
                   <option value="">Date</option>
@@ -367,7 +392,7 @@ export default function StepPersonalDetails({
 
                 <Select
                   value={dobParts.year}
-                  color={errors.dateOfBirth ? "failure" : "gray"}
+                  color={getFieldColor("dateOfBirth")}
                   onChange={(e) => updateDateOfBirthPart("year", e.target.value)}
                 >
                   <option value="">Year</option>
@@ -387,7 +412,7 @@ export default function StepPersonalDetails({
               </Label>
               <Select
                 value={formData.bloodGroupId || ""}
-                color={errors.bloodGroupId ? "failure" : "gray"}
+                color={getFieldColor("bloodGroupId")}
                 onChange={(e) => update("bloodGroupId", e.target.value)}
               >
                 <option value="">Select</option>
@@ -406,7 +431,7 @@ export default function StepPersonalDetails({
               </Label>
               <Select
                 value={formData.healthCondition ?? ""}
-                color={errors.healthCondition ? "failure" : "gray"}
+                color={getFieldColor("healthCondition")}
                 onChange={(e) => update("healthCondition", e.target.value)}
               >
                 <option value="">Select</option>
@@ -425,7 +450,7 @@ export default function StepPersonalDetails({
               </Label>
               <Select
                 value={formData.civilStatusId || ""}
-                color={errors.civilStatusId ? "failure" : "gray"}
+                color={getFieldColor("civilStatusId")}
                 onChange={(e) => update("civilStatusId", e.target.value)}
               >
                 <option value="">Select</option>
@@ -449,7 +474,7 @@ export default function StepPersonalDetails({
               <Textarea
                 rows={3}
                 disabled={formData.healthCondition !== "0"}
-                color={errors.healthConditionDescription ? "failure" : "gray"}
+                color={getFieldColor("healthConditionDescription")}
                 value={formData.healthConditionDescription || ""}
                 onChange={(e) =>
                   update("healthConditionDescription", e.target.value)
@@ -467,7 +492,7 @@ export default function StepPersonalDetails({
               </Label>
               <Select
                 value={formData.districtId || ""}
-                color={errors.districtId ? "failure" : "gray"}
+                color={getFieldColor("districtId")}
                 onChange={(e) => {
                   update("districtId", e.target.value);
                   update("dsOfficeId", "");
@@ -491,7 +516,7 @@ export default function StepPersonalDetails({
               <Select
                 disabled={!formData.districtId}
                 value={formData.dsOfficeId || ""}
-                color={errors.dsOfficeId ? "failure" : "gray"}
+                color={getFieldColor("dsOfficeId")}
                 onChange={(e) => {
                   update("dsOfficeId", e.target.value);
                   update("gnDivisionId", "");
@@ -514,7 +539,7 @@ export default function StepPersonalDetails({
               <Select
                 disabled={!formData.dsOfficeId}
                 value={formData.gnDivisionId || ""}
-                color={errors.gnDivisionId ? "failure" : "gray"}
+                color={getFieldColor("gnDivisionId")}
                 onChange={(e) => update("gnDivisionId", e.target.value)}
               >
                 <option value="">Select</option>

@@ -31,7 +31,9 @@ export default function StepFirstAppointment({
       .some((value) => String(value).trim().toUpperCase() === "SLTS");
 
   const [loading, setLoading] = useState(true);
-  const [errors, setErrors] = useState({});
+  const [validationErrors, setValidationErrors] = useState({});
+  const [displayErrors, setDisplayErrors] = useState({});
+  const [hasAttempted, setHasAttempted] = useState(false);
 
   const [firstAppointmentCategories, setFirstAppointmentCategories] = useState([]);
   const [firstAppointmentTypes, setFirstAppointmentTypes] = useState([]);
@@ -86,7 +88,7 @@ export default function StepFirstAppointment({
     formData.firstAppointmentZone,
   ]);
 
-  /* -------------------- VALIDATION (UNCHANGED) -------------------- */
+  /* -------------------- VALIDATION (CHANGED) -------------------- */
   const validate = () => {
     const e = {};
     if (!formData.firstAppointmentCategory) e.firstAppointmentCategory = "Required";
@@ -114,7 +116,7 @@ export default function StepFirstAppointment({
     if (!formData.firstAppointmentInstitution) e.firstAppointmentInstitution = "Required";
     if (!formData.firstAppointmentPosition) e.firstAppointmentPosition = "Required";
 
-    setErrors(e);
+    setValidationErrors(e);
     return Object.keys(e).length === 0;
   };
 
@@ -123,8 +125,21 @@ export default function StepFirstAppointment({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData, loading, sltsFirstAppointmentServices.length]);
 
+  // expose validation trigger to parent
+  useEffect(() => {
+    window.__triggerFirstAppointmentValidation = () => setHasAttempted(true);
+    return () => delete window.__triggerFirstAppointmentValidation;
+  }, []);
+
+  useEffect(() => {
+    if (hasAttempted) setDisplayErrors(validationErrors);
+    else setDisplayErrors({});
+  }, [hasAttempted, validationErrors]);
+
   const renderError = (key) =>
-    errors[key] ? <p className="mt-1 text-xs text-red-600">{errors[key]}</p> : null;
+    displayErrors[key] ? <p className="mt-1 text-xs text-red-600">{displayErrors[key]}</p> : null;
+
+  const getFieldColor = (key) => (displayErrors[key] ? "failure" : "gray");
 
   const update = (key, value) => {
     setFormData((prev) => {
@@ -140,7 +155,7 @@ export default function StepFirstAppointment({
       return next;
     });
 
-    setErrors((prev) => ({ ...prev, [key]: undefined }));
+    setValidationErrors((prev) => ({ ...prev, [key]: undefined }));
   };
 
   const selectPlaceholder = loading ? "Loading..." : "Select";
@@ -170,7 +185,7 @@ export default function StepFirstAppointment({
             <Select
               value={formData.firstAppointmentCategory || ""}
               disabled={loading}
-              color={errors.firstAppointmentCategory ? "failure" : "gray"}
+              color={getFieldColor("firstAppointmentCategory")}
               onChange={(e) => update("firstAppointmentCategory", e.target.value)}
             >
               <option value="">{selectPlaceholder}</option>
@@ -191,7 +206,7 @@ export default function StepFirstAppointment({
             <Select
               value={formData.firstAppointmentType || ""}
               disabled={loading}
-              color={errors.firstAppointmentType ? "failure" : "gray"}
+              color={getFieldColor("firstAppointmentType")}
               onChange={(e) => update("firstAppointmentType", e.target.value)}
             >
               <option value="">{selectPlaceholder}</option>
@@ -211,7 +226,7 @@ export default function StepFirstAppointment({
             </Label>
             <TextInput
               value={formData.firstAppointmentLetter || ""}
-              color={errors.firstAppointmentLetter ? "failure" : "gray"}
+              color={getFieldColor("firstAppointmentLetter")}
               onChange={(e) => update("firstAppointmentLetter", e.target.value)}
             />
             {renderError("firstAppointmentLetter")}
@@ -226,7 +241,7 @@ export default function StepFirstAppointment({
               type="date"
               value={formData.firstAppointmentDate || ""}
               min={minFirstAppointmentDate}
-              color={errors.firstAppointmentDate ? "failure" : "gray"}
+              color={getFieldColor("firstAppointmentDate")}
               onChange={(e) => update("firstAppointmentDate", e.target.value)}
             />
             {renderError("firstAppointmentDate")}
@@ -240,7 +255,7 @@ export default function StepFirstAppointment({
             <Select
               value={formData.firstAppointmentService || ""}
               disabled={loading}
-              color={errors.firstAppointmentService ? "failure" : "gray"}
+              color={getFieldColor("firstAppointmentService")}
               onChange={(e) => update("firstAppointmentService", e.target.value)}
             >
               <option value="">{selectPlaceholder}</option>
@@ -261,7 +276,7 @@ export default function StepFirstAppointment({
             <Select
               value={formData.firstAppointmentRank || ""}
               disabled={loading}
-              color={errors.firstAppointmentRank ? "failure" : "gray"}
+              color={getFieldColor("firstAppointmentRank")}
               onChange={(e) => update("firstAppointmentRank", e.target.value)}
             >
               <option value="">{selectPlaceholder}</option>
@@ -282,7 +297,7 @@ export default function StepFirstAppointment({
             <Select
               value={formData.firstAppointmentSubject || ""}
               disabled={loading}
-              color={errors.firstAppointmentSubject ? "failure" : "gray"}
+              color={getFieldColor("firstAppointmentSubject")}
               onChange={(e) => update("firstAppointmentSubject", e.target.value)}
             >
               <option value="">{selectPlaceholder}</option>
@@ -303,7 +318,7 @@ export default function StepFirstAppointment({
             <Select
               value={formData.firstAppointmentMedium || ""}
               disabled={loading}
-              color={errors.firstAppointmentMedium ? "failure" : "gray"}
+              color={getFieldColor("firstAppointmentMedium")}
               onChange={(e) => update("firstAppointmentMedium", e.target.value)}
             >
               <option value="">{selectPlaceholder}</option>
@@ -324,7 +339,7 @@ export default function StepFirstAppointment({
             <Select
               value={formData.firstAppointmentTeachingSubject || ""}
               disabled={loading}
-              color={errors.firstAppointmentTeachingSubject ? "failure" : "gray"}
+              color={getFieldColor("firstAppointmentTeachingSubject")}
               onChange={(e) =>
                 update("firstAppointmentTeachingSubject", e.target.value)
               }
@@ -366,7 +381,7 @@ export default function StepFirstAppointment({
             <Select
               value={formData.firstAppointmentInstCategory || ""}
               disabled={loading}
-              color={errors.firstAppointmentInstCategory ? "failure" : "gray"}
+              color={getFieldColor("firstAppointmentInstCategory")}
               onChange={(e) =>
                 update("firstAppointmentInstCategory", e.target.value)
               }
@@ -389,7 +404,7 @@ export default function StepFirstAppointment({
             <Select
               value={formData.firstAppointmentZone || ""}
               disabled={loading}
-              color={errors.firstAppointmentZone ? "failure" : "gray"}
+              color={getFieldColor("firstAppointmentZone")}
               onChange={(e) => update("firstAppointmentZone", e.target.value)}
             >
               <option value="">{selectPlaceholder}</option>
@@ -410,7 +425,7 @@ export default function StepFirstAppointment({
             <Select
               value={formData.firstAppointmentInstitution || ""}
               disabled={loading}
-              color={errors.firstAppointmentInstitution ? "failure" : "gray"}
+              color={getFieldColor("firstAppointmentInstitution")}
               onChange={(e) =>
                 update("firstAppointmentInstitution", e.target.value)
               }
@@ -433,7 +448,7 @@ export default function StepFirstAppointment({
             <Select
               value={formData.firstAppointmentPosition || ""}
               disabled={loading}
-              color={errors.firstAppointmentPosition ? "failure" : "gray"}
+              color={getFieldColor("firstAppointmentPosition")}
               onChange={(e) =>
                 update("firstAppointmentPosition", e.target.value)
               }

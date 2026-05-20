@@ -401,14 +401,47 @@ function RegTeacherInner() {
       showErrorToast("Please verify NIC before continuing.", "verify-nic-required");
       return;
     }
-    if (currentStep === 2 && !isPersonalValid) {
-      showErrorToast("Compulsory fields should be completed.", "personal-details-required");
-      return;
+    if (currentStep === 2) {
+      // Trigger error display for Personal Details
+      if (window.__triggerPersonalDetailsValidation) {
+        window.__triggerPersonalDetailsValidation();
+      }
+      if (!isPersonalValid) {
+        showErrorToast("Compulsory fields should be completed.", "personal-details-required");
+        return;
+      }
     }
-    if (currentStep === 3 && !isContactValid) {
-      showErrorToast("Compulsory fields should be completed.", "contact-details-required");
-      return;
+    if (currentStep === 3) {
+      // Trigger error display for Contact Details
+      if (window.__triggerContactDetailsValidation) {
+        window.__triggerContactDetailsValidation();
+      }
+      if (!isContactValid) {
+        showErrorToast("Compulsory fields should be completed.", "contact-details-required");
+        return;
+      }
     }
+    if (currentStep === 4) {
+      // Trigger error display for First Appointment Details
+      if (window.__triggerFirstAppointmentValidation) {
+        window.__triggerFirstAppointmentValidation();
+      }
+      if (!isFirstApptValid) {
+        showErrorToast("Compulsory fields should be completed.", "first-appointment-required");
+        return;
+      }
+    }
+    if (currentStep === 5) {
+      // Trigger error display for Current Appointment Details
+      if (window.__triggerCurrentAppointmentValidation) {
+        window.__triggerCurrentAppointmentValidation();
+      }
+      if (!isCurrentApptValid) {
+        showErrorToast("Compulsory fields should be completed.", "current-appointment-required");
+        return;
+      }
+    }
+    
 
     if (currentStep === 3) {
       const email = formData?.email?.trim();
