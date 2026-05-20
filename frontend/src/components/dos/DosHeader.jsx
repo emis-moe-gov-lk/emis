@@ -1,9 +1,9 @@
-import { Badge } from "flowbite-react";
+import { Badge, TextInput } from "flowbite-react";
 import { HiSearch, HiUpload, HiPlus } from "react-icons/hi";
 import { useNavigate } from "react-router-dom";
 import Can from "../common/Can";
 
-export default function DosHeader({ count, onSearch, isZonalAdmins }) {
+export default function DosHeader({ count, isZonalAdmins, search, setSearch }) {
   const navigate = useNavigate();
 
   const title = isZonalAdmins ? "Zonal Administrator Directory" : "Development Officer Directory";
@@ -33,13 +33,14 @@ export default function DosHeader({ count, onSearch, isZonalAdmins }) {
       {/* ================= ACTIONS ================= */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="w-full sm:max-w-md">
-          <button
-            onClick={onSearch}
-            className="w-full inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
-          >
-            <HiSearch className="h-4 w-4" />
-            {isZonalAdmins ? "Search Zonal Administrators" : "Search DOS Officers"}
-          </button>
+          <TextInput
+            id="dos-search"
+            type="text"
+            icon={HiSearch}
+            placeholder={isZonalAdmins ? "Search Zonal Administrators" : "Search DOS Officers"}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
 
         <div className="flex items-center gap-3">

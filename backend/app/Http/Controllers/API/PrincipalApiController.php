@@ -103,7 +103,7 @@ class PrincipalApiController extends Controller
     {
         try {
             $roles = $this->resolvedRoles($request);
-            if (! $this->hasAnyRole($roles, ['super admin', 'zonal deo'])) {
+            if (! $this->hasAnyRole($roles, ['super admin', 'zonal deo', 'zonal deo head'])) {
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Only Super Admin and Zonal DEO users can create principal profiles.',
@@ -298,24 +298,37 @@ class PrincipalApiController extends Controller
 
         try {
             $perPage = (int) $request->get('per_page', 20);
-            $nic = trim((string) $request->get('nic', ''));
+            $search  = trim((string) $request->get('search', $request->get('nic', '')));
 
             $baseQuery = People::query()
                 ->whereHas('principal')
                 ->whereHas('appointment');
             $query = clone $baseQuery;
 
-            if ($nic !== '') {
-                $matchedPeopleIds = (clone $baseQuery)
-                    ->select(['people_id', 'nic', 'full_name', 'name_with_initials'])
-                    ->get()
-                    ->filter(function (People $person) use ($nic) {
-                        return str_contains((string) $person->nic, $nic)
-                            || str_contains((string) $person->full_name, $nic)
-                            || str_contains((string) $person->name_with_initials, $nic);
-                    })
-                    ->pluck('people_id')
-                    ->values();
+            if ($search !== '') {
+                $isNicSearch = is_numeric(substr($search, 0, 1));
+
+                if ($isNicSearch) {
+                    $matchedPeopleIds = (clone $baseQuery)
+                        ->select(['people_id', 'nic'])
+                        ->get()
+                        ->filter(function (People $person) use ($search) {
+                            return str_contains((string) $person->nic, $search);
+                        })
+                        ->pluck('people_id')
+                        ->values();
+                } else {
+                    $searchLower = strtolower($search);
+                    $matchedPeopleIds = (clone $baseQuery)
+                        ->select(['people_id', 'full_name', 'name_with_initials'])
+                        ->get()
+                        ->filter(function (People $person) use ($searchLower) {
+                            return str_contains(strtolower((string) $person->full_name), $searchLower)
+                                || str_contains(strtolower((string) $person->name_with_initials), $searchLower);
+                        })
+                        ->pluck('people_id')
+                        ->values();
+                }
 
                 $query->whereIn('people_id', $matchedPeopleIds);
             }
