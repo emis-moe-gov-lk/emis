@@ -163,7 +163,7 @@ const CreateRole = () => {
                 await updateRole(roleId, roleName, selectedPermissions);
                 await hydrateIdentity().catch(() => {});
 
-                toast.success(`Role \"${roleName.trim()}\" updated successfully.`);
+                toast.success(`Role "${roleName.trim()}" updated successfully.`);
                 navigate("/roles");
                 return;
             }
@@ -171,9 +171,7 @@ const CreateRole = () => {
             await createRole(roleName, selectedPermissions);
             await hydrateIdentity().catch(() => {});
 
-            toast.success(
-                `Role \"${roleName.trim()}\" created successfully.`
-            );
+            toast.success(`Role "${roleName.trim()}" created successfully.`);
             navigate("/roles");
         } catch (error) {
             console.error("Error saving role:", error);
@@ -211,7 +209,7 @@ const CreateRole = () => {
     };
 
     return (
-        <div className="w-full bg-white dark:bg-gray-800 px-4 py-6 sm:px-6 lg:px-8">
+        <div className="max-w-5xl mx-auto bg-white dark:bg-gray-800 px-4 py-6 sm:px-6 lg:px-8 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
             <div className="w-full">
                 <div className="pb-6">
                     <h1 className="text-[18px] font-semibold text-slate-900 dark:text-white">
@@ -235,39 +233,59 @@ const CreateRole = () => {
                 <form onSubmit={handleSubmit} className="w-full">
                     <fieldset disabled={isSubmitting || (isEditMode && isDetailsLoading)}>
                     <section className="py-6">
-                        <label
-                            htmlFor="role-name"
-                            className="block text-[14px] font-semibold text-slate-800 dark:text-slate-200"
-                        >
-                            Role Name
-                        </label>
-                        <input
-                            id="role-name"
-                            value={roleName}
-                            onChange={handleRoleNameChange}
-                            placeholder="Enter role name"
-                            aria-invalid={Boolean(nameError)}
-                            className={`mt-3 h-10 w-full max-w-[440px] rounded-md border px-4 text-[14px] text-slate-700 dark:text-slate-200 outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-slate-400 dark:focus:border-slate-600 bg-white dark:bg-gray-700 ${
-                                nameError ? "border-rose-400 dark:border-rose-500" : "border-slate-300 dark:border-slate-600"
-                            }`}
-                        />
-                        {nameError ? (
-                            <p className="mt-2 text-xs text-rose-600 dark:text-rose-400">{nameError}</p>
-                        ) : null}
+                        <div className="rounded-md bg-white dark:bg-gray-800 border border-slate-200 dark:border-slate-700 p-4">
+                            <label
+                                htmlFor="role-name"
+                                className="block text-[14px] font-semibold text-slate-800 dark:text-slate-200"
+                            >
+                                Role Name
+                            </label>
+                            <input
+                                id="role-name"
+                                value={roleName}
+                                onChange={handleRoleNameChange}
+                                placeholder="Enter role name"
+                                aria-invalid={Boolean(nameError)}
+                                className={`mt-3 h-10 w-full max-w-[440px] rounded-md border px-4 text-[14px] text-slate-700 dark:text-slate-200 outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-slate-400 dark:focus:border-slate-600 bg-white dark:bg-gray-700 ${
+                                    nameError ? "border-rose-400 dark:border-rose-500" : "border-slate-300 dark:border-slate-600"
+                                }`}
+                            />
+                            {nameError ? (
+                                <p className="mt-2 text-xs text-rose-600 dark:text-rose-400">{nameError}</p>
+                            ) : null}
+                        </div>
                     </section>
 
                     <div className="border-t border-slate-200 dark:border-slate-700" />
 
                     <section className="py-6">
-                        <div className="space-y-3">
-                            <div className="flex items-center gap-3">
-                                <h2 className="text-[14px] font-semibold text-slate-800 dark:text-slate-200">Permissions</h2>
-                                <p className="text-xs text-slate-500 dark:text-slate-400">
-                                    Selected {permissionStats.selected} of {permissionStats.total}
-                                </p>
+                        <div className="rounded-md bg-white dark:bg-gray-800 border border-slate-200 dark:border-slate-700 p-4">
+                            <div className="mb-4">
+                                <div className="bg-slate-50 dark:bg-gray-900/20 px-3 py-2 rounded-md flex items-center justify-between">
+                                    <div>
+                                        <h2 className="text-[14px] font-semibold text-slate-800 dark:text-slate-200">Permissions</h2>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">Selected {permissionStats.selected} of {permissionStats.total}</p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => { setSelectedPermissions(permissionGroups.flatMap(g => g.permissions)); setPermissionError(""); }}
+                                            className="text-sm px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                                        >
+                                            Select all
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => { setSelectedPermissions([]); setPermissionError(""); }}
+                                            className="text-sm px-4 py-2 rounded-md bg-white dark:bg-gray-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                                        >
+                                            Clear
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
 
-                            <div className="w-full md:w-80">
+                            <div className="w-full md:w-80 mb-3">
                                 <label htmlFor="permission-search" className="sr-only">
                                     Search permissions
                                 </label>
@@ -276,59 +294,61 @@ const CreateRole = () => {
                                     value={search}
                                     onChange={(event) => setSearch(event.target.value)}
                                     placeholder="Search permission"
-                                    className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-600 px-3 text-sm text-slate-700 dark:text-slate-200 outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 bg-white dark:bg-gray-700"
+                                    className="h-10 w-full rounded-md border border-slate-300 dark:border-slate-600 px-3 text-sm text-slate-700 dark:text-slate-200 outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-800"
                                 />
                             </div>
-                        </div>
-                        {permissionError ? (
-                            <p className="mt-3 text-xs text-rose-600 dark:text-rose-400">{permissionError}</p>
-                        ) : null}
 
-                        <div className="mt-6 space-y-6">
-                            {filteredPermissionGroups.map((group) => (
-                                <div key={group.title}>
-                                    <div className="mb-3 flex items-center justify-between gap-4">
-                                        <h3 className="text-[12px] font-medium uppercase tracking-normal text-slate-500 dark:text-slate-400">
-                                            {group.title}
-                                        </h3>
-                                        <label className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-400">
-                                            <input
-                                                type="checkbox"
-                                                checked={group.permissions.every((permission) =>
-                                                    selectedSet.has(permission)
-                                                )}
-                                                onChange={() => toggleGroup(group.permissions)}
-                                                className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 accent-slate-900 dark:accent-slate-400 focus:ring-0"
-                                            />
-                                            Select group
-                                        </label>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 gap-x-14 gap-y-3 md:grid-cols-2 xl:grid-cols-3">
-                                        {group.permissions.map((permission) => {
-                                            const checked = selectedSet.has(permission);
-
-                                            return (
-                                                <label
-                                                    key={permission}
-                                                    className="flex items-center gap-2 text-[14px] text-slate-700 dark:text-slate-300"
-                                                >
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={checked}
-                                                        onChange={() => togglePermission(permission)}
-                                                        className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 accent-slate-900 dark:accent-slate-400 focus:ring-0"
-                                                    />
-                                                    <span>{permission}</span>
-                                                </label>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            ))}
-                            {filteredPermissionGroups.length === 0 ? (
-                                <p className="text-sm text-slate-500 dark:text-slate-400">No permissions match your search.</p>
+                            {permissionError ? (
+                                <p className="mt-3 text-xs text-rose-600 dark:text-rose-400">{permissionError}</p>
                             ) : null}
+
+                            <div className="mt-6 space-y-4">
+                                {filteredPermissionGroups.length === 0 ? (
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">No permissions match your search.</p>
+                                ) : (
+                                    filteredPermissionGroups.map((group) => {
+                                        const allSelected = group.permissions.every((p) => selectedSet.has(p));
+
+                                        return (
+                                            <div key={group.title} className="rounded-md border border-slate-100 dark:border-slate-700 overflow-hidden">
+                                                <div className="bg-slate-50 dark:bg-gray-900/10 px-3 py-2 flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">{group.title}</h3>
+                                                        <span className="text-xs inline-flex items-center px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300">{group.permissions.filter(p => selectedSet.has(p)).length}/{group.permissions.length}</span>
+                                                    </div>
+                                                    <div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => toggleGroup(group.permissions)}
+                                                            className={allSelected ? 'text-sm px-3 py-1 rounded-md font-medium transition bg-indigo-600 text-white border-indigo-600' : 'text-sm px-3 py-1 rounded-md font-medium transition bg-white dark:bg-gray-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-gray-700'}
+                                                        >
+                                                            {allSelected ? 'Selected' : 'Select group'}
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                <div className="p-3 border-t border-slate-100 dark:border-slate-700 grid grid-cols-1 gap-x-14 gap-y-3 md:grid-cols-2 xl:grid-cols-3">
+                                                    {group.permissions.map((permission) => {
+                                                        const checked = selectedSet.has(permission);
+
+                                                        return (
+                                                            <label key={permission} className="flex items-center gap-2 text-[14px] text-slate-700 dark:text-slate-300">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={checked}
+                                                                    onChange={() => togglePermission(permission)}
+                                                                    className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 accent-slate-900 dark:accent-slate-400 focus:ring-0"
+                                                                />
+                                                                <span>{permission}</span>
+                                                            </label>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                )}
+                            </div>
                         </div>
                     </section>
 
