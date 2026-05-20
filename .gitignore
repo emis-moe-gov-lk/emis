@@ -12,7 +12,8 @@ vendor/
 storage/logs/*
 storage/framework/cache/*
 storage/framework/sessions/*
-storage/framework/views/*
+*/storage/framework/views/*
+!storage/framework/views/
 bootstrap/cache/*
 .phpunit.result.cache
 
