@@ -784,6 +784,16 @@ const PrincipalProfile = () => {
         <BackToListButton to="/employees/principal" label="Back to Principal List" />
       </div>
 
+      {/* Small pending banner for newly created profiles (read-only) - shown only to Zonal DEO */}
+      {isPendingStatus && userRoles.includes("zonal deo") && (
+        <div className="rounded-md border border-amber-100 bg-amber-50 dark:bg-amber-900/10 px-4 py-2 flex items-center gap-3">
+          <HiExclamation className="h-5 w-5 text-amber-600" />
+          <div className="text-sm font-bold text-amber-900 dark:text-amber-200">
+            Profile Verification Required
+          </div>
+        </div>
+      )}
+
       {/* Header strip (finalized style) */}
       <HeaderStrip
         principal={principal}
