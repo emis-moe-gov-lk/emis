@@ -1,6 +1,15 @@
 import { useEffect, useState } from "react";
 import { Label, TextInput } from "flowbite-react";
 
+// Validation constants
+const PHONE_REGEX = /^0\d{9}$/; // Sri Lankan phone numbers: 10 digits starting with 0
+const SL_POSTAL_CODE_REGEX = /^\d{5}$/; // 5 digit postal codes
+const COORDINATE_REGEX = /^-?\d+(?:\.\d+)?$/; // simple decimal number check
+const SRI_LANKA_LAT_MIN = 5.9;
+const SRI_LANKA_LAT_MAX = 9.9;
+const SRI_LANKA_LNG_MIN = 79.5;
+const SRI_LANKA_LNG_MAX = 81.9;
+
 export default function StepContactDetails({
   formData,
   setFormData,
@@ -8,14 +17,19 @@ export default function StepContactDetails({
   apiErrors = {},
   onContactFieldEdit,
 }) {
+  const [hasAttempted, setHasAttempted] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({});
+  const [displayErrors, setDisplayErrors] = useState({});
 
-  const PHONE_REGEX = /^0\d{9}$/;
-  const SL_POSTAL_CODE_REGEX = /^\d{5}$/;
-  const COORDINATE_REGEX = /^\d{1,3}(\.\d{1,6})?$/;
-  const SRI_LANKA_LAT_MIN = 5.9;
-  const SRI_LANKA_LAT_MAX = 9.9;
-  const SRI_LANKA_LNG_MIN = 79.5;
-  const SRI_LANKA_LNG_MAX = 81.9;
+  // Expose validation trigger to parent
+  useEffect(() => {
+    window.__triggerContactDetailsValidation = () => {
+      setHasAttempted(true);
+    };
+    return () => {
+      delete window.__triggerContactDetailsValidation;
+    };
+  }, []);
 
   const [errors, setErrors] = useState({});
 
@@ -100,9 +114,15 @@ export default function StepContactDetails({
     }
 
     setErrors(newErrors);
+    setValidationErrors(newErrors);
     onValid?.(Object.keys(newErrors).length === 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData]);
+
+  useEffect(() => {
+    if (hasAttempted) setDisplayErrors(validationErrors);
+    else setDisplayErrors({});
+  }, [hasAttempted, validationErrors]);
 
   const emailError = apiErrors.email || errors.email;
   const contactError = apiErrors.contact || errors.contact;
@@ -131,10 +151,10 @@ export default function StepContactDetails({
               placeholder="example@email.com"
               value={formData.email || ""}
               onChange={(e) => update("email", e.target.value)}
-              color={emailError ? "failure" : "gray"}
+              color={displayErrors.email || apiErrors.email ? "failure" : "gray"}
             />
-            {emailError && (
-              <p className="mt-1 text-sm text-red-600">{emailError}</p>
+            {(displayErrors.email || apiErrors.email) && (
+              <p className="mt-1 text-sm text-red-600">{apiErrors.email || displayErrors.email}</p>
             )}
           </div>
 
@@ -150,10 +170,10 @@ export default function StepContactDetails({
               onChange={(e) =>
                 update("contact", e.target.value.replace(/\D/g, "").slice(0, 10))
               }
-              color={contactError ? "failure" : "gray"}
+              color={displayErrors.contact || apiErrors.contact ? "failure" : "gray"}
             />
-            {contactError && (
-              <p className="mt-1 text-sm text-red-600">{contactError}</p>
+            {(displayErrors.contact || apiErrors.contact) && (
+              <p className="mt-1 text-sm text-red-600">{apiErrors.contact || displayErrors.contact}</p>
             )}
           </div>
         </div>
@@ -170,7 +190,7 @@ export default function StepContactDetails({
               <TextInput
                 value={formData.addressLine1 || ""}
                 onChange={(e) => update("addressLine1", e.target.value)}
-                color={errors.addressLine1 ? "failure" : "gray"}
+                color={displayErrors.addressLine1 ? "failure" : "gray"}
               />
             </div>
 
@@ -181,7 +201,7 @@ export default function StepContactDetails({
               <TextInput
                 value={formData.addressLine2 || ""}
                 onChange={(e) => update("addressLine2", e.target.value)}
-                color={errors.addressLine2 ? "failure" : "gray"}
+                color={displayErrors.addressLine2 ? "failure" : "gray"}
               />
             </div>
 
@@ -204,10 +224,10 @@ export default function StepContactDetails({
                 onChange={(e) =>
                   update("postalCode", e.target.value.replace(/\D/g, "").slice(0, 5))
                 }
-                color={errors.postalCode ? "failure" : "gray"}
+                color={displayErrors.postalCode ? "failure" : "gray"}
               />
-              {errors.postalCode && (
-                <p className="mt-1 text-sm text-red-600">{errors.postalCode}</p>
+              {displayErrors.postalCode && (
+                <p className="mt-1 text-sm text-red-600">{displayErrors.postalCode}</p>
               )}
             </div>
 
@@ -217,10 +237,10 @@ export default function StepContactDetails({
                 value={formData.latitude || ""}
                 onChange={(e) => update("latitude", e.target.value)}
                 inputMode="decimal"
-                color={errors.latitude ? "failure" : "gray"}
+                color={displayErrors.latitude ? "failure" : "gray"}
               />
-              {errors.latitude && (
-                <p className="mt-1 text-sm text-red-600">{errors.latitude}</p>
+              {displayErrors.latitude && (
+                <p className="mt-1 text-sm text-red-600">{displayErrors.latitude}</p>
               )}
             </div>
 
@@ -230,10 +250,10 @@ export default function StepContactDetails({
                 value={formData.longitude || ""}
                 onChange={(e) => update("longitude", e.target.value)}
                 inputMode="decimal"
-                color={errors.longitude ? "failure" : "gray"}
+                color={displayErrors.longitude ? "failure" : "gray"}
               />
-              {errors.longitude && (
-                <p className="mt-1 text-sm text-red-600">{errors.longitude}</p>
+              {displayErrors.longitude && (
+                <p className="mt-1 text-sm text-red-600">{displayErrors.longitude}</p>
               )}
             </div>
           </div>
@@ -282,10 +302,10 @@ export default function StepContactDetails({
                 onChange={(e) =>
                   update("tPostalCode", e.target.value.replace(/\D/g, "").slice(0, 5))
                 }
-                color={errors.tPostalCode ? "failure" : "gray"}
+                color={displayErrors.tPostalCode ? "failure" : "gray"}
               />
-              {errors.tPostalCode && (
-                <p className="mt-1 text-sm text-red-600">{errors.tPostalCode}</p>
+              {displayErrors.tPostalCode && (
+                <p className="mt-1 text-sm text-red-600">{displayErrors.tPostalCode}</p>
               )}
             </div>
           </div>

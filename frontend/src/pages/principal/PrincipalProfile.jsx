@@ -839,7 +839,7 @@ const PrincipalProfile = () => {
               {tabs.map((t) => {
                 const active = activeTab === t.id;
                 return (
-                  <UIButton
+                  <button
                     key={t.id}
                     onClick={() => setActiveTab(t.id)}
                     className={[
@@ -858,7 +858,7 @@ const PrincipalProfile = () => {
                         active ? "bg-white/90" : "bg-transparent",
                       ].join(" ")}
                     />
-                  </UIButton>
+                  </button>
                 );
               })}
             </div>
