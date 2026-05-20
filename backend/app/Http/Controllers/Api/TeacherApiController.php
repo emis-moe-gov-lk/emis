@@ -798,7 +798,7 @@ class TeacherApiController extends Controller
                 'knownProblems' => 'nullable|string|max:500',
             ],
             'contact' => [
-                'email' => 'required|email:rfc,dns',
+                'email' => 'required|email',// Removed 'rfc,dns' as it was causing validation failures for internal domains like .school.lk
                 'phone' => 'required|digits:10',
                 'districtId' => 'required|string',
                 'dsOfficeId' => 'required',
@@ -1123,7 +1123,7 @@ class TeacherApiController extends Controller
             'institutionCategory' => InstitutionCategory::active()->get(),
             'zonalEducationOffices' => ZonalEducationOffice::active()->get(),
             'institutions' => $zone && $institutionCategory ? Institution::where('zeo_wp_id', $zone)->where('institution_category_id', $institutionCategory)->get() : [],
-            
+
             'zonalPositions' => Position::where('service_id', 'SER005')
                 ->where('position_name', 'like', '%Zonal%')
                 ->active()

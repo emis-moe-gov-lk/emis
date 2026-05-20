@@ -95,3 +95,26 @@
   outline: 2px solid #3b82f6;
   outline-offset: 2px;
 }
+
+/* Cursor pointer for interactive elements */
+button,
+a,
+[role="button"],
+[role="tab"],
+input[type="checkbox"],
+input[type="radio"],
+select,
+textarea {
+  cursor: pointer;
+}
+
+/* Exclude disabled elements */
+button:disabled,
+a.disabled,
+[role="button"][aria-disabled="true"],
+input[type="checkbox"]:disabled,
+input[type="radio"]:disabled,
+select:disabled,
+textarea:disabled {
+  cursor: not-allowed;
+}
