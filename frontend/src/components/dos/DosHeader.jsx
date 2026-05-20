@@ -1,12 +1,15 @@
 import { Badge } from "flowbite-react";
 import { HiSearch, HiUpload, HiPlus } from "react-icons/hi";
 import { useNavigate } from "react-router-dom";
-import Can from "../common/Can";
+import Can from "@/components/common/Can";
+import { PermissionGroups } from "@/data/permissionGroups";
 
 export default function DosHeader({ count, onSearch, isZonalAdmins }) {
   const navigate = useNavigate();
 
-  const title = isZonalAdmins ? "Zonal Administrator Directory" : "Development Officer Directory";
+  const title = isZonalAdmins
+    ? "Zonal Administrator Directory"
+    : "Development Officer Directory";
   const description = isZonalAdmins
     ? "Manage zonal administrator profiles and records."
     : "Manage development officer profiles and records.";
@@ -38,12 +41,14 @@ export default function DosHeader({ count, onSearch, isZonalAdmins }) {
             className="w-full inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
           >
             <HiSearch className="h-4 w-4" />
-            {isZonalAdmins ? "Search Zonal Administrators" : "Search DOS Officers"}
+            {isZonalAdmins
+              ? "Search Zonal Administrators"
+              : "Search DOS Officers"}
           </button>
         </div>
 
         <div className="flex items-center gap-3">
-          <Can permission="dos.bulk.upload">
+          <Can permission={PermissionGroups.ZONAL.ADMIN_BULK_UPLOAD}>
             <button
               onClick={() => navigate("bulk-upload")}
               className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
@@ -53,7 +58,7 @@ export default function DosHeader({ count, onSearch, isZonalAdmins }) {
             </button>
           </Can>
 
-          <Can permission="dos.create">
+          <Can permission={PermissionGroups.ZONAL.ADMIN_CREATE}>
             <button
               onClick={() => navigate("create")}
               className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors shadow-sm"
