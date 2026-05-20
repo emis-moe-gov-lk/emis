@@ -51,7 +51,7 @@ class PrincipalApiController extends Controller
 
     private function canManagePrincipals(Request $request): bool
     {
-        return $this->hasAnyRole($this->resolvedRoles($request), ['super admin', 'zonal deo']);
+        return $this->hasAnyRole($this->resolvedRoles($request), ['super admin', 'zonal deo', 'zonal deo head']);
     }
 
     private function resolveDsOffice(?string $value): ?DivisionalSecretariatOffice
