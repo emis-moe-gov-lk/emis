@@ -188,8 +188,27 @@ export const PermissionGroups = {
     ZONAL_VIEW: "menu.zonal",
     ADMIN: "menu.zonal.admin",
     DEO: "menu.zonal.deo",
-    CREATE: "zonal.create",
-    PROFILE_VIEW: "zonal.profile.view",
+    ADMIN_CREATE: "zonal.admin.create",
+    ADMIN_BULK_UPLOAD: "zonal.admin.bulk-upload",
+    ADMIN_PROFILE_VIEW: "zonal.admin.profile.view",
+    ADMIN_DOCUMENTS: "zonal.admin.profile.exportpdf",
+    ADMIN_PROFILE: "zonal.admin.profile.view",
+    ADMIN_SERVICES: "zonal.admin.service.add",
+    ADMIN_QUALIFICATIONS: "zonal.admin.qualification.add",
+    ADMIN_WOP: "zonal.admin.w&op.edit",
+    ADMIN_FAMILY: "zonal.admin.family.add",
+    DEO_CREATE: "zonal.deo.create",
+    DEO_BULK_UPLOAD: "zonal.deo.bulk-upload",
+    DEO_PROFILE_VIEW: "zonal.deo.profile.view",
+    DEO_PROFILE_EXPORTPDF: "zonal.deo.profile.exportpdf",
+    DEO_QUALIFICATION_ADD: "zonal.deo.qualification.add",
+    DEO_SERVICE_ADD: "zonal.deo.service.add",
+    DEO_WOP: "zonal.deo.w&op.edit",
+    DEO_FAMILY: "zonal.deo.family.add",
+
+
+
+
   },
 
   PROVINCIAL: {

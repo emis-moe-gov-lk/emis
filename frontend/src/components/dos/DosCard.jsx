@@ -5,6 +5,9 @@ import profileMale from "../../assets/images/profile_m.png";
 import profileFemale from "../../assets/images/profile_f.png";
 import { useNavigate, useLocation } from "react-router";
 
+import Can from "@/components/common/Can";
+import { PermissionGroups } from "@/data/permissionGroups";
+
 export default function DosCard({ employee }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -78,12 +81,14 @@ export default function DosCard({ employee }) {
 
       {/* Actions */}
       <div className="flex items-center gap-2 lg:ml-auto">
-        <button
-          onClick={() => navigate(`${basePath}/${employee.people_id}`)}
-          className="bg-slate-900 text-white px-4 py-2 rounded-xl font-bold hover:bg-slate-800 transition"
-        >
-          View
-        </button>
+        <Can permission={PermissionGroups.ZONAL.ADMIN_PROFILE_VIEW}>
+          <button
+            onClick={() => navigate(`${basePath}/${employee.people_id}`)}
+            className="bg-slate-900 text-white px-4 py-2 rounded-xl font-bold hover:bg-slate-800 transition"
+          >
+            View
+          </button>
+        </Can>
 
         <Menu as="div" className="relative inline-block text-left">
           <Menu.Button className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition">
