@@ -1,0 +1,12 @@
+### CONFIGURED
+  > Base server data - hostname, port, proxy settings
+  > admin acc & creds - create admin acc, username, password
+  > databases - mysql apim db & mysql shared db
+  > Gateway config - https, wss, websub gateway urls, 
+
+
+
+
+### DISABLED
+  > apim trottling and its data publishing - throttling data publisher trying to push when analytics are off
+  > JMS and its listener  - trying to conenct ActiveMQ compatible broker
