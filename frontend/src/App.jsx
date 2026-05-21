@@ -14,10 +14,6 @@ function App() {
       if (window.location.pathname === "/") {
         navigate("/dashboard", { replace: true });
       }
-    } else {
-      if (window.location.pathname === "/") {
-        navigate("/login", { replace: true });
-      }
     }
   }, [state.isLoading, state.isAuthenticated, navigate]);
 

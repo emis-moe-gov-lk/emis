@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 
 import App from "@/App";
+import Landing from "@/pages/landing/Landing";
 import HelpCenter from "@/HelpCenter";
 import { Login } from "@/pages/auth/Login";
 import Logout from "@/pages/auth/Logout";
@@ -78,7 +79,9 @@ export default function AppRoutes() {
     <AbilityProvider>
       <Routes>
         {/* Public Routes */}
-        <Route path="/" element={<App />} />
+        <Route path="/" element={<App />}>
+          <Route index element={<Landing />} />
+        </Route>
         <Route path="/help-center" element={<HelpCenter />} />
         <Route path="/login" element={<Login />} />
         <Route path="/logout" element={<Logout />} />
