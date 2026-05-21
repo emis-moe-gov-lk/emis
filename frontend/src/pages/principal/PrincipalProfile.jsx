@@ -354,7 +354,7 @@ const PrincipalProfile = () => {
         wopNo: d.appointment?.w_op_no,
         paySheetNo: d.appointment?.pay_sheet_no,
         service:
-          d.appointment?.service?.service_name ?? d.appointment?.service_id,
+          d.current_appointment?.service?.service_name ?? d.current_appointment?.service_id,
         status: resolvedStatus.status,
         profileStatus:
           d.profile_status ?? d.appointment?.profile_status ?? null,
