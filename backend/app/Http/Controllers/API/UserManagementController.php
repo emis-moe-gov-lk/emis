@@ -6,6 +6,7 @@ use App\Helpers\NicHelper;
 use App\Http\Controllers\Controller;
 use App\Mail\ResetPasswordMail;
 use App\Services\TeacherToPrincipalPromotionService;
+use App\Services\Wso2IsProvisioningService;
 use App\Models\User;
 use App\Models\Workplaces;
 use Illuminate\Http\Request;
@@ -95,7 +96,7 @@ class UserManagementController extends Controller
     // -------------------------------------------------------
     // POST /users
     // -------------------------------------------------------
-    public function store(Request $request)
+    public function store(Request $request, Wso2IsProvisioningService $wso2Is)
     {
         if (! $this->isSuperAdmin($request)) {
             return response()->json(['status' => 'error', 'message' => 'Forbidden'], 403);
@@ -145,6 +146,11 @@ class UserManagementController extends Controller
             );
 
             $user->syncRoles($validated['roles']);
+
+            $primaryRole = strtolower(trim((string) ($validated['roles'][0] ?? '')));
+            if ($primaryRole !== '') {
+                $wso2Is->provisionUser($user, $validated['password'], $primaryRole);
+            }
 
             return response()->json([
                 'status'  => 'success',
@@ -254,7 +260,7 @@ class UserManagementController extends Controller
     // -------------------------------------------------------
     // PATCH /users/{id}
     // -------------------------------------------------------
-    public function update(Request $request, string $id, TeacherToPrincipalPromotionService $promotionService)
+    public function update(Request $request, string $id, TeacherToPrincipalPromotionService $promotionService, Wso2IsProvisioningService $wso2Is)
     {
         if (! $this->isSuperAdmin($request)) {
             return response()->json(['status' => 'error', 'message' => 'Forbidden'], 403);
@@ -325,6 +331,14 @@ class UserManagementController extends Controller
                     }
                 }
 
+                $newPrimaryRole = strtolower(trim((string) ($validated['roles'][0] ?? '')));
+                if ($newPrimaryRole !== '') {
+                    $wso2Is->updateUserRole(
+                        $user,
+                        strtolower(trim((string) ($previousRoles[0] ?? ''))),
+                        $newPrimaryRole
+                    );
+                }
                 $user->syncRoles($validated['roles']);
             }
 

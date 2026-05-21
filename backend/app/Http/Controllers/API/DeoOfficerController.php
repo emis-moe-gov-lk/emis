@@ -30,6 +30,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use App\Http\Controllers\Controller;
+use App\Services\Wso2IsProvisioningService;
 
 class DeoOfficerController extends Controller
 {
@@ -266,7 +267,7 @@ class DeoOfficerController extends Controller
     // CREATE
     // ==========================================
 
-    public function store(Request $request)
+    public function store(Request $request, Wso2IsProvisioningService $wso2Is)
     {
         try {
             $validated = $request->validate([
@@ -402,6 +403,8 @@ class DeoOfficerController extends Controller
             $user->assignRole('Zonal DEO');
 
             DB::commit();
+
+            $wso2Is->provisionUser($user, 'password@123', 'zonal deo');
 
             return response()->json([
                 'status'           => 'success',
