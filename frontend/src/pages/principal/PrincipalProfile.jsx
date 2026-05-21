@@ -11,6 +11,7 @@ import {
 } from "react-icons/hi";
 import api from "@/api/axios";
 import { downloadPrincipalProfileDocument } from "@/api/principalService";
+import { downloadTeacherProfileDocument } from "@/api/teacherService";
 import toast from "react-hot-toast";
 import { Badge, Spinner } from "flowbite-react";
 import TeacherUpdateModal from "@/components/teacher/TeacherUpdateModal";
@@ -353,7 +354,7 @@ const PrincipalProfile = () => {
         wopNo: d.appointment?.w_op_no,
         paySheetNo: d.appointment?.pay_sheet_no,
         service:
-          d.appointment?.service?.service_name ?? d.appointment?.service_id,
+          d.current_appointment?.service?.service_name ?? d.current_appointment?.service_id,
         status: resolvedStatus.status,
         profileStatus:
           d.profile_status ?? d.appointment?.profile_status ?? null,
@@ -480,7 +481,24 @@ const PrincipalProfile = () => {
       window.setTimeout(() => window.URL.revokeObjectURL(url), 1000);
     } catch (error) {
       console.error("Failed to download principal profile document:", error);
-      toast.error("Unable to download the principal document.");
+      // Try fallback to teacher PDF endpoint in case principal PDF is not available
+      try {
+        const fallback = await downloadTeacherProfileDocument(principal.id);
+        const blob2 = new Blob([fallback.data], {
+          type: fallback.headers?.["content-type"] || "application/pdf",
+        });
+        const url2 = window.URL.createObjectURL(blob2);
+        const link2 = document.createElement("a");
+        link2.href = url2;
+        link2.download = `principal-profile-${principal.nic || principal.id}.pdf`;
+        document.body.appendChild(link2);
+        link2.click();
+        link2.remove();
+        window.setTimeout(() => window.URL.revokeObjectURL(url2), 1000);
+      } catch (err2) {
+        console.error("Fallback teacher PDF download also failed:", err2);
+        toast.error("Unable to download the principal document.");
+      }
     } finally {
       setIsDownloadingDocument(false);
     }
@@ -783,6 +801,16 @@ const PrincipalProfile = () => {
       <div className="pt-1">
         <BackToListButton to="/employees/principal" label="Back to Principal List" />
       </div>
+
+      {/* Small pending banner for newly created profiles (read-only) - shown only to Zonal DEO */}
+      {isPendingStatus && userRoles.includes("zonal deo") && (
+        <div className="rounded-md border border-amber-100 bg-amber-50 dark:bg-amber-900/10 px-4 py-2 flex items-center gap-3">
+          <HiExclamation className="h-5 w-5 text-amber-600" />
+          <div className="text-sm font-bold text-amber-900 dark:text-amber-200">
+            Profile Verification Required
+          </div>
+        </div>
+      )}
 
       {/* Header strip (finalized style) */}
       <HeaderStrip

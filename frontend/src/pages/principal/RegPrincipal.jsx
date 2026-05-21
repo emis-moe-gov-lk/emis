@@ -18,6 +18,7 @@ import {
   downloadPrincipalProfileDocument,
   registerPrincipal,
 } from "@/api/principalService";
+import { downloadTeacherProfileDocument } from "@/api/teacherService";
 import toast from "react-hot-toast";
 import { HiCheckCircle } from "react-icons/hi";
 import { useAuthUser } from "@/context/useAuthUser";
@@ -39,6 +40,7 @@ function RegPrincipalInner() {
   } = useAuthUser();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDownloadingDocument, setIsDownloadingDocument] = useState(false);
   const [contactApiErrors, setContactApiErrors] = useState({});
   const [isRegistrationComplete, setIsRegistrationComplete] = useState(false);
   const [registrationSummary, setRegistrationSummary] = useState(null);
@@ -340,6 +342,7 @@ function RegPrincipalInner() {
       return;
     }
 
+    setIsDownloadingDocument(true);
     try {
       const response = await downloadPrincipalProfileDocument(peopleId);
       const contentType = response.headers?.["content-type"] || "application/pdf";
@@ -361,7 +364,30 @@ function RegPrincipalInner() {
         anchor.remove();
       }, 3000);
     } catch (_error) {
-      showErrorToast("Unable to download profile PDF.", "principal-profile-download-failed");
+      // Try fallback to teacher endpoint in case principal PDF generation isn't ready
+      try {
+        const fallback = await downloadTeacherProfileDocument(peopleId);
+        const contentType = fallback.headers?.["content-type"] || "application/pdf";
+        const disposition = fallback.headers?.["content-disposition"] || "";
+        const filenameMatch = disposition.match(/filename="?([^";]+)"?/i);
+        const filename = filenameMatch?.[1] || `principal-profile-${peopleId}.pdf`;
+
+        const blob = new Blob([fallback.data], { type: contentType });
+        const url = window.URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = filename;
+        document.body.appendChild(anchor);
+        anchor.click();
+        window.setTimeout(() => {
+          window.URL.revokeObjectURL(url);
+          anchor.remove();
+        }, 3000);
+      } catch (err2) {
+        showErrorToast("Unable to download profile PDF.", "principal-profile-download-failed");
+      }
+    } finally {
+      setIsDownloadingDocument(false);
     }
   };
 
@@ -641,7 +667,13 @@ function RegPrincipalInner() {
 
               <div className="flex justify-center gap-4 pt-4">
                 <Button variant="secondary" onClick={resetRegistration}>New Registration</Button>
-                <Button variant="primary" onClick={handleDownloadProfile}>Download Profile</Button>
+                <Button
+                  variant="primary"
+                  onClick={handleDownloadProfile}
+                  disabled={isDownloadingDocument}
+                >
+                  {isDownloadingDocument ? "Preparing PDF..." : "Download Profile"}
+                </Button>
               </div>
             </div>
           )}

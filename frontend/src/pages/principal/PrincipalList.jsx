@@ -50,7 +50,7 @@ const PrincipalList = () => {
   const fetchPrincipals = (pageNumber = 1) => {
     setLoading(true);
     api
-      .get(`/principals-list?page=${pageNumber}&per_page=10&nic=${search}`)
+      .get(`/principals-list?page=${pageNumber}&per_page=10&search=${encodeURIComponent(search)}`)
       .then((res) => {
         if (res.data?.status === "success") {
           setPrincipals(res.data.data.data || []);
@@ -105,7 +105,7 @@ const PrincipalList = () => {
           id="search"
           type="text"
           icon={HiSearch}
-          placeholder="Search by NIC..."
+          placeholder="Search by NIC or name..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
