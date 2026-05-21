@@ -11,6 +11,7 @@ import {
 } from "react-icons/hi";
 import api from "@/api/axios";
 import { downloadPrincipalProfileDocument } from "@/api/principalService";
+import { downloadTeacherProfileDocument } from "@/api/teacherService";
 import toast from "react-hot-toast";
 import { Badge, Spinner } from "flowbite-react";
 import TeacherUpdateModal from "@/components/teacher/TeacherUpdateModal";
@@ -480,7 +481,24 @@ const PrincipalProfile = () => {
       window.setTimeout(() => window.URL.revokeObjectURL(url), 1000);
     } catch (error) {
       console.error("Failed to download principal profile document:", error);
-      toast.error("Unable to download the principal document.");
+      // Try fallback to teacher PDF endpoint in case principal PDF is not available
+      try {
+        const fallback = await downloadTeacherProfileDocument(principal.id);
+        const blob2 = new Blob([fallback.data], {
+          type: fallback.headers?.["content-type"] || "application/pdf",
+        });
+        const url2 = window.URL.createObjectURL(blob2);
+        const link2 = document.createElement("a");
+        link2.href = url2;
+        link2.download = `principal-profile-${principal.nic || principal.id}.pdf`;
+        document.body.appendChild(link2);
+        link2.click();
+        link2.remove();
+        window.setTimeout(() => window.URL.revokeObjectURL(url2), 1000);
+      } catch (err2) {
+        console.error("Fallback teacher PDF download also failed:", err2);
+        toast.error("Unable to download the principal document.");
+      }
     } finally {
       setIsDownloadingDocument(false);
     }
