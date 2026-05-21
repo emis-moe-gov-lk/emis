@@ -839,7 +839,7 @@ const TeacherProfile = () => {
     !teacher?.rejected &&
     !teacher?.revised;
   const shouldShowUpdateOnly =
-    isDevelopmentOfficer && !!teacher?.rejected && !teacher?.revised;
+    (isDevelopmentOfficer || isSuperAdmin) && !!teacher?.rejected && !teacher?.revised;
   const isVerifiedStatus =
     !!teacher?.verified ||
     String(teacher?.status ?? "")
