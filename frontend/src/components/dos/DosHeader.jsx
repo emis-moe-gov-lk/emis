@@ -1,4 +1,5 @@
 import { Badge, TextInput } from "flowbite-react";
+import StatusBadge from "@/components/common/StatusBadge";
 import { HiSearch, HiUpload, HiPlus } from "react-icons/hi";
 import { useNavigate } from "react-router-dom";
 import Can from "@/components/common/Can";
@@ -27,9 +28,9 @@ export default function DosHeader({ count, isZonalAdmins, search, setSearch }) {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge color="blue" size="lg">
+          <StatusBadge className="px-3 py-1 font-bold text-sm">
             Total: {count || 0}
-          </Badge>
+          </StatusBadge>
         </div>
       </div>
 

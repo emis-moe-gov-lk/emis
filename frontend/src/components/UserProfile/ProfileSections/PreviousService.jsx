@@ -6,6 +6,7 @@ import Select from "./Select";
 import Modal from "./Modal";
 import { format } from "date-fns";
 import { Badge } from "flowbite-react";
+import StatusBadge from "@/components/common/StatusBadge";
 
 const PreviousService = ({
   employeeServiceList,
@@ -153,13 +154,13 @@ const PreviousService = ({
                   {/* Status & Actions */}
                   <div className="flex items-center justify-between md:flex-col md:items-end md:justify-center gap-3">
                     {item.active_status === 1 ? (
-                      <Badge color="green" size="sm">
+                      <StatusBadge className="px-3 py-1 text-sm">
                         ACTIVE
-                      </Badge>
+                      </StatusBadge>
                     ) : (
-                      <Badge color="zinc" size="sm">
+                      <StatusBadge className="px-3 py-1 text-sm">
                         INACTIVE
-                      </Badge>
+                      </StatusBadge>
                     )}
 
                     {canDelete && (

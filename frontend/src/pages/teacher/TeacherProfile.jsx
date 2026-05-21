@@ -28,6 +28,7 @@ import {
   ModalHeader,
   Button,
 } from "flowbite-react";
+import StatusBadge from "@/components/common/StatusBadge";
 import { HiOutlineExclamationCircle } from "react-icons/hi";
 import TeacherUpdateModal from "@/components/teacher/TeacherUpdateModal";
 import { useAuthUser } from "@/context/useAuthUser";
@@ -1365,18 +1366,9 @@ function HeaderStrip({ teacher, onDownloadDocument, isDownloadingDocument }) {
                 </h1>
 
                 <div className="flex flex-wrap items-center gap-3">
-                  <Badge
-                    color={
-                      teacher.status === "Confirmed"
-                        ? "success"
-                        : teacher.status === "Rejected"
-                          ? "failure"
-                          : "warning"
-                    }
-                    className="px-4 py-1 font-bold rounded-full text-xs"
-                  >
+                  <StatusBadge className="px-4 py-1 font-bold rounded-full text-xs">
                     {teacher.status}
-                  </Badge>
+                  </StatusBadge>
 
                   <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
                     <span className="font-bold text-blue-700 dark:text-blue-400 tracking-tight">

@@ -1,4 +1,5 @@
 import { Badge, Button } from "flowbite-react";
+import StatusBadge from "@/components/common/StatusBadge";
 import {
   HiUser,
   HiLocationMarker,
@@ -150,9 +151,9 @@ export default function DirectoryCard({
         {/* Status & Actions */}
         <div className="flex items-center gap-2 justify-between md:justify-end md:ml-auto shrink-0">
           {status && (
-            <Badge color={statusColor} className="px-2.5 py-1 text-xs whitespace-nowrap font-medium">
+            <StatusBadge className="px-2.5 py-1 text-xs whitespace-nowrap font-medium">
               {status}
-            </Badge>
+            </StatusBadge>
           )}
 
           {/* View Button */}

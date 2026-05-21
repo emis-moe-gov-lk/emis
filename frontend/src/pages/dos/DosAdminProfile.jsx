@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { HiDocumentText, HiPlus } from "react-icons/hi";
 import { Badge, Spinner } from "flowbite-react";
+import StatusBadge from "@/components/common/StatusBadge";
 import { getDosAdmin } from "@/api/deoOfficerService";
 import ProfileDataTable from "@/components/common/ProfileDataTable";
 import BackToListButton from "@/components/UiComponents/BackToListButton";
@@ -196,12 +197,9 @@ function HeaderStrip({ profile }) {
                   {profile.fullName}
                 </h1>
                 <div className="flex flex-wrap items-center gap-3">
-                  <Badge
-                    color="indigo"
-                    className="px-4 py-1 font-bold rounded-full text-xs"
-                  >
+                  <StatusBadge className="px-4 py-1 font-bold rounded-full text-xs">
                     {profile.position}
-                  </Badge>
+                  </StatusBadge>
                   <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
                     <span className="font-bold text-blue-700 dark:text-blue-400 tracking-tight">
                       {profile.service}

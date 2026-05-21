@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Badge, Button, Spinner, TextInput } from "flowbite-react";
+import StatusBadge from "@/components/common/StatusBadge";
 import {
   HiChevronLeft,
   HiChevronRight,
@@ -338,9 +339,9 @@ const UsersList = () => {
                   </div>
 
                   <div className="xl:col-span-2 flex items-center justify-between xl:justify-end gap-2">
-                    <Badge color={user.statusColor} className="px-3 py-1 whitespace-nowrap">
+                    <StatusBadge className="px-3 py-1 whitespace-nowrap">
                       {user.status}
-                    </Badge>
+                    </StatusBadge>
 
                     <div className="relative">
                       <button

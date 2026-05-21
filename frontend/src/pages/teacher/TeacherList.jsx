@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, useContext } from "react";
 import { useNavigate } from "react-router";
 import { Badge, Spinner, TextInput } from "flowbite-react";
+import StatusBadge from "@/components/common/StatusBadge";
 import {
   HiUser,
   HiSearch,
@@ -241,9 +242,9 @@ const TeacherList = () => {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge color="blue" size="lg">
+          <StatusBadge className="px-3 py-1 font-bold text-sm">
             Total: {total || 0}
-          </Badge>
+          </StatusBadge>
         </div>
       </div>
 

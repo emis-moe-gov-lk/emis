@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { Badge, Select, Spinner, TextInput } from "flowbite-react";
+import StatusBadge from "@/components/common/StatusBadge";
 import {
   HiOfficeBuilding,
   HiLocationMarker,
@@ -120,9 +121,9 @@ export default function InstitutionIndex() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge color="blue" size="lg">
+          <StatusBadge className="px-3 py-1 font-bold text-sm">
             Total: {total}
-          </Badge>
+          </StatusBadge>
         </div>
       </div>
 
@@ -270,19 +271,13 @@ export default function InstitutionIndex() {
                   {/* Status */}
                   <div className="md:col-span-2 flex md:justify-end">
                     {inst.active_status === 1 ? (
-                      <Badge
-                        color="success"
-                        className="px-3 py-1 bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400 ring-1 ring-green-600/20"
-                      >
+                      <StatusBadge className="px-3 py-1 bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400 ring-1 ring-green-600/20">
                         Active
-                      </Badge>
+                      </StatusBadge>
                     ) : (
-                      <Badge
-                        color="failure"
-                        className="px-3 py-1 bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 ring-1 ring-red-600/20"
-                      >
+                      <StatusBadge className="px-3 py-1 bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 ring-1 ring-red-600/20">
                         Inactive
-                      </Badge>
+                      </StatusBadge>
                     )}
                   </div>
                 </div>

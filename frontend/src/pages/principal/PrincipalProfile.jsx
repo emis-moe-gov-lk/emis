@@ -25,6 +25,7 @@ import Can from "@/components/common/Can";
 import { PermissionGroups } from "@/data/permissionGroups";
 import BackToListButton from "@/components/UiComponents/BackToListButton";
 import UIButton from "@/components/UiComponents/Button";
+import StatusBadge from "@/components/common/StatusBadge";
 
 /**
  * Principal Profile (Finalized Style)
@@ -990,18 +991,9 @@ function HeaderStrip({ principal, onDownloadDocument, isDownloadingDocument }) {
                 </h1>
 
                 <div className="flex flex-wrap items-center gap-3">
-                  <Badge
-                    color={
-                      principal.status === "Confirmed"
-                        ? "success"
-                        : principal.status === "Rejected"
-                          ? "failure"
-                          : "warning"
-                    }
-                    className="px-4 py-1 font-bold rounded-full text-xs"
-                  >
+                  <StatusBadge className="px-4 py-1 font-bold rounded-full text-xs">
                     {principal.status}
-                  </Badge>
+                  </StatusBadge>
 
                   <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
                     <span className="font-bold text-blue-700 dark:text-blue-400 tracking-tight">
