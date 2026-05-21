@@ -36,7 +36,23 @@ class Wso2IsProvisioningService
         $response = Http::withOptions(['verify' => $this->verifySsl()])
             ->asForm()
             ->withBasicAuth($clientId, $clientSecret)
-            ->post($tokenUrl, ['grant_type' => 'client_credentials'])
+            ->post($tokenUrl, [
+                'grant_type' => 'client_credentials',
+                'scope'      => implode(' ', [
+                    'internal_user_mgt_create',
+                    'internal_user_mgt_view',
+                    'internal_user_mgt_list',
+                    'internal_user_mgt_update',
+                    'internal_user_mgt_delete',
+                    'internal_role_mgt_create',
+                    'internal_role_mgt_view',
+                    'internal_role_mgt_update',
+                    'internal_role_mgt_delete',
+                    'internal_role_mgt_users_update',
+                    'internal_role_mgt_permissions_update',
+                    'internal_role_mgt_groups_update',
+                ]),
+            ])
             ->throw()
             ->json();
 
@@ -61,7 +77,7 @@ class Wso2IsProvisioningService
     {
         $response = $this->scimRequest()
             ->get($this->baseUrl() . '/scim2/Users', [
-                'filter' => sprintf('userName eq "%s"', $email),
+                'filter' => sprintf('userName eq "PRIMARY/%s"', $email),
             ])
             ->throw()
             ->json();
@@ -69,14 +85,37 @@ class Wso2IsProvisioningService
         return $response['Resources'][0]['id'] ?? null;
     }
 
+    private function splitName(User $user): array
+    {
+        $fullName = $user->people?->full_name ?? $user->name ?? '';
+        $fullName = trim((string) $fullName);
+        $parts    = preg_split('/\s+/', $fullName);
+
+        if (count($parts) >= 2) {
+            $familyName = array_pop($parts);
+            $givenName  = implode(' ', $parts);
+        } else {
+            $givenName  = $fullName;
+            $familyName = '';
+        }
+
+        return [$givenName, $familyName];
+    }
+
     private function createScimUser(User $user, string $plainPassword): string
     {
+        [$givenName, $familyName] = $this->splitName($user);
+
         $response = $this->scimRequest()
             ->post($this->baseUrl() . '/scim2/Users', [
                 'schemas'  => ['urn:ietf:params:scim:schemas:core:2.0:User'],
-                'userName' => $user->email,
+                'userName' => 'PRIMARY/' . $user->email,
                 'password' => $plainPassword,
-                'name'     => ['formatted' => $user->name],
+                'name'     => [
+                    'formatted'  => $user->name,
+                    'givenName'  => $givenName,
+                    'familyName' => $familyName,
+                ],
                 'emails'   => [['value' => $user->email, 'primary' => true]],
                 'phoneNumbers' => $user->contact
                     ? [['value' => $user->contact, 'type' => 'mobile']]
