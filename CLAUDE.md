@@ -71,6 +71,8 @@ Browser will warn about the self-signed cert; accept once per host. Direct ports
 | WSO2 APIM   | https://localhost:9443                   | admin / `APIM_ADMIN_PASSWORD`         |
 | MySQL       | localhost:3308                           | emis / emis (root password: root)     |
 
+Frontend backend calls route **through the APIM gateway**, not directly to Laravel: `VITE_API_BASE_URL=https://services.app-uat.emis.moe.gov.lk/hrm/1.0.0` (local and prod). APIM strips the `/hrm/1.0.0` context and forwards to the backend's `/api/...` endpoint, forwarding the IS-issued Bearer token unchanged.
+
 ### Day-to-day dev cycle
 
 After changing code in `backend/` or `frontend/`, rebuild just that service:
@@ -100,6 +102,29 @@ docker compose -f docker-stack.yml -f docker-compose.local.yml down
 # Stop + wipe local MySQL data
 docker compose -f docker-stack.yml -f docker-compose.local.yml down -v
 ```
+
+### OAuth credential flow
+
+WSO2 IS issues fresh client_ids/secrets every time `configure-is-and-apim.yml` runs. To avoid stale values in `frontend.env` / `backend.env`, the flow is:
+
+**Local (automated):** `setup.sh` orchestrates `configure-is-and-apim.yml` → `scripts/configure-auth.sh`. The auth script queries IS directly (admin / `ADMIN11`) for the SPA client_id (EMIS Web App) and M2M client_id+secret (CEMIS-LK M2M), writes them into the env files via an idempotent `set_env_var` helper, rebuilds the frontend (Vite bakes `VITE_*` at build time, not container start), and restarts the backend. Re-runnable by hand: `./scripts/configure-auth.sh`.
+
+**Prod swarm (manual paste):** after `configure-is-and-apim.yml` runs against the prod IS/APIM, copy the printed credentials from its `Display generated credentials` / `Display M2M application credentials` debug tasks into `infrastructure/ansible/vars.yml`:
+
+- `varsfl_vite_asgardeo_client_id` ← SPA client_id (EMIS Web App)
+- `varsfl_wso2_m2m_client_id` ← CEMIS-LK M2M client_id
+- `varsfl_wso2_m2m_client_secret` ← CEMIS-LK M2M client_secret
+- `varsfl_vite_api_base_url` ← `https://services.app-uat.emis.moe.gov.lk/hrm/1.0.0` (the APIM gateway URL for the published EMIS-HRM API)
+
+Then re-run `deploy-frontend.yml` and `deploy-backend.yml` (each re-renders its env file from a j2 template). Deliberately not automated — human-reviewed secret movement, infrequent re-deploys.
+
+**Test users (local only)** seeded by the playbook from `infrastructure/ansible/resources/users-roles.yml`:
+
+| Username | Password | Role |
+|---|---|---|
+| `teacher1` | `Teacher@123` | Teacher |
+| `principal1` | `Principal@123` | Principal |
+| `dataentry1` | `DataEntry@123` | DataEntry |
 
 ### Things to know about the backend startup
 

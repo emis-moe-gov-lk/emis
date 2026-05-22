@@ -61,6 +61,17 @@ services:
   frontend:
     build:
       context: ../../frontend
+      # Vite bakes VITE_* into the JS bundle at build time. These build-args
+      # are sourced from frontend.env via compose's variable interpolation —
+      # callers must run `set -a; source frontend.env; set +a` before
+      # `docker compose ... build frontend` so the values are in the
+      # environment. scripts/configure-auth.sh and scripts/rebuild.sh do this.
+      args:
+        VITE_ASGARDEO_BASE_URL: ${VITE_ASGARDEO_BASE_URL:-}
+        VITE_ASGARDEO_CLIENT_ID: ${VITE_ASGARDEO_CLIENT_ID:-}
+        VITE_SIGNIN_REDIRECT_URL: ${VITE_SIGNIN_REDIRECT_URL:-}
+        VITE_SIGNOUT_REDIRECT_URL: ${VITE_SIGNOUT_REDIRECT_URL:-}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
     restart: on-failure
     # Frontend is fronted by nginx-proxy; remove its host port mapping to
     # free up host port 80 for the proxy. (!override replaces the base

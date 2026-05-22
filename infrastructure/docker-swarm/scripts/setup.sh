@@ -114,6 +114,39 @@ CFG
 echo "==> Starting remaining services"
 $COMPOSE up -d
 
+echo "==> Waiting for WSO2 IS + APIM to finish booting (~2 min)"
+# /carbon returns 200 once the carbon server has fully started.
+for svc in "wso2-is:9444" "wso2-apim:9443"; do
+  name="${svc%%:*}"
+  port="${svc##*:}"
+  printf "  %-12s " "$name"
+  for _ in {1..120}; do
+    code=$(curl -sk -o /dev/null -w "%{http_code}" --max-time 3 "https://localhost:${port}/carbon/admin/login.jsp" || true)
+    if [[ "$code" == "200" ]]; then
+      echo "ready"
+      break
+    fi
+    sleep 2
+  done
+  if [[ "$code" != "200" ]]; then
+    echo "FAILED (last HTTP: $code)" >&2
+    exit 1
+  fi
+done
+
+echo "==> Configuring IS + APIM (Key Manager, roles, users, APIs, applications)"
+(
+  cd "$ANSIBLE_DIR"
+  ANSIBLE_CONFIG="$LOCAL_ANSIBLE_CFG" ansible-playbook \
+    -i inventory/local.yml \
+    playbooks/configure-is-and-apim.yml \
+    -e @resources/users-roles.yml \
+    -e ansible_become=false
+)
+
+echo "==> Harvesting OAuth credentials into env files + rebuilding frontend"
+"$DIR/scripts/configure-auth.sh"
+
 echo "==> Status"
 $COMPOSE ps
 

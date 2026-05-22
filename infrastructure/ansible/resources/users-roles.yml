@@ -11,32 +11,30 @@ nemis_roles:
   - name: "DataEntry"
     permissions: []
 
-# To add users, replace the empty list below with:
-# nemis_users:
-#   - username: "teacher1"
-#     password: "Teacher@123"
-#     first_name: "Sample"
-#     last_name: "Teacher"
-#     email: "teacher1@moe.gov.lk"
-#     roles:
-#       - "Teacher"
-#
-#   - username: "principal1"
-#     password: "Principal@123"
-#     first_name: "Sample"
-#     last_name: "Principal"
-#     email: "principal1@moe.gov.lk"
-#     roles:
-#       - "Principal"
-#
-#   - username: "dataentry1"
-#     password: "DataEntry@123"
-#     first_name: "Sample"
-#     last_name: "DataEntry"
-#     email: "dataentry1@moe.gov.lk"
-#     roles:
-#       - "DataEntry"
-nemis_users: []
+nemis_users:
+  - username: "teacher1"
+    password: "Teacher@123"
+    first_name: "Sample"
+    last_name: "Teacher"
+    email: "teacher1@moe.gov.lk"
+    roles:
+      - "Teacher"
+
+  - username: "principal1"
+    password: "Principal@123"
+    first_name: "Sample"
+    last_name: "Principal"
+    email: "principal1@moe.gov.lk"
+    roles:
+      - "Principal"
+
+  - username: "dataentry1"
+    password: "DataEntry@123"
+    first_name: "Sample"
+    last_name: "DataEntry"
+    email: "dataentry1@moe.gov.lk"
+    roles:
+      - "DataEntry"
 
 # APIs to create and publish in APIM.
 # openapi_url points at the internal docker hostname so APIM's Java client

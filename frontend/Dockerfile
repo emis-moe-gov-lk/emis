@@ -3,18 +3,21 @@ FROM node:20-alpine AS build
 
 WORKDIR /app
 
-#required env variables
+# Vite bakes VITE_* into the JS bundle at build time. Caller passes these
+# via --build-arg (or the `args:` block in docker-compose.local.yml). ARG
+# declarations bring the build args into scope; ENV promotes each one so the
+# Vite build process picks them up.
 ARG VITE_API_BASE_URL
 ARG VITE_ASGARDEO_CLIENT_ID
 ARG VITE_ASGARDEO_BASE_URL
 ARG VITE_SIGNIN_REDIRECT_URL
 ARG VITE_SIGNOUT_REDIRECT_URL
 
-ENV VITE_API_BASE_URL=https://api-uat.emis.moe.gov.lk/api
-ENV VITE_ASGARDEO_CLIENT_ID=7aLIstji17T7a00pSnE3UACo_fsa
-ENV VITE_ASGARDEO_BASE_URL=https://api.asgardeo.io/t/airforce
-ENV VITE_SIGNIN_REDIRECT_URL=https://app-uat.emis.moe.gov.lk/authentication/callback
-ENV VITE_SIGNOUT_REDIRECT_URL=https://app-uat.emis.moe.gov.lk/logout
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+ENV VITE_ASGARDEO_CLIENT_ID=${VITE_ASGARDEO_CLIENT_ID}
+ENV VITE_ASGARDEO_BASE_URL=${VITE_ASGARDEO_BASE_URL}
+ENV VITE_SIGNIN_REDIRECT_URL=${VITE_SIGNIN_REDIRECT_URL}
+ENV VITE_SIGNOUT_REDIRECT_URL=${VITE_SIGNOUT_REDIRECT_URL}
 
 
 COPY package*.json ./

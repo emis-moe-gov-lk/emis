@@ -32,6 +32,15 @@ case "$service" in
     ;;
 esac
 
+# For the frontend, source frontend.env so VITE_* values are in scope for
+# compose's `args:` interpolation (Vite bakes them at build time).
+if [[ "$service" == "frontend" && -f frontend.env ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source frontend.env
+  set +a
+fi
+
 echo "==> Rebuilding $service"
 $COMPOSE build "$service"
 
