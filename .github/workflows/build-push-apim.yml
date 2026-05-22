@@ -1,63 +1,90 @@
-name: Build and Push WSO2 AM Image
+name: Build and Push WSO2 APIM Image
 run-name: "Build & Push WSO2 APIM image on ${{ github.ref_name }}"
 
 on:
-  workflow_dispatch: # call manually
-  workflow_call: # To be called by other workflows
-
-env:
-  REGISTRY: ghcr.io
-  # Converts repository name to lowercase for registry compatibility
-  IMAGE_NAME: ${{ github.repository_owner }}/emis-apim
+  workflow_dispatch: # trigger workflow manually
+  workflow_call:    # trigger workflow from an external workflow
 
 jobs:
-  build-and-push:
+  build-apim:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+      actions: write 
+
+    # Centralized configuration blocks matching your standardized layout
+    env:
+      REGISTRY_BASE: "ghcr.io/${{ github.repository_owner }}/emis-apim"
+      REPO_VER_FILE: "apim/version"
+      GHA_VER_NAME: "APIM_IMG_VERSION"
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Get Image Version
-        id: get_version
+      - name: Check and Extract APIM Version
+        id: version_check
+        env:
+          VAR_VERSION: "${{ vars.APIM_IMG_VERSION }}"
         run: |
-          # Read version from the apim directory and clean whitespace
-          VERSION=$(head -n 1 apim/IMG_VERSION | xargs)
-          echo "IMG_VERSION=$VERSION" >> $GITHUB_OUTPUT
-          # Setting the full tag using WSO2 AM base version + your custom build version
-          echo "FULL_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:4.6.0-$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Log in to the Container registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Check if image exists
-        id: check_tag
-        run: |
-          if docker manifest inspect ${{ steps.get_version.outputs.FULL_TAG }} > /dev/null 2>&1; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-            echo "Image ${{ steps.get_version.outputs.FULL_TAG }} already exists. Skipping build."
+          # Read the version modifier file and clean whitespace
+          FILE_VERSION=$(cat ${{ env.REPO_VER_FILE }} | xargs)
+          
+          echo "Version sub-tag in repo file: $FILE_VERSION"
+          echo "Version in GHA variables: $VAR_VERSION"
+          
+          if [ "$FILE_VERSION" = "$VAR_VERSION" ]; then
+            echo "Versions match. Skipping WSO2 APIM build."
+            echo "should_build=false" >> $GITHUB_OUTPUT
           else
-            echo "exists=false" >> $GITHUB_OUTPUT
-            echo "Image ${{ steps.get_version.outputs.FULL_TAG }} does not exist. Proceeding with build."
+            echo "New version detected ($FILE_VERSION). Proceeding with build."
+            echo "should_build=true" >> $GITHUB_OUTPUT
+            # Store both the raw sub-version and the combined platform tag
+            echo "new_version=$FILE_VERSION" >> $GITHUB_OUTPUT
+            echo "full_tag=${{ env.REGISTRY_BASE }}:7.2.0-$FILE_VERSION" >> $GITHUB_OUTPUT
           fi
 
-      - name: Build and push Docker image
-        # Runs only if the image tag doesn't already exist in GHCR
-        if: steps.check_tag.outputs.exists == 'false'
+      - name: Log in to GHCR
+        if: steps.version_check.outputs.should_build == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Strict uniqueness check: Explicitly fails if someone forgot to bump the sub-version file
+      - name: Verify Tag Uniqueness in GHCR
+        if: steps.version_check.outputs.should_build == 'true'
+        run: |
+          TARGET_IMAGE="${{ steps.version_check.outputs.full_tag }}"
+          echo "Checking if $TARGET_IMAGE already exists..."
+          
+          if docker manifest inspect $TARGET_IMAGE > /dev/null 2>&1; then
+            echo "::error::The WSO2 APIM image tag 7.2.0-${{ steps.version_check.outputs.new_version }} already exists in GHCR! Please bump the version file."
+            exit 1
+          else
+            echo "Tag is unique. Safe to proceed."
+          fi
+
+      - name: Build and push WSO2 APIM image
+        if: steps.version_check.outputs.should_build == 'true'
         uses: docker/build-push-action@v5
         with:
           context: ./apim
-          file: ./apim/Dockerfile
           push: true
           tags: |
-            ${{ steps.get_version.outputs.FULL_TAG }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-          labels: |
-            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            ${{ steps.version_check.outputs.full_tag }}
+            ${{ env.REGISTRY_BASE }}:latest
+
+      - name: Update GitHub Actions Variable
+        if: steps.version_check.outputs.should_build == 'true'  
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api \
+            --method PATCH \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /repos/${{ github.repository }}/actions/variables/${{ env.GHA_VER_NAME }} \
+            -f value="${{ steps.version_check.outputs.new_version }}"

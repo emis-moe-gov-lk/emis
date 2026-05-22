@@ -1,9 +1,9 @@
 name: Build and Push Frontend
+run-name: "Build & Push frontend image on ${{ github.ref_name }}"
 
 on:
-  push:
-    branches: [ "infra/feat/img-build" ]
-  workflow_dispatch:   # Allows manual triggering
+  workflow_dispatch: # trigger workflow manually
+  workflow_call:    # trigger workflow from a external workflow
 
 jobs:
   build-frontend:
@@ -11,21 +11,77 @@ jobs:
     permissions:
       contents: read
       packages: write
+      actions: write 
+
+    # Define frontend strings centrally
+    env:
+      REGISTRY_BASE: "ghcr.io/emis-moe-gov-lk/emis-frontend"
+      REPO_VER_FILE: "frontend/version"
+      GHA_VER_NAME: "FRONTEND_IMG_VERSION"
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Check and Extract Frontend Version
+        id: version_check
+        env:
+          # We pass the dynamic repository variable safely into the step environment
+          VAR_VERSION: "${{ vars.FRONTEND_IMG_VERSION }}"
+        run: |
+          FILE_VERSION=$(cat ${{ env.REPO_VER_FILE }} | xargs)
+          
+          echo "Version in repo file: $FILE_VERSION"
+          echo "Version in GHA variables: $VAR_VERSION"
+          
+          if [ "$FILE_VERSION" = "$VAR_VERSION" ]; then
+            echo "Versions match. Skipping build."
+            echo "should_build=false" >> $GITHUB_OUTPUT
+          else
+            echo "New version detected ($FILE_VERSION). Proceeding with build."
+            echo "should_build=true" >> $GITHUB_OUTPUT
+            echo "new_version=$FILE_VERSION" >> $GITHUB_OUTPUT
+          fi
+
       - name: Log in to GHCR
+        if: steps.version_check.outputs.should_build == 'true'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Verify Tag Uniqueness in GHCR
+        if: steps.version_check.outputs.should_build == 'true'
+        run: |
+          TARGET_IMAGE="${{ env.REGISTRY_BASE }}:${{ steps.version_check.outputs.new_version }}"
+          echo "Checking if $TARGET_IMAGE already exists..."
+          
+          if docker manifest inspect $TARGET_IMAGE > /dev/null 2>&1; then
+            echo "::error::The image tag ${{ steps.version_check.outputs.new_version }} already exists in GHCR! Please bump the version file."
+            exit 1
+          else
+            echo "Tag is unique. Safe to proceed."
+          fi
+
       - name: Build and push Frontend image
+        if: steps.version_check.outputs.should_build == 'true'
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/emis-frontend:${{ vars.FRONTEND_IMG_VERSION }}
+          tags: |
+            ${{ env.REGISTRY_BASE }}:${{ steps.version_check.outputs.new_version }}
+            ${{ env.REGISTRY_BASE }}:latest
+
+      - name: Update GitHub Actions Variable
+        if: steps.version_check.outputs.should_build == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api \
+            --method PATCH \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /repos/${{ github.repository }}/actions/variables/${{ env.GHA_VER_NAME }} \
+            -f value="${{ steps.version_check.outputs.new_version }}"
