@@ -14,6 +14,8 @@ import { PermissionGroups } from "@/data/permissionGroups";
 import api from "@/api/axios";
 import DirectoryCard from "@/components/common/DirectoryCard";
 import Button from "@/components/UiComponents/Button";
+import profile_m from "@/assets/images/profile_m.png";
+import profile_f from "@/assets/images/profile_f.png";
 
 const PrincipalList = () => {
   const navigate = useNavigate();
@@ -151,6 +153,10 @@ const PrincipalList = () => {
                     permissions={{
                       view: PermissionGroups.SCHOOLS.VIEW_PROFILE,
                     }}
+                    showProfilePicture={true}
+                    maleProfileImage={profile_m}
+                    femaleProfileImage={profile_f}
+                    genderId={principal.gender_id}
                     onView={(employee) => {
                       navigate(`/employees/principal/${employee.people_id}`);
                     }}

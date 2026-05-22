@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import ProfilePop from "./ProfileModal";
-import profile_m from "../../assets/images/profile_m.png";
-import profile_f from "../../assets/images/profile_f.png";
+import { resolveProfileImage } from "@/utils/profileImage";
 
 const AccountActions = ({ layout = "sidebar" }) => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -14,10 +13,7 @@ const AccountActions = ({ layout = "sidebar" }) => {
   };
 
   const getProfileImage = () => {
-    if (user.profilePic) return user.profilePic;
-    if (user.gender === "male") return profile_m;
-    if (user.gender === "female") return profile_f;
-    return profile_m;
+    return resolveProfileImage(user.profilePic, user.gender);
   };
 
   const isMobileLayout = layout === "mobile";

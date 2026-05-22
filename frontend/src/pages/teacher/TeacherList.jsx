@@ -19,6 +19,8 @@ import Can from "@/components/common/Can";
 import { PermissionGroups } from "@/data/permissionGroups";
 import DirectoryCard from "@/components/common/DirectoryCard";
 import Button from "@/components/UiComponents/Button";
+import profile_m from "@/assets/images/profile_m.png";
+import profile_f from "@/assets/images/profile_f.png";
 
 /**
  * Teacher List Page
@@ -323,6 +325,10 @@ const TeacherList = () => {
                     permissions={{
                       view: PermissionGroups.SCHOOLS.VIEW_PROFILE,
                     }}
+                    showProfilePicture={true}
+                    maleProfileImage={profile_m}
+                    femaleProfileImage={profile_f}
+                    genderId={t.gender_id}
                     onView={(employee) => {
                       navigate(`/employees/teacher/${employee.people_id}`);
                     }}

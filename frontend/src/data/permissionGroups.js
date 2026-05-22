@@ -224,7 +224,7 @@ export const PermissionGroups = {
     CREATE: "user.create",
     DELETE: "user.delete",
     EDIT: "user.edit",
-    USER_VIEW: "menu.users",
+    USER_VIEW: "menu.user",
     UPDATE: "user.update",
   },
 

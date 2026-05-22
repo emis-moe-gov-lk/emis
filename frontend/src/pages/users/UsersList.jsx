@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Badge, Button, Spinner, TextInput } from "flowbite-react";
+import { resolveProfileImage } from "@/utils/profileImage";
 import StatusBadge from "@/components/common/StatusBadge";
 import {
   HiChevronLeft,
@@ -205,11 +206,14 @@ const UsersList = () => {
         workplace: getWorkplace(user),
         role: getUserRole(user),
         profileImage:
-          user?.profile_image ??
-          user?.profile_picture ??
-          user?.avatar_url ??
-          user?.avatar ??
-          null,
+          resolveProfileImage(
+            user?.profile_image ??
+              user?.profile_picture ??
+              user?.avatar_url ??
+              user?.avatar,
+            user?.gender_id ?? user?.gender?.gender_id,
+          ),
+        genderId: user?.gender_id ?? user?.gender?.gender_id ?? null,
         status,
         statusColor: getStatusColor(status),
       };

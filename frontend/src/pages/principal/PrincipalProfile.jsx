@@ -26,6 +26,7 @@ import { PermissionGroups } from "@/data/permissionGroups";
 import BackToListButton from "@/components/UiComponents/BackToListButton";
 import UIButton from "@/components/UiComponents/Button";
 import StatusBadge from "@/components/common/StatusBadge";
+import { resolveProfileImage } from "@/utils/profileImage";
 
 /**
  * Principal Profile (Finalized Style)
@@ -347,6 +348,14 @@ const PrincipalProfile = () => {
       /* GENERAL */
       setPrincipal({
         id: d.people_id,
+        profileImage:
+          resolveProfileImage(
+            d.profile_image ?? d.profile_picture ?? d.avatar_url ?? d.avatar,
+            d.gender_id ?? d.gender?.gender_id,
+          ),
+        genderId:
+          d.gender_id ?? d.gender?.gender_id ??
+          (d.gender?.gender_name && d.gender.gender_name.toLowerCase().startsWith("f") ? "G02" : null),
         appointmentId,
         fullName: d.full_name,
         initialsName: d.name_with_initials,
@@ -980,30 +989,43 @@ function HeaderStrip({ principal, onDownloadDocument, isDownloadingDocument }) {
     <div className="rounded-2xl overflow-hidden border border-blue-100 dark:border-blue-900/30 shadow-sm bg-white dark:bg-gray-800">
       <div className="bg-linear-to-r from-blue-50 to-indigo-50/30 dark:from-blue-900/10 dark:to-indigo-900/5">
         <div className="p-6 flex flex-col xl:flex-row xl:items-center gap-6">
-          {/* LEFT: Name + meta */}
+          {/* LEFT: Avatar + Name + meta */}
           <div className="flex items-start gap-4 min-w-0 max-w-2xl">
             <div className="w-1.5 rounded-full bg-blue-600 self-stretch shadow-[0_0_10px_rgba(37,99,235,0.3)]" />
 
-            <div className="min-w-0">
-              <div className="flex flex-col gap-2">
-                <h1 className="text-3xl font-black text-gray-900 dark:text-white leading-tight">
-                  {principal.fullName}
-                </h1>
+            <div className="flex items-center gap-4">
+              <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-white shadow-sm bg-gray-100 dark:bg-gray-700">
+                <img
+                  src={resolveProfileImage(
+                    principal?.profileImage,
+                    principal?.genderId,
+                  )}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                />
+              </div>
 
-                <div className="flex flex-wrap items-center gap-3">
-                  <StatusBadge className="px-4 py-1 font-bold rounded-full text-xs">
-                    {principal.status}
-                  </StatusBadge>
+              <div className="min-w-0">
+                <div className="flex flex-col gap-2">
+                  <h1 className="text-3xl font-black text-gray-900 dark:text-white leading-tight">
+                    {principal.fullName}
+                  </h1>
 
-                  <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
-                    <span className="font-bold text-blue-700 dark:text-blue-400 tracking-tight">
-                      {principal.service}
-                    </span>
-                    <span className="text-gray-300 dark:text-gray-600">|</span>
-                    <span>NIC</span>
-                    <span className="font-mono font-black text-gray-900 dark:text-white">
-                      {principal.nic}
-                    </span>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <StatusBadge className="px-4 py-1 font-bold rounded-full text-xs">
+                      {principal.status}
+                    </StatusBadge>
+
+                    <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                      <span className="font-bold text-blue-700 dark:text-blue-400 tracking-tight">
+                        {principal.service}
+                      </span>
+                      <span className="text-gray-300 dark:text-gray-600">|</span>
+                      <span>NIC</span>
+                      <span className="font-mono font-black text-gray-900 dark:text-white">
+                        {principal.nic}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
