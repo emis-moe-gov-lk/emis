@@ -83,7 +83,7 @@ export default function AppRoutes() {
           <Route index element={<Landing />} />
         </Route>
         <Route path="/help-center" element={<HelpCenter />} />
-        <Route path="/login" element={<Login />} />
+        <Route path="/login" element={<Navigate to="/" replace />} />
         <Route path="/logout" element={<Logout />} />
         <Route
           path="/force-password-change"
