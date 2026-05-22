@@ -42,6 +42,13 @@ if [[ ! -s "$CERT_DIR/cert.pem" || ! -s "$CERT_DIR/key.pem" ]]; then
   echo "  cert + key written to $CERT_DIR"
 fi
 
+echo "==> Seeding WSO2 image build contexts with the proxy cert"
+# APIM and IS Dockerfiles import any .pem files found in their certs/ dir into
+# the WSO2 client-truststore at build time. Copy the proxy cert there so the
+# baked images trust our local TLS when calling each other through the proxy.
+cp "$CERT_DIR/cert.pem" "$DIR/../../apim/certs/cert.pem"
+cp "$CERT_DIR/cert.pem" "$DIR/../../is/certs/cert.pem"
+
 echo "==> Building images (this can take 10-20 min on first run)"
 $COMPOSE build
 

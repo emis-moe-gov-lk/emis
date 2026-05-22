@@ -1,0 +1,73 @@
+# NEMIS Users and Roles Configuration
+# Usage: ansible-playbook configure-is-and-apim.yaml -e @users-and-roles.yaml
+
+nemis_roles:
+  - name: "Teacher"
+    permissions: []
+
+  - name: "Principal"
+    permissions: []
+
+  - name: "DataEntry"
+    permissions: []
+
+# To add users, replace the empty list below with:
+# nemis_users:
+#   - username: "teacher1"
+#     password: "Teacher@123"
+#     first_name: "Sample"
+#     last_name: "Teacher"
+#     email: "teacher1@moe.gov.lk"
+#     roles:
+#       - "Teacher"
+#
+#   - username: "principal1"
+#     password: "Principal@123"
+#     first_name: "Sample"
+#     last_name: "Principal"
+#     email: "principal1@moe.gov.lk"
+#     roles:
+#       - "Principal"
+#
+#   - username: "dataentry1"
+#     password: "DataEntry@123"
+#     first_name: "Sample"
+#     last_name: "DataEntry"
+#     email: "dataentry1@moe.gov.lk"
+#     roles:
+#       - "DataEntry"
+nemis_users: []
+
+# APIs to create and publish in APIM.
+# openapi_url points at the internal docker hostname so APIM's Java client
+# bypasses our self-signed TLS cert when fetching the schema at import time.
+# endpoint_url stays public-hostname for runtime routing through the gateway.
+nemis_apis:
+  - name: "EMIS-HRM"
+    version: "1.0.0"
+    context: "/hrm"
+    openapi_url: "http://backend:80/docs/api.json"
+    endpoint_url: "https://api-uat.emis.moe.gov.lk/api/"
+    subscription_policies:
+      - "Unlimited"
+
+# Applications to create, subscribe and generate tokens
+nemis_apps:
+  - name: "EMIS Web App"
+    description: "EMIS Web Application"
+    throttling_policy: "Unlimited"
+    token_type: "JWT"
+    callback_url: "https://app-uat.emis.moe.gov.lk/authentication/callback"
+    grant_types:
+      - "authorization_code"
+    subscribe_to:
+      - "EMIS-HRM"
+
+  - name: "EMIS Test App"
+    description: "Automated API testing (password grant)"
+    throttling_policy: "Unlimited"
+    token_type: "JWT"
+    grant_types:
+      - "password"
+    subscribe_to:
+      - "EMIS-HRM"
