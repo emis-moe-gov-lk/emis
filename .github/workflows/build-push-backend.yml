@@ -1,85 +1,51 @@
 name: Build and Push Backend
 run-name: "Build & Push backend image on ${{ github.ref_name }}"
-
 on:
   workflow_dispatch: # trigger workflow manually
-  workflow_call:    # trigger workflow from a external workflow
-
+  workflow_call:    # trigger workflow from an external workflow
 jobs:
   build-backend:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-      actions: write 
-
-    # Define backend strings centrally
     env:
-      REGISTRY_BASE: "ghcr.io/${{ github.repository_owner }}/emis-backend"
+      REGISTRY_BASE: "ghcr.io/emis-moe-gov-lk/emis-backend"
       REPO_VER_FILE: "backend/version"
-      GHA_VAR_NAME: "BACKEND_IMG_VERSION"
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Check and Extract Backend Version
-        id: version_check
+      - name: Extract Backend Version
+        id: get_version
         run: |
           FILE_VERSION=$(cat ${{ env.REPO_VER_FILE }} | xargs)
-          VAR_VERSION="${{ vars[env.GHA_VAR_NAME] }}"
-          
-          echo "Version in repo file: $FILE_VERSION"
-          echo "Version in GHA variables: $VAR_VERSION"
-          
-          if [ "$FILE_VERSION" = "$VAR_VERSION" ]; then
-            echo "Versions match. Skipping build."
-            echo "should_build=false" >> $GITHUB_OUTPUT
-          else
-            echo "New version detected ($FILE_VERSION). Proceeding with build."
-            echo "should_build=true" >> $GITHUB_OUTPUT
-            echo "new_version=$FILE_VERSION" >> $GITHUB_OUTPUT
-          fi
-
+          echo "Detected version in repo file: $FILE_VERSION"
+          echo "version=$FILE_VERSION" >> $GITHUB_OUTPUT
       - name: Log in to GHCR
-        if: steps.version_check.outputs.should_build == 'true'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Verify Tag Uniqueness in GHCR
-        if: steps.version_check.outputs.should_build == 'true'
+      - name: Check if Tag Exists in GHCR
+        id: ghcr_check
         run: |
-          TARGET_IMAGE="${{ env.REGISTRY_BASE }}:${{ steps.version_check.outputs.new_version }}"
-          echo "Checking if $TARGET_IMAGE already exists..."
+          TARGET_IMAGE="${{ env.REGISTRY_BASE }}:${{ steps.get_version.outputs.version }}"
+          echo "Checking if $TARGET_IMAGE exists in GHCR..."
           
           if docker manifest inspect $TARGET_IMAGE > /dev/null 2>&1; then
-            echo "::error::The image tag ${{ steps.version_check.outputs.new_version }} already exists in GHCR! Please bump the version file."
-            exit 1
+            echo "Image tag ${{ steps.get_version.outputs.version }} already exists in GHCR."
+            echo "should_build=false" >> $GITHUB_OUTPUT
           else
-            echo "Tag is unique. Safe to proceed."
+            echo "Image tag ${{ steps.get_version.outputs.version }} not found. Proceeding with build."
+            echo "should_build=true" >> $GITHUB_OUTPUT
           fi
-
       - name: Build and push Backend image
-        if: steps.version_check.outputs.should_build == 'true'
+        if: steps.ghcr_check.outputs.should_build == 'true'
         uses: docker/build-push-action@v5
         with:
           context: ./backend
           push: true
           tags: |
-            ${{ env.REGISTRY_BASE }}:${{ steps.version_check.outputs.new_version }}
+            ${{ env.REGISTRY_BASE }}:${{ steps.get_version.outputs.version }}
             ${{ env.REGISTRY_BASE }}:latest
-
-      - name: Update GitHub Actions Variable
-        if: steps.version_check.outputs.should_build == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh api \
-            --method PATCH \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            /repos/${{ github.repository }}/actions/variables/${{ env.GHA_VAR_NAME }} \
-            -f value="${{ steps.version_check.outputs.new_version }}"
