@@ -388,7 +388,6 @@ function WeeklyTimetable() {
                       <div>{day}</div>
                       <div
                         className={`text-[10px] font-normal ${holiday ? "text-teal-500" : isToday ? "text-blue-500" : "text-gray-400"}`}
-                      className={"px-6 py-3 text-sm text-left"}
                       >
                         {formatDateShort(dayDateISO)}
                         {isOff && !holiday && (
