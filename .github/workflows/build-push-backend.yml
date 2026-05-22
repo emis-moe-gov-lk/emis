@@ -11,7 +11,7 @@ jobs:
     permissions:
       contents: read
       packages: write
-      variables: write 
+      actions: write 
 
     # Define backend strings centrally
     env:

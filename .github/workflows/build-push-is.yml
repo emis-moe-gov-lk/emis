@@ -11,7 +11,7 @@ jobs:
     permissions:
       contents: read
       packages: write
-      variables: write 
+      actions: write 
 
     # Centralized configuration blocks matching frontend and backend layout
     env:
