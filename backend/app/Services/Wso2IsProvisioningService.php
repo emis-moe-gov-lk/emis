@@ -350,4 +350,34 @@ class Wso2IsProvisioningService
             return ['enabled' => true, 'role_updated' => false, 'error' => $e->getMessage()];
         }
     }
+
+    /**
+     * Update the user's password in WSO2 IS.
+     * Called after a successful local password change.
+     */
+    /**
+     * Update the user's password in WSO2 IS.
+     * Returns ['skipped' => true] when IS is disabled or user has no IS account.
+     * Throws \Illuminate\Http\Client\RequestException on IS rejection (e.g. password policy violation).
+     */
+    public function updatePassword(User $user, string $newPlainPassword): array
+    {
+        if (! $this->isEnabled()) {
+            return ['enabled' => false, 'skipped' => true];
+        }
+
+        $isUserId = $user->identity_provider_user_id;
+
+        if (! $isUserId) {
+            return ['enabled' => true, 'skipped' => true, 'reason' => 'no_is_user_id'];
+        }
+
+        // Let HTTP errors (e.g. 400 password policy violation) bubble to the caller.
+        $this->patchScimUser($isUserId, [[
+            'op'    => 'replace',
+            'value' => ['password' => $newPlainPassword],
+        ]]);
+
+        return ['enabled' => true, 'updated' => true];
+    }
 }
