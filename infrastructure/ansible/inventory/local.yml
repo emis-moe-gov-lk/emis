@@ -1,0 +1,11 @@
+# Local-dev inventory: targets the docker mysql container exposed on localhost:3308
+# from infrastructure/docker-swarm/docker-compose.local.yml.
+all:
+  vars:
+    ansible_connection: local
+    ansible_python_interpreter: /usr/bin/python3
+  children:
+    databases:
+      hosts:
+        local_db:
+          ansible_host: 127.0.0.1

@@ -1,0 +1,103 @@
+# Local-dev override for docker-stack.yml.
+# Usage: docker compose -f docker-stack.yml -f docker-compose.local.yml up
+#
+# This file:
+#   - Switches the overlay network to bridge (compose can't create overlays)
+#   - Adds top-level restart keys (compose ignores deploy.restart_policy)
+#   - Adds a local mysql service and points backend at it
+#   - Adds build: directives so images are built from local Dockerfiles
+#     instead of pulled from a registry
+
+networks:
+  uat-emis-swm-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: emis
+      MYSQL_USER: emis
+      MYSQL_PASSWORD: emis
+    ports:
+      - "3308:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - uat-emis-swm-network
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  wso2-is:
+    build:
+      context: ../../is
+    restart: on-failure
+    environment:
+      IS_DB_HOST: mysql
+      IS_DB_PORT: 3306
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  wso2-apim:
+    build:
+      context: ../../apim
+    restart: on-failure
+    environment:
+      APIM_DB_HOST: mysql
+      APIM_DB_PORT: 3306
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ../../frontend
+    restart: on-failure
+    # Frontend is fronted by nginx-proxy; remove its host port mapping to
+    # free up host port 80 for the proxy. (!override replaces the base
+    # file's "80:80" instead of appending.)
+    ports: !override []
+
+  backend:
+    build:
+      context: ../../backend
+    restart: on-failure
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: emis
+      DB_USERNAME: emis
+      DB_PASSWORD: emis
+      # FrankenPHP/Caddy listen address — bare ":80" disables auto-HTTPS for local
+      SERVER_NAME: ":80"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  # ── Reverse proxy: routes by hostname to all five services ──────────────
+  # Hostnames mirror UAT — add /etc/hosts entries pointing them at 127.0.0.1.
+  nginx-proxy:
+    image: nginx:1.27-alpine
+    restart: on-failure
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx-proxy/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx-proxy/certs:/etc/nginx/certs:ro
+    networks:
+      - uat-emis-swm-network
+    depends_on:
+      - frontend
+      - backend
+      - wso2-is
+      - wso2-apim
