@@ -183,6 +183,7 @@ Route::prefix('')->group(function () {
     Route::get('/profile/avatar', [ProfileController::class, 'getAvatar'])->middleware('auth:jwt');
     Route::patch('/profile/avatar', [ProfileController::class, 'updateAvatar'])->middleware('auth:jwt');
     Route::post('/profile/avatar', [ProfileController::class, 'uploadProfileAvatar'])->middleware('auth:jwt');
+    Route::delete('/profile/avatar', [ProfileController::class, 'deleteProfileAvatar'])->middleware('auth:jwt');
     Route::patch('/profile/password', [ProfileController::class, 'changePassword'])->middleware('auth:jwt');
     Route::post('/profile/password/complete-external', [ProfileController::class, 'completeExternalPasswordChange'])->middleware('auth:jwt');
     Route::get('/user/{people_id}', UserApiController::class)->middleware('auth:jwt');

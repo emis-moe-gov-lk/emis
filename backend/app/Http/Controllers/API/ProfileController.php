@@ -255,6 +255,60 @@ class ProfileController extends Controller
         }
     }
 
+    // -------------------------------------------------------
+    // DELETE /profile/avatar
+    // Delete the authenticated user's profile avatar.
+    // -------------------------------------------------------
+    public function deleteProfileAvatar(Request $request)
+    {
+        $user = $request->user() ?: User::where('email', $request->attributes->get('jwt_email'))->first();
+
+        if (! $user) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'User not found',
+            ], 404);
+        }
+
+        try {
+            $disk     = config('filesystems.profile_photo_disk', 'public');
+            $existing = $user->profile_picture;
+
+            // Don't delete if it's the default
+            if ($existing && $existing !== 'default.png') {
+                $existingPath = 'profile-photos/' . $existing;
+                if (Storage::disk($disk)->exists($existingPath)) {
+                    Storage::disk($disk)->delete($existingPath);
+                }
+            }
+
+            DB::transaction(function () use ($user) {
+                $user->update(['profile_picture' => 'default.png']);
+
+                if ($user->people_id) {
+                    People::where('people_id', $user->people_id)
+                        ->update(['profile_picture' => 'default.png']);
+                }
+            });
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Profile photo deleted successfully',
+                'data'    => [
+                    'profile_picture' => 'default.png',
+                    'url'             => null,
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Profile photo delete error', ['message' => $e->getMessage()]);
+
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Failed to delete profile photo',
+            ], 500);
+        }
+    }
+
     public function completeExternalPasswordChange(Request $request, TeacherAccountProvisioningService $teacherAccountProvisioningService)
     {
         $user = $request->user() ?: User::where('email', $request->attributes->get('jwt_email'))->first();
