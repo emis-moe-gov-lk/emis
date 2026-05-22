@@ -1,162 +1,51 @@
-# EMIS — repo guide
+# EMIS — repo guide for Claude Code
 
-EMIS HRM is a Laravel backend + React frontend authenticated through WSO2 (Identity Server + API Manager). Production runs on a Docker Swarm cluster; local dev runs the same stack via Docker Compose using an override file.
+Architecture, local setup, and production deployment live in [README.md](README.md). This file captures **non-obvious conventions and traps** specific to working in this codebase — read both.
 
-## Repo layout (the parts that matter for day-to-day work)
+## Repo layout (essentials)
 
 ```
-backend/                       Laravel app + Dockerfile
-frontend/                      React app + Dockerfile
-is/                            WSO2 IS image build (deployment.toml etc.)
-apim/                          WSO2 APIM image build
+backend/                          Laravel + FrankenPHP image
+frontend/                         React + Vite image
+is/, apim/                        WSO2 IS / APIM image builds
 infrastructure/
-  docker/docker-compose.yml    OLD single-host compose file (kept as reference, not used)
-  docker-swarm/                Authoritative deploy config — used for prod swarm AND local compose
-    docker-stack.yml             Base file. Untouched between prod and local.
-    docker-compose.local.yml     Local-dev override (bridge net, restart keys, mysql, build:)
-    *.env                        Runtime config (gitignored — copy from *.env.example)
-    .env                         Image repo/tag vars (gitignored — copy from .env.example)
-    scripts/setup.sh             One-shot local bootstrap
-    scripts/rebuild.sh           Rebuild + restart one service after code change
-  ansible/                     Prod deploy automation; renders the swarm .env from vars.yml
+  docker-swarm/                   Authoritative deploy config — shared by prod swarm AND local compose
+    docker-stack.yml                Base stack file (untouched between prod & local)
+    docker-compose.local.yml        Local-dev override (build:, bridge net, mysql, nginx-proxy)
+    nginx-proxy/                    Local-only TLS terminator
+    scripts/                        setup.sh, rebuild.sh, configure-auth.sh
+  ansible/                        Configuration playbooks (IS/APIM setup, users/roles/APIs)
+  docker/                         OLD single-host compose file — kept for reference, NOT used
 ```
 
-## Local development
+## Hard rules
 
-### First-time setup
+- **Do not edit `docker-stack.yml`** in ways that break swarm semantics. The `deploy:` blocks, the overlay network, and the absence of `build:` directives are intentional. Local-only adjustments belong in `docker-compose.local.yml`.
+- **Do not modify `infrastructure/docker/docker-compose.yml`** or treat the `deploy-*.yml` ansible playbooks as authoritative — they reference that older compose file and are not part of the current prod flow. Prod is `docker stack deploy -c docker-stack.yml emis` + `configure-is-and-apim.yml`.
+- **When adding an env variable, update both the real file and the `*.env.example`.** Real `*.env` files (including the image-tag `.env`) are gitignored — the example is the only committed source of schema truth.
+- **The backend container runs `php artisan migrate:fresh --seed --force` on every start** (`docker-stack.yml` `backend.command`). That **wipes and reseeds the DB**. Harmless locally (own mysql container), destructive in prod. Be deliberate before changing this command.
+- **`VITE_*` values are baked at build time**, not read at container start. After changing any `VITE_*` in `frontend.env`, rebuild the frontend image — restarting alone does nothing. `scripts/rebuild.sh frontend` does this correctly; ad-hoc `docker compose build frontend` requires `set -a; source frontend.env; set +a` first so the build args interpolate.
 
-```bash
-cd infrastructure/docker-swarm
-./scripts/setup.sh
-```
+## Operational habits
 
-That script copies any missing `*.env` from `*.env.example`, builds all four images (WSO2 IS, WSO2 APIM, frontend, backend) from local Dockerfiles, and starts the stack with a local MySQL container. **First build pulls multi-GB WSO2 base images — expect 10–20 minutes.**
+- After changing source in `backend/` or `frontend/` locally, run `infrastructure/docker-swarm/scripts/rebuild.sh <service>` — code-only changes still need a rebuild because the Dockerfiles `COPY` source at build time.
+- When editing `infrastructure/docker-swarm/nginx-proxy/nginx.conf`, the bind-mount is a single-file mount. Atomic-write editors (the Claude Code `Edit` tool included) change the inode and break the bind. After editing it, run `docker compose -f docker-stack.yml -f docker-compose.local.yml up -d --force-recreate nginx-proxy`. `nginx -s reload` will silently keep using the old inode. `sed -i` doesn't have this problem.
+- Running ansible playbooks by hand locally: the project's `ansible.cfg` references a removed callback plugin, so use a minimal local override: `ANSIBLE_CONFIG=/tmp/ansible-emis-local.cfg ansible-playbook ...` where `/tmp/ansible-emis-local.cfg` is just `[defaults]\nstdout_callback = default`. `setup.sh` writes this for you.
 
-**WSO2 needs its databases seeded** (4 dbs with latin1 charset + the `wso2-user` user). Reuse the prod ansible playbook against the local mysql container:
+## OAuth credential rotation
 
-```bash
-cd ../ansible
-ANSIBLE_CONFIG=/tmp/ansible-local.cfg ansible-playbook \
-  -i inventory/local.yml playbooks/mysql-setup-wso2.yml \
-  --start-at-task="Create a temporary directory on the remote host" \
-  -e ansible_become=false \
-  -e varsfl_mysql_host=127.0.0.1 -e varsfl_mysql_port=3308 \
-  -e varsfl_mysql_root_user=root -e varsfl_mysql_root_password=root \
-  -e varsfl_mysql_user_configured=wso2-user \
-  -e varsfl_mysql_user_configured_password=WSO2@User4
-```
+WSO2 IS reissues `client_id`/`client_secret` values every time `configure-is-and-apim.yml` runs. Locally, `scripts/configure-auth.sh` (invoked by `setup.sh`) harvests them into `frontend.env`/`backend.env` and rebuilds the frontend. In prod the equivalent step is a manual paste — see the [Production deployment](README.md#production-deployment) section of the README.
 
-(Where `/tmp/ansible-local.cfg` is a minimal `[defaults]\nstdout_callback = default` file — the project's ansible.cfg references a removed callback plugin.) After this, `docker compose ... up -d --no-deps wso2-is wso2-apim` to pick up the new DB. Expect ~100s for IS and ~125s for APIM to fully boot.
+## Frontend ↔ backend routing
 
-After setup, the stack runs on:
-
-| Service     | URL                                      | Notes                                 |
-| ----------- | ---------------------------------------- | ------------------------------------- |
-Primary access is through the nginx-proxy on standard 443 with UAT-mirror hostnames (requires `/etc/hosts` entries — `setup.sh` prints them):
-
-| Service      | URL                                        | Notes                                 |
-| ------------ | ------------------------------------------ | ------------------------------------- |
-| Frontend     | https://app-uat.emis.moe.gov.lk            |                                       |
-| Backend      | https://api-uat.emis.moe.gov.lk            | FrankenPHP, fronted by nginx          |
-| WSO2 IS      | https://idp.app-uat.emis.moe.gov.lk/carbon | admin / `IS_ADMIN_PASSWORD` in is.env |
-| WSO2 APIM    | https://apim.app-uat.emis.moe.gov.lk/carbon| admin / `APIM_ADMIN_PASSWORD`         |
-| APIM Gateway | https://services.app-uat.emis.moe.gov.lk   | API traffic                           |
-
-Browser will warn about the self-signed cert; accept once per host. Direct ports still work for debugging:
-
-| Service     | Direct URL                               | Notes                                 |
-| ----------- | ---------------------------------------- | ------------------------------------- |
-| Backend     | http://localhost:9000                    | FrankenPHP (Caddy + PHP), HTTP        |
-| WSO2 IS     | https://localhost:9444                   | admin / `IS_ADMIN_PASSWORD` in is.env |
-| WSO2 APIM   | https://localhost:9443                   | admin / `APIM_ADMIN_PASSWORD`         |
-| MySQL       | localhost:3308                           | emis / emis (root password: root)     |
-
-Frontend backend calls route **through the APIM gateway**, not directly to Laravel: `VITE_API_BASE_URL=https://services.app-uat.emis.moe.gov.lk/hrm/1.0.0` (local and prod). APIM strips the `/hrm/1.0.0` context and forwards to the backend's `/api/...` endpoint, forwarding the IS-issued Bearer token unchanged.
-
-### Day-to-day dev cycle
-
-After changing code in `backend/` or `frontend/`, rebuild just that service:
-
-```bash
-cd infrastructure/docker-swarm
-./scripts/rebuild.sh backend     # or frontend / wso2-is / wso2-apim / all
-```
-
-That rebuilds the image, restarts the container with `--no-deps` (so it doesn't restart MySQL), and tails logs.
-
-### Common commands
-
-All from `infrastructure/docker-swarm/`:
-
-```bash
-# Raw compose handle the scripts use
-docker compose -f docker-stack.yml -f docker-compose.local.yml <subcommand>
-
-# Status / logs
-docker compose -f docker-stack.yml -f docker-compose.local.yml ps
-docker compose -f docker-stack.yml -f docker-compose.local.yml logs -f backend
-
-# Stop everything
-docker compose -f docker-stack.yml -f docker-compose.local.yml down
-
-# Stop + wipe local MySQL data
-docker compose -f docker-stack.yml -f docker-compose.local.yml down -v
-```
-
-### OAuth credential flow
-
-WSO2 IS issues fresh client_ids/secrets every time `configure-is-and-apim.yml` runs. To avoid stale values in `frontend.env` / `backend.env`, the flow is:
-
-**Local (automated):** `setup.sh` orchestrates `configure-is-and-apim.yml` → `scripts/configure-auth.sh`. The auth script queries IS directly (admin / `ADMIN11`) for the SPA client_id (EMIS Web App) and M2M client_id+secret (CEMIS-LK M2M), writes them into the env files via an idempotent `set_env_var` helper, rebuilds the frontend (Vite bakes `VITE_*` at build time, not container start), and restarts the backend. Re-runnable by hand: `./scripts/configure-auth.sh`.
-
-**Prod swarm (manual paste):** after `configure-is-and-apim.yml` runs against the prod IS/APIM, copy the printed credentials from its `Display generated credentials` / `Display M2M application credentials` debug tasks into `infrastructure/ansible/vars.yml`:
-
-- `varsfl_vite_asgardeo_client_id` ← SPA client_id (EMIS Web App)
-- `varsfl_wso2_m2m_client_id` ← CEMIS-LK M2M client_id
-- `varsfl_wso2_m2m_client_secret` ← CEMIS-LK M2M client_secret
-- `varsfl_vite_api_base_url` ← `https://services.app-uat.emis.moe.gov.lk/hrm/1.0.0` (the APIM gateway URL for the published EMIS-HRM API)
-
-Then re-run `deploy-frontend.yml` and `deploy-backend.yml` (each re-renders its env file from a j2 template). Deliberately not automated — human-reviewed secret movement, infrequent re-deploys.
-
-**Test users (local only)** seeded by the playbook from `infrastructure/ansible/resources/users-roles.yml`:
-
-| Username | Password | Role |
-|---|---|---|
-| `teacher1` | `Teacher@123` | Teacher |
-| `principal1` | `Principal@123` | Principal |
-| `dataentry1` | `DataEntry@123` | DataEntry |
-
-### Things to know about the backend startup
-
-The backend image is **FrankenPHP** (Caddy + PHP bundled). Container listens on HTTP port 80, mapped to host 9000. The container's command (from `docker-stack.yml`) runs on every start:
+Frontend axios calls route through the **APIM gateway**, not directly to Laravel:
 
 ```
-composer install --no-interaction
-cp .env.example .env
-php artisan key:generate --force
-php artisan migrate:fresh --seed --force
-frankenphp run --config /etc/caddy/Caddyfile
+VITE_API_BASE_URL=https://services.app-uat.emis.moe.gov.lk/hrm/1.0.0
 ```
 
-The local override sets `SERVER_NAME: ":80"` on the backend service, which tells Caddy to listen HTTP-only and skip its auto-HTTPS / auto-cert behavior — necessary because in local-dev we sit behind a reverse proxy that handles TLS.
+APIM strips the `/hrm/1.0.0` context and forwards to the backend's `/api/...` endpoint, passing the IS-issued Bearer token unchanged. Laravel's `JwtGuard` re-validates the JWT against IS's JWKS. This is the same in local and prod.
 
-`migrate:fresh --seed --force` **wipes and reseeds the database every time the container starts.** Locally that's fine — it hits the local MySQL container. In prod swarm it hits the configured DB, so be careful when changing this command.
+## Backend startup specifics
 
-The override file points the backend at the local `mysql` service via inline `environment:` (which takes precedence over `env_file: backend.env`). The UAT IP in `backend.env` is harmless locally because the override wins.
-
-## Production deploys
-
-Production is a real Docker Swarm. The same `docker-stack.yml` is used, deployed via:
-
-```bash
-docker stack deploy -c docker-stack.yml emis
-```
-
-Ansible (`infrastructure/ansible/`) handles rendering the real image registry values into `.env` on the swarm node from `vars.yml` (also gitignored). **Do not edit `docker-stack.yml` in ways that break swarm semantics** — the `deploy:` blocks, the overlay network, and the absence of `build:` directives are intentional. Local-only adjustments belong in `docker-compose.local.yml`.
-
-## Env file conventions
-
-- `*.env` files (apim.env, backend.env, frontend.env, is.env, .env) are gitignored.
-- `*.env.example` files are committed — they document the schema with secrets blanked.
-- When adding a new variable, update both the real file and the example.
-- The `infrastructure/docker/docker-compose.yml` file is older and not used; do not modify it.
+Backend is **FrankenPHP** (Caddy + PHP bundled), HTTP-only locally (`SERVER_NAME: ":80"` in the override) because the `nginx-proxy` handles TLS in front of it. In prod, TLS termination is handled by an external load balancer, not by FrankenPHP itself.
