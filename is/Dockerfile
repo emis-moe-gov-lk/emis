@@ -20,7 +20,7 @@ COPY --chown=wso2carbon:wso2carbon lib/*.jar repository/components/lib
 # both the WSO2 client-truststore and the JVM default cacerts (the latter is
 # root-owned, hence the USER root switch).
 USER root
-COPY --chown=wso2carbon:wso2carbon certs/ /tmp/extra-certs/
+COPY --chown=wso2carbon:wso2carbon --chmod=0444 certs/ /tmp/extra-certs/
 RUN set -e; \
     for cert in /tmp/extra-certs/*.pem; do \
       [ -f "$cert" ] || continue; \
