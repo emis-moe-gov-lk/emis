@@ -22,7 +22,7 @@ COPY --chown=wso2carbon:wso2 \
 # both the WSO2 client-truststore (used by most clients) AND the JVM default
 # cacerts (used by Feign in the IS7 key manager client, which has its own SSL
 # context).
-COPY --chown=wso2carbon:wso2 --chmod=0444 certs/ /tmp/extra-certs/
+COPY --chown=root:root --chmod=0444 certs/ /tmp/extra-certs/
 RUN set -e; \
     for cert in /tmp/extra-certs/*.pem; do \
       [ -f "$cert" ] || continue; \
