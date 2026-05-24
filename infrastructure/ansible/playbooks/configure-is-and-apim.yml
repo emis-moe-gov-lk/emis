@@ -317,29 +317,39 @@
       register: existing_apis
       when: apis_to_create is defined and apis_to_create | length > 0
 
+
     - name: Import API from OpenAPI URL
       ansible.builtin.uri:
-        url: "https://{{ apim_host }}/api/am/publisher/v4/apis/import-openapi"
-        method: POST
-        validate_certs: no
-        user: "{{ apim_admin_user }}"
-        password: "{{ apim_admin_pass }}"
-        force_basic_auth: yes
-        headers:
-          Content-Type: "multipart/form-data"
-        body_format: form-multipart
-        body:
-          url: "{{ api_check.api.openapi_url }}"
-          additionalProperties: '{"name":"{{ api_check.api.name }}","version":"{{ api_check.api.version | default("1.0.0") }}","context":"{{ api_check.api.context }}","endpointConfig":{"endpoint_type":"http","sandbox_endpoints":{"url":"{{ api_check.api.endpoint_url }}"},"production_endpoints":{"url":"{{ api_check.api.endpoint_url }}"}}}'
-        status_code: [201, 200]
+       url: "https://{{ apim_host }}/api/am/publisher/v4/apis/import-openapi"
+       method: POST
+       validate_certs: no
+       user: "{{ apim_admin_user }}"
+       password: "{{ apim_admin_pass }}"
+       force_basic_auth: yes
+       body_format: form-multipart
+       body:
+         url: "{{ api_check.api.openapi_url }}"
+         # Nesting 'content' satisfies Ansible's form-multipart requirements
+         additionalProperties:
+           content: "{{ {
+             'name': api_check.api.name,
+             'version': api_check.api.version,
+             'context': api_check.api.context,
+             'endpointConfig': {
+               'endpoint_type': 'http',
+               'sandbox_endpoints': {'url': api_check.api.endpoint_url},
+               'production_endpoints': {'url': api_check.api.endpoint_url}
+             }
+           } | to_json | string }}"
+       status_code: [201, 200]
       loop: "{{ existing_apis.results | default([]) }}"
       loop_control:
-        loop_var: api_check
-        label: "{{ api_check.api.name }}"
+       loop_var: api_check
+       label: "{{ api_check.api.name }}"
       register: created_apis
       when:
-        - existing_apis.results is defined
-        - api_check.json.count | default(0) == 0
+       - existing_apis.results is defined
+       - api_check.json.count | default(0) == 00
 
     - name: Get API list for further operations
       ansible.builtin.uri:
@@ -472,7 +482,7 @@
         body_format: json
         body:
           - name: "Default"
-            vhost: "localhost"
+            vhost: "{{ apim_gateway_vhost | default('services.app-uat.emis.moe.gov.lk') }}"
             displayOnDevportal: true
         status_code: [200, 201]
       loop: "{{ latest_revisions.results | default([]) }}"

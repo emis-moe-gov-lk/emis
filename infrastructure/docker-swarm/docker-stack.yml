@@ -66,16 +66,16 @@ services:
   backend:
     image: "${BACKEND_DOCKERIMG_REPO}:${BACKEND_DOCKERIMG_TAG}"
     ports:
-      - "9000:9000"
+      - "9000:80"
     env_file:
       - backend.env
     command: >
       sh -c "
         composer install --no-interaction &&
         cp .env.example .env &&
-        php artisan key:generate &&
+        php artisan key:generate --force &&
         php artisan migrate:fresh --seed --force &&
-        php-fpm
+        frankenphp run --config /etc/caddy/Caddyfile
       "
     networks:
       - uat-emis-swm-network

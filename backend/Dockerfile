@@ -1,19 +1,20 @@
-FROM php:8.4-fpm
+FROM dunglas/frankenphp:1-php8.4
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    libpng-dev \
-    libjpeg62-turbo-dev \
-    libfreetype6-dev \
-    libzip-dev \
-    libxml2-dev \
-    libonig-dev \
-    libicu-dev \
+# Set environment variables for production/non-interactive builds
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install system dependencies & utility tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
     unzip \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Use the official FrankenPHP/docker-php-extension-installer script
+RUN curl -sSL https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions \
+    -o /usr/local/bin/install-php-extensions \
+    && chmod +x /usr/local/bin/install-php-extensions \
+    && install-php-extensions \
         pdo_mysql \
         mbstring \
         exif \
@@ -21,27 +22,33 @@ RUN apt-get update && apt-get install -y \
         bcmath \
         gd \
         zip \
-        xml \
-        intl \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+        opcache \
+        intl
 
 # Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-WORKDIR /var/www/html
+# Set working directory to FrankenPHP's default webroot
+WORKDIR /app
 
 # Copy composer files first to leverage Docker layer caching
 COPY composer.json composer.lock ./
 
 RUN composer install --no-interaction --no-dev --optimize-autoloader --no-scripts
 
-# Copy application source
+# Copy the rest of the application source code
 COPY . .
 
-# Fix storage & cache permissions
-RUN chown -R www-data:www-data storage bootstrap/cache \
-    && chmod -R 775 storage bootstrap/cache
+# Adjust permissions for the webserver user (www-data) to write to required directories.
+# (If using Laravel, keep storage/bootstrap; otherwise adjust these paths to match your framework's writable directories)
+RUN if [ -d "storage" ] && [ -d "bootstrap/cache" ]; then \
+        chown -R www-data:www-data storage bootstrap/cache && \
+        chmod -R 775 storage bootstrap/cache; \
+    fi
 
-EXPOSE 9000
+# FrankenPHP serves HTTP directly on port 80 by default (or 443 for HTTPS)
+EXPOSE 80
+EXPOSE 443
 
-CMD ["php-fpm"]
+# Start FrankenPHP server in standard mode
+CMD ["frankenphp", "run", "--config", "/etc/caddy/Caddyfile"]
