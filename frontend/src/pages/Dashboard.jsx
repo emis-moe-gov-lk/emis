@@ -5,6 +5,7 @@ import { useAuthContext } from "@asgardeo/auth-react";
 import { AbilityContext } from "@/auth/AbilityContext";
 import { Can } from "@casl/react";
 import { Button, Badge } from "flowbite-react";
+import StatusBadge from "@/components/common/StatusBadge";
 import {
   HiAcademicCap,
   HiUserGroup,
@@ -51,13 +52,9 @@ export default function Dashboard() {
       <section className="relative mt-6 overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 to-indigo-700 dark:from-blue-700 dark:to-indigo-900 text-white px-6 py-8 lg:px-10 lg:py-10 shadow-xl shadow-blue-500/20 col-span-2">
         <div className="flex items-start justify-between gap-4 relative z-10">
           <div className="min-w-0">
-            <Badge
-              color="info"
-              size="sm"
-              className="w-fit bg-white/20 text-white border-0 px-4 py-1.5 rounded-full text-[10px] uppercase tracking-widest font-bold"
-            >
+            <StatusBadge className="w-fit bg-white/20 text-white border-0 px-4 py-1.5 rounded-full text-[10px] uppercase tracking-widest font-bold">
               {currentDate || "Education HRMS v1.0"}
-            </Badge>
+            </StatusBadge>
             <h1 className="mt-4 text-3xl lg:text-4xl font-extrabold tracking-tight">
               Welcome Back,
             </h1>
@@ -67,14 +64,12 @@ export default function Dashboard() {
 
             <div className="flex flex-wrap gap-2 mt-2">
               {roles.map((role, idx) => (
-                <Badge
+                <StatusBadge
                   key={idx}
-                  color="warning"
-                  size="xs"
                   className="bg-yellow-400/20 text-yellow-300 border-yellow-400/30 font-bold uppercase tracking-tighter"
                 >
                   {role}
-                </Badge>
+                </StatusBadge>
               ))}
             </div>
 

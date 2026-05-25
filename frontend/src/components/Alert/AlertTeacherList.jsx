@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Badge, Button, Spinner, TextInput } from "flowbite-react";
+import StatusBadge from "@/components/common/StatusBadge";
 import {
   HiUser,
   HiLocationMarker,
@@ -61,9 +62,9 @@ const AlertTeacherList = ({
             {subtitle}
           </p>
         </div>
-        <Badge color={headerBadge.color} size="lg">
+        <StatusBadge className="px-3 py-1 font-bold text-sm">
           {headerBadge.label}
-        </Badge>
+        </StatusBadge>
       </div>
 
       <div className="w-full sm:max-w-md">
@@ -145,12 +146,9 @@ const AlertTeacherList = ({
                     </div>
 
                     <div className="md:col-span-2 flex items-center justify-end gap-2">
-                      <Badge
-                        color={rowBadge.color}
-                        className="px-3 py-1 whitespace-nowrap"
-                      >
+                      <StatusBadge className="px-3 py-1 whitespace-nowrap">
                         {rowBadge.label}
-                      </Badge>
+                      </StatusBadge>
 
                       <Button
                         size="xs"

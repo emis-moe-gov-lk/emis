@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { Badge, Spinner, TextInput } from "flowbite-react";
+import StatusBadge from "@/components/common/StatusBadge";
 import {
   HiChevronLeft,
   HiChevronRight,
@@ -13,6 +14,8 @@ import { PermissionGroups } from "@/data/permissionGroups";
 import api from "@/api/axios";
 import DirectoryCard from "@/components/common/DirectoryCard";
 import Button from "@/components/UiComponents/Button";
+import profile_m from "@/assets/images/profile_m.png";
+import profile_f from "@/assets/images/profile_f.png";
 
 const PrincipalList = () => {
   const navigate = useNavigate();
@@ -88,10 +91,10 @@ const PrincipalList = () => {
             Review principal profiles and their current workplace details.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge color="blue" size="lg">
+          <div className="flex items-center gap-2">
+          <StatusBadge className="px-3 py-1 font-bold text-sm">
             Total: {total}
-          </Badge>
+          </StatusBadge>
           <Can permission={PermissionGroups.SCHOOLS.CREATE}>
             <Button onClick={() => navigate("/employees/principal/create")} icon={<HiPlus className="w-4 h-4" />}>
               Create Principal
@@ -150,6 +153,10 @@ const PrincipalList = () => {
                     permissions={{
                       view: PermissionGroups.SCHOOLS.VIEW_PROFILE,
                     }}
+                    showProfilePicture={true}
+                    maleProfileImage={profile_m}
+                    femaleProfileImage={profile_f}
+                    genderId={principal.gender_id}
                     onView={(employee) => {
                       navigate(`/employees/principal/${employee.people_id}`);
                     }}
