@@ -245,7 +245,7 @@ const TeacherList = () => {
         </div>
         <div className="flex items-center gap-2">
           <StatusBadge className="px-3 py-1 font-bold text-sm">
-            Total: {total || 0}
+            {`Total: ${total || 0}`}
           </StatusBadge>
         </div>
       </div>

@@ -29,7 +29,7 @@ export default function DosHeader({ count, isZonalAdmins, search, setSearch }) {
         </div>
         <div className="flex items-center gap-2">
           <StatusBadge className="px-3 py-1 font-bold text-sm">
-            Total: {count|| 0}
+            {`Total: ${count || 0}`}
           </StatusBadge>
         </div>
       </div>

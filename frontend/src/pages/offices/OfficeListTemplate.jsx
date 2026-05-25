@@ -163,7 +163,7 @@ const OfficeListTemplate = ({ title, subtitle, endpoint, createLabel }) => {
         </div>
           <div className="flex items-center gap-2">
           <StatusBadge className="px-3 py-1 font-bold text-sm">
-            Total: {filtered.length}
+            {`Total: ${filtered.length}`}
           </StatusBadge>
         </div>
       </div>
