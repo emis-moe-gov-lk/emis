@@ -397,20 +397,20 @@ class DeoOfficerController extends Controller
                 'name'     => $people->name_with_initials,
                 'email'    => strtolower($validated['email']),
                 'contact'  => $validated['contact'],
-                'password' => Hash::make('password@123'),
+                'password' => Hash::make('Password@123'),
             ]);
 
             $user->assignRole('Zonal DEO');
 
             DB::commit();
 
-            $wso2Is->provisionUser($user, 'password@123', 'zonal deo');
+            $wso2Is->provisionUser($user, 'Password@123', 'zonal deo');
 
             return response()->json([
                 'status'           => 'success',
                 'message'          => 'DEO officer created successfully',
                 'people_id'        => $people->people_id,
-                'default_password' => 'password@123',
+                'default_password' => 'Password@123',
             ], 201);
         } catch (ValidationException $e) {
             activity('deo_officer_registration')
