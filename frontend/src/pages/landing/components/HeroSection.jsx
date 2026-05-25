@@ -1,10 +1,15 @@
 import students8 from "../../../assets/landing/hero-image.png";
 import { useAuthContext } from "@asgardeo/auth-react";
-import { useNavigate } from "react-router-dom";
 
 const HeroSection = () => {
   const { signIn } = useAuthContext();
 
+  const handleLearnMore = () => {
+    const section = document.getElementById("guidelines-section");
+    if (section) {
+      section.scrollIntoView({ behavior: "smooth" });
+    }
+  };
 
   return (
     <section
@@ -39,7 +44,10 @@ const HeroSection = () => {
 
         {/* CTAs */}
         <div className="flex flex-col sm:flex-row gap-4 mb-12">
-            <button className="px-6 sm:px-8 py-3 sm:py-4 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white font-semibold rounded-lg text-base sm:text-lg border-2 border-white/30 hover:border-white/50 transition-all">
+          <button 
+            onClick={handleLearnMore}
+            className="px-6 sm:px-8 py-3 sm:py-4 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white font-semibold rounded-lg text-base sm:text-lg border-2 border-white/30 hover:border-white/50 transition-all"
+          >
             Learn How It Works
           </button>
         </div>
