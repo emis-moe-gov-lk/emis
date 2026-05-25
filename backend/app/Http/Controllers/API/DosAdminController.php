@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use App\Http\Controllers\Controller;
+use App\Services\Wso2IsProvisioningService;
 
 class DosAdminController extends Controller
 {
@@ -196,7 +197,7 @@ class DosAdminController extends Controller
     // STORE
     // ==============================
 
-    public function store(Request $request)
+    public function store(Request $request, Wso2IsProvisioningService $wso2Is)
     {
         try {
             $validated = $request->validate([
@@ -344,6 +345,8 @@ class DosAdminController extends Controller
             $user->assignRole($role);
 
             DB::commit();
+
+            $wso2Is->provisionUser($user, 'password@123', $role);
 
             $positionName = Position::where('position_id', $validated['currentAppointmentPosition'])
                 ->value('position_name');

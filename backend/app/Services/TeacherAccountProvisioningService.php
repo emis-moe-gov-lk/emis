@@ -10,6 +10,8 @@ use Illuminate\Validation\ValidationException;
 
 class TeacherAccountProvisioningService
 {
+    public function __construct(private Wso2IsProvisioningService $wso2Is) {}
+
     private function buildDefaultTeacherPassword(string $nic): string
     {
         return 'Pw' . $nic;
@@ -84,16 +86,13 @@ class TeacherAccountProvisioningService
             $user->assignRole($normalizedRole);
         }
 
+        $remote = $this->wso2Is->provisionUser($user, $defaultPassword, $normalizedRole);
+
         return [
             'user' => $user->fresh(['roles']),
             'password_initialized' => $shouldInitializePassword,
             'role' => $normalizedRole,
-            'remote' => [
-                'provider' => 'local',
-                'enabled' => false,
-                'provisioned' => false,
-                'skipped' => true,
-            ],
+            'remote' => $remote,
         ];
     }
 
@@ -130,15 +129,12 @@ class TeacherAccountProvisioningService
             ]);
         }
 
+        $remote = $this->wso2Is->syncUserProfile($user);
+
         return [
             'synced' => true,
             'user' => $user->fresh(),
-            'remote' => [
-                'provider' => 'local',
-                'enabled' => false,
-                'synced' => false,
-                'skipped' => true,
-            ],
+            'remote' => $remote,
         ];
     }
 
