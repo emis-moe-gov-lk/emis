@@ -9,10 +9,13 @@ use App\Models\PrincipalRecruitmentCategory;
 use App\Models\Service;
 use App\Models\TeacherRoleTransition;
 use App\Models\User;
+use App\Services\Wso2IsProvisioningService;
 use Illuminate\Support\Facades\DB;
 
 class TeacherToPrincipalPromotionService
 {
+    public function __construct(private Wso2IsProvisioningService $wso2Is) {}
+
     private const TEACHER_ROLE = 'teacher';
     private const PRINCIPAL_ROLE = 'principal';
     private const PRINCIPAL_SERVICE_NAME = 'SLPS';
@@ -139,9 +142,12 @@ class TeacherToPrincipalPromotionService
             ]);
         });
 
+        $isRoleUpdate = $this->wso2Is->updateUserRole($user, self::TEACHER_ROLE, self::PRINCIPAL_ROLE);
+
         return [
             'promoted' => true,
             'reason' => null,
+            'is_role_update' => $isRoleUpdate,
         ];
     }
 
@@ -304,11 +310,14 @@ class TeacherToPrincipalPromotionService
             return $createdAppointment;
         });
 
+        $isRoleUpdate = $this->wso2Is->updateUserRole($user, self::TEACHER_ROLE, self::PRINCIPAL_ROLE);
+
         return [
             'promoted' => true,
             'reason' => null,
             'new_appointment_id' => $newAppointment->appointment_id,
             'old_appointment_id' => $activeAppointment->appointment_id,
+            'is_role_update' => $isRoleUpdate,
         ];
     }
 }
