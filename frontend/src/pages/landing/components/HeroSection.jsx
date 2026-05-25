@@ -1,8 +1,10 @@
 import students8 from "../../../assets/landing/hero-image.png";
 import { useAuthContext } from "@asgardeo/auth-react";
+import { useNavigate } from "react-router-dom";
 
 const HeroSection = () => {
   const { signIn } = useAuthContext();
+
 
   return (
     <section
@@ -20,7 +22,7 @@ const HeroSection = () => {
       <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         {/* Main Headline */}
         <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 leading-tight max-w-4xl">
-          National Education Management Information System
+          Education Management Information System
         </h1>
 
         {/* Subheadline */}
@@ -37,7 +39,7 @@ const HeroSection = () => {
 
         {/* CTAs */}
         <div className="flex flex-col sm:flex-row gap-4 mb-12">
-          <button className="px-6 sm:px-8 py-3 sm:py-4 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white font-semibold rounded-lg text-base sm:text-lg border-2 border-white/30 hover:border-white/50 transition-all">
+            <button className="px-6 sm:px-8 py-3 sm:py-4 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white font-semibold rounded-lg text-base sm:text-lg border-2 border-white/30 hover:border-white/50 transition-all">
             Learn How It Works
           </button>
         </div>
