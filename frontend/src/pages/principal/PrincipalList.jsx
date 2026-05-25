@@ -29,7 +29,7 @@ const PrincipalList = () => {
   const getAppointmentStatus = (appointment) => {
     if (
       String(appointment?.profile_status ?? "").trim().toLowerCase() ===
-        "revised" ||
+      "revised" ||
       appointment?.is_verified === 3
     ) {
       return { label: "Revised", color: "purple" };
@@ -91,9 +91,9 @@ const PrincipalList = () => {
             Review principal profiles and their current workplace details.
           </p>
         </div>
-          <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
           <StatusBadge className="px-3 py-1 font-bold text-sm">
-            Total: {total}
+            {`Total: ${total || 0}`}
           </StatusBadge>
           <Can permission={PermissionGroups.SCHOOLS.CREATE}>
             <Button onClick={() => navigate("/employees/principal/create")} icon={<HiPlus className="w-4 h-4" />}>
