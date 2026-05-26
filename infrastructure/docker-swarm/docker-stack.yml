@@ -77,6 +77,12 @@ services:
         php artisan migrate:fresh --seed --force &&
         frankenphp run --config /etc/caddy/Caddyfile
       "
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:2019/metrics || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 120s
     networks:
       - uat-emis-swm-network
     deploy:
