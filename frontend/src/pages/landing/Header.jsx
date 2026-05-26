@@ -16,6 +16,8 @@ const Header = () => {
   const [navState, setNavState] = useState("top");
 
   useEffect(() => {
+  
+
     const onScroll = () => {
       const scrollY = window.scrollY;
       if (scrollY < 50) {
@@ -52,16 +54,16 @@ const Header = () => {
             <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl bg-white/10 p-2 transition-all duration-500 group-hover:bg-white/20 group-hover:rotate-3 shadow-inner">
               <img
                 src={emblemSriLanka}
-                alt="NEMIS"
+                alt="EMIS"
                 className="h-full w-auto object-contain"
               />
             </div>
             <div className="flex flex-col leading-none">
               <span className="text-2xl font-black tracking-tighter text-white uppercase">
-                NEMIS
+                EMIS
               </span>
               <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest mt-1">
-                National Education Management Information System
+                Education Management Information System
               </span>
             </div>
           </a>
