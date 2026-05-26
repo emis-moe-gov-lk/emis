@@ -128,6 +128,7 @@ Route::prefix('')->group(function () {
         Route::get('/teachers/current-appointment-form-data', 'getCurrentAppointmentFormData');      // current appointment (role-filtered)
         Route::post('/teachers/check-contact', 'checkContact');                                       // POST check email/phone
         Route::post('/teachers/{people_id}/education-qualifications', 'saveEducationQualification');
+        Route::post('/teachers/{people_id}/service-history', 'addServiceHistoryEntry');
         Route::get('/education-qualifications', 'getEducationQualifications');                           // GET qualification lookup
         Route::get('/education-qualification-grades', 'getEducationQualificationGrades');               // GET grade lookup
     });
