@@ -33,7 +33,7 @@ const StatsSection = () => {
             Serving <span className="text-blue-600">Sri Lanka's Education</span>
           </h2>
           <p className="text-sm sm:text-base text-gray-600 max-w-2xl mx-auto">
-            NEMIS provides a secure, centralized system supporting daily operations of all government schools.
+            EMIS provides a secure, centralized system supporting daily operations of all government schools.
           </p>
         </div>
 

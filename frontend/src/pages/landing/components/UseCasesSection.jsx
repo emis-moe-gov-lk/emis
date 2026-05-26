@@ -4,18 +4,18 @@ import UseCaseCard from "./UseCaseCard";
 const UseCasesSection = () => {
   const useCases = [
     {
-      icon: Building2,
-      title: "School Management",
-      description:
-        "Handle student admissions, daily attendance, and school records all in one place.",
-      bgGradient: "bg-gradient-to-br from-blue-500 to-blue-600",
-    },
-    {
       icon: UserCheck,
       title: "Teacher Portal",
       description:
         "Manage your classes, assign homework, enter grades, and stay connected with students and parents.",
       bgGradient: "bg-gradient-to-br from-green-500 to-green-600",
+    },
+    {
+      icon: Building2,
+      title: "School Management",
+      description:
+        "Handle student admissions, daily attendance, and school records all in one place.",
+      bgGradient: "bg-gradient-to-br from-blue-500 to-blue-600",
     },
     {
       icon: GraduationCap,
@@ -42,7 +42,7 @@ const UseCasesSection = () => {
             <span className="text-blue-600">Modern Education</span>
           </h2>
           <p className="text-sm sm:text-base text-gray-600 max-w-2xl mx-auto">
-            NEMIS connects students, teachers, parents, and administrators with
+            EMIS connects students, teachers, parents, and administrators with
             easy-to-use tools built for Sri Lankan schools.
           </p>
         </div>
