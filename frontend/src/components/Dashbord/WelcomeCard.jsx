@@ -7,11 +7,10 @@ import { useAuthUser } from "@/context/useAuthUser";
 const WelcomeCard = ({ user }) => {
   console.log("WelcomeCard received user:", user);
   const { roles: authRoles = [], workplace: authWorkplace = null } = useAuthUser();
-  const today = new Date().toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  const capitalizeFirstLetter = (str) =>
+    str.charAt(0).toUpperCase() + str.slice(1);
+
+  const today = capitalizeFirstLetter(new Date().toDateString());
 
   const roles = Array.isArray(user?.roles) && user.roles.length ? user.roles : authRoles;
   const zonalScopedRoles = new Set([
