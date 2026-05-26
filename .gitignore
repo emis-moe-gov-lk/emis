@@ -24,6 +24,7 @@ tmp/
 .idea/
 .vscode/
 .claude
+.playwright-mcp/
 *.swp
 *.swo
 *~
@@ -34,6 +35,9 @@ Thumbs.db
 
 # Docker
 docker-compose.override.yml
+infrastructure/docker-swarm/nginx-proxy/certs/*.pem
+apim/certs/*.pem
+is/certs/*.pem
 
 # Ansible
 vars.yml

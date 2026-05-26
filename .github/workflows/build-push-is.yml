@@ -1,60 +1,51 @@
-name: Build and Push WSO2 IS Image
-run-name: "Build & Push WSO2 IS image on ${{ github.ref_name }}"
-
+name: Build and Push IS Service
+run-name: "Build & Push is-service image on ${{ github.ref_name }}"
 on:
-  workflow_dispatch: # For the manual calls
-  workflow_call: # To be called by other workflows
-
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository_owner }}/emis-is
-
+  workflow_dispatch: # trigger workflow manually
+  workflow_call:    # trigger workflow from an external workflow
 jobs:
-  build-and-push:
+  build-is-service:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-
+    env:
+      REGISTRY_BASE: "ghcr.io/emis-moe-gov-lk/emis-is"
+      REPO_VER_FILE: "is/version"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Get Image Version
+      - name: Extract IS Service Version
         id: get_version
         run: |
-          # Read version and clean whitespace
-          VERSION=$(head -n 1 is/IMG_VERSION | xargs)
-          echo "IMG_VERSION=$VERSION" >> $GITHUB_OUTPUT
-          echo "FULL_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:7.2.0-$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Log in to the Container registry
+          FILE_VERSION=$(cat ${{ env.REPO_VER_FILE }} | xargs)
+          echo "Detected version in repo file: $FILE_VERSION"
+          echo "version=$FILE_VERSION" >> $GITHUB_OUTPUT
+      - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Check if image exists
-        id: check_tag
+      - name: Check if Tag Exists in GHCR
+        id: ghcr_check
         run: |
-          if docker manifest inspect ${{ steps.get_version.outputs.FULL_TAG }} > /dev/null 2>&1; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-            echo "Image ${{ steps.get_version.outputs.FULL_TAG }} already exists. Skipping build."
+          TARGET_IMAGE="${{ env.REGISTRY_BASE }}:${{ steps.get_version.outputs.version }}"
+          echo "Checking if $TARGET_IMAGE exists in GHCR..."
+          
+          if docker manifest inspect $TARGET_IMAGE > /dev/null 2>&1; then
+            echo "Image tag ${{ steps.get_version.outputs.version }} already exists in GHCR."
+            echo "should_build=false" >> $GITHUB_OUTPUT
           else
-            echo "exists=false" >> $GITHUB_OUTPUT
-            echo "Image ${{ steps.get_version.outputs.FULL_TAG }} does not exist. Proceeding with build."
+            echo "Image tag ${{ steps.get_version.outputs.version }} not found. Proceeding with build."
+            echo "should_build=true" >> $GITHUB_OUTPUT
           fi
-
-      - name: Build and push Docker image
-        # This step only runs if the check_tag step set exists to false
-        if: steps.check_tag.outputs.exists == 'false'
+      - name: Build and push IS Service image
+        if: steps.ghcr_check.outputs.should_build == 'true'
         uses: docker/build-push-action@v5
         with:
           context: ./is
           push: true
           tags: |
-            ${{ steps.get_version.outputs.FULL_TAG }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-          labels: |
-            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            ${{ env.REGISTRY_BASE }}:${{ steps.get_version.outputs.version }}
+            ${{ env.REGISTRY_BASE }}:latest

@@ -5,9 +5,8 @@ export const asgardeoConfig = {
     import.meta.env.VITE_SIGNIN_REDIRECT_URL ||
     window.location.origin + "/authentication/callback",
   signOutRedirectURL:
-    import.meta.env.VITE_SIGNOUT_REDIRECT_URL ||
-    window.location.origin + "/login",
-  scope: ["openid", "profile", "email", "teacher-scope", "roles", "phone"],
+    import.meta.env.VITE_SIGNOUT_REDIRECT_URL || window.location.origin,
+  scope: ["openid", "profile", "email", "roles", "phone"],
   enablePKCE: true,
   storage: "sessionStorage",
   sendCookiesInRequests: true,

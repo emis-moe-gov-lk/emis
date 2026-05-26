@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Badge, Button, Spinner, Tooltip } from "flowbite-react";
+import StatusBadge from "@/components/common/StatusBadge";
 import {
   HiLocationMarker,
   HiCalendar,
@@ -316,9 +317,9 @@ export default function InstitutionProfile() {
                   {institution.name}
                 </h1>
 
-                <Badge color={isActive ? "success" : "failure"}>
+                <StatusBadge>
                   {isActive ? "Active" : "Inactive"}
-                </Badge>
+                </StatusBadge>
 
                 <span className="text-xs px-3 py-1 rounded-full bg-white/80 dark:bg-gray-800/50 ring-1 ring-gray-200 dark:ring-gray-700 font-mono">
                   #{institution.census_no ?? "—"}

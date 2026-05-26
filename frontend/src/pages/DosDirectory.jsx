@@ -4,13 +4,12 @@ import { Spinner } from "flowbite-react";
 import { HiUser } from "react-icons/hi";
 import DosHeader from "../components/dos/DosHeader";
 import DosList from "../components/dos/DosList";
-import DosSearchModal from "../components/dos/DosSearchModal";
 import { useDosService } from "../services/dosService";
 import { getAllDosAdmins } from "../api/dosAdminService";
 
 export default function DosDirectory() {
   const [employees, setEmployees] = useState([]);
-  const [showSearch, setShowSearch] = useState(false);
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -22,6 +21,11 @@ export default function DosDirectory() {
     fetchData();
   }, [location.pathname]);
 
+  useEffect(() => {
+    const delay = setTimeout(() => fetchData(), 400);
+    return () => clearTimeout(delay);
+  }, [search]);
+
   const fetchData = async () => {
     setLoading(true);
     setError(null);
@@ -29,10 +33,10 @@ export default function DosDirectory() {
     try {
       let data;
       if (isZonalAdmins) {
-        data = await getAllDosAdmins();
+        data = await getAllDosAdmins({ search });
         setEmployees(data.data || data);
       } else {
-        data = await getAllDos();
+        data = await getAllDos({ search });
         setEmployees(data.data || data);
       }
     } catch (err) {
@@ -47,8 +51,9 @@ export default function DosDirectory() {
     <div className="p-6 lg:p-10 w-full px-4 sm:px-6 lg:px-8 mx-auto space-y-6 min-h-screen">
       <DosHeader
         count={employees.length}
-        onSearch={() => setShowSearch(true)}
         isZonalAdmins={isZonalAdmins}
+        search={search}
+        setSearch={setSearch}
       />
 
       {/* ================= LIST / LOADING ================= */}
@@ -73,11 +78,7 @@ export default function DosDirectory() {
         <DosList employees={employees} />
       )}
 
-      <DosSearchModal
-        open={showSearch}
-        onClose={() => setShowSearch(false)}
-        employees={employees}
-      />
+      {/* Inline search now in header — modal removed */}
     </div>
   );
 }

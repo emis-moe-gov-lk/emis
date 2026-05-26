@@ -5,6 +5,7 @@ import Select from "./Select";
 import Modal from "./Modal";
 import { format } from "date-fns";
 import { Badge } from "flowbite-react";
+import StatusBadge from "@/components/common/StatusBadge";
 
 const FirstAppointment = ({ employee, canEdit, options }) => {
   const [showModal, setShowModal] = useState(false);
@@ -60,13 +61,9 @@ const FirstAppointment = ({ employee, canEdit, options }) => {
           </div>
 
           <div className="flex items-center justify-between sm:justify-end gap-2 border-t sm:border-t-0 pt-3 sm:pt-0 border-gray-100 dark:border-gray-800">
-            <Badge
-              variant="pill"
-              color="emerald"
-              className="text-[10px] sm:text-xs"
-            >
+            <StatusBadge className="text-[10px] sm:text-xs">
               {employee?.appointment?.service_years ?? 0} Active
-            </Badge>
+            </StatusBadge>
 
             {canEdit && (
               <button

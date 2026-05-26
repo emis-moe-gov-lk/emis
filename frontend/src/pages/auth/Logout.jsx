@@ -18,18 +18,18 @@ export default function Logout() {
         // Sign out from Asgardeo
         await signOut();
 
-        console.log("Logout successful, redirecting to /login");
+        console.log("Logout successful, redirecting to /");
       } catch (error) {
         console.error("Error during logout:", error);
-        // Even if signOut fails, redirect to login
-        navigate("/login", { replace: true });
+        // Even if signOut fails, redirect to home
+        navigate("/", { replace: true });
       }
     };
 
     // If already logged out, just redirect
     if (!state.isAuthenticated && !state.isLoading) {
-      console.log("User already logged out, redirecting to /login");
-      navigate("/login", { replace: true });
+      console.log("User already logged out, redirecting to /");
+      navigate("/", { replace: true });
     } else if (!state.isLoading) {
       handleLogout();
     }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { Badge, Spinner, TextInput } from "flowbite-react";
+import StatusBadge from "@/components/common/StatusBadge";
 import {
   HiChevronLeft,
   HiChevronRight,
@@ -13,6 +14,8 @@ import { PermissionGroups } from "@/data/permissionGroups";
 import api from "@/api/axios";
 import DirectoryCard from "@/components/common/DirectoryCard";
 import Button from "@/components/UiComponents/Button";
+import profile_m from "@/assets/images/profile_m.png";
+import profile_f from "@/assets/images/profile_f.png";
 
 const PrincipalList = () => {
   const navigate = useNavigate();
@@ -26,7 +29,7 @@ const PrincipalList = () => {
   const getAppointmentStatus = (appointment) => {
     if (
       String(appointment?.profile_status ?? "").trim().toLowerCase() ===
-        "revised" ||
+      "revised" ||
       appointment?.is_verified === 3
     ) {
       return { label: "Revised", color: "purple" };
@@ -50,7 +53,7 @@ const PrincipalList = () => {
   const fetchPrincipals = (pageNumber = 1) => {
     setLoading(true);
     api
-      .get(`/principals-list?page=${pageNumber}&per_page=10&nic=${search}`)
+      .get(`/principals-list?page=${pageNumber}&per_page=10&search=${encodeURIComponent(search)}`)
       .then((res) => {
         if (res.data?.status === "success") {
           setPrincipals(res.data.data.data || []);
@@ -89,9 +92,9 @@ const PrincipalList = () => {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge color="blue" size="lg">
-            Total: {total}
-          </Badge>
+          <StatusBadge className="px-3 py-1 font-bold text-sm">
+            {`Total: ${total || 0}`}
+          </StatusBadge>
           <Can permission={PermissionGroups.SCHOOLS.CREATE}>
             <Button onClick={() => navigate("/employees/principal/create")} icon={<HiPlus className="w-4 h-4" />}>
               Create Principal
@@ -105,7 +108,7 @@ const PrincipalList = () => {
           id="search"
           type="text"
           icon={HiSearch}
-          placeholder="Search by NIC..."
+          placeholder="Search by NIC or name..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -150,6 +153,10 @@ const PrincipalList = () => {
                     permissions={{
                       view: PermissionGroups.SCHOOLS.VIEW_PROFILE,
                     }}
+                    showProfilePicture={true}
+                    maleProfileImage={profile_m}
+                    femaleProfileImage={profile_f}
+                    genderId={principal.gender_id}
                     onView={(employee) => {
                       navigate(`/employees/principal/${employee.people_id}`);
                     }}
