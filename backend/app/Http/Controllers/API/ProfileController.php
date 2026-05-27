@@ -127,7 +127,7 @@ class ProfileController extends Controller
 
     // -------------------------------------------------------
     // PATCH /profile/password
-    // Change the authenticated user's own password.
+    // Change the authenticated user's own password
     // -------------------------------------------------------
     public function changePassword(Request $request)
 {
@@ -218,7 +218,7 @@ class ProfileController extends Controller
             }
 
             $file     = $request->file('photo');
-            $filename = ($user->people_id ?? $user->id) . '_' . time() . '.' . $file->getClientOriginalExtension();
+            $filename = ($user->people_id ?? $user->id) . '_' . time() . '.' . $file->extension();
             $path     = $file->storeAs('profile-photos', $filename, $disk);
 
             DB::transaction(function () use ($user, $filename) {
