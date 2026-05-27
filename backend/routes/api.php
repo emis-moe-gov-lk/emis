@@ -111,9 +111,10 @@ Route::prefix('')->group(function () {
     });
 
     Route::controller(InstitutionController::class)->middleware('auth:jwt')->group(function () {
-        Route::get('/institutions', 'index');         // GET all
-        Route::get('/institutions/{id}', 'show');     // GET one
-        Route::put('/institutions/{id}', 'update');   // UPDATE
+        Route::get('/institutions', 'index');             // GET all
+        Route::get('/institutions/filters', 'filters'); // GET filter options
+        Route::get('/institutions/{id}', 'show');       // GET one
+        Route::put('/institutions/{id}', 'update');     // UPDATE
     });
 
     Route::controller(TeacherApiController::class)->middleware('auth:jwt')->group(function () {
@@ -152,12 +153,12 @@ Route::prefix('')->group(function () {
         Route::get('/employer-appointment-reject-comments/profile/{people_id}', 'rejectCommentsByProfile');
         Route::patch('/employer-appointment-reject-comments/{id}', 'updateRejectComment');
         Route::patch('/teachers/{people_id}/verify', 'verify');
-        Route::patch('/teachers/{people_id}/confirm', 'confirm');
-        Route::patch('/principals/{people_id}/confirm', 'confirm');
+        Route::patch('/teachers/{people_id}/confirm', 'confirmTeacher');
+        Route::patch('/principals/{people_id}/confirm', 'confirmPrincipal');
         Route::patch('/teachers/{people_id}/promote', 'promote');
         Route::patch('/teachers/{people_id}/reject', 'reject');
-        Route::patch('/teachers/{people_id}/update', 'updateRejectedStatus');
-        Route::patch('/teachers/{people_id}/rejected-status', 'updateRejectedStatus');
+        Route::patch('/teachers/{people_id}/update', 'updateTeacher');
+        Route::patch('/teachers/{people_id}/rejected-status', 'updateTeacherRejectedStatus');
     });
 
 

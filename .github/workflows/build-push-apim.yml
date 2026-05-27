@@ -1,61 +1,51 @@
-name: Build and Push WSO2 AM Image
-
+name: Build and Push APIM Service
+run-name: "Build & Push apim-service image on ${{ github.ref_name }}"
 on:
-  workflow_dispatch:
-
-env:
-  REGISTRY: ghcr.io
-  # Converts repository name to lowercase for registry compatibility
-  IMAGE_NAME: ${{ github.repository_owner }}/wso2am
-
+  workflow_dispatch: # trigger workflow manually
+  workflow_call:    # trigger workflow from an external workflow
 jobs:
-  build-and-push:
+  build-apim-service:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-
+    env:
+      REGISTRY_BASE: "ghcr.io/emis-moe-gov-lk/emis-apim-service"
+      REPO_VER_FILE: "apim/version"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Get Image Version
+      - name: Extract APIM Service Version
         id: get_version
         run: |
-          # Read version from the apim directory and clean whitespace
-          VERSION=$(head -n 1 apim/IMG_VERSION | xargs)
-          echo "IMG_VERSION=$VERSION" >> $GITHUB_OUTPUT
-          # Setting the full tag using WSO2 AM base version + your custom build version
-          echo "FULL_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:4.6.0-$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Log in to the Container registry
+          FILE_VERSION=$(cat ${{ env.REPO_VER_FILE }} | xargs)
+          echo "Detected version in repo file: $FILE_VERSION"
+          echo "version=$FILE_VERSION" >> $GITHUB_OUTPUT
+      - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Check if image exists
-        id: check_tag
+      - name: Check if Tag Exists in GHCR
+        id: ghcr_check
         run: |
-          if docker manifest inspect ${{ steps.get_version.outputs.FULL_TAG }} > /dev/null 2>&1; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-            echo "Image ${{ steps.get_version.outputs.FULL_TAG }} already exists. Skipping build."
+          TARGET_IMAGE="${{ env.REGISTRY_BASE }}:${{ steps.get_version.outputs.version }}"
+          echo "Checking if $TARGET_IMAGE exists in GHCR..."
+          
+          if docker manifest inspect $TARGET_IMAGE > /dev/null 2>&1; then
+            echo "Image tag ${{ steps.get_version.outputs.version }} already exists in GHCR."
+            echo "should_build=false" >> $GITHUB_OUTPUT
           else
-            echo "exists=false" >> $GITHUB_OUTPUT
-            echo "Image ${{ steps.get_version.outputs.FULL_TAG }} does not exist. Proceeding with build."
+            echo "Image tag ${{ steps.get_version.outputs.version }} not found. Proceeding with build."
+            echo "should_build=true" >> $GITHUB_OUTPUT
           fi
-
-      - name: Build and push Docker image
-        # Runs only if the image tag doesn't already exist in GHCR
-        if: steps.check_tag.outputs.exists == 'false'
+      - name: Build and push APIM Service image
+        if: steps.ghcr_check.outputs.should_build == 'true'
         uses: docker/build-push-action@v5
         with:
           context: ./apim
-          file: ./apim/Dockerfile
           push: true
           tags: |
-            ${{ steps.get_version.outputs.FULL_TAG }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-          labels: |
-            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            ${{ env.REGISTRY_BASE }}:${{ steps.get_version.outputs.version }}
+            ${{ env.REGISTRY_BASE }}:latest

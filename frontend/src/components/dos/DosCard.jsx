@@ -1,9 +1,11 @@
 import { Menu } from "@headlessui/react";
 import { FiMail, FiPhone } from "react-icons/fi";
 import { HiOutlineDotsVertical } from "react-icons/hi";
-import profileMale from "../../assets/images/profile_m.png";
-import profileFemale from "../../assets/images/profile_f.png";
 import { useNavigate, useLocation } from "react-router";
+import { resolveProfileImage } from "@/utils/profileImage";
+
+import Can from "@/components/common/Can";
+import { PermissionGroups } from "@/data/permissionGroups";
 
 export default function DosCard({ employee }) {
   const navigate = useNavigate();
@@ -17,7 +19,10 @@ export default function DosCard({ employee }) {
         <div className="relative shrink-0">
           <img
             className="h-14 w-14 rounded-full object-cover border-2 border-white dark:border-slate-800 shadow-md"
-            src={employee.gender_id === "G02" ? profileFemale : profileMale}
+            src={resolveProfileImage(
+              employee.profile_picture,
+              employee.gender_id ?? employee.gender?.gender_id,
+            )}
             alt={employee.name}
           />
           <span
@@ -78,12 +83,14 @@ export default function DosCard({ employee }) {
 
       {/* Actions */}
       <div className="flex items-center gap-2 lg:ml-auto">
-        <button
-          onClick={() => navigate(`${basePath}/${employee.people_id}`)}
-          className="bg-slate-900 text-white px-4 py-2 rounded-xl font-bold hover:bg-slate-800 transition"
-        >
-          View
-        </button>
+        <Can permission={PermissionGroups.ZONAL.ADMIN_PROFILE_VIEW}>
+          <button
+            onClick={() => navigate(`${basePath}/${employee.people_id}`)}
+            className="bg-slate-900 text-white px-4 py-2 rounded-xl font-bold hover:bg-slate-800 transition"
+          >
+            View
+          </button>
+        </Can>
 
         <Menu as="div" className="relative inline-block text-left">
           <Menu.Button className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition">

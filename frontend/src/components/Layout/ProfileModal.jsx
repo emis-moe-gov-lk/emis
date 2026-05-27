@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { FiX } from "react-icons/fi";
 import { useNavigate } from "react-router";
+import { resolveProfileImage } from "@/utils/profileImage";
 
 const ProfilePop = ({ isOpen, user, onClose, className = "" }) => {
   const navigate = useNavigate(); // hook to navigate
@@ -73,7 +74,7 @@ const ProfilePop = ({ isOpen, user, onClose, className = "" }) => {
       <div className="flex flex-col items-center gap-2 mt-2">
         <div className="flex items-center justify-between mb-2">
           <img
-            src={user.profileImage}
+            src={resolveProfileImage(user.profileImage, user.gender)}
             alt="Profile"
             className="w-16 h-16 rounded-full object-cover border-2 border-blue-500"
           />

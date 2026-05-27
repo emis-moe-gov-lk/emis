@@ -16,6 +16,36 @@ COPY --chown=wso2carbon:wso2 \
     conf/deployment.toml \
     ${WSO2_SERVER_HOME}/repository/conf/
 
+# 3. Trust any additional certificates dropped into certs/ (one .pem per CA).
+# Empty in prod; local-dev fills it with the nginx-proxy self-signed cert so
+# APIM trusts the proxy when calling IS over the public hostname. Imports into
+# both the WSO2 client-truststore (used by most clients) AND the JVM default
+# cacerts (used by Feign in the IS7 key manager client, which has its own SSL
+# context).
+COPY --chown=root:root --chmod=0444 certs/ /tmp/extra-certs/
+RUN set -e; \
+    for cert in /tmp/extra-certs/*.pem; do \
+      [ -f "$cert" ] || continue; \
+      alias_name="emis-$(basename "$cert" .pem)"; \
+      echo "Importing $cert as $alias_name into client-truststore.p12 + cacerts"; \
+      keytool -import -trustcacerts -noprompt \
+        -alias "$alias_name" \
+        -file "$cert" \
+        -keystore ${WSO2_SERVER_HOME}/repository/resources/security/client-truststore.p12 \
+        -storepass wso2carbon -storetype PKCS12; \
+      keytool -import -trustcacerts -noprompt \
+        -alias "$alias_name" \
+        -file "$cert" \
+        -keystore ${WSO2_SERVER_HOME}/repository/resources/security/client-truststore.jks \
+        -storepass wso2carbon; \
+      keytool -import -trustcacerts -noprompt \
+        -alias "$alias_name" \
+        -file "$cert" \
+        -keystore ${JAVA_HOME}/lib/security/cacerts \
+        -storepass changeit; \
+    done; \
+    rm -rf /tmp/extra-certs
+
 # Switch back to the non-root wso2carbon user
 USER wso2carbon
 

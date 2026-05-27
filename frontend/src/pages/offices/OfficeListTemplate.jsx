@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { Badge, Button, Spinner, TextInput } from "flowbite-react";
+import StatusBadge from "@/components/common/StatusBadge";
 import {
   HiOfficeBuilding,
   HiLocationMarker,
@@ -160,10 +161,10 @@ const OfficeListTemplate = ({ title, subtitle, endpoint, createLabel }) => {
             {subtitle}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge color="blue" size="lg">
-            Total: {filtered.length}
-          </Badge>
+          <div className="flex items-center gap-2">
+          <StatusBadge className="px-3 py-1 font-bold text-sm">
+            {`Total: ${filtered.length}`}
+          </StatusBadge>
         </div>
       </div>
 
@@ -257,19 +258,13 @@ const OfficeListTemplate = ({ title, subtitle, endpoint, createLabel }) => {
                 {/* Status & Actions */}
                 <div className="md:col-span-2 flex items-center md:justify-end gap-3">
                   {row.status === "Active" ? (
-                    <Badge
-                      color="success"
-                      className="px-3 py-1 bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400 ring-1 ring-green-600/20"
-                    >
+                    <StatusBadge className="px-3 py-1 bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400 ring-1 ring-green-600/20">
                       Active
-                    </Badge>
+                    </StatusBadge>
                   ) : (
-                    <Badge
-                      color="failure"
-                      className="px-3 py-1 bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 ring-1 ring-red-600/20"
-                    >
+                    <StatusBadge className="px-3 py-1 bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 ring-1 ring-red-600/20">
                       {row.status}
-                    </Badge>
+                    </StatusBadge>
                   )}
                 </div>
               </div>

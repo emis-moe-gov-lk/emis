@@ -1,4 +1,5 @@
 import { Badge, Button } from "flowbite-react";
+import StatusBadge from "@/components/common/StatusBadge";
 import {
   HiUser,
   HiLocationMarker,
@@ -7,6 +8,7 @@ import {
 } from "react-icons/hi";
 import { useNavigate } from "react-router-dom";
 import Can from "./Can";
+import { resolveProfileImage } from "@/utils/profileImage";
 
 /**
  * Reusable Directory Card Component
@@ -22,7 +24,7 @@ import Can from "./Can";
  * - statusColor: Badge color
  * - permissions: { view: "permission.name" }
  * - onView, onPrintId, onExportPdf: Callbacks
- * - showProfilePicture, maleProfileImage, femaleProfileImage, genderId: Profile picture
+ * - showProfilePicture: Profile picture visibility
  */
 export default function DirectoryCard({
   employee,
@@ -45,21 +47,20 @@ export default function DirectoryCard({
   onExportPdf,
   showProfilePicture = false,
   profilePictureUrl = null,
-  maleProfileImage,
-  femaleProfileImage,
-  genderId,
+  genderId = null,
 }) {
   const navigate = useNavigate();
 
   // Determine which profile image to use
   const getProfileImage = () => {
-    if (profilePictureUrl) return profilePictureUrl;
-    if (showProfilePicture && genderId === "G02" && femaleProfileImage) {
-      return femaleProfileImage;
+    const resolvedGender = genderId ?? employee?.gender_id ?? employee?.gender?.gender_id;
+
+    if (profilePictureUrl) return resolveProfileImage(profilePictureUrl, resolvedGender);
+
+    if (showProfilePicture) {
+      return resolveProfileImage(profilePicture ?? employee?.profile_picture, resolvedGender);
     }
-    if (showProfilePicture && maleProfileImage) {
-      return maleProfileImage;
-    }
+
     return null;
   };
 
@@ -150,9 +151,9 @@ export default function DirectoryCard({
         {/* Status & Actions */}
         <div className="flex items-center gap-2 justify-between md:justify-end md:ml-auto shrink-0">
           {status && (
-            <Badge color={statusColor} className="px-2.5 py-1 text-xs whitespace-nowrap font-medium">
+            <StatusBadge className="px-2.5 py-1 text-xs whitespace-nowrap font-medium">
               {status}
-            </Badge>
+            </StatusBadge>
           )}
 
           {/* View Button */}

@@ -3,8 +3,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Badge, Button, Spinner, Tooltip } from "flowbite-react";
+import StatusBadge from "@/components/common/StatusBadge";
 import {
-  HiArrowLeft,
   HiLocationMarker,
   HiCalendar,
   HiOfficeBuilding,
@@ -22,6 +22,7 @@ import { motion } from "framer-motion";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import api from "@/api/axios";
+import BackToListButton from "@/components/UiComponents/BackToListButton";
 
 import Can from "@/components/common/Can";
 import { PermissionGroups } from "@/data/permissionGroups";
@@ -280,9 +281,7 @@ export default function InstitutionProfile() {
         <h2 className="text-xl font-bold text-gray-700 dark:text-gray-300">
           School not found
         </h2>
-        <Button className="mt-4 rounded-full" onClick={() => navigate(-1)}>
-          Go Back
-        </Button>
+        <BackToListButton className="mt-4" onClick={() => navigate(-1)} label="Go Back" />
       </div>
     );
   }
@@ -296,15 +295,7 @@ export default function InstitutionProfile() {
     >
       {/* Back */}
       <motion.div variants={fadeUp}>
-        <Button
-          color="blue"
-          size="sm"
-          onClick={() => navigate(-1)}
-          className="rounded-full shadow-sm hover:shadow-md transition-shadow"
-        >
-          <HiArrowLeft className="mr-2 h-4 w-4" />
-          Back to List
-        </Button>
+        <BackToListButton onClick={() => navigate(-1)} label="Back to List" />
       </motion.div>
 
       {/* HEADER (match your sample: light, no black) */}
@@ -326,9 +317,9 @@ export default function InstitutionProfile() {
                   {institution.name}
                 </h1>
 
-                <Badge color={isActive ? "success" : "failure"}>
+                <StatusBadge>
                   {isActive ? "Active" : "Inactive"}
-                </Badge>
+                </StatusBadge>
 
                 <span className="text-xs px-3 py-1 rounded-full bg-white/80 dark:bg-gray-800/50 ring-1 ring-gray-200 dark:ring-gray-700 font-mono">
                   #{institution.census_no ?? "—"}

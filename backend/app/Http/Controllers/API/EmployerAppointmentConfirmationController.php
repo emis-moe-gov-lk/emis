@@ -354,7 +354,12 @@ class EmployerAppointmentConfirmationController extends Controller
             ], 500);
         }
     }
-public function confirm(Request $request, string $people_id, TeacherAccountProvisioningService $teacherAccountProvisioningService)
+public function confirmPrincipal(Request $request, string $people_id, TeacherAccountProvisioningService $teacherAccountProvisioningService)
+{
+    return $this->confirmTeacher($request, $people_id, $teacherAccountProvisioningService);
+}
+
+public function confirmTeacher(Request $request, string $people_id, TeacherAccountProvisioningService $teacherAccountProvisioningService)
 {
     try {
         $roles        = $this->resolvedRoles($request);
@@ -588,7 +593,12 @@ public function confirm(Request $request, string $people_id, TeacherAccountProvi
     }
 }
 
-public function updateRejectedStatus(Request $request, string $people_id)
+public function updateTeacher(Request $request, string $people_id)
+{
+    return $this->updateTeacherRejectedStatus($request, $people_id);
+}
+
+public function updateTeacherRejectedStatus(Request $request, string $people_id)
 {
     try {
         $roles        = $this->resolvedRoles($request);

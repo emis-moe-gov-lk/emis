@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use App\Http\Controllers\Controller;
+use App\Services\Wso2IsProvisioningService;
 
 class DosAdminController extends Controller
 {
@@ -67,7 +68,7 @@ class DosAdminController extends Controller
     {
         try {
             $perPage = (int) $request->get('per_page', 20);
-            $nic     = trim($request->get('nic', ''));
+            $search  = trim($request->get('search', $request->get('nic', '')));
 
             $dosAdminPeopleIds = User::query()
                 ->whereHas('roles', function ($query) {
@@ -75,23 +76,48 @@ class DosAdminController extends Controller
                 })
                 ->pluck('people_id');
 
-            $query = People::query()
-                ->whereIn('people_id', $dosAdminPeopleIds)
-                ->with([
-                    'title',
-                    'gender',
-                    'appointment',
-                    'currentAppointment.service',
-                    'currentAppointment.rank',
-                    'currentAppointment.position',
-                    'currentAppointment.workplace',
-                ])
-                ->when($nic !== '', function ($q) use ($nic) {
-                    $normalized = NicHelper::normalize($nic);
-                    if (NicHelper::checkNicValid($normalized)) {
-                        $q->where('nic_hash', NicHelper::hash($normalized));
-                    }
-                });
+            $baseQuery = People::query()
+                ->whereIn('people_id', $dosAdminPeopleIds);
+
+            $query = clone $baseQuery;
+
+            if ($search !== '') {
+                $isNicSearch = is_numeric(substr($search, 0, 1));
+
+                if ($isNicSearch) {
+                    $matchedPeopleIds = (clone $baseQuery)
+                        ->select(['people_id', 'nic'])
+                        ->get()
+                        ->filter(function (People $person) use ($search) {
+                            return str_contains((string) $person->nic, $search);
+                        })
+                        ->pluck('people_id')
+                        ->values();
+                } else {
+                    $searchLower = strtolower($search);
+                    $matchedPeopleIds = (clone $baseQuery)
+                        ->select(['people_id', 'full_name', 'name_with_initials'])
+                        ->get()
+                        ->filter(function (People $person) use ($searchLower) {
+                            return str_contains(strtolower((string) $person->full_name), $searchLower)
+                                || str_contains(strtolower((string) $person->name_with_initials), $searchLower);
+                        })
+                        ->pluck('people_id')
+                        ->values();
+                }
+
+                $query->whereIn('people_id', $matchedPeopleIds);
+            }
+
+            $query = $query->with([
+                'title',
+                'gender',
+                'appointment',
+                'currentAppointment.service',
+                'currentAppointment.rank',
+                'currentAppointment.position',
+                'currentAppointment.workplace',
+            ]);
 
             $admins = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
@@ -171,7 +197,7 @@ class DosAdminController extends Controller
     // STORE
     // ==============================
 
-    public function store(Request $request)
+    public function store(Request $request, Wso2IsProvisioningService $wso2Is)
     {
         try {
             $validated = $request->validate([
@@ -313,12 +339,14 @@ class DosAdminController extends Controller
                 'name'     => $people->name_with_initials,
                 'email'    => strtolower($validated['email']),
                 'contact'  => $validated['contact'],
-                'password' => Hash::make('password@123'),
+                'password' => Hash::make('Password@123'),
             ]);
 
             $user->assignRole($role);
 
             DB::commit();
+
+            $wso2Is->provisionUser($user, 'Password@123', $role);
 
             $positionName = Position::where('position_id', $validated['currentAppointmentPosition'])
                 ->value('position_name');
@@ -336,7 +364,7 @@ class DosAdminController extends Controller
                     'currentAppointmentPositionName' => $positionName,
                 ],
                 'people_id'        => $people->people_id,
-                'default_password' => 'password@123',
+                'default_password' => 'Password@123',
             ], 201);
 
         } catch (ValidationException $e) {

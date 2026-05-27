@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use App\Services\TeacherAccountProvisioningService;
+use App\Services\Wso2IsProvisioningService;
 
 class ProfileController extends Controller
 {
@@ -129,7 +130,7 @@ class ProfileController extends Controller
     // PATCH /profile/password
     // Change the authenticated user's own password.
     // -------------------------------------------------------
-    public function changePassword(Request $request)
+    public function changePassword(Request $request, Wso2IsProvisioningService $wso2Is)
 {
     $user  = $request->user() ?: User::where('email', $request->attributes->get('jwt_email'))->first();
 
@@ -160,8 +161,21 @@ class ProfileController extends Controller
             ], 422);
         }
 
+        // Sync to IS first — if it rejects (e.g. password policy), we abort before touching the local DB.
+        try {
+            $wso2Is->updatePassword($user, $validated['new_password']);
+        } catch (\Illuminate\Http\Client\RequestException $e) {
+            $body   = $e->response->json();
+            $detail = $body['detail'] ?? $body['message'] ?? $body['description'] ?? 'The password does not meet the identity provider requirements.';
+
+            return response()->json([
+                'status'  => 'error',
+                'message' => $detail,
+            ], 422);
+        }
+
         $user->update([
-            'password' => Hash::make($validated['new_password']),
+            'password' => $validated['new_password'],
             'must_change_password' => false,
             'password_changed_at' => now(),
         ]);

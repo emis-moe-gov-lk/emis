@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { NavLink, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useAuthContext } from "@asgardeo/auth-react";
 import {
-  HiArrowLeft,
   HiDocumentText,
   HiPencilAlt,
   HiCheckCircle,
@@ -12,6 +11,7 @@ import {
 } from "react-icons/hi";
 import api from "@/api/axios";
 import { downloadPrincipalProfileDocument } from "@/api/principalService";
+import { downloadTeacherProfileDocument } from "@/api/teacherService";
 import toast from "react-hot-toast";
 import { Badge, Spinner } from "flowbite-react";
 import TeacherUpdateModal from "@/components/teacher/TeacherUpdateModal";
@@ -23,6 +23,10 @@ import DarkSafeModal, {
 } from "@/components/common/DarkSafeModal";
 import Can from "@/components/common/Can";
 import { PermissionGroups } from "@/data/permissionGroups";
+import BackToListButton from "@/components/UiComponents/BackToListButton";
+import UIButton from "@/components/UiComponents/Button";
+import StatusBadge from "@/components/common/StatusBadge";
+import { resolveProfileImage } from "@/utils/profileImage";
 
 /**
  * Principal Profile (Finalized Style)
@@ -344,6 +348,14 @@ const PrincipalProfile = () => {
       /* GENERAL */
       setPrincipal({
         id: d.people_id,
+        profileImage:
+          resolveProfileImage(
+            d.profile_image ?? d.profile_picture ?? d.avatar_url ?? d.avatar,
+            d.gender_id ?? d.gender?.gender_id,
+          ),
+        genderId:
+          d.gender_id ?? d.gender?.gender_id ??
+          (d.gender?.gender_name && d.gender.gender_name.toLowerCase().startsWith("f") ? "G02" : null),
         appointmentId,
         fullName: d.full_name,
         initialsName: d.name_with_initials,
@@ -352,7 +364,7 @@ const PrincipalProfile = () => {
         wopNo: d.appointment?.w_op_no,
         paySheetNo: d.appointment?.pay_sheet_no,
         service:
-          d.appointment?.service?.service_name ?? d.appointment?.service_id,
+          d.current_appointment?.service?.service_name ?? d.current_appointment?.service_id,
         status: resolvedStatus.status,
         profileStatus:
           d.profile_status ?? d.appointment?.profile_status ?? null,
@@ -479,7 +491,24 @@ const PrincipalProfile = () => {
       window.setTimeout(() => window.URL.revokeObjectURL(url), 1000);
     } catch (error) {
       console.error("Failed to download principal profile document:", error);
-      toast.error("Unable to download the principal document.");
+      // Try fallback to teacher PDF endpoint in case principal PDF is not available
+      try {
+        const fallback = await downloadTeacherProfileDocument(principal.id);
+        const blob2 = new Blob([fallback.data], {
+          type: fallback.headers?.["content-type"] || "application/pdf",
+        });
+        const url2 = window.URL.createObjectURL(blob2);
+        const link2 = document.createElement("a");
+        link2.href = url2;
+        link2.download = `principal-profile-${principal.nic || principal.id}.pdf`;
+        document.body.appendChild(link2);
+        link2.click();
+        link2.remove();
+        window.setTimeout(() => window.URL.revokeObjectURL(url2), 1000);
+      } catch (err2) {
+        console.error("Fallback teacher PDF download also failed:", err2);
+        toast.error("Unable to download the principal document.");
+      }
     } finally {
       setIsDownloadingDocument(false);
     }
@@ -780,14 +809,18 @@ const PrincipalProfile = () => {
     <div className="space-y-5">
       {/* Back link (top) */}
       <div className="pt-1">
-        <NavLink
-          to="/employees/principal"
-          className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50"
-        >
-          <HiArrowLeft className="h-4 w-4" />
-          Back to Principal List
-        </NavLink>
+        <BackToListButton to="/employees/principal" label="Back to Principal List" />
       </div>
+
+      {/* Small pending banner for newly created profiles (read-only) - shown only to Zonal DEO */}
+      {isPendingStatus && userRoles.includes("zonal deo") && (
+        <div className="rounded-md border border-amber-100 bg-amber-50 dark:bg-amber-900/10 px-4 py-2 flex items-center gap-3">
+          <HiExclamation className="h-5 w-5 text-amber-600" />
+          <div className="text-sm font-bold text-amber-900 dark:text-amber-200">
+            Profile Verification Required
+          </div>
+        </div>
+      )}
 
       {/* Header strip (finalized style) */}
       <HeaderStrip
@@ -879,7 +912,7 @@ const PrincipalProfile = () => {
             <QualificationTab qualifications={qualifications} />
           )}
           {activeTab === "employment" && (
-            <EmploymentTab employment={employment} />
+            <EmploymentTab employment={employment} onEdit={setModalSection} />
           )}
           {activeTab === "wop" && <WopTab wopAndPayment={wopAndPayment} />}
           {activeTab === "family" && <FamilyTab family={family} />}
@@ -956,39 +989,43 @@ function HeaderStrip({ principal, onDownloadDocument, isDownloadingDocument }) {
     <div className="rounded-2xl overflow-hidden border border-blue-100 dark:border-blue-900/30 shadow-sm bg-white dark:bg-gray-800">
       <div className="bg-linear-to-r from-blue-50 to-indigo-50/30 dark:from-blue-900/10 dark:to-indigo-900/5">
         <div className="p-6 flex flex-col xl:flex-row xl:items-center gap-6">
-          {/* LEFT: Name + meta */}
+          {/* LEFT: Avatar + Name + meta */}
           <div className="flex items-start gap-4 min-w-0 max-w-2xl">
             <div className="w-1.5 rounded-full bg-blue-600 self-stretch shadow-[0_0_10px_rgba(37,99,235,0.3)]" />
 
-            <div className="min-w-0">
-              <div className="flex flex-col gap-2">
-                <h1 className="text-3xl font-black text-gray-900 dark:text-white leading-tight">
-                  {principal.fullName}
-                </h1>
+            <div className="flex items-center gap-4">
+              <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-white shadow-sm bg-gray-100 dark:bg-gray-700">
+                <img
+                  src={resolveProfileImage(
+                    principal?.profileImage,
+                    principal?.genderId,
+                  )}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                />
+              </div>
 
-                <div className="flex flex-wrap items-center gap-3">
-                  <Badge
-                    color={
-                      principal.status === "Confirmed"
-                        ? "success"
-                        : principal.status === "Rejected"
-                          ? "failure"
-                          : "warning"
-                    }
-                    className="px-4 py-1 font-bold rounded-full text-xs"
-                  >
-                    {principal.status}
-                  </Badge>
+              <div className="min-w-0">
+                <div className="flex flex-col gap-2">
+                  <h1 className="text-3xl font-black text-gray-900 dark:text-white leading-tight">
+                    {principal.fullName}
+                  </h1>
 
-                  <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
-                    <span className="font-bold text-blue-700 dark:text-blue-400 tracking-tight">
-                      {principal.service}
-                    </span>
-                    <span className="text-gray-300 dark:text-gray-600">|</span>
-                    <span>NIC</span>
-                    <span className="font-mono font-black text-gray-900 dark:text-white">
-                      {principal.nic}
-                    </span>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <StatusBadge className="px-4 py-1 font-bold rounded-full text-xs">
+                      {principal.status}
+                    </StatusBadge>
+
+                    <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                      <span className="font-bold text-blue-700 dark:text-blue-400 tracking-tight">
+                        {principal.service}
+                      </span>
+                      <span className="text-gray-300 dark:text-gray-600">|</span>
+                      <span>NIC</span>
+                      <span className="font-mono font-black text-gray-900 dark:text-white">
+                        {principal.nic}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1005,20 +1042,22 @@ function HeaderStrip({ principal, onDownloadDocument, isDownloadingDocument }) {
           {/* RIGHT: Actions */}
           <div className="flex flex-col sm:flex-row xl:flex-col gap-3 min-w-[200px]">
             <Can permission={PermissionGroups.SCHOOLS.EDIT_REQUEST}>
-              <button className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm font-bold text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm">
+              <UIButton variant="secondary" size="md" className="flex-1">
                 <HiPencilAlt className="h-4 w-4 text-blue-600" />
                 Send Edit Request
-              </button>
+              </UIButton>
             </Can>
 
-            <button
+            <UIButton
               onClick={onDownloadDocument}
               disabled={isDownloadingDocument}
-              className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-70 disabled:cursor-not-allowed transition-all shadow-md shadow-blue-200 dark:shadow-none"
+              variant="primary"
+              size="md"
+              className="flex-1"
             >
               <HiDocumentText className="h-4 w-4" />
               {isDownloadingDocument ? "Preparing PDF..." : "Get Document"}
-            </button>
+            </UIButton>
           </div>
         </div>
       </div>
@@ -1124,26 +1163,29 @@ function VerifyStrip({
         {/* Right: Action */}
         <div className="flex flex-wrap items-center gap-2">
           {!hideRejectAction && !isVerified && !showUpdateAction && (
-            <button
+            <UIButton
               onClick={onReject}
               type="button"
               disabled={isRejecting}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-white px-5 py-2 text-sm font-black text-rose-700 hover:bg-rose-50 transition-all shadow-sm disabled:cursor-not-allowed disabled:opacity-70"
+              variant="danger"
+              size="md"
             >
               <HiX className="h-4 w-4" />
               {isRejecting ? "Rejecting..." : "Reject"}
-            </button>
+            </UIButton>
           )}
 
           {!hideVerifyAction && (
-            <button
+            <UIButton
               onClick={onVerify}
               disabled={isVerifying}
+              variant="primary"
+              size="md"
               className={buttonClass}
             >
               <HiCheckCircle className="h-4 w-4" />
               {buttonLabel}
-            </button>
+            </UIButton>
           )}
         </div>
       </div>
@@ -1163,22 +1205,24 @@ function RejectReasonModal({
 
   const footerContent = (
     <>
-      <button
+      <UIButton
         type="button"
         onClick={onClose}
         disabled={isRejecting}
-        className={darkSafeButtonClasses.cancel}
+        variant="secondary"
+        size="md"
       >
         Cancel
-      </button>
-      <button
+      </UIButton>
+      <UIButton
         type="button"
         onClick={onSubmit}
         disabled={isRejecting}
-        className={darkSafeButtonClasses.danger}
+        variant="danger"
+        size="md"
       >
         {isRejecting ? "Rejecting..." : "Submit Rejection"}
-      </button>
+      </UIButton>
     </>
   );
 
@@ -1220,22 +1264,24 @@ function UpdateCommentModal({
 
   const footerContent = (
     <>
-      <button
+      <UIButton
         type="button"
         onClick={onClose}
         disabled={isSubmitting}
-        className={darkSafeButtonClasses.cancel}
+        variant="secondary"
+        size="md"
       >
         Cancel
-      </button>
-      <button
+      </UIButton>
+      <UIButton
         type="button"
         onClick={onSubmit}
         disabled={isSubmitting}
-        className={darkSafeButtonClasses.warning}
+        variant="primary"
+        size="md"
       >
         {isSubmitting ? "Updating..." : "Update Details"}
-      </button>
+      </UIButton>
     </>
   );
 
@@ -1322,18 +1368,15 @@ function FieldCell({ label, value, span = 1 }) {
 }
 
 function RoundedActionButton({ icon: Icon, children, onClick, variant = "outline" }) {
-  const base =
-    "inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-black transition-all duration-200 shadow-sm";
-  const styles =
-    variant === "primary"
-      ? "bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md"
-      : "border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-blue-200 dark:hover:border-blue-800";
-
   return (
-    <button onClick={onClick} className={`${base} ${styles}`}>
-      {Icon ? <Icon className="h-4 w-4 text-blue-500" /> : null}
+    <UIButton
+      onClick={onClick}
+      variant={variant === "primary" ? "primary" : "secondary"}
+      className="rounded-xl text-sm font-black"
+      icon={Icon ? <Icon className="h-4 w-4" /> : null}
+    >
       {children}
-    </button>
+    </UIButton>
   );
 }
 
@@ -1476,7 +1519,7 @@ function QualificationTab({ qualifications }) {
   );
 }
 
-function EmploymentTab({ employment }) {
+function EmploymentTab({ employment, onEdit }) {
   const ecs = employment?.appointmentCurrentStatus || {};
   const ma = employment?.myAppointment || {};
 
@@ -1486,9 +1529,11 @@ function EmploymentTab({ employment }) {
         title="Appointment Current Status"
         color="slate"
         right={
-          <RoundedActionButton onClick={() => {}} variant="outline">
-            Edit
-          </RoundedActionButton>
+          <Can permission={PermissionGroups.SCHOOLS.PROFILE_EDIT}>
+            <RoundedActionButton onClick={() => onEdit("current_appointment")} variant="outline">
+              Edit
+            </RoundedActionButton>
+          </Can>
         }
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1521,9 +1566,11 @@ function EmploymentTab({ employment }) {
         title="First Appointment"
         color="indigo"
         right={
-          <RoundedActionButton onClick={() => {}} variant="outline">
-            Edit
-          </RoundedActionButton>
+          <Can permission={PermissionGroups.SCHOOLS.PROFILE_EDIT}>
+            <RoundedActionButton onClick={() => onEdit("my_appointment")} variant="outline">
+              Edit
+            </RoundedActionButton>
+          </Can>
         }
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

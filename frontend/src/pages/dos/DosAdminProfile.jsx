@@ -1,16 +1,22 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { HiArrowLeft, HiDocumentText, HiPlus } from "react-icons/hi";
+import { HiDocumentText, HiPlus } from "react-icons/hi";
 import { Badge, Spinner } from "flowbite-react";
+import StatusBadge from "@/components/common/StatusBadge";
 import { getDosAdmin } from "@/api/deoOfficerService";
 import ProfileDataTable from "@/components/common/ProfileDataTable";
+import BackToListButton from "@/components/UiComponents/BackToListButton";
+
+import Can from "@/components/common/Can";
+import { PermissionGroups } from "@/data/permissionGroups";
 
 const formatDate = (value) => {
   if (!value) return null;
   return String(value).slice(0, 10);
 };
 
-const tablePrimaryCellClass = "px-5 py-4 font-semibold text-gray-900 dark:text-gray-100";
+const tablePrimaryCellClass =
+  "px-5 py-4 font-semibold text-gray-900 dark:text-gray-100";
 const tableCellClass = "px-5 py-4 text-gray-700 dark:text-gray-300";
 const tableActionButtonClass =
   "rounded-full border border-gray-300 dark:border-gray-700 px-4 py-2 text-xs font-extrabold hover:bg-gray-50 dark:hover:bg-gray-800";
@@ -108,13 +114,7 @@ export default function DosAdminProfile() {
     <div className="space-y-5">
       {/* Back link */}
       <div className="pt-1">
-        <button
-          onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50"
-        >
-          <HiArrowLeft className="h-4 w-4" />
-          Back to List
-        </button>
+        <BackToListButton onClick={() => navigate(-1)} label="Back to List" />
       </div>
 
       {/* Header strip */}
@@ -127,10 +127,10 @@ export default function DosAdminProfile() {
           <div className="rounded-2xl surface overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/70">
               <div className="text-sm font-semibold text-gray-800 dark:text-gray-100">
-                DEO Profile
+                Zonal admin
               </div>
               <div className="text-xs text-gray-500 dark:text-gray-400">
-                Development Officer profile
+                Zonal Administration profile
               </div>
             </div>
 
@@ -166,13 +166,13 @@ export default function DosAdminProfile() {
 
         {/* Right content */}
         <section className="lg:col-span-9 space-y-5">
-          {activeTab === "general"       && <GeneralTab profile={profile} />}
+          {activeTab === "general" && <GeneralTab profile={profile} />}
           {activeTab === "qualification" && <QualificationTab />}
-          {activeTab === "employment"    && <EmploymentTab profile={profile} />}
-          {activeTab === "service"       && <ServiceTab />}
-          {activeTab === "wop"           && <WopTab />}
-          {activeTab === "family"        && <FamilyTab />}
-          {activeTab === "edit"          && <EditRequestTab />}
+          {activeTab === "employment" && <EmploymentTab profile={profile} />}
+          {activeTab === "service" && <ServiceTab />}
+          {activeTab === "wop" && <WopTab />}
+          {activeTab === "family" && <FamilyTab />}
+          {activeTab === "edit" && <EditRequestTab />}
         </section>
       </div>
     </div>
@@ -197,9 +197,9 @@ function HeaderStrip({ profile }) {
                   {profile.fullName}
                 </h1>
                 <div className="flex flex-wrap items-center gap-3">
-                  <Badge color="indigo" className="px-4 py-1 font-bold rounded-full text-xs">
+                  <StatusBadge className="px-4 py-1 font-bold rounded-full text-xs">
                     {profile.position}
-                  </Badge>
+                  </StatusBadge>
                   <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
                     <span className="font-bold text-blue-700 dark:text-blue-400 tracking-tight">
                       {profile.service}
@@ -223,10 +223,12 @@ function HeaderStrip({ profile }) {
 
           {/* RIGHT: Actions */}
           <div className="flex flex-col sm:flex-row xl:flex-col gap-3 min-w-[200px]">
-            <button className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-md shadow-blue-200 dark:shadow-none">
-              <HiDocumentText className="h-4 w-4" />
-              Get Document
-            </button>
+            <Can permission={PermissionGroups.ZONAL.BULK_UPLOAD}>
+              <button className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-md shadow-blue-200 dark:shadow-none">
+                <HiDocumentText className="h-4 w-4" />
+                Get Document
+              </button>
+            </Can>
           </div>
         </div>
       </div>
@@ -254,18 +256,20 @@ function MiniKey({ label, value }) {
 function ColorSection({ title, color = "blue", children }) {
   const headerClass =
     {
-      slate:   "bg-slate-700",
-      teal:    "bg-teal-700",
-      indigo:  "bg-indigo-700",
+      slate: "bg-slate-700",
+      teal: "bg-teal-700",
+      indigo: "bg-indigo-700",
       emerald: "bg-emerald-700",
-      rose:    "bg-rose-700",
-      amber:   "bg-amber-700",
-      blue:    "bg-blue-700",
+      rose: "bg-rose-700",
+      amber: "bg-amber-700",
+      blue: "bg-blue-700",
     }[color] || "bg-blue-700";
 
   return (
     <div className="rounded-3xl overflow-hidden border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
-      <div className={`px-6 py-4 text-white ${headerClass} bg-linear-to-r from-[rgba(255,255,255,0.05)] to-transparent`}>
+      <div
+        className={`px-6 py-4 text-white ${headerClass} bg-linear-to-r from-[rgba(255,255,255,0.05)] to-transparent`}
+      >
         <h3 className="text-base font-black tracking-tight">{title}</h3>
       </div>
       <div className="p-6">{children}</div>
@@ -355,18 +359,20 @@ function QualificationTab() {
         <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
           Educational Qualification
         </h2>
-        <RoundedActionButton icon={HiPlus} onClick={() => {}}>
-          Add qualification
-        </RoundedActionButton>
+        <Can permission={PermissionGroups.ZONAL.ADMIN_QUALIFICATIONS}>
+          <RoundedActionButton icon={HiPlus} onClick={() => {}}>
+            Add qualification
+          </RoundedActionButton>
+        </Can>
       </div>
 
       <ProfileDataTable
         columns={[
-          { key: "degree",          label: "Degree / Certificate" },
-          { key: "institution",     label: "Institution" },
-          { key: "completionDate",  label: "Date of Completion" },
-          { key: "grade",           label: "Grade" },
-          { key: "action",          label: "Action" },
+          { key: "degree", label: "Degree / Certificate" },
+          { key: "institution", label: "Institution" },
+          { key: "completionDate", label: "Date of Completion" },
+          { key: "grade", label: "Grade" },
+          { key: "action", label: "Action" },
         ]}
         rows={[]}
         emptyMessage="No qualification records found."
@@ -399,7 +405,10 @@ function EmploymentTab({ profile }) {
           <FieldCell label="Rank" value={profile.caRank} />
           <FieldCell label="Appointment Date" value={profile.caDate} />
           <FieldCell label="Appointment Letter No." value={profile.caLetter} />
-          <FieldCell label="Position / Designation" value={profile.caPosition} />
+          <FieldCell
+            label="Position / Designation"
+            value={profile.caPosition}
+          />
           <FieldCell label="Workplace" value={profile.caWorkplace} />
         </div>
       </ColorSection>
@@ -414,8 +423,14 @@ function EmploymentTab({ profile }) {
 
       <ColorSection title="Recruitment Details" color="teal">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <FieldCell label="Recruitment Category" value={profile.recruitmentCategory} />
-          <FieldCell label="Recruitment Subject" value={profile.recruitmentSubject} />
+          <FieldCell
+            label="Recruitment Category"
+            value={profile.recruitmentCategory}
+          />
+          <FieldCell
+            label="Recruitment Subject"
+            value={profile.recruitmentSubject}
+          />
         </div>
       </ColorSection>
 
@@ -431,12 +446,12 @@ function EmploymentTab({ profile }) {
 
       <ProfileDataTable
         columns={[
-          { key: "service",         label: "Service" },
-          { key: "gradeRank",       label: "Grade / Rank" },
+          { key: "service", label: "Service" },
+          { key: "gradeRank", label: "Grade / Rank" },
           { key: "appointmentDate", label: "Appointment Date" },
-          { key: "retainmentDate",  label: "Retainment Date" },
-          { key: "status",          label: "Status" },
-          { key: "action",          label: "Action" },
+          { key: "retainmentDate", label: "Retainment Date" },
+          { key: "status", label: "Status" },
+          { key: "action", label: "Action" },
         ]}
         rows={[]}
         emptyMessage="No previous service records found."
@@ -468,16 +483,18 @@ function EmploymentTab({ profile }) {
       <ProfileDataTable
         columns={[
           { key: "workingPlaceAddress", label: "Working Place & Address" },
-          { key: "appointedDate",       label: "Appointed Date" },
-          { key: "releaseDate",         label: "Release Date" },
-          { key: "servicePeriod",       label: "Service Period" },
-          { key: "action",              label: "Action" },
+          { key: "appointedDate", label: "Appointed Date" },
+          { key: "releaseDate", label: "Release Date" },
+          { key: "servicePeriod", label: "Service Period" },
+          { key: "action", label: "Action" },
         ]}
         rows={[]}
         emptyMessage="No previous working place records found."
         renderRow={(row) => (
           <tr key={row.id}>
-            <td className={`${tablePrimaryCellClass} whitespace-pre-line`}>{row.workingPlaceAddress}</td>
+            <td className={`${tablePrimaryCellClass} whitespace-pre-line`}>
+              {row.workingPlaceAddress}
+            </td>
             <td className={tableCellClass}>{row.appointedDate}</td>
             <td className={tableCellClass}>{row.releaseDate}</td>
             <td className={tableCellClass}>{row.servicePeriod}</td>
@@ -502,18 +519,20 @@ function ServiceTab() {
         <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
           Service Records
         </h2>
-        <RoundedActionButton icon={HiPlus} onClick={() => {}}>
-          Add record
-        </RoundedActionButton>
+        <Can permission={PermissionGroups.ZONAL.ADMIN_SERVICES}>
+          <RoundedActionButton icon={HiPlus} onClick={() => {}}>
+            Add record
+          </RoundedActionButton>
+        </Can>
       </div>
 
       <ProfileDataTable
         columns={[
-          { key: "service",       label: "Service" },
-          { key: "grade",         label: "Grade / Rank" },
+          { key: "service", label: "Service" },
+          { key: "grade", label: "Grade / Rank" },
           { key: "effectiveDate", label: "Effective Date" },
-          { key: "letterNo",      label: "Letter No." },
-          { key: "action",        label: "Action" },
+          { key: "letterNo", label: "Letter No." },
+          { key: "action", label: "Action" },
         ]}
         rows={[]}
         emptyMessage="No service records found."
@@ -544,7 +563,9 @@ function WopTab() {
         <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
           W&OP & Payment Details
         </h2>
-        <RoundedActionButton onClick={() => {}}>Edit</RoundedActionButton>
+        <Can permission={PermissionGroups.ZONAL.ADMIN_WOP}>
+          <RoundedActionButton onClick={() => {}}>Edit</RoundedActionButton>
+        </Can>
       </div>
 
       <div className="rounded-2xl overflow-hidden border surface">
@@ -568,19 +589,21 @@ function FamilyTab() {
         <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
           Spouse List
         </h2>
-        <RoundedActionButton icon={HiPlus} onClick={() => {}}>
-          Add spouse
-        </RoundedActionButton>
+        <Can permission={PermissionGroups.ZONAL.ADMIN_FAMILY}>
+          <RoundedActionButton icon={HiPlus} onClick={() => {}}>
+            Add spouse
+          </RoundedActionButton>
+        </Can>
       </div>
 
       <ProfileDataTable
         columns={[
-          { key: "spouseName",   label: "Spouse Name" },
-          { key: "dob",          label: "Date of Birth" },
-          { key: "marriedDate",  label: "Married Date" },
-          { key: "marriedCfNo",  label: "Married CF No." },
-          { key: "status",       label: "Status" },
-          { key: "action",       label: "Action" },
+          { key: "spouseName", label: "Spouse Name" },
+          { key: "dob", label: "Date of Birth" },
+          { key: "marriedDate", label: "Married Date" },
+          { key: "marriedCfNo", label: "Married CF No." },
+          { key: "status", label: "Status" },
+          { key: "action", label: "Action" },
         ]}
         rows={[]}
         emptyMessage="No spouses have been added yet."

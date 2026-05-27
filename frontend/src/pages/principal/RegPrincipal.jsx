@@ -1,7 +1,6 @@
 "use client";
 import { useState, useContext, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "flowbite-react";
 import { TeacherFormContext, TeacherFormProvider } from "@/context/TeacherFormContext";
 import Swal from "sweetalert2";
 
@@ -19,9 +18,12 @@ import {
   downloadPrincipalProfileDocument,
   registerPrincipal,
 } from "@/api/principalService";
+import { downloadTeacherProfileDocument } from "@/api/teacherService";
 import toast from "react-hot-toast";
-import { HiCheckCircle, HiArrowLeft } from "react-icons/hi";
+import { HiCheckCircle } from "react-icons/hi";
 import { useAuthUser } from "@/context/useAuthUser";
+import BackToListButton from "@/components/UiComponents/BackToListButton";
+import Button from "@/components/UiComponents/Button";
 
 const REG_PRINCIPAL_HISTORY_OWNER = "regPrincipalCreate";
 const REG_PRINCIPAL_HISTORY_STEP_KEY = "regPrincipalStep";
@@ -38,6 +40,7 @@ function RegPrincipalInner() {
   } = useAuthUser();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDownloadingDocument, setIsDownloadingDocument] = useState(false);
   const [contactApiErrors, setContactApiErrors] = useState({});
   const [isRegistrationComplete, setIsRegistrationComplete] = useState(false);
   const [registrationSummary, setRegistrationSummary] = useState(null);
@@ -339,6 +342,7 @@ function RegPrincipalInner() {
       return;
     }
 
+    setIsDownloadingDocument(true);
     try {
       const response = await downloadPrincipalProfileDocument(peopleId);
       const contentType = response.headers?.["content-type"] || "application/pdf";
@@ -360,7 +364,30 @@ function RegPrincipalInner() {
         anchor.remove();
       }, 3000);
     } catch (_error) {
-      showErrorToast("Unable to download profile PDF.", "principal-profile-download-failed");
+      // Try fallback to teacher endpoint in case principal PDF generation isn't ready
+      try {
+        const fallback = await downloadTeacherProfileDocument(peopleId);
+        const contentType = fallback.headers?.["content-type"] || "application/pdf";
+        const disposition = fallback.headers?.["content-disposition"] || "";
+        const filenameMatch = disposition.match(/filename="?([^";]+)"?/i);
+        const filename = filenameMatch?.[1] || `principal-profile-${peopleId}.pdf`;
+
+        const blob = new Blob([fallback.data], { type: contentType });
+        const url = window.URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = filename;
+        document.body.appendChild(anchor);
+        anchor.click();
+        window.setTimeout(() => {
+          window.URL.revokeObjectURL(url);
+          anchor.remove();
+        }, 3000);
+      } catch (err2) {
+        showErrorToast("Unable to download profile PDF.", "principal-profile-download-failed");
+      }
+    } finally {
+      setIsDownloadingDocument(false);
     }
   };
 
@@ -526,7 +553,7 @@ function RegPrincipalInner() {
 
   return (
     <div className="p-6 lg:p-10 max-w-5xl mx-auto space-y-8">
-      <Button
+      <BackToListButton
         onClick={async () => {
           if (isRegistrationComplete) {
             await confirmDiscardAndRun(
@@ -538,11 +565,9 @@ function RegPrincipalInner() {
 
           await confirmDiscardAndRun(() => navigate("/employees/principal"));
         }}
-        color="blue"
-        className="mb-8 rounded-full px-6 py-2"
-      >
-        <HiArrowLeft /> Back To List
-      </Button>
+        label="Back To List"
+        className="mb-8"
+      />
       <div className="border border-gray-200 overflow-hidden">
         <StepperHeader
           steps={steps}
@@ -641,19 +666,14 @@ function RegPrincipalInner() {
               </div>
 
               <div className="flex justify-center gap-4 pt-4">
-                <button
-                  className="px-6 py-2 rounded-full bg-gray-600 dark:bg-gray-700 text-white hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors font-semibold"
-                  onClick={resetRegistration}
-                >
-                  New Registration
-                </button>
-
-                <button
-                  className="px-6 py-2 rounded-full bg-blue-600 dark:bg-blue-700 text-white hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-semibold"
+                <Button variant="secondary" onClick={resetRegistration}>New Registration</Button>
+                <Button
+                  variant="primary"
                   onClick={handleDownloadProfile}
+                  disabled={isDownloadingDocument}
                 >
-                  Download Profile
-                </button>
+                  {isDownloadingDocument ? "Preparing PDF..." : "Download Profile"}
+                </Button>
               </div>
             </div>
           )}

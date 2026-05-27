@@ -14,7 +14,9 @@ export default function StepCurrentAppointment({
       .some((value) => String(value).trim().toUpperCase() === "SLTS");
 
   const [loading, setLoading] = useState(true);
-  const [errors, setErrors] = useState({});
+  const [validationErrors, setValidationErrors] = useState({});
+  const [displayErrors, setDisplayErrors] = useState({});
+  const [hasAttempted, setHasAttempted] = useState(false);
 
   const [currentAppointmentServices, setCurrentAppointmentServices] = useState([]);
   const [currentAppointmentRanks, setCurrentAppointmentRanks] = useState([]);
@@ -114,7 +116,7 @@ export default function StepCurrentAppointment({
     if (!formData.currentAppointmentPosition)
       e.currentAppointmentPosition = "Required";
 
-    setErrors(e);
+    setValidationErrors(e);
     return Object.keys(e).length === 0;
   };
 
@@ -122,6 +124,24 @@ export default function StepCurrentAppointment({
     onValid?.(validate());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData, loading, sltsCurrentAppointmentServices.length]);
+
+  // expose validation trigger to parent
+  useEffect(() => {
+    window.__triggerCurrentAppointmentValidation = () => setHasAttempted(true);
+    return () => delete window.__triggerCurrentAppointmentValidation;
+  }, []);
+
+  useEffect(() => {
+    if (hasAttempted) setDisplayErrors(validationErrors);
+    else setDisplayErrors({});
+  }, [hasAttempted, validationErrors]);
+
+  const renderError = (key) =>
+    displayErrors[key] ? (
+      <p className="text-sm text-red-600 mt-1">{displayErrors[key]}</p>
+    ) : null;
+
+  const getFieldColor = (key) => (displayErrors[key] ? "failure" : "gray");
 
   // Set default registration type
   useEffect(() => {
@@ -149,7 +169,7 @@ export default function StepCurrentAppointment({
       return next;
     });
 
-    setErrors((prev) => ({ ...prev, [key]: undefined }));
+    setValidationErrors((prev) => ({ ...prev, [key]: undefined }));
   };
 
   const selectPlaceholder = loading ? "Loading..." : "Select";
@@ -222,11 +242,7 @@ export default function StepCurrentAppointment({
             </div>
           </label>
         </div>
-        {errors.currentAppointmentRegType && (
-          <p className="text-sm text-red-600 mt-1">
-            {errors.currentAppointmentRegType}
-          </p>
-        )}
+        {renderError("currentAppointmentRegType")}
       </div>
 
       {/* Information Alert */}
@@ -255,15 +271,11 @@ export default function StepCurrentAppointment({
             type="date"
             value={formData.currentAppointmentDate || ""}
             min={minCurrentAppointmentDate}
-            color={errors.currentAppointmentDate ? "failure" : "gray"}
+            color={getFieldColor("currentAppointmentDate")}
             onChange={(e) => update("currentAppointmentDate", e.target.value)}
             shadow
           />
-          {errors.currentAppointmentDate && (
-            <p className="text-sm text-red-600 mt-1">
-              {errors.currentAppointmentDate}
-            </p>
-          )}
+          {renderError("currentAppointmentDate")}
         </div>
 
         <div>
@@ -274,15 +286,11 @@ export default function StepCurrentAppointment({
             id="currentAppointmentLetter"
             placeholder="Enter letter number"
             value={formData.currentAppointmentLetter || ""}
-            color={errors.currentAppointmentLetter ? "failure" : "gray"}
+            color={getFieldColor("currentAppointmentLetter")}
             onChange={(e) => update("currentAppointmentLetter", e.target.value)}
             shadow
           />
-          {errors.currentAppointmentLetter && (
-            <p className="text-sm text-red-600 mt-1">
-              {errors.currentAppointmentLetter}
-            </p>
-          )}
+          {renderError("currentAppointmentLetter")}
         </div>
       </div>
 
@@ -296,7 +304,7 @@ export default function StepCurrentAppointment({
             id="currentAppointmentService"
             value={formData.currentAppointmentService || ""}
             disabled={loading}
-            color={errors.currentAppointmentService ? "failure" : "gray"}
+            color={getFieldColor("currentAppointmentService")}
             onChange={(e) =>
               update("currentAppointmentService", e.target.value)
             }
@@ -308,11 +316,7 @@ export default function StepCurrentAppointment({
               </option>
             ))}
           </Select>
-          {errors.currentAppointmentService && (
-            <p className="text-sm text-red-600 mt-1">
-              {errors.currentAppointmentService}
-            </p>
-          )}
+          {renderError("currentAppointmentService")}
         </div>
 
         <div>
@@ -323,7 +327,7 @@ export default function StepCurrentAppointment({
             id="currentAppointmentRank"
             value={formData.currentAppointmentRank || ""}
             disabled={loading}
-            color={errors.currentAppointmentRank ? "failure" : "gray"}
+            color={getFieldColor("currentAppointmentRank")}
             onChange={(e) => update("currentAppointmentRank", e.target.value)}
           >
             <option value="">{selectPlaceholder}</option>
@@ -333,11 +337,7 @@ export default function StepCurrentAppointment({
               </option>
             ))}
           </Select>
-          {errors.currentAppointmentRank && (
-            <p className="text-sm text-red-600 mt-1">
-              {errors.currentAppointmentRank}
-            </p>
-          )}
+          {renderError("currentAppointmentRank")}
         </div>
       </div>
 
@@ -350,7 +350,7 @@ export default function StepCurrentAppointment({
           id="currentAppointmentSubject"
           value={formData.currentAppointmentSubject || ""}
           disabled={loading}
-          color={errors.currentAppointmentSubject ? "failure" : "gray"}
+           color={getFieldColor("currentAppointmentSubject")}
           onChange={(e) => update("currentAppointmentSubject", e.target.value)}
         >
           <option value="">{selectPlaceholder}</option>
@@ -360,11 +360,7 @@ export default function StepCurrentAppointment({
             </option>
           ))}
         </Select>
-        {errors.currentAppointmentSubject && (
-          <p className="text-sm text-red-600 mt-1">
-            {errors.currentAppointmentSubject}
-          </p>
-        )}
+        {renderError("currentAppointmentSubject")}
       </div>
 
       {/* Zone & Institution Category */}
@@ -377,7 +373,7 @@ export default function StepCurrentAppointment({
             id="currentAppointmentZone"
             value={formData.currentAppointmentZone || ""}
             disabled={loading}
-            color={errors.currentAppointmentZone ? "failure" : "gray"}
+            color={getFieldColor("currentAppointmentZone")}
             onChange={(e) => update("currentAppointmentZone", e.target.value)}
           >
             <option value="">{selectPlaceholder}</option>
@@ -387,11 +383,7 @@ export default function StepCurrentAppointment({
               </option>
             ))}
           </Select>
-          {errors.currentAppointmentZone && (
-            <p className="text-sm text-red-600 mt-1">
-              {errors.currentAppointmentZone}
-            </p>
-          )}
+          {renderError("currentAppointmentZone")}
         </div>
 
         <div>
@@ -402,7 +394,7 @@ export default function StepCurrentAppointment({
             id="currentAppointmentInstCategory"
             value={formData.currentAppointmentInstCategory || ""}
             disabled={loading}
-            color={errors.currentAppointmentInstCategory ? "failure" : "gray"}
+            color={getFieldColor("currentAppointmentInstCategory")}
             onChange={(e) =>
               update("currentAppointmentInstCategory", e.target.value)
             }
@@ -414,11 +406,7 @@ export default function StepCurrentAppointment({
               </option>
             ))}
           </Select>
-          {errors.currentAppointmentInstCategory && (
-            <p className="text-sm text-red-600 mt-1">
-              {errors.currentAppointmentInstCategory}
-            </p>
-          )}
+          {renderError("currentAppointmentInstCategory")}
         </div>
       </div>
 
@@ -431,7 +419,7 @@ export default function StepCurrentAppointment({
           id="currentAppointmentInstitution"
           value={formData.currentAppointmentInstitution || ""}
           disabled={loading}
-          color={errors.currentAppointmentInstitution ? "failure" : "gray"}
+           color={getFieldColor("currentAppointmentInstitution")}
           onChange={(e) =>
             update("currentAppointmentInstitution", e.target.value)
           }
@@ -443,11 +431,7 @@ export default function StepCurrentAppointment({
             </option>
           ))}
         </Select>
-        {errors.currentAppointmentInstitution && (
-          <p className="text-sm text-red-600 mt-1">
-            {errors.currentAppointmentInstitution}
-          </p>
-        )}
+        {renderError("currentAppointmentInstitution")}
       </div>
 
       {/* Position */}
@@ -459,7 +443,7 @@ export default function StepCurrentAppointment({
           id="currentAppointmentPosition"
           value={formData.currentAppointmentPosition || ""}
           disabled={loading}
-          color={errors.currentAppointmentPosition ? "failure" : "gray"}
+           color={getFieldColor("currentAppointmentPosition")}
           onChange={(e) => update("currentAppointmentPosition", e.target.value)}
         >
           <option value="">{selectPlaceholder}</option>
@@ -469,11 +453,7 @@ export default function StepCurrentAppointment({
             </option>
           ))}
         </Select>
-        {errors.currentAppointmentPosition && (
-          <p className="text-sm text-red-600 mt-1">
-            {errors.currentAppointmentPosition}
-          </p>
-        )}
+        {renderError("currentAppointmentPosition")}
       </div>
     </div>
   );

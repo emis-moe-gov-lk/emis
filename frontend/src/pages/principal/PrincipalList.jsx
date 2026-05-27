@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { Badge, Button, Spinner, TextInput } from "flowbite-react";
+import { Badge, Spinner, TextInput } from "flowbite-react";
+import StatusBadge from "@/components/common/StatusBadge";
 import {
   HiChevronLeft,
   HiChevronRight,
@@ -12,6 +13,9 @@ import Can from "@/components/common/Can";
 import { PermissionGroups } from "@/data/permissionGroups";
 import api from "@/api/axios";
 import DirectoryCard from "@/components/common/DirectoryCard";
+import Button from "@/components/UiComponents/Button";
+import profile_m from "@/assets/images/profile_m.png";
+import profile_f from "@/assets/images/profile_f.png";
 
 const PrincipalList = () => {
   const navigate = useNavigate();
@@ -25,7 +29,7 @@ const PrincipalList = () => {
   const getAppointmentStatus = (appointment) => {
     if (
       String(appointment?.profile_status ?? "").trim().toLowerCase() ===
-        "revised" ||
+      "revised" ||
       appointment?.is_verified === 3
     ) {
       return { label: "Revised", color: "purple" };
@@ -49,7 +53,7 @@ const PrincipalList = () => {
   const fetchPrincipals = (pageNumber = 1) => {
     setLoading(true);
     api
-      .get(`/principals-list?page=${pageNumber}&per_page=10&nic=${search}`)
+      .get(`/principals-list?page=${pageNumber}&per_page=10&search=${encodeURIComponent(search)}`)
       .then((res) => {
         if (res.data?.status === "success") {
           setPrincipals(res.data.data.data || []);
@@ -88,17 +92,13 @@ const PrincipalList = () => {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge color="blue" size="lg">
-            Total: {total}
-          </Badge>
+          <StatusBadge className="px-3 py-1 font-bold text-sm">
+            {`Total: ${total || 0}`}
+          </StatusBadge>
           <Can permission={PermissionGroups.SCHOOLS.CREATE}>
-            <button
-              onClick={() => navigate("/employees/principal/create")}
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors shadow-sm"
-            >
-              <HiPlus className="w-4 h-4" />
+            <Button onClick={() => navigate("/employees/principal/create")} icon={<HiPlus className="w-4 h-4" />}>
               Create Principal
-            </button>
+            </Button>
           </Can>
         </div>
       </div>
@@ -108,7 +108,7 @@ const PrincipalList = () => {
           id="search"
           type="text"
           icon={HiSearch}
-          placeholder="Search by NIC..."
+          placeholder="Search by NIC or name..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -153,6 +153,10 @@ const PrincipalList = () => {
                     permissions={{
                       view: PermissionGroups.SCHOOLS.VIEW_PROFILE,
                     }}
+                    showProfilePicture={true}
+                    maleProfileImage={profile_m}
+                    femaleProfileImage={profile_f}
+                    genderId={principal.gender_id}
                     onView={(employee) => {
                       navigate(`/employees/principal/${employee.people_id}`);
                     }}
@@ -168,19 +172,19 @@ const PrincipalList = () => {
 
                 <div className="flex gap-2 order-1 sm:order-2 w-full sm:w-auto">
                   <Button
-                    color="gray"
+                    variant="secondary"
                     disabled={page === 1}
                     onClick={() => setPage(page - 1)}
-                    className="flex-1 sm:flex-none border-gray-200 dark:border-gray-700 shadow-sm enabled:hover:text-blue-600"
+                    className="flex-1 sm:flex-none"
                   >
                     <HiChevronLeft className="w-5 h-5 mr-1" />
                     Previous
                   </Button>
                   <Button
-                    color="gray"
+                    variant="secondary"
                     disabled={page === lastPage}
                     onClick={() => setPage(page + 1)}
-                    className="flex-1 sm:flex-none border-gray-200 dark:border-gray-700 shadow-sm enabled:hover:text-blue-600"
+                    className="flex-1 sm:flex-none"
                   >
                     Next
                     <HiChevronRight className="w-5 h-5 ml-1" />

@@ -5,8 +5,10 @@ export default function DosSearchModal({ open, onClose, employees }) {
 
   if (!open) return null;
 
-  const filtered = employees.filter((e) =>
-    e.name.toLowerCase().includes(query.toLowerCase()),
+  const list = Array.isArray(employees) ? employees : [];
+
+  const filtered = list.filter((e) =>
+    (String(e?.name || '')).toLowerCase().includes(String(query || '').toLowerCase()),
   );
 
   return (

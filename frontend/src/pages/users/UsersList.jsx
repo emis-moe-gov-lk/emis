@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Badge, Button, Spinner, TextInput } from "flowbite-react";
+import { resolveProfileImage } from "@/utils/profileImage";
+import StatusBadge from "@/components/common/StatusBadge";
 import {
   HiChevronLeft,
   HiChevronRight,
@@ -204,11 +206,14 @@ const UsersList = () => {
         workplace: getWorkplace(user),
         role: getUserRole(user),
         profileImage:
-          user?.profile_image ??
-          user?.profile_picture ??
-          user?.avatar_url ??
-          user?.avatar ??
-          null,
+          resolveProfileImage(
+            user?.profile_image ??
+              user?.profile_picture ??
+              user?.avatar_url ??
+              user?.avatar,
+            user?.gender_id ?? user?.gender?.gender_id,
+          ),
+        genderId: user?.gender_id ?? user?.gender?.gender_id ?? null,
         status,
         statusColor: getStatusColor(status),
       };
@@ -338,9 +343,9 @@ const UsersList = () => {
                   </div>
 
                   <div className="xl:col-span-2 flex items-center justify-between xl:justify-end gap-2">
-                    <Badge color={user.statusColor} className="px-3 py-1 whitespace-nowrap">
+                    <StatusBadge className="px-3 py-1 whitespace-nowrap">
                       {user.status}
-                    </Badge>
+                    </StatusBadge>
 
                     <div className="relative">
                       <button

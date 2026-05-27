@@ -1,18 +1,11 @@
-import { NavLink } from "react-router-dom";
-import { HiArrowLeft } from "react-icons/hi";
+import BackToListButton from "@/components/UiComponents/BackToListButton";
 
 const InstitutionCreate = () => {
   return (
     <div className="p-6 lg:p-10 w-full px-4 sm:px-6 lg:px-8 mx-auto">
       {/* Back button */}
       <div className="mb-6">
-        <NavLink
-          to="/institution"
-          className="inline-flex items-center gap-2 rounded-full bg-blue-600 dark:bg-blue-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors shadow-sm hover:shadow-md"
-        >
-          <HiArrowLeft className="w-4 h-4" />
-          Back to List
-        </NavLink>
+        <BackToListButton to="/institution" label="Back to List" />
       </div>
 
       {/* Page title */}

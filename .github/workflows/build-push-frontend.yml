@@ -1,9 +1,9 @@
 name: Build and Push Frontend
+run-name: "Build & Push frontend image on ${{ github.ref_name }}"
 
 on:
-  push:
-    branches: [ "infra/feat/img-build" ]
-  workflow_dispatch:   # Allows manual triggering
+  workflow_dispatch: # trigger workflow manually
+  workflow_call:    # trigger workflow from an external workflow
 
 jobs:
   build-frontend:
@@ -12,9 +12,20 @@ jobs:
       contents: read
       packages: write
 
+    env:
+      REGISTRY_BASE: "ghcr.io/emis-moe-gov-lk/emis-frontend"
+      REPO_VER_FILE: "frontend/version"
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Extract Frontend Version
+        id: get_version
+        run: |
+          FILE_VERSION=$(cat ${{ env.REPO_VER_FILE }} | xargs)
+          echo "Detected version in repo file: $FILE_VERSION"
+          echo "version=$FILE_VERSION" >> $GITHUB_OUTPUT
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -23,9 +34,26 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Check if Tag Exists in GHCR
+        id: ghcr_check
+        run: |
+          TARGET_IMAGE="${{ env.REGISTRY_BASE }}:${{ steps.get_version.outputs.version }}"
+          echo "Checking if $TARGET_IMAGE exists in GHCR..."
+          
+          if docker manifest inspect $TARGET_IMAGE > /dev/null 2>&1; then
+            echo "Image tag ${{ steps.get_version.outputs.version }} already exists in GHCR."
+            echo "should_build=false" >> $GITHUB_OUTPUT
+          else
+            echo "Image tag ${{ steps.get_version.outputs.version }} not found. Proceeding with build."
+            echo "should_build=true" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build and push Frontend image
+        if: steps.ghcr_check.outputs.should_build == 'true'
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/emis-frontend:${{ vars.FRONTEND_IMG_VERSION }}
+          tags: |
+            ${{ env.REGISTRY_BASE }}:${{ steps.get_version.outputs.version }}
+            ${{ env.REGISTRY_BASE }}:latest

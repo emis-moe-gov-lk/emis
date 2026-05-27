@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { NavLink, useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useAuthContext } from "@asgardeo/auth-react";
 import {
-  HiArrowLeft,
   HiCalendar,
   HiDocumentText,
   HiPencilAlt,
@@ -29,6 +28,8 @@ import {
   ModalHeader,
   Button,
 } from "flowbite-react";
+import StatusBadge from "@/components/common/StatusBadge";
+import { resolveProfileImage } from "@/utils/profileImage";
 import { HiOutlineExclamationCircle } from "react-icons/hi";
 import TeacherUpdateModal from "@/components/teacher/TeacherUpdateModal";
 import { useAuthUser } from "@/context/useAuthUser";
@@ -41,6 +42,8 @@ import DarkSafeModal, {
 
 import Can from "@/components/common/Can";
 import { PermissionGroups } from "@/data/permissionGroups";
+import BackToListButton from "@/components/UiComponents/BackToListButton";
+import UIButton from "@/components/UiComponents/Button";
 /**
  * Teacher Profile (Finalized Style)
  * - Professional, colorful, compact (less “cardy”), rounded corners everywhere
@@ -425,6 +428,14 @@ const TeacherProfile = () => {
               --------------------------- */
       setTeacher({
         id: d.people_id,
+        profileImage:
+          resolveProfileImage(
+            d.profile_image ?? d.profile_picture ?? d.avatar_url ?? d.avatar,
+            d.gender_id ?? d.gender?.gender_id,
+          ),
+        genderId:
+          d.gender_id ?? d.gender?.gender_id ??
+          (d.gender?.gender_name && d.gender.gender_name.toLowerCase().startsWith("f") ? "G02" : null),
         appointmentId,
         fullName: d.full_name,
         initialsName: d.name_with_initials,
@@ -473,7 +484,9 @@ const TeacherProfile = () => {
         phone: d.phone,
 
         district: d.district?.district_name,
+        dsOffice: d.ds_office?.dso_name,
         gnDivision: d.gn_division?.gn_division_name,
+        postalCode: d.postal_code,
         permanentAddress: [d.address_line1, d.address_line2, d.address_line3]
           .filter(Boolean)
           .join("\n"),
@@ -483,6 +496,7 @@ const TeacherProfile = () => {
         tempAddress: [d.t_address_line1, d.t_address_line2, d.t_address_line3]
           .filter(Boolean)
           .join("\n"),
+        tempPostalCode: d.t_postal_code,
       });
 
       /* ---------------------------
@@ -519,6 +533,9 @@ const TeacherProfile = () => {
           positionDesignation:
             d.appointment?.position?.position_name ??
             d.appointment?.position_id,
+          workplaceNameAddress: d.appointment?.workplace?.institution
+            ? `[${d.appointment.workplace.institution.census_no}] ${d.appointment.workplace.institution.name}\n${d.appointment.workplace.institution.address}`
+            : "",
           createdAt: formatDate(d.appointment?.created_at),
         },
         teachingInfo: {
@@ -527,7 +544,7 @@ const TeacherProfile = () => {
           medium: d.teacher?.medium?.name,
           appointmentSubject: d.teacher?.appointment_subject?.name_en,
           mainTeachingSubject: d.teacher?.main_subject?.name_en,
-          secondarySubjectOptional: d.teacher?.secondary_subject?.name_en,
+          secondarySubjectOptional: d.teacher?.secondary_subject?.name_en ?? d.teacher?.secondary_subject,
           currentTeachingSubjectAssignedBySchool:
             d.teacher?.current_teaching_subject?.name_en,
         },
@@ -832,7 +849,7 @@ const TeacherProfile = () => {
     !teacher?.rejected &&
     !teacher?.revised;
   const shouldShowUpdateOnly =
-    isDevelopmentOfficer && !!teacher?.rejected && !teacher?.revised;
+    (isDevelopmentOfficer || isSuperAdmin) && !!teacher?.rejected && !teacher?.revised;
   const isVerifiedStatus =
     !!teacher?.verified ||
     String(teacher?.status ?? "")
@@ -1090,15 +1107,18 @@ const TeacherProfile = () => {
     <div className="space-y-5">
       {/* Back link (top) */}
       <div className="pt-1">
-        <NavLink
-          to="/employees/teacher"
-          className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50"
-        >
-          <HiArrowLeft className="h-4 w-4" />
-          Back to Teacher List
-        </NavLink>
+        <BackToListButton to="/employees/teacher" label="Back to Teacher List" />
       </div>
 
+      {/* Small pending banner for newly created profiles (read-only) - shown only to Zonal DEO */}
+      {isPendingStatus && userRoles.includes("zonal deo") && (
+        <div className="rounded-md border border-amber-100 bg-amber-50 dark:bg-amber-900/10 px-4 py-2 flex items-center gap-3">
+          <HiOutlineExclamationCircle className="h-5 w-5 text-amber-600" />
+          <div className="text-sm font-bold text-amber-900 dark:text-amber-200">
+            Profile Verification Required
+          </div>
+        </div>
+      )}
       {/* Header strip (finalized style) */}
       <HeaderStrip
         teacher={teacher}
@@ -1199,8 +1219,8 @@ const TeacherProfile = () => {
                   className={[
                     "w-full text-left px-4 py-3 rounded-xl text-sm transition flex items-center justify-between group",
                     isPromoting
-                      ? "bg-white-500 text-white shadow-md"
-                      : "bg-white-600 text-black hover:bg-emerald-700 shadow-md",
+                      ? "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-200 shadow-md"
+                      : "bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 hover:bg-emerald-700 dark:hover:bg-emerald-600 shadow-md",
                   ].join(" ")}
                 >
                   <span className="font-semibold">+ Promote to Principal</span>
@@ -1252,7 +1272,7 @@ const TeacherProfile = () => {
             />
           )}
           {activeTab === "employment" && (
-            <EmploymentTab employment={employment} />
+            <EmploymentTab employment={employment} onEdit={setModalSection} />
           )}
           {activeTab === "wop" && <WopTab wopAndPayment={wopAndPayment} />}
           {activeTab === "family" && <FamilyTab family={family} />}
@@ -1344,39 +1364,43 @@ function HeaderStrip({ teacher, onDownloadDocument, isDownloadingDocument }) {
     <div className="rounded-2xl overflow-hidden border border-blue-100 dark:border-blue-900/30 shadow-sm bg-white dark:bg-gray-800">
       <div className="bg-linear-to-r from-blue-50 to-indigo-50/30 dark:from-blue-900/10 dark:to-indigo-900/5">
         <div className="p-6 flex flex-col xl:flex-row xl:items-center gap-6">
-          {/* LEFT: Name + meta */}
+          {/* LEFT: Avatar + Name + meta */}
           <div className="flex items-start gap-4 min-w-0 max-w-2xl">
             <div className="w-1.5 rounded-full bg-blue-600 self-stretch shadow-[0_0_10px_rgba(37,99,235,0.3)]" />
 
-            <div className="min-w-0">
-              <div className="flex flex-col gap-2">
-                <h1 className="text-3xl font-black text-gray-900 dark:text-white leading-tight">
-                  {teacher.fullName}
-                </h1>
+            <div className="flex items-center gap-4">
+              <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-white shadow-sm bg-gray-100 dark:bg-gray-700">
+                <img
+                  src={resolveProfileImage(
+                    teacher?.profileImage,
+                    teacher?.genderId,
+                  )}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                />
+              </div>
 
-                <div className="flex flex-wrap items-center gap-3">
-                  <Badge
-                    color={
-                      teacher.status === "Confirmed"
-                        ? "success"
-                        : teacher.status === "Rejected"
-                          ? "failure"
-                          : "warning"
-                    }
-                    className="px-4 py-1 font-bold rounded-full text-xs"
-                  >
-                    {teacher.status}
-                  </Badge>
+              <div className="min-w-0">
+                <div className="flex flex-col gap-2">
+                  <h1 className="text-3xl font-black text-gray-900 dark:text-white leading-tight">
+                    {teacher.fullName}
+                  </h1>
 
-                  <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
-                    <span className="font-bold text-blue-700 dark:text-blue-400 tracking-tight">
-                      {teacher.service}
-                    </span>
-                    <span className="text-gray-300 dark:text-gray-600">|</span>
-                    <span>NIC</span>
-                    <span className="font-mono font-black text-gray-900 dark:text-white">
-                      {teacher.nic}
-                    </span>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <StatusBadge className="px-4 py-1 font-bold rounded-full text-xs">
+                      {teacher.status}
+                    </StatusBadge>
+
+                    <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                      <span className="font-bold text-blue-700 dark:text-blue-400 tracking-tight">
+                        {teacher.service}
+                      </span>
+                      <span className="text-gray-300 dark:text-gray-600">|</span>
+                      <span>NIC</span>
+                      <span className="font-mono font-black text-gray-900 dark:text-white">
+                        {teacher.nic}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1717,19 +1741,16 @@ function FieldCell({ label, value, span = 1 }) {
 }
 
 function RoundedActionButton({ icon, children, onClick, variant = "outline" }) {
-  const base =
-    "inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-black transition-all duration-200 shadow-sm";
-  const styles =
-    variant === "primary"
-      ? "bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md"
-      : "border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-blue-200 dark:hover:border-blue-800";
-
   const Icon = icon;
   return (
-    <button onClick={onClick} className={`${base} ${styles}`}>
-      {Icon ? <Icon className="h-4 w-4 text-blue-500" /> : null}
+    <UIButton
+      onClick={onClick}
+      variant={variant === "primary" ? "primary" : "secondary"}
+      className="rounded-xl text-sm font-black"
+      icon={Icon ? <Icon className="h-4 w-4" /> : null}
+    >
       {children}
-    </button>
+    </UIButton>
   );
 }
 
@@ -1834,7 +1855,9 @@ function GeneralTab({ teacher, onEdit }) {
           <FieldCell label="Phone" value={teacher.phone} />
 
           <FieldCell label="District" value={teacher.district} />
+          <FieldCell label="DS Office" value={teacher.dsOffice} />
           <FieldCell label="GN Division" value={teacher.gnDivision} />
+          <FieldCell label="Postal Code" value={teacher.postalCode} />
 
           <div className="md:col-span-2">
             <FieldCell
@@ -1862,28 +1885,16 @@ function GeneralTab({ teacher, onEdit }) {
           </Can>
         }
       >
-        <div className="grid grid-cols-1 gap-3">
-          {/* <div className="rounded-2xl border px-4 py-3 bg-white">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-              Residential Address
-            </div>
-            <div className="mt-0.5 text-sm font-extrabold text-gray-900 whitespace-pre-line">
-              {teacher.tempAddress || "—"}
-          </RoundedActionButton>
-        }
-      >
-        <div className="grid grid-cols-1 gap-3">
-          {/* <div className="rounded-2xl border px-4 py-3 bg-white">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-              Residential Address
-            </div>
-            <div className="mt-0.5 text-sm font-extrabold text-gray-900 whitespace-pre-line">
-              {teacher.tempAddress || "—"}
-            </div>
-          </div> */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="md:col-span-2">
+            <FieldCell
+              label="Residential Address"
+              value={teacher.tempAddress || "—"}
+            />
+          </div>
           <FieldCell
-            label=" Residential Address"
-            value={teacher.tempAddress || "—"}
+            label="Postal Code"
+            value={teacher.tempPostalCode || "—"}
           />
         </div>
       </ColorSection>
@@ -1928,12 +1939,7 @@ function QualificationTab({ qualifications, onAddQualification, onEditQualificat
             <td className={tableCellClass}>{q.completionDate}</td>
             <td className={tableCellClass}>{q.grade}</td>
             <td className="px-5 py-4">
-              <button 
-                onClick={() => onEditQualification(q)}
-                className={tableActionButtonClass}
-              >
-                Edit
-              </button>
+              <UIButton onClick={() => onEditQualification(q)} variant="secondary" size="sm">Edit</UIButton>
             </td>
           </tr>
         )}
@@ -2092,7 +2098,7 @@ function QualificationAchievementModal({
    TAB: Employment (ALL sections kept)
 ========================================================= */
 
-function EmploymentTab({ employment }) {
+function EmploymentTab({ employment, onEdit }) {
   const ecs = employment?.appointmentCurrentStatus || {};
   const ma = employment?.myAppointment || {};
   const ti = employment?.teachingInfo || {};
@@ -2106,9 +2112,11 @@ function EmploymentTab({ employment }) {
         title="Appointment current status"
         color="slate"
         right={
-          <RoundedActionButton onClick={() => { }} variant="outline">
-            Edit
-          </RoundedActionButton>
+          <Can permission={PermissionGroups.SCHOOLS.PROFILE_EDIT}>
+            <RoundedActionButton onClick={() => onEdit("current_appointment")} variant="outline">
+              Edit
+            </RoundedActionButton>
+          </Can>
         }
       >
         <div className="flex items-center gap-2 mb-4 text-xs font-extrabold text-gray-600">
@@ -2148,9 +2156,11 @@ function EmploymentTab({ employment }) {
         title="My Appointment"
         color="indigo"
         right={
-          <RoundedActionButton onClick={() => { }} variant="outline">
-            Edit
-          </RoundedActionButton>
+          <Can permission={PermissionGroups.SCHOOLS.PROFILE_EDIT}>
+            <RoundedActionButton onClick={() => onEdit("my_appointment")} variant="outline">
+              Edit
+            </RoundedActionButton>
+          </Can>
         }
       >
         <div className="flex items-center gap-2 mb-4 text-xs font-extrabold text-gray-600">
@@ -2183,9 +2193,11 @@ function EmploymentTab({ employment }) {
         title="Teaching Info"
         color="teal"
         right={
-          <RoundedActionButton onClick={() => { }} variant="outline">
-            Edit
-          </RoundedActionButton>
+          <Can permission={PermissionGroups.SCHOOLS.PROFILE_EDIT}>
+            <RoundedActionButton onClick={() => onEdit("teaching_info")} variant="outline">
+              Edit
+            </RoundedActionButton>
+          </Can>
         }
       >
         <div className="flex items-center gap-2 mb-4 text-xs font-extrabold text-gray-600">
@@ -2256,7 +2268,7 @@ function EmploymentTab({ employment }) {
               </span>
             </td>
             <td className="px-5 py-4">
-              <button className={tableActionButtonClass}>🗑</button>
+              <UIButton className={tableActionButtonClass} variant="danger" size="sm">Delete</UIButton>
             </td>
           </tr>
         )}
@@ -2291,7 +2303,7 @@ function EmploymentTab({ employment }) {
             <td className={tableCellClass}>{row.startDate}</td>
             <td className={tableCellClass}>{row.endDate}</td>
             <td className="px-5 py-4">
-              <button className={tableActionButtonClass}>🗑</button>
+              <UIButton className={tableActionButtonClass} variant="danger" size="sm">Delete</UIButton>
             </td>
           </tr>
         )}
@@ -2323,7 +2335,7 @@ function EmploymentTab({ employment }) {
             <td className={tableCellClass}>{row.releaseDate}</td>
             <td className={tableCellClass}>{row.servicePeriod}</td>
             <td className="px-5 py-4">
-              <button className={tableActionButtonClass}>🗑</button>
+              <UIButton className={tableActionButtonClass} variant="danger" size="sm">Delete</UIButton>
             </td>
           </tr>
         )}
@@ -2400,7 +2412,7 @@ function FamilyTab({ family }) {
               </span>
             </td>
             <td className="px-5 py-4">
-              <button className={tableActionButtonClass}>🗑</button>
+              <UIButton className={tableActionButtonClass} variant="danger" size="sm">Delete</UIButton>
             </td>
           </tr>
         )}
@@ -2450,3 +2462,4 @@ function EditRequestTab({ editRequests }) {
     </div>
   );
 }
+

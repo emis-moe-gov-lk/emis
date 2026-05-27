@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { Badge, Button, Spinner, TextInput } from "flowbite-react";
+import { Badge, Select, Spinner, TextInput } from "flowbite-react";
+import StatusBadge from "@/components/common/StatusBadge";
 import {
   HiOfficeBuilding,
   HiLocationMarker,
@@ -14,6 +15,7 @@ import { NavLink } from "react-router-dom";
 
 import Can from "@/components/common/Can";
 import { PermissionGroups } from "@/data/permissionGroups";
+import Button from "@/components/UiComponents/Button";
 
 export default function InstitutionIndex() {
   const navigate = useNavigate();
@@ -24,13 +26,58 @@ export default function InstitutionIndex() {
   const [loading, setLoading] = useState(false);
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState("");
+  const [filters, setFilters] = useState({
+    authorityId: "",
+    peoWpId: "",
+    zeoWpId: "",
+    deoWpId: "",
+    activeStatus: "",
+  });
+  const [filterOptions, setFilterOptions] = useState({
+    authorities: [],
+    provinces: [],
+    zones: [],
+    divisions: [],
+  });
 
-  const fetchInstitutions = async (pageNumber = 1) => {
+  useEffect(() => {
+    api.get("/institutions/filters").then((res) => {
+      setFilterOptions((prev) => ({ ...prev, ...res.data.data }));
+    });
+  }, []);
+
+  const visibleZones = filters.peoWpId
+    ? filterOptions.zones.filter((z) => z.peo_wp_id === filters.peoWpId)
+    : filterOptions.zones;
+
+  const visibleDivisions = filters.zeoWpId
+    ? filterOptions.divisions.filter((d) => d.zeo_wp_id === filters.zeoWpId)
+    : filterOptions.divisions;
+
+  const updateFilter = (key, value) => {
+    setFilters((current) => {
+      const next = { ...current, [key]: value };
+      if (key === "peoWpId") { next.zeoWpId = ""; next.deoWpId = ""; }
+      if (key === "zeoWpId") { next.deoWpId = ""; }
+      return next;
+    });
+  };
+
+  const fetchInstitutions = useCallback(async (pageNumber = 1) => {
     setLoading(true);
     try {
-      const response = await api.get(
-        `/institutions?page=${pageNumber}&search=${search}`,
-      );
+      const params = new URLSearchParams({ page: pageNumber });
+
+      if (search.trim()) params.set("search", search.trim());
+      if (filters.authorityId) params.set("authority_id", filters.authorityId);
+      if (filters.peoWpId) params.set("peo_wp_id", filters.peoWpId);
+      if (filters.zeoWpId) params.set("zeo_wp_id", filters.zeoWpId);
+      if (filters.deoWpId) params.set("deo_wp_id", filters.deoWpId);
+      if (filters.activeStatus) {
+        params.set("active_status", filters.activeStatus);
+      }
+
+      const response = await api.get(`/institutions?${params.toString()}`);
       const payload = response.data.data;
 
       setInstitutions(payload.data);
@@ -43,18 +90,22 @@ export default function InstitutionIndex() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters, search]);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
+      setPage(1);
       fetchInstitutions(1);
     }, 500);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [search]);
+  }, [fetchInstitutions, search, filters]);
 
   useEffect(() => {
+    if (page === 1) return;
     fetchInstitutions(page);
+    // Page changes should use the latest debounced search/filter state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
   return (
@@ -70,15 +121,77 @@ export default function InstitutionIndex() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge color="blue" size="lg">
-            Total: {total}
-          </Badge>
+          <StatusBadge className="px-3 py-1 font-bold text-sm">
+            {`Total: ${total || 0}`}
+          </StatusBadge>
         </div>
       </div>
 
       {/* Search and Filters */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="w-full sm:max-w-md">
+      <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
+          <Select
+            aria-label="Filter by authority"
+            value={filters.authorityId}
+            onChange={(e) => updateFilter("authorityId", e.target.value)}
+          >
+            <option value="">All Authorities</option>
+            {filterOptions.authorities.map((a) => (
+              <option key={a.authority_id} value={a.authority_id}>
+                {a.authority_name}
+              </option>
+            ))}
+          </Select>
+
+          <Select
+            aria-label="Filter by province"
+            value={filters.peoWpId}
+            onChange={(e) => updateFilter("peoWpId", e.target.value)}
+          >
+            <option value="">All Provinces</option>
+            {filterOptions.provinces.map((p) => (
+              <option key={p.workplace_id} value={p.workplace_id}>
+                {p.short_name}
+              </option>
+            ))}
+          </Select>
+
+          <Select
+            aria-label="Filter by zonal office"
+            value={filters.zeoWpId}
+            onChange={(e) => updateFilter("zeoWpId", e.target.value)}
+          >
+            <option value="">All Zonal Offices</option>
+            {visibleZones.map((z) => (
+              <option key={z.workplace_id} value={z.workplace_id}>
+                {z.short_name}
+              </option>
+            ))}
+          </Select>
+
+          <Select
+            aria-label="Filter by divisional office"
+            value={filters.deoWpId}
+            onChange={(e) => updateFilter("deoWpId", e.target.value)}
+          >
+            <option value="">All Divisional Offices</option>
+            {visibleDivisions.map((d) => (
+              <option key={d.workplace_id} value={d.workplace_id}>
+                {d.name}
+              </option>
+            ))}
+          </Select>
+
+          <Select
+            aria-label="Filter by status"
+            value={filters.activeStatus}
+            onChange={(e) => updateFilter("activeStatus", e.target.value)}
+          >
+            <option value="">Any Status</option>
+            <option value="1">Active</option>
+            <option value="0">Inactive</option>
+          </Select>
+
           <TextInput
             id="search"
             type="text"
@@ -88,14 +201,14 @@ export default function InstitutionIndex() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+      </div>
 
+      <div className="flex justify-end">
         <Can permission={PermissionGroups.INSTITUTION.CREATE}>
-          <NavLink
-            to="/institution/create"
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-          >
-            <HiPlus />
-            Create Institution
+          <NavLink to="/institution/create">
+            <Button variant="secondary" icon={<HiPlus />}>
+              Create Institution
+            </Button>
           </NavLink>
         </Can>
       </div>
@@ -158,19 +271,13 @@ export default function InstitutionIndex() {
                   {/* Status */}
                   <div className="md:col-span-2 flex md:justify-end">
                     {inst.active_status === 1 ? (
-                      <Badge
-                        color="success"
-                        className="px-3 py-1 bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400 ring-1 ring-green-600/20"
-                      >
+                      <StatusBadge className="px-3 py-1 bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400 ring-1 ring-green-600/20">
                         Active
-                      </Badge>
+                      </StatusBadge>
                     ) : (
-                      <Badge
-                        color="failure"
-                        className="px-3 py-1 bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 ring-1 ring-red-600/20"
-                      >
+                      <StatusBadge className="px-3 py-1 bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 ring-1 ring-red-600/20">
                         Inactive
-                      </Badge>
+                      </StatusBadge>
                     )}
                   </div>
                 </div>
@@ -213,19 +320,19 @@ export default function InstitutionIndex() {
 
           <div className="flex gap-2 order-1 sm:order-2 w-full sm:w-auto">
             <Button
-              color="gray"
+              variant="secondary"
               disabled={page === 1}
               onClick={() => setPage(page - 1)}
-              className="flex-1 sm:flex-none border-gray-200 dark:border-gray-700 shadow-sm enabled:hover:text-blue-600"
+              className="flex-1 sm:flex-none"
             >
               <HiChevronLeft className="w-5 h-5 mr-1" />
               Previous
             </Button>
             <Button
-              color="gray"
+              variant="secondary"
               disabled={page === lastPage}
               onClick={() => setPage(page + 1)}
-              className="flex-1 sm:flex-none border-gray-200 dark:border-gray-700 shadow-sm enabled:hover:text-blue-600"
+              className="flex-1 sm:flex-none"
             >
               Next
               <HiChevronRight className="w-5 h-5 ml-1" />

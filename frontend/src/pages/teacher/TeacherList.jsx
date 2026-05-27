@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, useContext } from "react";
 import { useNavigate } from "react-router";
-import { Badge, Button, Spinner, TextInput } from "flowbite-react";
+import { Badge, Spinner, TextInput } from "flowbite-react";
+import StatusBadge from "@/components/common/StatusBadge";
 import {
   HiUser,
   HiSearch,
@@ -17,6 +18,9 @@ import { useAuthUser } from "@/context/useAuthUser";
 import Can from "@/components/common/Can";
 import { PermissionGroups } from "@/data/permissionGroups";
 import DirectoryCard from "@/components/common/DirectoryCard";
+import Button from "@/components/UiComponents/Button";
+import profile_m from "@/assets/images/profile_m.png";
+import profile_f from "@/assets/images/profile_f.png";
 
 /**
  * Teacher List Page
@@ -240,9 +244,9 @@ const TeacherList = () => {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge color="blue" size="lg">
-            Total: {total || 0}
-          </Badge>
+          <StatusBadge className="px-3 py-1 font-bold text-sm">
+            {`Total: ${total || 0}`}
+          </StatusBadge>
         </div>
       </div>
 
@@ -261,23 +265,17 @@ const TeacherList = () => {
 
         <div className="flex items-center gap-3">
           <Can permission={PermissionGroups.SCHOOLS.BULK_UPLOAD}>
-            <NavLink
-              to="/employees/teacher/bulk-upload"
-              className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
-            >
-              <HiUpload className="h-4 w-4" />
-              Bulk Upload
+            <NavLink to="/employees/teacher/bulk-upload">
+              <Button variant="secondary" icon={<HiUpload className="h-4 w-4" />}>
+                Bulk Upload
+              </Button>
             </NavLink>
           </Can>
 
           <Can permission={PermissionGroups.SCHOOLS.CREATE}>
-            <button
-              onClick={handleCreateTeacher}
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors shadow-sm"
-            >
-              <HiPlus />
+            <Button onClick={handleCreateTeacher} icon={<HiPlus />}>
               Create Teacher
-            </button>
+            </Button>
           </Can>
         </div>
       </div>
@@ -327,6 +325,10 @@ const TeacherList = () => {
                     permissions={{
                       view: PermissionGroups.SCHOOLS.VIEW_PROFILE,
                     }}
+                    showProfilePicture={true}
+                    maleProfileImage={profile_m}
+                    femaleProfileImage={profile_f}
+                    genderId={t.gender_id}
                     onView={(employee) => {
                       navigate(`/employees/teacher/${employee.people_id}`);
                     }}
@@ -358,25 +360,25 @@ const TeacherList = () => {
 
                 <div className="flex gap-2 order-1 sm:order-2 w-full sm:w-auto">
                   <Button
-                    color="gray"
+                    variant="secondary"
                     disabled={page === 1}
                     onClick={(e) => {
                       e.stopPropagation();
                       setPage(page - 1);
                     }}
-                    className="flex-1 sm:flex-none border-gray-200 dark:border-gray-700 shadow-sm enabled:hover:text-blue-600"
+                    className="flex-1 sm:flex-none"
                   >
                     <HiChevronLeft className="w-5 h-5 mr-1" />
                     Previous
                   </Button>
                   <Button
-                    color="gray"
+                    variant="secondary"
                     disabled={page === lastPage}
                     onClick={(e) => {
                       e.stopPropagation();
                       setPage(page + 1);
                     }}
-                    className="flex-1 sm:flex-none border-gray-200 dark:border-gray-700 shadow-sm enabled:hover:text-blue-600"
+                    className="flex-1 sm:flex-none"
                   >
                     Next
                     <HiChevronRight className="w-5 h-5 ml-1" />

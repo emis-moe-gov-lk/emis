@@ -69,28 +69,28 @@ function TeacherConfigSetup() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-            <form onSubmit={handleSubmit} className="w-full max-w-md bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-5">
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+            <form onSubmit={handleSubmit} className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm p-6 space-y-5">
                 <div>
-                    <h1 className="text-lg font-bold text-gray-900">Configure Timetable</h1>
-                    <p className="text-sm text-gray-500">Set up your day and periods</p>
+                    <h1 className="text-lg font-bold text-gray-900 dark:text-white">Configure Timetable</h1>
+                    <p className="text-sm text-gray-500 dark:text-slate-300">Set up your day and periods</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                     <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Day Start</label>
+                        <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Day Start</label>
                         <input
                             type="time"
-                            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400"
+                            className="w-full border border-gray-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400"
                             value={form.dayStartTime}
                             onChange={e => setForm({ ...form, dayStartTime: e.target.value })}
                         />
                     </div>
                     <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Day End</label>
+                        <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Day End</label>
                         <input
                             type="time"
-                            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400"
+                            className="w-full border border-gray-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400"
                             value={form.dayEndTime}
                             onChange={e => setForm({ ...form, dayEndTime: e.target.value })}
                         />
@@ -98,12 +98,12 @@ function TeacherConfigSetup() {
                 </div>
 
                 <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Number of Periods</label>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-slate-300 mb-1">Number of Periods</label>
                     <input
                         type="number"
                         min={1}
                         max={20}
-                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400"
+                        className="w-full border border-gray-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400"
                         value={form.numPeriods}
                         onChange={e => setForm({ ...form, numPeriods: e.target.value })}
                     />
@@ -112,7 +112,7 @@ function TeacherConfigSetup() {
                 {/* Intervals */}
                 <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                        <label className="text-xs font-medium text-gray-700">Intervals (Breaks)</label>
+                        <label className="text-xs font-medium text-gray-700 dark:text-slate-300">Intervals (Breaks)</label>
                         <button
                             type="button"
                             onClick={addInterval}
@@ -123,17 +123,17 @@ function TeacherConfigSetup() {
                     </div>
 
                     {intervals.map((iv, index) => (
-                        <div key={index} className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-100">
+                        <div key={index} className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-slate-700">
                             <input
                                 type="time"
-                                className="flex-1 border border-gray-200 rounded-md px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400"
+                                className="flex-1 border border-gray-200 dark:border-slate-600 rounded-md px-2 py-1.5 text-sm bg-white dark:bg-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400"
                                 value={iv.startTime}
                                 onChange={e => updateInterval(index, "startTime", e.target.value)}
                             />
-                            <span className="text-xs text-gray-400">to</span>
+                            <span className="text-xs text-gray-400 dark:text-gray-300">to</span>
                             <input
                                 type="time"
-                                className="flex-1 border border-gray-200 rounded-md px-2 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400"
+                                className="flex-1 border border-gray-200 dark:border-slate-600 rounded-md px-2 py-1.5 text-sm bg-white dark:bg-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400"
                                 value={iv.endTime}
                                 onChange={e => updateInterval(index, "endTime", e.target.value)}
                             />
@@ -148,7 +148,7 @@ function TeacherConfigSetup() {
                     ))}
 
                     {intervals.length === 0 && (
-                        <p className="text-xs text-gray-400 text-center py-2">No intervals added yet</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-300 text-center py-2">No intervals added yet</p>
                     )}
                 </div>
 
@@ -163,8 +163,8 @@ function TeacherConfigSetup() {
                                 onClick={() => toggleOffDay(day)}
                                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
                                     offDays.includes(day)
-                                        ? "bg-red-100 text-red-700 border border-red-300"
-                                        : "bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100"
+                                        ? "bg-red-100 text-red-700 border border-red-300 dark:bg-red-900/20 dark:text-red-300"
+                                        : "bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 dark:bg-gray-800 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-gray-700"
                                 }`}
                             >
                                 {day.slice(0, 3)}
@@ -186,7 +186,7 @@ function TeacherConfigSetup() {
                     <button
                         type="button"
                         onClick={() => navigate("/dashboard")}
-                        className="flex-1 px-4 py-2.5 text-sm font-medium border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                        className="flex-1 px-4 py-2.5 text-sm font-medium border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
                     >
                         Back
                     </button>

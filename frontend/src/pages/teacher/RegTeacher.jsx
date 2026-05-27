@@ -1,7 +1,6 @@
 "use client";
 import { useState, useContext, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "flowbite-react";
 import { TeacherFormContext, TeacherFormProvider } from "@/context/TeacherFormContext";
 import Swal from "sweetalert2";
 
@@ -20,8 +19,10 @@ import {
   registerTeacher,
 } from "@/api/teacherService";
 import toast from "react-hot-toast";
-import { HiCheckCircle, HiArrowLeft } from "react-icons/hi";
+import { HiCheckCircle } from "react-icons/hi";
 import { useAuthUser } from "@/context/useAuthUser";
+import BackToListButton from "@/components/UiComponents/BackToListButton";
+import Button from "@/components/UiComponents/Button";
 
 const REG_TEACHER_HISTORY_OWNER = "regTeacherCreate";
 const REG_TEACHER_HISTORY_STEP_KEY = "regTeacherStep";
@@ -400,14 +401,47 @@ function RegTeacherInner() {
       showErrorToast("Please verify NIC before continuing.", "verify-nic-required");
       return;
     }
-    if (currentStep === 2 && !isPersonalValid) {
-      showErrorToast("Compulsory fields should be completed.", "personal-details-required");
-      return;
+    if (currentStep === 2) {
+      // Trigger error display for Personal Details
+      if (window.__triggerPersonalDetailsValidation) {
+        window.__triggerPersonalDetailsValidation();
+      }
+      if (!isPersonalValid) {
+        showErrorToast("Compulsory fields should be completed.", "personal-details-required");
+        return;
+      }
     }
-    if (currentStep === 3 && !isContactValid) {
-      showErrorToast("Compulsory fields should be completed.", "contact-details-required");
-      return;
+    if (currentStep === 3) {
+      // Trigger error display for Contact Details
+      if (window.__triggerContactDetailsValidation) {
+        window.__triggerContactDetailsValidation();
+      }
+      if (!isContactValid) {
+        showErrorToast("Compulsory fields should be completed.", "contact-details-required");
+        return;
+      }
     }
+    if (currentStep === 4) {
+      // Trigger error display for First Appointment Details
+      if (window.__triggerFirstAppointmentValidation) {
+        window.__triggerFirstAppointmentValidation();
+      }
+      if (!isFirstApptValid) {
+        showErrorToast("Compulsory fields should be completed.", "first-appointment-required");
+        return;
+      }
+    }
+    if (currentStep === 5) {
+      // Trigger error display for Current Appointment Details
+      if (window.__triggerCurrentAppointmentValidation) {
+        window.__triggerCurrentAppointmentValidation();
+      }
+      if (!isCurrentApptValid) {
+        showErrorToast("Compulsory fields should be completed.", "current-appointment-required");
+        return;
+      }
+    }
+    
 
     if (currentStep === 3) {
       const email = formData?.email?.trim();
@@ -536,7 +570,7 @@ function RegTeacherInner() {
   return (
     <div className="p-6 lg:p-10 max-w-5xl mx-auto space-y-8">
       {/* Back */}
-      <Button
+      <BackToListButton
         onClick={async () => {
           if (isRegistrationComplete) {
             await confirmDiscardAndRun(
@@ -548,11 +582,9 @@ function RegTeacherInner() {
 
           await confirmDiscardAndRun(() => navigate("/employees/teacher"));
         }}
-        color="blue"
-        className="mb-8 rounded-full px-6 py-2"
-      >
-        <HiArrowLeft /> Back To List
-      </Button>
+        label="Back To List"
+        className="mb-8"
+      />
       <div className="border border-gray-200 overflow-hidden">
         {/* STEP HEADER */}
         <StepperHeader
@@ -654,19 +686,8 @@ function RegTeacherInner() {
               </div>
 
               <div className="flex justify-center gap-4 pt-4">
-                <button
-                  className="px-6 py-2 rounded-full bg-gray-600 dark:bg-gray-700 text-white hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors font-semibold"
-                  onClick={resetRegistration}
-                >
-                  New Registration
-                </button>
-
-                <button
-                  className="px-6 py-2 rounded-full bg-blue-600 dark:bg-blue-700 text-white hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-semibold"
-                  onClick={handleDownloadProfile}
-                >
-                  Download Profile
-                </button>
+                <Button variant="secondary" onClick={resetRegistration}>New Registration</Button>
+                <Button variant="primary" onClick={handleDownloadProfile}>Download Profile</Button>
               </div>
             </div>
           )}

@@ -4,19 +4,27 @@ import Can from "@/components/common/Can";
 import { PermissionGroups } from "@/data/permissionGroups";
 import { useAuthUser } from "@/context/useAuthUser";
 
-const WelcomeCard = ({ user, people }) => {
+const WelcomeCard = ({ user }) => {
   console.log("WelcomeCard received user:", user);
   const { roles: authRoles = [], workplace: authWorkplace = null } = useAuthUser();
-  const today = new Date().toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  const capitalizeFirstLetter = (str) =>
+    str.charAt(0).toUpperCase() + str.slice(1);
+
+  const today = capitalizeFirstLetter(new Date().toDateString());
 
   const roles = Array.isArray(user?.roles) && user.roles.length ? user.roles : authRoles;
-  const isZonalDeo = roles.some(
-    (role) => String(role).trim().toLowerCase() === "zonal deo",
-  );
+  const zonalScopedRoles = new Set([
+    "zonal deo",
+    "zonal deo head",
+    "zonal director",
+  ]);
+  const isZonalRole = roles.some((role) => {
+    const normalizedRole = String(role).trim().toLowerCase().replace(/\s+/g, " ");
+    return zonalScopedRoles.has(normalizedRole);
+  });
+
+  const apiProvince = user?.province ?? null;
+  const apiZone = user?.zone ?? null;
 
   const zonalEducationOffice =
     authWorkplace?.zonal_education_office ??
@@ -24,13 +32,18 @@ const WelcomeCard = ({ user, people }) => {
     null;
 
   const provinceName =
+    apiProvince?.province_name ??
     zonalEducationOffice?.province_name ??
     zonalEducationOffice?.district?.province?.name ??
     zonalEducationOffice?.district?.province?.province_name ??
     "";
 
   const zoneName =
-    zonalEducationOffice?.short_name ?? zonalEducationOffice?.name ?? "";
+    apiZone?.short_name ??
+    apiZone?.name ??
+    zonalEducationOffice?.short_name ??
+    zonalEducationOffice?.name ??
+    "";
 
   return (
     <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-[#635BFF] via-[#564df0] to-[#4338ca] p-10 shadow-2xl shadow-indigo-200 text-white">
@@ -47,7 +60,7 @@ const WelcomeCard = ({ user, people }) => {
             <br /> {user?.name}!
           </h3>
 
-          {isZonalDeo && (provinceName || zoneName) && (
+          {isZonalRole && (provinceName || zoneName) && (
             <div className="grid gap-3 sm:grid-cols-2 max-w-xl">
               {provinceName && (
                 <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 backdrop-blur-md">

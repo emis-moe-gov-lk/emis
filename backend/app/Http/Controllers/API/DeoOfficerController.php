@@ -30,6 +30,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use App\Http\Controllers\Controller;
+use App\Services\Wso2IsProvisioningService;
 
 class DeoOfficerController extends Controller
 {
@@ -149,36 +150,60 @@ class DeoOfficerController extends Controller
         try {
             $perPage = (int) $request->get('per_page', 20);
             $deoWpId = $request->get('deo_wp_id');
-            $nic     = trim($request->get('nic'));
+            $search  = trim($request->get('search', $request->get('nic', '')));
 
             $deoOfficerPeopleIds = User::query()
                 ->whereHas('roles', function ($query) {
-                    $query->whereIn('name', ['development officer', 'Zonal DEO']);
+                    $query->whereIn('name', ['development officer', 'Zonal DEO', 'Zonal DEO HEAD']);
                 })
                 ->pluck('people_id');
 
-            
-            $query = People::query()
+            $baseQuery = People::query()
                 ->whereIn('people_id', $deoOfficerPeopleIds)
-                ->with([
-                    'title',
-                    'gender',
-                    'appointment',
-                    'currentAppointment.service',
-                    'currentAppointment.rank',
-                    'currentAppointment.position',
-                ])
-                ->when($nic, function ($q) use ($nic) {
-                    if (! NicHelper::checkNicValid(NicHelper::normalize($nic))) {
-                        return;
-                    }
-                    $q->where('nic_hash', NicHelper::hash(NicHelper::normalize($nic)));
-                })
                 ->when($deoWpId, function ($q) use ($deoWpId) {
                     $q->whereHas('currentAppointment', function ($q2) use ($deoWpId) {
                         $q2->where('workplace_id', $deoWpId);
                     });
                 });
+
+            $query = clone $baseQuery;
+
+            if ($search !== '') {
+                $isNicSearch = is_numeric(substr($search, 0, 1));
+
+                if ($isNicSearch) {
+                    $matchedPeopleIds = (clone $baseQuery)
+                        ->select(['people_id', 'nic'])
+                        ->get()
+                        ->filter(function (People $person) use ($search) {
+                            return str_contains((string) $person->nic, $search);
+                        })
+                        ->pluck('people_id')
+                        ->values();
+                } else {
+                    $searchLower = strtolower($search);
+                    $matchedPeopleIds = (clone $baseQuery)
+                        ->select(['people_id', 'full_name', 'name_with_initials'])
+                        ->get()
+                        ->filter(function (People $person) use ($searchLower) {
+                            return str_contains(strtolower((string) $person->full_name), $searchLower)
+                                || str_contains(strtolower((string) $person->name_with_initials), $searchLower);
+                        })
+                        ->pluck('people_id')
+                        ->values();
+                }
+
+                $query->whereIn('people_id', $matchedPeopleIds);
+            }
+
+            $query = $query->with([
+                'title',
+                'gender',
+                'appointment',
+                'currentAppointment.service',
+                'currentAppointment.rank',
+                'currentAppointment.position',
+            ]);
 
             $officers = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
@@ -266,7 +291,7 @@ class DeoOfficerController extends Controller
     // CREATE
     // ==========================================
 
-    public function store(Request $request)
+    public function store(Request $request, Wso2IsProvisioningService $wso2Is)
     {
         try {
             $validated = $request->validate([
@@ -396,18 +421,20 @@ class DeoOfficerController extends Controller
                 'name'     => $people->name_with_initials,
                 'email'    => strtolower($validated['email']),
                 'contact'  => $validated['contact'],
-                'password' => Hash::make('password@123'),
+                'password' => Hash::make('Password@123'),
             ]);
 
             $user->assignRole('Zonal DEO');
 
             DB::commit();
 
+            $wso2Is->provisionUser($user, 'Password@123', 'zonal deo');
+
             return response()->json([
                 'status'           => 'success',
                 'message'          => 'DEO officer created successfully',
                 'people_id'        => $people->people_id,
-                'default_password' => 'password@123',
+                'default_password' => 'Password@123',
             ], 201);
         } catch (ValidationException $e) {
             activity('deo_officer_registration')
