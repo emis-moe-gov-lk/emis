@@ -1443,4 +1443,80 @@ class TeacherApiController extends Controller
             ], 500);
         }
     }
+
+    public function addPastService(Request $request, string $people_id)
+    {
+        $roles = $this->resolvedRoles($request);
+
+        if (! $this->hasAnyRole($roles, ['super admin', 'zonal deo', 'zonal deo head', 'development officer', 'development officer head'])) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
+        }
+
+        try {
+            $validated = $request->validate([
+                'service_id'            => 'required|string|exists:services,service_id',
+                'rank_id'               => 'required|string|exists:service_ranks,rank_id',
+                'position_id'           => 'required|string|exists:positions,position_id',
+                'office_level_id'       => 'required|string|exists:office_levels,office_level_id',
+                'workplace_id'          => 'required|string',
+                'first_appointment_date' => 'required|date',
+                'appointment_letter_no' => 'nullable|string|max:100',
+            ]);
+
+            $person = People::where('people_id', $people_id)->first();
+            if (! $person) {
+                return response()->json(['status' => 'error', 'message' => 'Person not found'], 404);
+            }
+
+            $alreadyExists = EmployerAppointment::where('employee_id', $people_id)
+                ->where('service_id', $validated['service_id'])
+                ->exists();
+
+            if ($alreadyExists) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'A service block for this service already exists for this person.',
+                ], 422);
+            }
+
+            $retirementDate = Carbon::parse($person->date_of_birth)->addYears(55);
+
+            $appointment = EmployerAppointment::create([
+                'employee_id'            => $people_id,
+                'first_appointment_date' => $validated['first_appointment_date'],
+                'retirement_date'        => $retirementDate->toDateString(),
+                'service_id'             => $validated['service_id'],
+                'rank_id'                => $validated['rank_id'],
+                'position_id'            => $validated['position_id'],
+                'office_level_id'        => $validated['office_level_id'],
+                'workplace_id'           => $validated['workplace_id'],
+                'appointment_letter_no'  => $validated['appointment_letter_no'] ?? null,
+                'appointment_letter'     => 'none.pdf',
+                'active_status'          => false,
+            ]);
+
+            $appointment->load(['service', 'rank', 'position', 'workplace.institution']);
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Past service block added successfully',
+                'data'    => $appointment,
+            ], 201);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'status'  => 'validation_error',
+                'message' => 'Validation failed',
+                'errors'  => $e->errors(),
+            ], 422);
+        } catch (\Throwable $e) {
+            Log::error('Add Past Service Error', [
+                'message' => $e->getMessage(),
+                'file'    => $e->getFile(),
+                'line'    => $e->getLine(),
+            ]);
+
+            return response()->json(['status' => 'error', 'message' => 'Internal server error'], 500);
+        }
+    }
 }

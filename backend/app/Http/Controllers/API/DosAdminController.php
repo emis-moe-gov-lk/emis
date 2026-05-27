@@ -8,6 +8,7 @@ use App\Models\People;
 use App\Models\Position;
 use App\Helpers\NicHelper;
 use App\Models\EmployerAppointment;
+use App\Models\EmployerAppointmentHistory;
 use App\Models\EmployerCurrentAppointment;
 use App\Models\DivisionalSecretariatOffice;
 use Illuminate\Http\Request;
@@ -166,6 +167,14 @@ class DosAdminController extends Controller
                 'currentAppointment.rank',
                 'currentAppointment.position',
                 'currentAppointment.workplace',
+                'myAppointments.service',
+                'myAppointments.rank',
+                'myAppointments.position',
+                'myAppointments.workplace.institution',
+                'appointmentHistory.service',
+                'appointmentHistory.rank',
+                'appointmentHistory.position',
+                'appointmentHistory.workplace.institution',
             ])->where('people_id', $people_id)->first();
 
             if (! $admin) {
@@ -382,6 +391,174 @@ class DosAdminController extends Controller
                 'status'  => 'error',
                 'message' => $e->getMessage(),
             ], 500);
+        }
+    }
+
+    // ==============================
+    // SERVICE HISTORY
+    // ==============================
+
+    public function addServiceHistoryEntry(Request $request, string $id)
+    {
+        $jwtRoles = (array) $request->attributes->get('jwt_roles', []);
+        $dbRoles  = $request->user()?->getRoleNames()?->all() ?? [];
+        $roles    = array_unique(array_merge(
+            array_map('strtolower', $jwtRoles),
+            array_map('strtolower', $dbRoles),
+        ));
+
+        $allowed = ['super admin', 'zonal director', 'zonal deputy director', 'zonal deo', 'zonal deo head', 'development officer', 'development officer head'];
+        if (empty(array_intersect($roles, $allowed))) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
+        }
+
+        try {
+            $validated = $request->validate([
+                'appointment_id'        => 'required|string|exists:employer_appointments,appointment_id',
+                'appoint_date'          => 'required|date',
+                'end_date'              => 'nullable|date|after_or_equal:appoint_date',
+                'service_id'            => 'required|string|exists:services,service_id',
+                'rank_id'               => 'required|string|exists:service_ranks,rank_id',
+                'position_id'           => 'required|string|exists:positions,position_id',
+                'office_level_id'       => 'required|string|exists:office_levels,office_level_id',
+                'workplace_id'          => 'required|string',
+                'updated_type'          => 'required|in:0,1,2,3,4',
+                'appointment_letter_no' => 'nullable|string|max:100',
+                'remarks'               => 'nullable|string|max:500',
+            ]);
+
+            $person = People::where('people_id', $id)->first();
+            if (! $person) {
+                return response()->json(['status' => 'error', 'message' => 'Person not found'], 404);
+            }
+
+            $appointment = EmployerAppointment::where('appointment_id', $validated['appointment_id'])
+                ->where('employee_id', $id)
+                ->first();
+
+            if (! $appointment) {
+                return response()->json(['status' => 'error', 'message' => 'Appointment not found for this person'], 404);
+            }
+
+            $entry = EmployerAppointmentHistory::create([
+                'appointment_id'        => $validated['appointment_id'],
+                'employee_id'           => $id,
+                'appoint_date'          => $validated['appoint_date'],
+                'end_date'              => $validated['end_date'] ?? null,
+                'service_id'            => $validated['service_id'],
+                'rank_id'               => $validated['rank_id'],
+                'position_id'           => $validated['position_id'],
+                'office_level_id'       => $validated['office_level_id'],
+                'workplace_id'          => $validated['workplace_id'],
+                'updated_type'          => $validated['updated_type'],
+                'appointment_letter_no' => $validated['appointment_letter_no'] ?? null,
+                'remarks'               => $validated['remarks'] ?? null,
+            ]);
+
+            $entry->load(['service', 'rank', 'position', 'workplace.institution']);
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Service history entry added successfully',
+                'data'    => $entry,
+            ], 201);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'status'  => 'validation_error',
+                'message' => 'Validation failed',
+                'errors'  => $e->errors(),
+            ], 422);
+        } catch (\Throwable $e) {
+            Log::error('Add DOS Admin Service History Entry Error', [
+                'message' => $e->getMessage(),
+                'file'    => $e->getFile(),
+                'line'    => $e->getLine(),
+            ]);
+
+            return response()->json(['status' => 'error', 'message' => 'Failed to add service history entry'], 500);
+        }
+    }
+
+    public function addPastService(Request $request, string $id)
+    {
+        $jwtRoles = (array) $request->attributes->get('jwt_roles', []);
+        $dbRoles  = $request->user()?->getRoleNames()?->all() ?? [];
+        $roles    = array_unique(array_merge(
+            array_map('strtolower', $jwtRoles),
+            array_map('strtolower', $dbRoles),
+        ));
+
+        $allowed = ['super admin', 'zonal director', 'zonal deputy director', 'zonal deo', 'zonal deo head', 'development officer', 'development officer head'];
+        if (empty(array_intersect($roles, $allowed))) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
+        }
+
+        try {
+            $validated = $request->validate([
+                'service_id'             => 'required|string|exists:services,service_id',
+                'rank_id'                => 'required|string|exists:service_ranks,rank_id',
+                'position_id'            => 'required|string|exists:positions,position_id',
+                'office_level_id'        => 'required|string|exists:office_levels,office_level_id',
+                'workplace_id'           => 'required|string',
+                'first_appointment_date' => 'required|date',
+                'appointment_letter_no'  => 'nullable|string|max:100',
+            ]);
+
+            $person = People::where('people_id', $id)->first();
+            if (! $person) {
+                return response()->json(['status' => 'error', 'message' => 'Person not found'], 404);
+            }
+
+            $alreadyExists = EmployerAppointment::where('employee_id', $id)
+                ->where('service_id', $validated['service_id'])
+                ->exists();
+
+            if ($alreadyExists) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'A service block for this service already exists for this person.',
+                ], 422);
+            }
+
+            $retirementDate = Carbon::parse($person->date_of_birth)->addYears(55);
+
+            $appointment = EmployerAppointment::create([
+                'employee_id'            => $id,
+                'first_appointment_date' => $validated['first_appointment_date'],
+                'retirement_date'        => $retirementDate->toDateString(),
+                'service_id'             => $validated['service_id'],
+                'rank_id'                => $validated['rank_id'],
+                'position_id'            => $validated['position_id'],
+                'office_level_id'        => $validated['office_level_id'],
+                'workplace_id'           => $validated['workplace_id'],
+                'appointment_letter_no'  => $validated['appointment_letter_no'] ?? null,
+                'appointment_letter'     => 'none.pdf',
+                'active_status'          => false,
+            ]);
+
+            $appointment->load(['service', 'rank', 'position', 'workplace.institution']);
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Past service block added successfully',
+                'data'    => $appointment,
+            ], 201);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'status'  => 'validation_error',
+                'message' => 'Validation failed',
+                'errors'  => $e->errors(),
+            ], 422);
+        } catch (\Throwable $e) {
+            Log::error('Add DOS Admin Past Service Error', [
+                'message' => $e->getMessage(),
+                'file'    => $e->getFile(),
+                'line'    => $e->getLine(),
+            ]);
+
+            return response()->json(['status' => 'error', 'message' => 'Internal server error'], 500);
         }
     }
 }

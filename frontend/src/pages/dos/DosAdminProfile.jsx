@@ -3,9 +3,18 @@ import { useParams, useNavigate } from "react-router-dom";
 import { HiDocumentText, HiPlus } from "react-icons/hi";
 import { Badge, Spinner } from "flowbite-react";
 import StatusBadge from "@/components/common/StatusBadge";
-import { getDosAdmin } from "@/api/deoOfficerService";
+import { getDosAdmin, addDosAdminServiceHistoryEntry, addDosAdminPastService } from "@/api/deoOfficerService";
 import ProfileDataTable from "@/components/common/ProfileDataTable";
 import BackToListButton from "@/components/UiComponents/BackToListButton";
+import toast from "react-hot-toast";
+import {
+  DEFAULT_SERVICE_HISTORY_FORM,
+  DEFAULT_PAST_SERVICE_FORM,
+  ServiceHistoryTab,
+  ServiceHistoryModal,
+  PastServiceModal,
+  isSchoolBasedService,
+} from "@/components/common/ServiceHistory";
 
 import Can from "@/components/common/Can";
 import { PermissionGroups } from "@/data/permissionGroups";
@@ -29,11 +38,27 @@ export default function DosAdminProfile() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("general");
 
+  const [serviceHistory, setServiceHistory] = useState({ appointments: [], historyEntries: [], currentAppointment: null });
+  const [isServiceHistoryModalOpen, setIsServiceHistoryModalOpen] = useState(false);
+  const [serviceHistoryForm, setServiceHistoryForm] = useState(DEFAULT_SERVICE_HISTORY_FORM);
+  const [isSavingServiceHistory, setIsSavingServiceHistory] = useState(false);
+  const [isPastServiceModalOpen, setIsPastServiceModalOpen] = useState(false);
+  const [pastServiceForm, setPastServiceForm] = useState(DEFAULT_PAST_SERVICE_FORM);
+  const [isSavingPastService, setIsSavingPastService] = useState(false);
+
   useEffect(() => {
     const load = async () => {
       try {
         const res = await getDosAdmin(id);
-        if (res.status === "success") setAdmin(res.data);
+        if (res.status === "success") {
+          const d = res.data;
+          setAdmin(d);
+          setServiceHistory({
+            appointments: d.my_appointments ?? [],
+            historyEntries: d.appointment_history ?? [],
+            currentAppointment: d.current_appointment ?? null,
+          });
+        }
       } catch {
         // handled by null check below
       } finally {
@@ -43,10 +68,112 @@ export default function DosAdminProfile() {
     load();
   }, [id]);
 
+  const openServiceHistoryModal = () => {
+    const firstApptId = serviceHistory.appointments[0]?.appointment_id ?? "";
+    setServiceHistoryForm({ ...DEFAULT_SERVICE_HISTORY_FORM, appointment_id: firstApptId });
+    setIsServiceHistoryModalOpen(true);
+  };
+
+  const closeServiceHistoryModal = () => {
+    setIsServiceHistoryModalOpen(false);
+    setServiceHistoryForm(DEFAULT_SERVICE_HISTORY_FORM);
+  };
+
+  const openPastServiceModal = () => {
+    setPastServiceForm(DEFAULT_PAST_SERVICE_FORM);
+    setIsPastServiceModalOpen(true);
+  };
+
+  const closePastServiceModal = () => {
+    setIsPastServiceModalOpen(false);
+    setPastServiceForm(DEFAULT_PAST_SERVICE_FORM);
+  };
+
+  const handlePastServiceFieldChange = (key, value) => {
+    setPastServiceForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handlePastServiceSave = async () => {
+    const { service_id, rank_id, position_id, workplace_id, first_appointment_date } = pastServiceForm;
+    if (!service_id || !rank_id || !position_id || !workplace_id || !first_appointment_date) {
+      toast.error("Please fill in all required fields.");
+      return;
+    }
+    setIsSavingPastService(true);
+    try {
+      const serviceName = pastServiceForm._service_name ?? "";
+      const officeLevelId = isSchoolBasedService(serviceName) ? "OLID006" : "OLID004";
+      const res = await addDosAdminPastService(id, { ...pastServiceForm, office_level_id: officeLevelId });
+      if (res?.status === "success") {
+        toast.success("Past service block added.");
+        closePastServiceModal();
+        setServiceHistory((prev) => ({
+          ...prev,
+          appointments: [res.data, ...prev.appointments],
+        }));
+      } else {
+        toast.error(res?.message ?? "Failed to save.");
+      }
+    } catch (err) {
+      const errors = err?.response?.data?.errors;
+      if (errors) {
+        Object.values(errors).flat().forEach((msg) => toast.error(msg));
+      } else {
+        toast.error(err?.response?.data?.message ?? "Failed to save.");
+      }
+    } finally {
+      setIsSavingPastService(false);
+    }
+  };
+
+  const handleServiceHistoryFieldChange = (field, value) => {
+    setServiceHistoryForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleServiceHistorySave = async () => {
+    setIsSavingServiceHistory(true);
+    try {
+      const selectedAppt = serviceHistory.appointments.find(
+        (a) => a.appointment_id === serviceHistoryForm.appointment_id,
+      ) ?? serviceHistory.appointments[0];
+
+      const serviceName = selectedAppt?.service?.service_name ?? "";
+      const isOfficeBased = !/teachers\s+service|principals\s+service|slts|slps/i.test(serviceName);
+
+      const payload = {
+        ...serviceHistoryForm,
+        service_id: selectedAppt?.service_id ?? serviceHistoryForm.service_id,
+        office_level_id: isOfficeBased ? "OLID004" : "OLID006",
+      };
+
+      const res = await addDosAdminServiceHistoryEntry(id, payload);
+      if (res.status === "success") {
+        toast.success("Service history entry added");
+        setServiceHistory((prev) => ({
+          ...prev,
+          historyEntries: [res.data, ...prev.historyEntries],
+        }));
+        closeServiceHistoryModal();
+      } else {
+        toast.error(res.message ?? "Failed to save entry");
+      }
+    } catch (err) {
+      const errors = err?.response?.data?.errors;
+      if (errors) {
+        Object.values(errors).flat().forEach((msg) => toast.error(msg));
+      } else {
+        toast.error(err?.response?.data?.message ?? "Failed to save entry");
+      }
+    } finally {
+      setIsSavingServiceHistory(false);
+    }
+  };
+
   const tabs = [
     { id: "general", label: "General" },
     { id: "qualification", label: "Qualification" },
     { id: "employment", label: "Employment" },
+    { id: "service_history", label: "Service History" },
     { id: "service", label: "Service" },
     { id: "wop", label: "W&OP and Payment" },
     { id: "family", label: "Family" },
@@ -169,12 +296,38 @@ export default function DosAdminProfile() {
           {activeTab === "general" && <GeneralTab profile={profile} />}
           {activeTab === "qualification" && <QualificationTab />}
           {activeTab === "employment" && <EmploymentTab profile={profile} />}
+          {activeTab === "service_history" && (
+            <ServiceHistoryTab
+              serviceHistory={serviceHistory}
+              onAddPosting={openServiceHistoryModal}
+              onAddPastService={openPastServiceModal}
+            />
+          )}
           {activeTab === "service" && <ServiceTab />}
           {activeTab === "wop" && <WopTab />}
           {activeTab === "family" && <FamilyTab />}
           {activeTab === "edit" && <EditRequestTab />}
         </section>
       </div>
+
+      <ServiceHistoryModal
+        isOpen={isServiceHistoryModalOpen}
+        form={serviceHistoryForm}
+        appointments={serviceHistory.appointments}
+        onChange={handleServiceHistoryFieldChange}
+        onClose={closeServiceHistoryModal}
+        onSubmit={handleServiceHistorySave}
+        isSubmitting={isSavingServiceHistory}
+      />
+
+      <PastServiceModal
+        isOpen={isPastServiceModalOpen}
+        form={pastServiceForm}
+        onChange={handlePastServiceFieldChange}
+        onClose={closePastServiceModal}
+        onSubmit={handlePastServiceSave}
+        isSubmitting={isSavingPastService}
+      />
     </div>
   );
 }

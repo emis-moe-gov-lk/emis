@@ -95,3 +95,8 @@ export const addServiceHistoryEntry = async (peopleId, data) => {
   const response = await api.post(`/teachers/${peopleId}/service-history`, data);
   return response.data;
 };
+
+export const addPastService = async (peopleId, data) => {
+  const response = await api.post(`/teachers/${peopleId}/past-services`, data);
+  return response.data;
+};

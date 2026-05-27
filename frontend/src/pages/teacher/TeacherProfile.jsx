@@ -45,6 +45,12 @@ import Can from "@/components/common/Can";
 import { PermissionGroups } from "@/data/permissionGroups";
 import BackToListButton from "@/components/UiComponents/BackToListButton";
 import UIButton from "@/components/UiComponents/Button";
+import {
+  DEFAULT_SERVICE_HISTORY_FORM,
+  SERVICE_HISTORY_CHANGE_TYPES,
+  ServiceHistoryTab,
+  ServiceHistoryModal,
+} from "@/components/common/ServiceHistory";
 /**
  * Teacher Profile (Finalized Style)
  * - Professional, colorful, compact (less “cardy”), rounded corners everywhere
@@ -76,30 +82,6 @@ const GRADE_OPTIONS = [
   "Pass",
   "Merit",
   "Distinction",
-];
-
-const DEFAULT_SERVICE_HISTORY_FORM = {
-  appointment_id: "",
-  appoint_date: "",
-  end_date: "",
-  service_id: "",
-  rank_id: "",
-  position_id: "",
-  office_level_id: "OLID006",
-  zone: "",
-  inst_category: "",
-  workplace_id: "",
-  updated_type: "2",
-  appointment_letter_no: "",
-  remarks: "",
-};
-
-const SERVICE_HISTORY_CHANGE_TYPES = [
-  { value: "0", label: "Position Change" },
-  { value: "1", label: "Rank Change / Promotion" },
-  { value: "2", label: "Transfer" },
-  { value: "3", label: "Retirement" },
-  { value: "4", label: "Other" },
 ];
 
 const DEFAULT_QUALIFICATION_FORM = {
@@ -682,10 +664,10 @@ const TeacherProfile = () => {
     setQualificationForm((prev) => ({ ...prev, [key]: value }));
   }, []);
 
-  const openServiceHistoryModal = useCallback(() => {
-    const defaultAppointmentId = serviceHistory.appointments.find((a) => a.active_status === 1)?.appointment_id ?? serviceHistory.appointments[0]?.appointment_id ?? "";
-    const defaultServiceId = serviceHistory.appointments.find((a) => a.appointment_id === defaultAppointmentId)?.service_id ?? "";
-    setServiceHistoryForm({ ...DEFAULT_SERVICE_HISTORY_FORM, appointment_id: defaultAppointmentId, service_id: defaultServiceId });
+  const openServiceHistoryModal = useCallback((appointmentId) => {
+    const apptId = appointmentId ?? serviceHistory.appointments.find((a) => a.active_status === 1)?.appointment_id ?? serviceHistory.appointments[0]?.appointment_id ?? "";
+    const serviceId = serviceHistory.appointments.find((a) => a.appointment_id === apptId)?.service_id ?? "";
+    setServiceHistoryForm({ ...DEFAULT_SERVICE_HISTORY_FORM, appointment_id: apptId, service_id: serviceId });
     setIsServiceHistoryModalOpen(true);
   }, [serviceHistory.appointments]);
 
@@ -747,8 +729,12 @@ const TeacherProfile = () => {
         toast.error(response?.message || "Failed to save entry.");
       }
     } catch (error) {
-      const msg = error?.response?.data?.message || error?.response?.data?.errors?.[Object.keys(error?.response?.data?.errors ?? {})[0]]?.[0] || "Failed to save entry.";
-      toast.error(msg);
+      const errors = error?.response?.data?.errors;
+      if (errors) {
+        Object.values(errors).flat().forEach((msg) => toast.error(msg));
+      } else {
+        toast.error(error?.response?.data?.message ?? "Failed to save entry.");
+      }
     } finally {
       setIsSavingServiceHistory(false);
     }
@@ -1386,7 +1372,7 @@ const TeacherProfile = () => {
           {activeTab === "service_history" && (
             <ServiceHistoryTab
               serviceHistory={serviceHistory}
-              onAdd={openServiceHistoryModal}
+              onAddPosting={openServiceHistoryModal}
             />
           )}
           {activeTab === "wop" && <WopTab wopAndPayment={wopAndPayment} />}
@@ -1474,6 +1460,7 @@ const TeacherProfile = () => {
         onSubmit={handleServiceHistorySave}
         isSubmitting={isSavingServiceHistory}
       />
+
     </div>
   );
 };
@@ -2589,10 +2576,10 @@ function EditRequestTab({ editRequests }) {
 }
 
 /* =========================================================
-   TAB: Service History
+   TAB: Service History — components imported from @/components/common/ServiceHistory
 ========================================================= */
 
-function ServiceHistoryTab({ serviceHistory, onAdd }) {
+function _placeholder_UNUSED({ serviceHistory, onAdd }) {
   const { appointments = [], historyEntries = [], currentAppointment } = serviceHistory;
 
   const changeTypeLabel = (type) => {
@@ -2758,10 +2745,10 @@ function ServiceHistoryTab({ serviceHistory, onAdd }) {
 }
 
 /* =========================================================
-   MODAL: Add Service History Entry
+   MODAL: Add Service History Entry — imported from @/components/common/ServiceHistory
 ========================================================= */
 
-function ServiceHistoryModal({
+function _ServiceHistoryModal_REMOVED({
   isOpen,
   form,
   appointments = [],
