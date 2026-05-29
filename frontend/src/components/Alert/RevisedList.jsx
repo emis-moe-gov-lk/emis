@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Badge, Button, Spinner, TextInput } from "flowbite-react";
+import StatusBadge from "@/components/common/StatusBadge";
 import {
   HiUser,
   HiLocationMarker,
@@ -53,9 +54,9 @@ const RevisedList = () => {
             Teacher profiles that have been revised after rejection
           </p>
         </div>
-        <Badge color="purple" size="lg">
+        <StatusBadge className="px-3 py-1 font-bold text-sm">
           Revised
-        </Badge>
+        </StatusBadge>
       </div>
 
       <div className="w-full sm:max-w-md">
@@ -133,12 +134,9 @@ const RevisedList = () => {
                     </div>
 
                     <div className="md:col-span-2 flex items-center justify-end gap-2">
-                      <Badge
-                        color="purple"
-                        className="px-3 py-1 whitespace-nowrap"
-                      >
+                      <StatusBadge className="px-3 py-1 whitespace-nowrap">
                         Revised
-                      </Badge>
+                      </StatusBadge>
 
                       <Can permission={PermissionGroups.ALERTS.PROFILE_REVISE}>
                         <Button

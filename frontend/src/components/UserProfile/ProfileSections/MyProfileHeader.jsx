@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import toast from "react-hot-toast";
-import profileMale from "../../../assets/images/profile_m.png";
-import profileFemale from "../../../assets/images/profile_f.png";
+import { resolveProfileImage } from "@/utils/profileImage";
 import { downloadTeacherProfileDocument } from "@/api/teacherService";
 
 const tabs = [
@@ -62,9 +61,10 @@ const MyProfileHeader = ({ myprofile, permissions, onTabChange }) => {
             {/* Profile Image */}
             <div className="relative">
               <img
-                src={
-                  myprofile?.gender_id === "G02" ? profileFemale : profileMale
-                }
+                src={resolveProfileImage(
+                  myprofile?.profile_picture,
+                  myprofile?.gender_id,
+                )}
                 alt="Profile"
                 className="w-28 h-28 md:w-40 md:h-40 rounded-full border-4 border-white dark:border-gray-800 shadow-lg object-cover bg-white dark:bg-gray-800"
               />

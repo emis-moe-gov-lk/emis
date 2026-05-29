@@ -31,12 +31,12 @@ const Footer = () => {
                 </div>
                 <div>
                   <p className="text-xl sm:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-blue-500">
-                    NEMIS
+                    EMIS
                   </p>
                 </div>
               </div>
               <p className="text-xs sm:text-sm text-gray-400 leading-relaxed">
-                National Education Management Information System serving the Ministry of
+                Education Management Information System serving the Ministry of
                 Education, Higher Education and Vocational Education, enhancing
                 learning through efficient data management.
               </p>
@@ -96,51 +96,70 @@ const Footer = () => {
               </ul>
             </div>
 
-            {/* Column 3: Download App + QR Code */}
+            {/* Column 3: Follow Us */}
             <div className="col-span-1 md:col-span-2 lg:col-span-1">
               <h3 className="mb-4 sm:mb-6 text-base sm:text-lg font-semibold">
-                Download App
+                Follow Us
               </h3>
-              <p className="mb-4 text-xs sm:text-sm text-gray-300">
-                Access NEMIS on the go.
+              <p className="mb-6 text-xs sm:text-sm text-gray-300">
+                Stay updated with the latest news and announcements.
               </p>
 
-              {/* Flex container: Ensures buttons and QR stay side-by-side even on mobile */}
-              <div className="flex flex-row-reverse items-start justify-around gap-3 sm:gap-4">
-                {/* Buttons Column */}
-                <div className="flex flex-col gap-2 flex-grow sm:flex-grow-0">
-                  <button className="inline-flex items-center justify-center gap-2 px-3 py-2 text-white transition-all bg-gray-800 border border-gray-700 rounded-lg hover:bg-gray-700 text-xs sm:text-sm whitespace-nowrap">
-                    <svg
-                      className="w-4 h-4 sm:w-5 sm:h-5"
-                      fill="currentColor"
-                      viewBox="0 0 512 512"
-                    >
-                      <path d="M325.3 234.3L104.6 13l280.8 161.2-60.1 60.1zM47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l256.6-256L47 0zm425.2 225.6l-58.9-34.1-65.7 64.5 65.7 64.5 60.1-34.1c18-14.3 18-46.5-1.2-60.8zM104.6 499l280.8-161.2-60.1-60.1L104.6 499z" />
-                    </svg>
-                    <span>Google Play</span>
-                  </button>
-                  <button className="inline-flex items-center justify-center gap-2 px-3 py-2 text-white transition-all bg-gray-800 border border-gray-700 rounded-lg hover:bg-gray-700 text-xs sm:text-sm whitespace-nowrap">
-                    <svg
-                      className="w-4 h-4 sm:w-5 sm:h-5"
-                      fill="currentColor"
-                      viewBox="0 0 384 512"
-                    >
-                      <path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z" />
-                    </svg>
-                    <span>App Store</span>
-                  </button>
-                </div>
-
-                {/* QR Code Placeholder (Visible on all screens) */}
-                <div className="flex flex-shrink-0 bg-white p-1.5 rounded-lg h-[86px] w-[86px] items-center justify-center shadow-lg">
-                  <div className="w-full h-full border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-800">
-                    <QrCode className="w-8 h-8 opacity-50" />
-                    <span className="text-[8px] font-bold mt-1 uppercase tracking-wide">
-                      Scan Me
-                    </span>
-                  </div>
-                </div>
+              <div className="flex items-center gap-4">
+                <a
+                  href="https://facebook.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-600/20 text-blue-400 border border-blue-500/30 transition-all duration-300 hover:bg-blue-600 hover:text-white hover:scale-110 shadow-lg"
+                  aria-label="Follow us on Facebook"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.37-4.669 1.235 0 2.528.22 2.528.22v2.78h-1.424c-1.49 0-1.95.925-1.95 1.874v2.441h3.134l-.501 3.47h-2.633V23.93C19.612 23.029 24 18.065 24 12.073z" />
+                  </svg>
+                </a>
+                <a
+                  href="https://linkedin.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 transition-all duration-300 hover:bg-blue-700 hover:text-white hover:scale-110 shadow-lg"
+                  aria-label="Follow us on LinkedIn"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                  </svg>
+                </a>
+                <a
+                  href="https://youtube.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center w-10 h-10 rounded-full bg-red-600/20 text-red-500 border border-red-500/30 transition-all duration-300 hover:bg-red-600 hover:text-white hover:scale-110 shadow-lg"
+                  aria-label="Follow us on YouTube"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.016 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.016 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+                  </svg>
+                </a>
               </div>
+
+              {/* QR Code Placeholder stays for professional look */}
+              {/* 
+              <div className="mt-8 flex items-center gap-4">
+                 <div className="flex flex-shrink-0 bg-white p-1.5 rounded-lg h-16 w-16 items-center justify-center shadow-lg">
+                    <QrCode className="w-8 h-8 text-slate-800 opacity-50" />
+                 </div>
+                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Scan for <br/> Mobile Portal</p>
+              </div>
+              */}
+
+              {/* Commented out old App Download section */}
+              {/* 
+              <p className="mb-4 text-xs sm:text-sm text-gray-300">
+                Access EMIS on the go.
+              </p>
+              <div className=\"flex flex-row-reverse items-start justify-around gap-3 sm:gap-4\">
+                ... buttons ...
+              </div>
+              */}
             </div>
           </div>
 

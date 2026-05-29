@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, useContext } from "react";
 import { useNavigate } from "react-router";
 import { Badge, Spinner, TextInput } from "flowbite-react";
+import StatusBadge from "@/components/common/StatusBadge";
 import {
   HiUser,
   HiSearch,
@@ -18,6 +19,8 @@ import Can from "@/components/common/Can";
 import { PermissionGroups } from "@/data/permissionGroups";
 import DirectoryCard from "@/components/common/DirectoryCard";
 import Button from "@/components/UiComponents/Button";
+import profile_m from "@/assets/images/profile_m.png";
+import profile_f from "@/assets/images/profile_f.png";
 
 /**
  * Teacher List Page
@@ -241,9 +244,9 @@ const TeacherList = () => {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge color="blue" size="lg">
-            Total: {total || 0}
-          </Badge>
+          <StatusBadge className="px-3 py-1 font-bold text-sm">
+            {`Total: ${total || 0}`}
+          </StatusBadge>
         </div>
       </div>
 
@@ -322,6 +325,10 @@ const TeacherList = () => {
                     permissions={{
                       view: PermissionGroups.SCHOOLS.VIEW_PROFILE,
                     }}
+                    showProfilePicture={true}
+                    maleProfileImage={profile_m}
+                    femaleProfileImage={profile_f}
+                    genderId={t.gender_id}
                     onView={(employee) => {
                       navigate(`/employees/teacher/${employee.people_id}`);
                     }}

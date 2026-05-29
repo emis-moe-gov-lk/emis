@@ -6,6 +6,8 @@ const FullCalendar = ({ onClose, events = [], show }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [calendarDays, setCalendarDays] = useState([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [activeEvent, setActiveEvent] = useState(null);
 
   const generateCalendar = (date) => {
     const year = date.getFullYear();
@@ -64,15 +66,36 @@ const FullCalendar = ({ onClose, events = [], show }) => {
     setCurrentDate(next);
   };
 
-  // 👉 Filter events by selected date
+  // 👉 Filter events by selected date using exact start/date fields
   const filteredEvents = events.filter((event) => {
-    if (!event.date) return true; // fallback if no date field
-    const eventDate = new Date(event.date);
+    // support several common field names: date, start, startDate, start_time
+    const dateValue = event.date || event.start || event.startDate || event.start_time;
+    if (!dateValue) return false;
+    const eventDate = new Date(dateValue);
+    if (isNaN(eventDate)) return false;
     return isSameDay(eventDate, selectedDate);
   });
 
+  const formatEventTime = (event) => {
+    const start = event.start || event.date || event.startDate || event.start_time;
+    const end = event.end || event.endDate || event.end_time;
+    if (start && end) {
+      const s = new Date(start);
+      const e = new Date(end);
+      if (!isNaN(s) && !isNaN(e)) {
+        return `${s.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${e.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      }
+    }
+    if (start) {
+      const s = new Date(start);
+      if (!isNaN(s)) return s.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    return event.time || "TBA";
+  };
+
   return (
-    <Modal show={show} onClose={onClose} size="5xl">
+    <>
+      <Modal show={show} onClose={onClose} size="5xl">
       <div className="p-6 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl">
         {/* HEADER */}
         <div className="flex justify-between items-center mb-6">
@@ -148,10 +171,11 @@ const FullCalendar = ({ onClose, events = [], show }) => {
                 filteredEvents.map((event, idx) => (
                   <div
                     key={idx}
-                    className="p-3 mb-2 rounded-lg bg-white dark:bg-gray-700 shadow-sm hover:shadow-md transition border dark:border-slate-700"
+                    onClick={() => { setActiveEvent(event); setShowDetailModal(true); }}
+                    className="p-3 mb-2 rounded-lg bg-white dark:bg-gray-700 shadow-sm hover:shadow-md transition border dark:border-slate-700 cursor-pointer"
                   >
                     <div className="text-xs text-indigo-500 font-semibold dark:text-indigo-300">
-                      {event.time}
+                      {formatEventTime(event)}
                     </div>
                     <div className="text-sm font-medium text-gray-700 dark:text-slate-200">
                       {event.title}
@@ -175,7 +199,35 @@ const FullCalendar = ({ onClose, events = [], show }) => {
           </Button>
         </div>
       </div>
-    </Modal>
+      </Modal>
+
+      {activeEvent && (
+        <Modal show={showDetailModal} onClose={() => setShowDetailModal(false)} size="md">
+          <div className="p-6 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl">
+            <h2 className="text-lg font-semibold mb-2">{activeEvent.title}</h2>
+            <div className="text-sm text-gray-500 mb-4">
+              {new Date(activeEvent.date || activeEvent.start || activeEvent.startDate).toLocaleDateString()} • {formatEventTime(activeEvent)}
+            </div>
+            {activeEvent.description && (
+              <p className="mb-3 text-sm text-gray-700">{activeEvent.description}</p>
+            )}
+            {activeEvent.location && (
+              <div className="text-sm text-gray-600 mb-2">Location: {activeEvent.location}</div>
+            )}
+            {activeEvent.organizer && (
+              <div className="text-sm text-gray-600 mb-2">Organizer: {activeEvent.organizer}</div>
+            )}
+            {activeEvent.attendees && Array.isArray(activeEvent.attendees) && (
+              <div className="text-sm text-gray-600 mb-2">Attendees: {activeEvent.attendees.join(', ')}</div>
+            )}
+
+            <div className="mt-4 flex justify-end">
+              <Button color="gray" onClick={() => setShowDetailModal(false)}>Close</Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </>
   );
 };
 

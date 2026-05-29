@@ -6,6 +6,7 @@ import Select from "./Select";
 import { HiBriefcase, HiBuildingOffice2, HiMapPin } from "react-icons/hi2";
 import { format } from "date-fns";
 import { Badge } from "flowbite-react";
+import StatusBadge from "@/components/common/StatusBadge";
 
 const EmploymentStatus = ({
   employee = {},
@@ -61,9 +62,9 @@ const EmploymentStatus = ({
         </div>
 
         <div className="flex items-center justify-between sm:justify-end gap-2 border-t sm:border-t-0 pt-3 sm:pt-0 border-gray-100 dark:border-gray-800">
-          <Badge size="sm" color="blue">
+          <StatusBadge className="px-3 py-1 text-sm">
             {employee.current_appointment?.service_years ?? 0} Service
-          </Badge>
+          </StatusBadge>
           {canEdit && (
             <button
               onClick={() => setShowModal(true)}
@@ -150,9 +151,9 @@ const EmploymentStatus = ({
           <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">
             Current Grade
           </p>
-          <Badge size="sm" color="blue" className="text-[10px] px-1.5">
+          <StatusBadge className="text-[10px] px-1.5">
             {employee.current_appointment?.rank?.rank_name ?? "N/A"}
-          </Badge>
+          </StatusBadge>
         </div>
 
         <div className="p-3.5 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm">

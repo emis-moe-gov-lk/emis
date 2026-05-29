@@ -1,9 +1,8 @@
 import { Menu } from "@headlessui/react";
 import { FiMail, FiPhone } from "react-icons/fi";
 import { HiOutlineDotsVertical } from "react-icons/hi";
-import profileMale from "../../assets/images/profile_m.png";
-import profileFemale from "../../assets/images/profile_f.png";
 import { useNavigate, useLocation } from "react-router";
+import { resolveProfileImage } from "@/utils/profileImage";
 
 import Can from "@/components/common/Can";
 import { PermissionGroups } from "@/data/permissionGroups";
@@ -20,7 +19,10 @@ export default function DosCard({ employee }) {
         <div className="relative shrink-0">
           <img
             className="h-14 w-14 rounded-full object-cover border-2 border-white dark:border-slate-800 shadow-md"
-            src={employee.gender_id === "G02" ? profileFemale : profileMale}
+            src={resolveProfileImage(
+              employee.profile_picture,
+              employee.gender_id ?? employee.gender?.gender_id,
+            )}
             alt={employee.name}
           />
           <span
