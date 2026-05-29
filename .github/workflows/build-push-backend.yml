@@ -1,9 +1,6 @@
 name: Build and Push Backend
 run-name: "Build & Push backend image on ${{ github.ref_name }}"
 on:
-  push:
-    branches:
-      - "be/feat/franken-img-config"
   workflow_dispatch: # trigger workflow manually
   workflow_call:    # trigger workflow from an external workflow
 
