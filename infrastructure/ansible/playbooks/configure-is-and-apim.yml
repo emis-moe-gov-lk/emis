@@ -505,6 +505,10 @@
         headers:
           Content-Type: "application/json"
         status_code: [200]
+      register: publish_result
+      until: publish_result.status == 200
+      retries: 6
+      delay: 10
       loop: "{{ api_list.results | default([]) }}"
       loop_control:
         loop_var: api_info
