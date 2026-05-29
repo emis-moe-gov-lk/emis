@@ -775,7 +775,7 @@ class TeacherApiController extends Controller
 
         $section = (string) $request->input('section');
 
-        if (! in_array($section, ['personal', 'health', 'contact', 'temporary', 'current_appointment', 'my_appointment', 'teaching_info'], true)) {
+        if (! in_array($section, ['personal', 'health', 'contact', 'temporary', 'current_appointment', 'my_appointment', 'teaching_info', 'wop'], true)) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Invalid update section',
@@ -838,6 +838,10 @@ class TeacherApiController extends Controller
                 'appointmentSubject' => 'nullable',
                 'mainSubject' => 'nullable',
                 'currentTeachingSubject' => 'nullable',
+            ],
+            'wop' => [
+                'w_op_no' => 'required|string|max:10',
+                'pay_sheet_no' => 'required|string|max:10',
             ],
         };
 
@@ -941,6 +945,13 @@ class TeacherApiController extends Controller
                     'service_id' => $validated['firstAppointmentService'],
                     'rank_id' => $validated['firstAppointmentRank'],
                     'position_id' => $validated['firstAppointmentPosition'],
+                ]);
+            }
+
+            if ($section === 'wop') {
+                $teacher->appointment()->update([
+                    'w_op_no' => $validated['w_op_no'],
+                    'pay_sheet_no' => $validated['pay_sheet_no'],
                 ]);
             }
 
