@@ -36,6 +36,9 @@ COPY composer.json composer.lock ./
 
 RUN composer install --no-interaction --no-dev --optimize-autoloader --no-scripts
 
+# Copy Caddyfile to container
+COPY docker/Caddyfile /etc/caddy/Caddyfile
+
 # Copy the rest of the application source code
 COPY . .
 
