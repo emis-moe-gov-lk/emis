@@ -6,7 +6,6 @@ on:
 
 jobs:
   build-backend:
-    if: contains(github.event.head_commit.message, 'BUILD-IMG')
     runs-on: ubuntu-latest
     permissions:
       contents: read
