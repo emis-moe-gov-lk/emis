@@ -16,6 +16,7 @@ const TITLES = {
 	current_appointment: "Appointment current status",
 	my_appointment: "My Appointment",
 	teaching_info: "Teaching Info",
+	wop: "W&OP & Payment Details",
 };
 
 const EMPTY_OPTS = {
@@ -120,12 +121,16 @@ export default function TeacherUpdateModal({
 
 		let ignore = false;
 		setLoading(true);
+		setForm({}); // Reset form for new section
+
+		console.log(`[TeacherUpdateModal] Loading data for section: ${section}, teacherId: ${teacherId}`);
 
 		api
 			.get(`/teacher/${teacherId}`)
 			.then((res) => {
 				if (ignore || res.data?.status !== "success") return;
 				const d = res.data.data;
+				console.log("[TeacherUpdateModal] Data loaded:", d);
 
 				if (section === "personal") {
 					setForm({
@@ -231,8 +236,19 @@ export default function TeacherUpdateModal({
 						currentTeachingSubject: getId(t.current_teaching_subject, 'subject_id') || safeStr(t.current_teaching_subject),
 					});
 				}
+
+				if (section === "wop") {
+					console.log("[TeacherUpdateModal] Initializing W&OP form data");
+					setForm({
+						w_op_no: d.appointment?.w_op_no ?? "",
+						pay_sheet_no: d.appointment?.pay_sheet_no ?? "",
+					});
+				}
 			})
-			.catch(() => toast.error("Failed to load teacher data"))
+			.catch((err) => {
+				console.error("[TeacherUpdateModal] Load error:", err);
+				toast.error("Failed to load teacher data");
+			})
 			.finally(() => {
 				if (!ignore) setLoading(false);
 			});
@@ -459,7 +475,11 @@ export default function TeacherUpdateModal({
 				payload = { section, ...form };
 			}
 
+			console.log(`[TeacherUpdateModal] Saving section: ${section}, payload:`, payload);
+
 			const res = await api.patch(`/teachers/${teacherId}`, payload);
+			console.log("[TeacherUpdateModal] Save response:", res.data);
+
 			const profileStatus =
 				res.data?.data?.profile_status ??
 				res.data?.profile_status ??
@@ -477,6 +497,7 @@ export default function TeacherUpdateModal({
 			onClose();
 			onSaved?.(res.data);
 		} catch (error) {
+			console.error("[TeacherUpdateModal] Save error:", error);
 			toast.error(getErrorMessage(error));
 		} finally {
 			setSaving(false);
@@ -524,7 +545,6 @@ export default function TeacherUpdateModal({
 					{/* PERSONAL SECTION */}
 					{/* ============================================================ */}
 					{section === "personal" && (
-						// ... personal section content (same as your code) ...
 						<>
 							<div>
 								<FormLabel text="NIC Number" />
@@ -1164,6 +1184,33 @@ export default function TeacherUpdateModal({
 										</option>
 									))}
 								</select>
+							</div>
+						</>
+					)}
+
+					{/* ============================================================ */}
+					{/* WOP SECTION */}
+					{/* ============================================================ */}
+					{section === "wop" && (
+						<>
+							<div>
+								<FormLabel text="W&OP Number" required />
+								<input
+									className={darkSafeInputClass}
+									value={form.w_op_no ?? ""}
+									onChange={(e) => setField("w_op_no", e.target.value)}
+									placeholder="e.g. 123456"
+								/>
+							</div>
+
+							<div>
+								<FormLabel text="Pay Sheet Number" required />
+								<input
+									className={darkSafeInputClass}
+									value={form.pay_sheet_no ?? ""}
+									onChange={(e) => setField("pay_sheet_no", e.target.value)}
+									placeholder="e.g. PS/2023/456"
+								/>
 							</div>
 						</>
 					)}

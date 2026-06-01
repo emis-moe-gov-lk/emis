@@ -348,14 +348,14 @@ class DosAdminController extends Controller
                 'name'     => $people->name_with_initials,
                 'email'    => strtolower($validated['email']),
                 'contact'  => $validated['contact'],
-                'password' => Hash::make('password@123'),
+                'password' => Hash::make('Password@123'),
             ]);
 
             $user->assignRole($role);
 
             DB::commit();
 
-            $wso2Is->provisionUser($user, 'password@123', $role);
+            $wso2Is->provisionUser($user, 'Password@123', $role);
 
             $positionName = Position::where('position_id', $validated['currentAppointmentPosition'])
                 ->value('position_name');
@@ -373,7 +373,7 @@ class DosAdminController extends Controller
                     'currentAppointmentPositionName' => $positionName,
                 ],
                 'people_id'        => $people->people_id,
-                'default_password' => 'password@123',
+                'default_password' => 'Password@123',
             ], 201);
 
         } catch (ValidationException $e) {
