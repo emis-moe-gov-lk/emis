@@ -1,28 +1,8 @@
-# Local-dev inventory.
-#
-# - mysql-setup-wso2.yml targets `hosts: databases` → matches local_db
-# - configure-is-and-apim.yml targets `hosts: all` → also matches local_db
-#   (only one host in inventory, so `all` runs exactly once)
-#
-# All operations are URI calls or local mysql connections; ansible doesn't
-# actually SSH anywhere. Variables below match the env files in
-# infrastructure/docker-swarm/, with hostnames going through the
-# nginx-proxy on 443 (resolved via /etc/hosts → 127.0.0.1).
-
+# Local-dev inventory: targets the docker mysql container exposed on localhost:3308.
 all:
   vars:
     ansible_connection: local
     ansible_python_interpreter: /usr/bin/python3
-
-    # APIM / IS connection vars used by configure-is-and-apim.yml.
-    apim_hostname: apim.app-uat.emis.moe.gov.lk
-    apim_admin_username: admin
-    apim_admin_password: ADMIN00
-
-    is_hostname: idp.app-uat.emis.moe.gov.lk
-    is_admin_username: admin
-    is_admin_password: ADMIN11
-
   children:
     databases:
       hosts:

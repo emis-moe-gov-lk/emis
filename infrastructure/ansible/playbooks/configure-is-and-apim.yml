@@ -351,6 +351,11 @@
        - existing_apis.results is defined
        - api_check.json.count | default(0) == 00
 
+    - name: Wait for APIM search index to catch up after import
+      ansible.builtin.pause:
+        seconds: 10
+      when: created_apis.results | default([]) | selectattr('status', 'equalto', 201) | list | length > 0
+
     - name: Get API list for further operations
       ansible.builtin.uri:
         url: "https://{{ apim_host }}/api/am/publisher/v4/apis?query=name:{{ api.name | urlencode }}"
@@ -448,6 +453,7 @@
       register: created_revisions
       when:
         - api_revisions.results is defined
+        - not (rev_check.skipped | default(false))
         - rev_check.json.count | default(0) == 0
 
     - name: Get latest API revision

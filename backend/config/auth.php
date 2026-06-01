@@ -47,8 +47,9 @@ return [
         ],
     ],
 
-    'jwks_uri'        => env('WSO2_BASE_URL') . '/oauth2/jwks',
-    'wso2_verify_ssl' => env('WSO2_VERIFY_SSL', true),
+    'jwks_uri'           => env('WSO2_BASE_URL') . '/oauth2/jwks',
+    'wso2_verify_ssl'    => env('WSO2_VERIFY_SSL', true),
+    'apim_gateway_pubkey' => env('APIM_GATEWAY_PUBKEY'),
 
     /*
     |--------------------------------------------------------------------------

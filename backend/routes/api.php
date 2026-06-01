@@ -41,6 +41,14 @@ Route::get('/test', function () {
     ]);
 });
 
+Route::get('/debug-headers-public', function (Request $request) {
+    return response()->json([
+        'authorization' => $request->header('Authorization'),
+        'x_jwt_assertion' => $request->header('X-JWT-Assertion'),
+        'all_headers' => collect($request->headers->all())->map(fn($v) => implode(', ', $v)),
+    ]);
+});
+
 
 require base_path('routes/timetable.php');
 
@@ -175,6 +183,15 @@ Route::prefix('')->group(function () {
         Route::get('/{id}', 'show');            // GET single
         Route::patch('/{id}', 'update');        // PATCH update
         Route::delete('/{id}', 'destroy');      // DELETE deactivate
+    });
+
+    // Temporary debug: dump headers to diagnose APIM→backend auth forwarding
+    Route::get('/debug-headers', function (Request $request) {
+        return response()->json([
+            'authorization' => $request->header('Authorization'),
+            'x_jwt_assertion' => $request->header('X-JWT-Assertion'),
+            'all_headers' => collect($request->headers->all())->map(fn($v) => implode(', ', $v)),
+        ]);
     });
 
     Route::get('/identity', AuthIdentityController::class)->middleware('auth:jwt');
