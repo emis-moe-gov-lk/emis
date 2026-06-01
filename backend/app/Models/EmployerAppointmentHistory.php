@@ -29,6 +29,8 @@ class EmployerAppointmentHistory extends Model
         'office_level_id',
         'workplace_id',
         'updated_type',
+        'appointment_letter_no',
+        'remarks',
         'created_by',
         'updated_by',
     ];

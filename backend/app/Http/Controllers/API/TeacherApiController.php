@@ -45,6 +45,7 @@ use App\Models\MinistryOfEducationOffice;
 use App\Models\ProvincialMinistryOfEducationOffice;
 use App\Models\ProvincialEducationOffice;
 use Illuminate\Support\Facades\Hash;
+use App\Models\EmployerAppointmentHistory;
 use App\Models\EmployerCurrentAppointment;
 use App\Models\DivisionalSecretariatOffice;
 use App\Services\TeacherAccountProvisioningService;
@@ -578,10 +579,18 @@ class TeacherApiController extends Controller
 
             // FIXED NAMES
             'myAppointments',                  // all appointments
+            'myAppointments.service',
+            'myAppointments.rank',
+            'myAppointments.position',
+            'myAppointments.workplace.institution',
             'appointment',                     // active first appointment
             'currentAppointment',              // current active appointment
             'currentAppointment.appointment.rejectComments.rejectedBy',
             'appointmentHistory',              // full appointment history
+            'appointmentHistory.service',
+            'appointmentHistory.rank',
+            'appointmentHistory.position',
+            'appointmentHistory.workplace.institution',
 
             // Appointment → workplace
             'currentAppointment.workplace',
@@ -1355,6 +1364,170 @@ class TeacherApiController extends Controller
                 'status' => 'error',
                 'message' => 'Failed to fetch education qualification grades.',
             ], 500);
+        }
+    }
+
+    public function addServiceHistoryEntry(Request $request, string $people_id)
+    {
+        $roles = $this->resolvedRoles($request);
+
+        if (! $this->hasAnyRole($roles, ['super admin', 'zonal deo', 'zonal deo head', 'development officer', 'development officer head'])) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Unauthorized',
+            ], 403);
+        }
+
+        try {
+            $validated = $request->validate([
+                'appointment_id'       => 'required|string|exists:employer_appointments,appointment_id',
+                'appoint_date'         => 'required|date',
+                'end_date'             => 'nullable|date|after_or_equal:appoint_date',
+                'service_id'           => 'required|string|exists:services,service_id',
+                'rank_id'              => 'required|string|exists:service_ranks,rank_id',
+                'position_id'          => 'required|string|exists:positions,position_id',
+                'office_level_id'      => 'required|string|exists:office_levels,office_level_id',
+                'workplace_id'         => 'required|string',
+                'updated_type'         => 'required|in:0,1,2,3,4',
+                'appointment_letter_no' => 'nullable|string|max:100',
+                'remarks'              => 'nullable|string|max:500',
+            ]);
+
+            $person = People::where('people_id', $people_id)->first();
+            if (! $person) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Person not found',
+                ], 404);
+            }
+
+            $appointment = EmployerAppointment::where('appointment_id', $validated['appointment_id'])
+                ->where('employee_id', $people_id)
+                ->first();
+
+            if (! $appointment) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Appointment not found for this person',
+                ], 404);
+            }
+
+            $entry = EmployerAppointmentHistory::create([
+                'appointment_id'        => $validated['appointment_id'],
+                'employee_id'           => $people_id,
+                'appoint_date'          => $validated['appoint_date'],
+                'end_date'              => $validated['end_date'] ?? null,
+                'service_id'            => $validated['service_id'],
+                'rank_id'               => $validated['rank_id'],
+                'position_id'           => $validated['position_id'],
+                'office_level_id'       => $validated['office_level_id'],
+                'workplace_id'          => $validated['workplace_id'],
+                'updated_type'          => $validated['updated_type'],
+                'appointment_letter_no' => $validated['appointment_letter_no'] ?? null,
+                'remarks'               => $validated['remarks'] ?? null,
+            ]);
+
+            $entry->load(['service', 'rank', 'position', 'workplace.institution']);
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Service history entry added successfully',
+                'data'    => $entry,
+            ], 201);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'status'  => 'validation_error',
+                'message' => 'Validation failed',
+                'errors'  => $e->errors(),
+            ], 422);
+        } catch (\Throwable $e) {
+            Log::error('Add Service History Entry Error', [
+                'message' => $e->getMessage(),
+                'file'    => $e->getFile(),
+                'line'    => $e->getLine(),
+            ]);
+
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Internal server error',
+            ], 500);
+        }
+    }
+
+    public function addPastService(Request $request, string $people_id)
+    {
+        $roles = $this->resolvedRoles($request);
+
+        if (! $this->hasAnyRole($roles, ['super admin', 'zonal deo', 'zonal deo head', 'development officer', 'development officer head'])) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
+        }
+
+        try {
+            $validated = $request->validate([
+                'service_id'            => 'required|string|exists:services,service_id',
+                'rank_id'               => 'required|string|exists:service_ranks,rank_id',
+                'position_id'           => 'required|string|exists:positions,position_id',
+                'office_level_id'       => 'required|string|exists:office_levels,office_level_id',
+                'workplace_id'          => 'required|string',
+                'first_appointment_date' => 'required|date',
+                'appointment_letter_no' => 'nullable|string|max:100',
+            ]);
+
+            $person = People::where('people_id', $people_id)->first();
+            if (! $person) {
+                return response()->json(['status' => 'error', 'message' => 'Person not found'], 404);
+            }
+
+            $alreadyExists = EmployerAppointment::where('employee_id', $people_id)
+                ->where('service_id', $validated['service_id'])
+                ->exists();
+
+            if ($alreadyExists) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'A service block for this service already exists for this person.',
+                ], 422);
+            }
+
+            $retirementDate = Carbon::parse($person->date_of_birth)->addYears(55);
+
+            $appointment = EmployerAppointment::create([
+                'employee_id'            => $people_id,
+                'first_appointment_date' => $validated['first_appointment_date'],
+                'retirement_date'        => $retirementDate->toDateString(),
+                'service_id'             => $validated['service_id'],
+                'rank_id'                => $validated['rank_id'],
+                'position_id'            => $validated['position_id'],
+                'office_level_id'        => $validated['office_level_id'],
+                'workplace_id'           => $validated['workplace_id'],
+                'appointment_letter_no'  => $validated['appointment_letter_no'] ?? null,
+                'appointment_letter'     => 'none.pdf',
+                'active_status'          => false,
+            ]);
+
+            $appointment->load(['service', 'rank', 'position', 'workplace.institution']);
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Past service block added successfully',
+                'data'    => $appointment,
+            ], 201);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'status'  => 'validation_error',
+                'message' => 'Validation failed',
+                'errors'  => $e->errors(),
+            ], 422);
+        } catch (\Throwable $e) {
+            Log::error('Add Past Service Error', [
+                'message' => $e->getMessage(),
+                'file'    => $e->getFile(),
+                'line'    => $e->getLine(),
+            ]);
+
+            return response()->json(['status' => 'error', 'message' => 'Internal server error'], 500);
         }
     }
 }

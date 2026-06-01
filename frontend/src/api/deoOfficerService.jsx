@@ -27,3 +27,13 @@ export const getDosAdmin = async (id) => {
   return response.data;
 };
 
+export const addDosAdminServiceHistoryEntry = async (peopleId, data) => {
+  const response = await api.post(`/dos-admins/${peopleId}/service-history`, data);
+  return response.data;
+};
+
+export const addDosAdminPastService = async (peopleId, data) => {
+  const response = await api.post(`/dos-admins/${peopleId}/past-services`, data);
+  return response.data;
+};
+
