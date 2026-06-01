@@ -74,9 +74,14 @@ export const PermissionGroups = {
   },
 
   MY_PROFILE: {
-    VIEW: "my-profile.view",
-    UPDATE: "my-profile.update",
-    VERIFY: "my-profile.verify",
+    VIEW: "my.profile.view",
+    UPDATE: "my.profile.update",
+    VERIFY: "my.profile.verify",
+    DOCUMENT: "my.profile.document.pdf",
+    GENERAL_EDIT: "my.profile.general.edit",
+    QUALIFICATION_ADD: "my.profile.qualification.add",
+    EMPLOYMENT_EDIT: "my.profile.employment.edit",
+    WOP_EDIT: "my.profile.w&op.edit",
   },
 
   OFFICE: {
@@ -226,6 +231,7 @@ export const PermissionGroups = {
     EDIT: "user.edit",
     USER_VIEW: "menu.user",
     UPDATE: "user.update",
+    USER_LIST: "user.list.view",
   },
 
   INBOX: {
@@ -241,7 +247,7 @@ export const PermissionGroups = {
   },
 
   SETTINGS: {
-    SETTINGS_VIEW: "menu.settings.system-settings",
+    SETTINGS_VIEW: "menu.settings.system.settings",
     VERSION: "menu.settings.version",
     NOTIFICATIONS: "menu.settings.notifications",
     PRIVACY: "menu.settings.privacy",
