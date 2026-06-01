@@ -18,7 +18,7 @@ const Header = ({ userRoles = [] }) => {
         {userRoles.length > 0
           ? capitalizeAllLetters(userRoles[0])
           : "Loading..."}{" "}
-        • {capitalizeAllLetters(new Date().toDateString())}
+        {/* • {capitalizeAllLetters(new Date().toDateString())} */}
       </p>
     </div>
   );
