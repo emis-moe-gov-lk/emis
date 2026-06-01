@@ -914,7 +914,7 @@ const PrincipalProfile = () => {
           {activeTab === "employment" && (
             <EmploymentTab employment={employment} onEdit={setModalSection} />
           )}
-          {activeTab === "wop" && <WopTab wopAndPayment={wopAndPayment} />}
+          {activeTab === "wop" && <WopTab wopAndPayment={wopAndPayment} onEdit={setModalSection} />}
           {activeTab === "family" && <FamilyTab family={family} />}
           {activeTab === "edit" && (
             <EditRequestTab editRequests={editRequests} />
@@ -1589,16 +1589,18 @@ function EmploymentTab({ employment, onEdit }) {
   );
 }
 
-function WopTab({ wopAndPayment }) {
+function WopTab({ wopAndPayment, onEdit }) {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
           W&OP & Payment Details
         </h2>
-        <RoundedActionButton onClick={() => {}} variant="outline">
-          Edit
-        </RoundedActionButton>
+        <Can permission={PermissionGroups.SCHOOLS.PROFILE_EDIT}>
+          <RoundedActionButton onClick={() => onEdit("wop")} variant="outline">
+            Edit
+          </RoundedActionButton>
+        </Can>
       </div>
 
       <div className="rounded-2xl overflow-hidden border surface">
