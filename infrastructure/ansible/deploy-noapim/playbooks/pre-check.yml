@@ -1,6 +1,6 @@
 ---
 # playbooks/pre-check.yml
-- hosts: "{{ target_hosts | default('all') }}"
+- hosts: "{{ target_hosts }}"
   gather_facts: no
   pre_tasks:
 

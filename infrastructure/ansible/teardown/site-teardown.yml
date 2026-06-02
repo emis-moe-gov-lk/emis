@@ -23,6 +23,7 @@
   vars_prompt:
     - name: confirm
       prompt: |
+
         ================================================================
         WARNING: This will permanently destroy:
           - All emis-* Docker stacks and their services

@@ -53,14 +53,12 @@ services:
       - backend.env
     command: >
       sh -c "
-      composer install --no-interaction &&
-      cp .env.example .env &&
-      php artisan key:generate --force &&
-      php artisan migrate:fresh --seed --force &&
-      frankenphp run --config /etc/caddy/Caddyfile
+        composer install --no-interaction &&
+        cp .env.example .env &&
+        php artisan key:generate --force &&
+        php artisan migrate:fresh --seed --force &&
+        frankenphp run --config /etc/caddy/Caddyfile
       "
-    extra_hosts:
-      - "idp.app-uat.emis.moe.gov.lk:192.168.200.1"
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:2019/metrics || exit 1"]
       interval: 30s
