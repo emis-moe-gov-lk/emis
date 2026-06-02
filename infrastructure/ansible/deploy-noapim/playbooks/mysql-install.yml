@@ -1,0 +1,57 @@
+---
+# ---PLAY-INSTALL-MYSQL-----
+- name: Install and Configure MySQL 8.0 for EMIS (No APIM) Environment
+  hosts: db_host
+  become: yes
+  vars:
+    mysql_port_val:       "{{ mysql_port | default('3306') }}"
+    mysql_root_pass:      "{{ mysql_root_password }}"
+    mysql_bind_addr:      "{{ mysql_bind_address | default('127.0.0.1') }}"
+    mysql_root_user_val:  "{{ mysql_root_user | default('root') }}"
+    mysql_root_host_val:  "{{ mysql_root_allowed_host | default('%') }}"
+
+  tasks:
+    - name: Update apt and install MySQL + Python connector
+      apt:
+        name:
+          - mysql-server
+          - python3-pymysql
+        state: present
+        update_cache: yes
+
+    - name: Ensure MySQL is running
+      service:
+        name: mysql
+        state: started
+        enabled: yes
+
+    - name: Configure MySQL to listen on custom port
+      lineinfile:
+        path: /etc/mysql/mysql.conf.d/mysqld.cnf
+        regexp: '^port\s*='
+        line: "port = {{ mysql_port_val }}"
+
+    - name: Configure MySQL bind address
+      lineinfile:
+        path: /etc/mysql/mysql.conf.d/mysqld.cnf
+        regexp: '^bind-address\s*='
+        line: "bind-address = {{ mysql_bind_addr }}"
+      notify: restart mysql
+
+    - name: Set root user password and allowed host
+      community.mysql.mysql_user:
+        check_implicit_admin: yes
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+        login_user: root
+        login_password: "{{ mysql_root_pass }}"
+        name: "{{ mysql_root_user_val }}"
+        host: "{{ mysql_root_host_val }}"
+        password: "{{ mysql_root_pass }}"
+        priv: "*.*:ALL,GRANT"
+        state: present
+
+  handlers:
+    - name: restart mysql
+      service:
+        name: mysql
+        state: restarted

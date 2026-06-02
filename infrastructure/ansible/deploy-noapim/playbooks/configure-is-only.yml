@@ -1,0 +1,503 @@
+- name: Configure IS post-installation (No APIM)
+  hosts: swarm_managers
+  gather_facts: false
+  vars:
+    # IS connection settings (local aliases to avoid collisions with env-file vars)
+    is_host:       "{{ is_hostname | default('idp.app-uat.emis.moe.gov.lk') }}"
+    is_port:       "{{ is_mgmt_port | default('9444') }}"
+    is_admin_name: "{{ is_admin_user | default('admin') }}"
+    is_admin_pass: "{{ is_admin_password | default('ADMIN11') }}"
+
+    roles_to_create: "{{ nemis_roles | default([]) }}"
+    users_to_create: "{{ nemis_users | default([]) }}"
+    apps_to_create:  "{{ nemis_apps | default([]) }}"
+
+  tasks:
+    # =========================================================================
+    # PART 0: Resolve IS container IP (bypasses nginx Bearer enforcement)
+    # =========================================================================
+    # The public hostname sits behind nginx which requires Bearer auth for all
+    # endpoints. The IS container's overlay network IP accepts Basic Auth on
+    # port 9444 directly. This approach mirrors what setup.sh does locally
+    # (curl localhost:9444), but uses the container IP to avoid the Docker
+    # swarm routing-mesh loopback issue.
+
+    - name: Get IS container overlay network IP
+      ansible.builtin.shell: |
+        CONTAINER_ID=$(docker ps -q --filter 'name=wso2-is' | head -1)
+        if [ -z "$CONTAINER_ID" ]; then exit 1; fi
+        docker inspect "$CONTAINER_ID" | python3 -c "
+        import json, sys
+        nets = json.load(sys.stdin)[0]['NetworkSettings']['Networks']
+        for name, net in nets.items():
+            if 'ingress' not in name and net.get('IPAddress'):
+                print(net['IPAddress'])
+                break
+        "
+      register: is_direct_ip
+      changed_when: false
+      retries: 12
+      delay: 15
+      until: is_direct_ip.rc == 0 and is_direct_ip.stdout | length > 0
+
+    - name: Set IS management base URL (direct container, port 9444)
+      ansible.builtin.set_fact:
+        is_mgmt: "https://{{ is_direct_ip.stdout }}:{{ is_port }}"
+
+    # =========================================================================
+    # PART 1: Wait for IS
+    # =========================================================================
+    # Use the direct container URL. Accepts 200 or 401 (auth failure = IS is up
+    # but credentials may be wrong). A connection error means IS is still
+    # starting, which keeps the retry loop going.
+
+    - name: Wait for IS management API to be ready
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/api/server/v1/configs"
+        method: GET
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pass }}"
+        force_basic_auth: yes
+        status_code: [200, 401]
+      register: is_ready
+      until: is_ready.status in [200, 401]
+      retries: 30
+      delay: 10
+
+    # =========================================================================
+    # PART 2: Create Roles in IS
+    # =========================================================================
+
+    - name: Create roles in IS
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/scim2/v2/Roles"
+        method: POST
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          displayName: "{{ role }}"
+          permissions: []
+        status_code: [201, 200, 409]
+      loop: "{{ roles_to_create }}"
+      loop_control:
+        loop_var: role
+        label: "{{ role }}"
+      when: roles_to_create | length > 0
+
+    # =========================================================================
+    # PART 3: Create Users in IS
+    # =========================================================================
+
+    - name: Create users in IS via SCIM2
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/scim2/Users"
+        method: POST
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          schemas:
+            - "urn:ietf:params:scim:schemas:core:2.0:User"
+            - "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
+          userName: "{{ user.username }}"
+          password: "{{ user.password }}"
+          name:
+            givenName: "{{ user.first_name | default(user.username) }}"
+            familyName: "{{ user.last_name | default('') }}"
+          emails:
+            - value: "{{ user.email | default(user.username + '@localhost') }}"
+              primary: true
+        status_code: [201, 200, 409]
+      loop: "{{ users_to_create | default([]) }}"
+      loop_control:
+        loop_var: user
+        label: "{{ user.username }}"
+      when: users_to_create is defined and users_to_create | length > 0
+
+    - name: Get created user IDs for role assignment
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/scim2/Users?filter=userName+eq+{{ user.username }}"
+        method: GET
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+      loop: "{{ users_to_create | default([]) }}"
+      loop_control:
+        loop_var: user
+        label: "{{ user.username }}"
+      register: user_lookups
+      when: users_to_create is defined and users_to_create | length > 0 and (user.roles | default([]) | length > 0)
+
+    - name: Assign roles to users
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/scim2/Users/{{ user_role.0.json.Resources[0].id }}"
+        method: PATCH
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          schemas:
+            - "urn:ietf:params:scim:api:messages:2.0:PatchOp"
+          Operations:
+            - op: "add"
+              path: "groups"
+              value:
+                - display: "{{ user_role.1 }}"
+        status_code: [200, 204]
+      loop: "{{ user_lookups.results | default([]) | subelements('user.roles', skip_missing=True) }}"
+      loop_control:
+        loop_var: user_role
+        label: "Assigning {{ user_role.1 }} to {{ user_role.0.user.username }}"
+      when: user_lookups.results is defined and user_lookups.results | length > 0
+
+    # =========================================================================
+    # PART 4: Create OIDC Applications Directly in IS (no APIM devportal)
+    # =========================================================================
+
+    - name: Check if EMIS Web App exists in IS
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/api/server/v1/applications?filter=name+eq+EMIS+Web+App"
+        method: GET
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+      register: webapp_check
+
+    - name: Create EMIS Web App OIDC application in IS
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/api/server/v1/applications"
+        method: POST
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          name: "EMIS Web App"
+          description: "EMIS Frontend SPA"
+          inboundProtocolConfiguration:
+            oidc:
+              grantTypes:
+                - "authorization_code"
+                - "refresh_token"
+              callbackURLs:
+                - "{{ vite_signin_redirect_url }}"
+              allowedOrigins:
+                - "{{ vite_signin_redirect_url | regex_replace('(https?://[^/]+).*', '\\1') }}"
+              publicClient: true
+              accessToken:
+                type: "JWT"
+                userAccessTokenExpiryInSeconds: 3600
+                applicationAccessTokenExpiryInSeconds: 3600
+        status_code: [201, 409]
+      register: webapp_created
+      when: webapp_check.json.totalResults | default(0) | int == 0
+
+    - name: Get EMIS Web App ID
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/api/server/v1/applications?filter=name+eq+EMIS+Web+App"
+        method: GET
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+      register: webapp_lookup
+
+    - name: Set EMIS Web App ID fact
+      set_fact:
+        webapp_id: "{{ webapp_lookup.json.applications[0].id }}"
+      when: webapp_lookup.json.totalResults | default(0) | int > 0
+
+    - name: Get EMIS Web App OIDC config (consumer key)
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/api/server/v1/applications/{{ webapp_id }}/inbound-protocols/oidc"
+        method: GET
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+      register: webapp_oidc
+      when:
+        - webapp_id is defined
+        - webapp_id | length > 0
+
+    - name: Configure JWT claims for EMIS Web App (email, roles, groups)
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/api/server/v1/applications/{{ webapp_id }}"
+        method: PATCH
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          claimConfiguration:
+            dialect: "LOCAL"
+            requestedClaims:
+              - claim:
+                  uri: "http://wso2.org/claims/emailaddress"
+                mandatory: false
+              - claim:
+                  uri: "http://wso2.org/claims/roles"
+                mandatory: false
+              - claim:
+                  uri: "http://wso2.org/claims/groups"
+                mandatory: false
+            subject:
+              claim:
+                uri: "http://wso2.org/claims/userid"
+              includeUserDomain: false
+              includeTenantDomain: false
+              useMappedLocalSubject: false
+            role:
+              includeUserDomain: false
+              claim:
+                uri: "http://wso2.org/claims/roles"
+        status_code: [200]
+      when:
+        - webapp_id is defined
+        - webapp_id | length > 0
+
+    # =========================================================================
+    # PART 5: Create M2M Application in IS for SCIM2 API Access
+    # =========================================================================
+
+    - name: Check if M2M application already exists in IS
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/api/server/v1/applications?filter=name+eq+CEMIS-LK+M2M"
+        method: GET
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+      register: m2m_app_check
+
+    - name: Set fact for M2M application existence
+      set_fact:
+        m2m_app_exists: "{{ m2m_app_check.json.totalResults | default(0) | int > 0 }}"
+
+    - name: Set M2M app ID from existing app
+      set_fact:
+        m2m_app_id: "{{ m2m_app_check.json.applications[0].id }}"
+      when: m2m_app_exists | bool
+
+    - name: Create M2M application in IS
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/api/server/v1/applications"
+        method: POST
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          name: "CEMIS-LK M2M"
+          description: "Machine-to-Machine application for SCIM2 API access"
+          templateId: "m2m-application"
+          inboundProtocolConfiguration:
+            oidc:
+              grantTypes:
+                - "client_credentials"
+              publicClient: false
+              accessToken:
+                type: "JWT"
+                userAccessTokenExpiryInSeconds: 3600
+                applicationAccessTokenExpiryInSeconds: 3600
+        status_code: [201]
+      register: m2m_app_created
+      when: not (m2m_app_exists | bool)
+
+    - name: Set M2M app ID from creation response
+      set_fact:
+        m2m_app_id: "{{ m2m_app_created.json.id }}"
+      when:
+        - not (m2m_app_exists | bool)
+        - m2m_app_created is not skipped
+        - m2m_app_created.json.id is defined
+
+    - name: Re-fetch M2M app ID if not set
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/api/server/v1/applications?filter=name+eq+CEMIS-LK+M2M"
+        method: GET
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+      register: m2m_refetch
+      when: m2m_app_id is not defined or m2m_app_id | length == 0
+
+    - name: Set M2M app ID from re-fetch
+      set_fact:
+        m2m_app_id: "{{ m2m_refetch.json.applications[0].id }}"
+      when:
+        - m2m_refetch is not skipped
+        - m2m_refetch.json.totalResults | default(0) | int > 0
+
+    - name: Get SCIM2 Users API resource ID
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/api/server/v1/api-resources?filter=identifier+eq+/scim2/Users"
+        method: GET
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+      register: scim2_users_api
+
+    - name: Get SCIM2 Roles API resource ID
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/api/server/v1/api-resources?filter=identifier+eq+/scim2/Roles"
+        method: GET
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+      register: scim2_roles_api
+
+    - name: Authorize M2M app for SCIM2 Users API
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/api/server/v1/applications/{{ m2m_app_id }}/authorized-apis"
+        method: POST
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          id: "{{ scim2_users_api.json.apiResources[0].id }}"
+          policyIdentifier: "RBAC"
+          scopes:
+            - "internal_user_mgt_create"
+            - "internal_user_mgt_update"
+        status_code: [200, 201, 409]
+      when:
+        - m2m_app_id is defined
+        - m2m_app_id | length > 0
+        - scim2_users_api.json.totalResults | default(0) | int > 0
+
+    - name: Authorize M2M app for SCIM2 Roles API
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/api/server/v1/applications/{{ m2m_app_id }}/authorized-apis"
+        method: POST
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          id: "{{ scim2_roles_api.json.apiResources[0].id }}"
+          policyIdentifier: "RBAC"
+          scopes:
+            - "internal_role_mgt_update"
+            - "internal_role_mgt_users_update"
+        status_code: [200, 201, 409]
+      when:
+        - m2m_app_id is defined
+        - m2m_app_id | length > 0
+        - scim2_roles_api.json.totalResults | default(0) | int > 0
+
+    - name: Get M2M application OIDC configuration
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/api/server/v1/applications/{{ m2m_app_id }}/inbound-protocols/oidc"
+        method: GET
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+      register: m2m_oidc_config
+      when:
+        - m2m_app_id is defined
+        - m2m_app_id | length > 0
+
+    - name: Get Teacher role ID from IS
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/scim2/v2/Roles?filter=displayName+eq+Teacher"
+        method: GET
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+      register: teacher_role_lookup
+
+    - name: Set Teacher role ID fact
+      set_fact:
+        teacher_role_id: "{{ teacher_role_lookup.json.Resources[0].id | default('NOT_FOUND') }}"
+      when: teacher_role_lookup.json.totalResults | default(0) | int > 0
+
+    # =========================================================================
+    # Summary: display all credentials to paste into env file
+    # =========================================================================
+
+    - name: Display EMIS Web App client_id
+      debug:
+        msg:
+          - "============================================"
+          - "EMIS Web App (SPA)"
+          - "============================================"
+          - "Status: {{ 'Already existed' if (webapp_check.json.totalResults | default(0) | int > 0) else 'Created' }}"
+          - "vite_asgardeo_client_id={{ webapp_oidc.json.clientId | default('N/A — re-run or check IS console') }}"
+          - "============================================"
+      when: webapp_oidc is defined and webapp_oidc is not skipped
+
+    - name: Display M2M application credentials
+      debug:
+        msg:
+          - "============================================"
+          - "M2M Application: CEMIS-LK M2M"
+          - "============================================"
+          - "Status: {{ 'Already existed' if m2m_app_exists else 'Created successfully' }}"
+          - ""
+          - "Add these to env/uat.yml then re-run deploy-stack.yml:"
+          - "wso2_m2m_client_id={{ m2m_oidc_config.json.clientId | default('N/A') }}"
+          - "wso2_m2m_client_secret={{ m2m_oidc_config.json.clientSecret | default('N/A') }}"
+          - "wso2_teacher_role_id={{ teacher_role_id | default('NOT_FOUND - create Teacher role first') }}"
+          - "============================================"
+      when:
+        - m2m_oidc_config is defined
+        - m2m_oidc_config is not skipped
+        - m2m_oidc_config.json is defined

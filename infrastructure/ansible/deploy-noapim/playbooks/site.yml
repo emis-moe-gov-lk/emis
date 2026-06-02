@@ -1,0 +1,77 @@
+---
+# ============================================================
+# EMIS No-APIM — Master Deployment Orchestration
+# ============================================================
+# Runs all deployment steps in order:
+#   1. Pre-flight SSH / become checks
+#   2. Install MySQL
+#   3. Create EMIS application database
+#   4. Create WSO2 IS databases and import schemas
+#   5. Render env files and deploy the 3-service Docker stack
+#   6. Configure IS: roles, users, OIDC apps — display credentials
+#   7. Print instructions for the manual credential-paste step
+#
+# Usage (UAT):
+#   ansible-playbook deploy-noapim/playbooks/site.yml \
+#     -i deploy-noapim/inventory/uat.yml \
+#     -e @deploy-noapim/env/uat.yml \
+#     -e target_hosts=all \
+#     --vault-password-file deploy-noapim/.vault_pass
+#
+# After site.yml completes:
+#   - Copy the client_id / client_secret values printed by Step 6
+#   - Paste them into deploy-noapim/env/uat.yml
+#   - Re-run deploy-stack.yml alone to push the updated credentials:
+#       ansible-playbook deploy-noapim/playbooks/deploy-stack.yml \
+#         -i deploy-noapim/inventory/uat.yml \
+#         -e @deploy-noapim/env/uat.yml \
+#         --vault-password-file deploy-noapim/.vault_pass
+# ============================================================
+
+# ── Step 1: Pre-flight checks ─────────────────────────────────────────────────
+- import_playbook: pre-check.yml
+
+# ── Step 2: Install MySQL 8.0 ────────────────────────────────────────────────
+- import_playbook: mysql-install.yml
+
+# ── Step 3: Create EMIS application database and user ────────────────────────
+- import_playbook: mysql-setup-emis-db.yml
+
+# ── Step 4: Create WSO2 IS databases and import schemas ──────────────────────
+- import_playbook: mysql-setup-wso2-is-only.yml
+
+# ── Step 5: Render env files and deploy the Docker stack ─────────────────────
+- import_playbook: deploy-stack.yml
+
+# ── Step 6: Configure IS (roles, users, OIDC apps) ───────────────────────────
+- import_playbook: configure-is-only.yml
+
+# ── Step 7: Post-deployment instructions ─────────────────────────────────────
+- name: Post-deployment — credential update instructions
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Print next steps
+      ansible.builtin.debug:
+        msg:
+          - "================================================================"
+          - "EMIS No-APIM stack is running. One manual step remains:"
+          - "================================================================"
+          - ""
+          - "1. Copy the credentials printed by Step 6 above."
+          - ""
+          - "2. Edit deploy-noapim/env/uat.yml and set:"
+          - "     vite_asgardeo_client_id: '<EMIS Web App clientId>'"
+          - "     wso2_m2m_client_id:      '<M2M clientId>'"
+          - "     wso2_m2m_client_secret:  '<M2M clientSecret>'  # encrypt with vault"
+          - "     wso2_teacher_role_id:    '<Teacher role ID>'"
+          - ""
+          - "3. Re-deploy the stack to inject the updated credentials:"
+          - "     ansible-playbook deploy-noapim/playbooks/deploy-stack.yml \\"
+          - "       -i deploy-noapim/inventory/uat.yml \\"
+          - "       -e @deploy-noapim/env/uat.yml \\"
+          - "       --vault-password-file deploy-noapim/.vault_pass"
+          - ""
+          - "   The frontend image must also be rebuilt after this step"
+          - "   because VITE_ASGARDEO_CLIENT_ID is baked at build time."
+          - "================================================================"

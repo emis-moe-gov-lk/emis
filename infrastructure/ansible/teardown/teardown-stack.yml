@@ -1,0 +1,68 @@
+---
+# ---TEARDOWN-STACK-----
+# Discovers and removes all emis-* Docker stacks, cleans deploy dirs and temp files.
+# Docker Engine itself is left untouched.
+- name: Tear down EMIS Docker stacks and deployed files
+  hosts: swarm_managers
+  become: true
+  gather_facts: false
+
+  tasks:
+    # ── Discover running EMIS stacks ──────────────────────────────────────────
+
+    - name: Get list of running EMIS stacks
+      ansible.builtin.shell: docker stack ls --format '{{ '{{' }}.Name{{ '}}' }}' | grep '^emis-' || true
+      register: emis_stacks
+      changed_when: false
+
+    - name: Show discovered stacks
+      ansible.builtin.debug:
+        msg: "Found EMIS stacks: {{ emis_stacks.stdout_lines | default([]) }}"
+
+    # ── Remove each stack ─────────────────────────────────────────────────────
+
+    - name: Remove each EMIS stack
+      ansible.builtin.command: docker stack rm {{ item }}
+      loop: "{{ emis_stacks.stdout_lines }}"
+      when: emis_stacks.stdout_lines | length > 0
+      ignore_errors: true
+
+    # ── Wait for full drain ───────────────────────────────────────────────────
+
+    - name: Wait for stack tasks to drain
+      ansible.builtin.shell: |
+        docker stack ps {{ item }} --format '{{ '{{' }}.CurrentState{{ '}}' }}' | grep -v Shutdown | grep -c .
+      register: drain_check
+      until: drain_check.rc != 0
+      retries: 30
+      delay: 5
+      loop: "{{ emis_stacks.stdout_lines }}"
+      when: emis_stacks.stdout_lines | length > 0
+      changed_when: false
+      failed_when: false
+
+    # ── Remove known deploy paths ─────────────────────────────────────────────
+
+    - name: Remove known EMIS deploy directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /opt/emis
+        - /opt/emis-nevada
+      ignore_errors: true
+
+    # ── Remove temp SQL import dirs ───────────────────────────────────────────
+
+    - name: Remove temporary SQL import directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /tmp/sql_imports
+        - /tmp/sql_imports_noapim
+      ignore_errors: true
+
+    - name: Stack teardown complete
+      ansible.builtin.debug:
+        msg: "Stacks removed: {{ emis_stacks.stdout_lines | default([]) }}. Deploy dirs and temp files cleaned."

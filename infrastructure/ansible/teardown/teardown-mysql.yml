@@ -1,0 +1,52 @@
+---
+# ---TEARDOWN-MYSQL-----
+# Stops MySQL, purges all packages, and removes all data, config, and logs.
+# Run AFTER teardown-databases.yml while MySQL is still running.
+- name: Purge MySQL from host
+  hosts: db_host
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Stop MySQL service
+      ansible.builtin.service:
+        name: mysql
+        state: stopped
+      ignore_errors: true
+
+    - name: Purge MySQL packages
+      ansible.builtin.apt:
+        name:
+          - mysql-server
+          - mysql-server-8.0
+          - mysql-client
+          - mysql-client-8.0
+          - mysql-common
+          - python3-pymysql
+        state: absent
+        purge: true
+      ignore_errors: true
+
+    - name: Remove unused dependencies
+      ansible.builtin.apt:
+        autoremove: true
+        purge: true
+
+    - name: Remove MySQL data directory
+      ansible.builtin.file:
+        path: /var/lib/mysql
+        state: absent
+
+    - name: Remove MySQL configuration
+      ansible.builtin.file:
+        path: /etc/mysql
+        state: absent
+
+    - name: Remove MySQL log directory
+      ansible.builtin.file:
+        path: /var/log/mysql
+        state: absent
+
+    - name: MySQL purge complete
+      ansible.builtin.debug:
+        msg: "MySQL has been stopped, purged, and all data removed from the host."
