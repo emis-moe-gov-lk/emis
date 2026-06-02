@@ -173,23 +173,16 @@ export const menuItems = [
         children: [
           {
             id: "divisiondirector",
-            label: "Division Director",
-            to: "/employees/divisiondirector",
-            permission: "menu.division.admin",
+            label: "Division Administrator",
+            to: "/employees/division/divisionAdmin",
+            permission: "menu.division",
           },
-          // {
-          //   id: "divisionhead",
-          //   label: "Division Head",
-          //   to: "/employees/divisionhead",
-          //   permission: "divisionhead.list.view",
-          // },
-          // {
-          //   id: "divisionclerk",
-          //   label: "Division Clerk",
-          //   to: "/employees/divisionclerk",
-          //   permission: "divisionclerk.list.view",
-          // },
-          
+          {
+            id: "divisiondeo",
+            label: "Division DEO",
+            to: "/employees/division/deo",
+            permission: "menu.division",
+          },
         ],
       },
 
@@ -203,21 +196,16 @@ export const menuItems = [
             id: "zonaldirector",
             label: "Zonal Administrators",
             to: "/employees/edu-directors",
-<<<<<<< HEAD
-            permission: "zonaladmin.view",
-          },
-=======
             permission: "menu.zonal.admin",
           },
 
-            {
+          {
             id: "zonaldeo",
             label: "Zonal Deo",
             to: "/employees/development-officers",
             permission: "menu.zonal.deo",
           },
 
->>>>>>> 6fd80b216d2b1cb05d4fe30cb240211ee7e7abfb
           // {
           //   id: "zonalclerk",
           //   label: "Zonal Clerk",

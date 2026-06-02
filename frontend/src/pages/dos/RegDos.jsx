@@ -39,6 +39,7 @@ import StepCurrentAppointment from "../../components/dos/steps/StepCurrentAppoin
 import { useAuthUser } from "@/context/useAuthUser";
 import BackToListButton from "@/components/UiComponents/BackToListButton";
 import Button from "@/components/UiComponents/Button";
+import { downloadDosAdminProfileDocument } from "@/api/dosAdminService";
 
 /**
  * Step configuration for the DOS registration form.
@@ -79,6 +80,9 @@ function RegDosInner() {
 
   // State for managing form submission
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Registration completion tracking
+  const [registrationSummary, setRegistrationSummary] = useState(null);
 
   // Destructure form state from context
   const {
@@ -251,6 +255,38 @@ function RegDosInner() {
   }, [isRestored, dispatch, identity, workplace, formData.currentAppointmentZone, formData.currentAppointmentInstitution]);
 
   /**
+   * Downloads DOS Admin profile document
+   */
+  const handleDownloadProfile = useCallback(async () => {
+    const peopleId =
+      registrationSummary?.people_id ||
+      registrationSummary?.id ||
+      formData?.people_id ||
+      formData?.id;
+
+    if (!peopleId) {
+      toast.error("Missing ID for profile download.");
+      return;
+    }
+
+    try {
+      const data = await downloadDosAdminProfileDocument(peopleId);
+      const blob = new Blob([data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `zonal-admin-profile-${peopleId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Download error:", err);
+      toast.error("Failed to download profile document.");
+    }
+  }, [registrationSummary, formData]);
+
+  /**
    * Handles progression to next step or form submission
    * Validates current step, submits form on step 4, advances to next step otherwise
    * 
@@ -274,6 +310,22 @@ function RegDosInner() {
 
         if (result.status === "success" || res.status === 201) {
           toast.success("Zonal Administrator registered successfully");
+
+          const responseData = result.data || {};
+          const summary = {
+            fullName: responseData.fullName || responseData.full_name || formData.fullName,
+            nic: responseData.nic || responseData.nic_no || formData.nic,
+            email: responseData.email || responseData.email_address || formData.email,
+            contact: responseData.contact || responseData.phone || responseData.phone_no || formData.contact,
+            currentPosition:
+              responseData.currentAppointmentPositionLabel ||
+              responseData.currentAppointmentPosition ||
+              formData.currentAppointmentPositionLabel ||
+              formData.currentAppointmentPosition,
+            people_id: responseData.people_id || responseData.id || null,
+          };
+
+          setRegistrationSummary(summary);
           dispatch({ type: "SET_STEP", payload: 6 });
         } else {
           dispatch({
@@ -415,39 +467,53 @@ function RegDosInner() {
           {currentStep === 6 && (
             <div className="space-y-8">
               {/* Success banner */}
-              <div className="flex items-start gap-4 bg-green-50 border border-green-200 rounded-2xl p-6">
-                <HiCheckCircle className="text-green-600 w-8 h-8 mt-1 flex-shrink-0" />
+              <div className="flex items-start gap-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900/40 rounded-2xl p-6">
+                <HiCheckCircle className="text-green-600 dark:text-green-500 w-8 h-8 mt-1 flex-shrink-0" />
                 <div>
-                  <h3 className="font-semibold text-green-800">Zonal Administrator Registration Successful</h3>
-                  <p className="text-sm text-green-700 mt-1">Registration has been completed successfully.</p>
+                  <h3 className="font-semibold text-green-800 dark:text-green-300">
+                    Zonal Administrator Registration Successful
+                  </h3>
+                  <p className="text-sm text-green-700 dark:text-green-400 mt-1">
+                    Registration has been completed successfully.
+                  </p>
                 </div>
               </div>
 
               {/* Registration summary data */}
-              <div className="bg-gray-50 rounded-2xl p-6 space-y-3 text-sm">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <p>
-                    <strong className="text-gray-700">Name:</strong> <span className="text-gray-600">{formData.fullName}</span>
-                  </p>
-                  <p>
-                    <strong className="text-gray-700">NIC:</strong> <span className="text-gray-600">{formData.nic}</span>
-                  </p>
-                  <p>
-                    <strong className="text-gray-700">Email:</strong> <span className="text-gray-600">{formData.email}</span>
-                  </p>
-                  <p>
-                    <strong className="text-gray-700">Contact Number:</strong> <span className="text-gray-600">{formData.contact}</span>
-                  </p>
-                  <p className="md:col-span-2">
-                    <strong className="text-gray-700">Current Position:</strong> <span className="text-gray-600">{formData.currentAppointmentPositionLabel || formData.currentAppointmentPosition}</span>
-                  </p>
-                </div>
+              <div className="surface rounded-2xl p-6 space-y-2 text-sm">
+                <p className="text-gray-900 dark:text-gray-100">
+                  <strong>Name:</strong>{" "}
+                  {registrationSummary?.fullName || formData.fullName || "-"}
+                </p>
+                <p className="text-gray-900 dark:text-gray-100">
+                  <strong>NIC:</strong>{" "}
+                  {registrationSummary?.nic || formData.nic || "-"}
+                </p>
+                <p className="text-gray-900 dark:text-gray-100">
+                  <strong>Email:</strong>{" "}
+                  {registrationSummary?.email || formData.email || "-"}
+                </p>
+                <p className="text-gray-900 dark:text-gray-100">
+                  <strong>Contact Number:</strong>{" "}
+                  {registrationSummary?.contact || formData.contact || "-"}
+                </p>
+                <p className="text-gray-900 dark:text-gray-100">
+                  <strong>Current Appointed Position:</strong>{" "}
+                  {registrationSummary?.currentPosition ||
+                    formData.currentAppointmentPositionLabel ||
+                    formData.currentAppointmentPosition ||
+                    "-"}
+                </p>
               </div>
 
               {/* Completion actions: New Registration or Download Profile */}
               <div className="flex justify-center gap-4 pt-4">
-                <Button variant="secondary" onClick={resetRegistration}>New Registration</Button>
-                <Button variant="primary">Download Profile</Button>
+                <Button variant="secondary" onClick={resetRegistration}>
+                  New Registration
+                </Button>
+                <Button variant="primary" onClick={handleDownloadProfile}>
+                  Download Profile
+                </Button>
               </div>
             </div>
           )}

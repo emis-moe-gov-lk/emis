@@ -5,15 +5,36 @@ import { useNavigate } from "react-router-dom";
 import Can from "@/components/common/Can";
 import { PermissionGroups } from "@/data/permissionGroups";
 
-export default function DosHeader({ count, isZonalAdmins, search, setSearch }) {
+export default function DosHeader({
+  count,
+  isZonalAdmins,
+  search,
+  setSearch,
+  title,
+  description,
+  searchPlaceholder,
+  createLabel,
+  loadingLabel,
+}) {
   const navigate = useNavigate();
 
-  const title = isZonalAdmins
-    ? "Zonal Administrator Directory"
-    : "Development Officer Directory";
-  const description = isZonalAdmins
-    ? "Manage zonal administrator profiles and records."
-    : "Manage development officer profiles and records.";
+  const createPermission = isZonalAdmins
+    ? PermissionGroups.ZONAL.ADMIN_CREATE
+    : PermissionGroups.ZONAL.DEO_CREATE;
+
+  const resolvedTitle =
+    title || (isZonalAdmins ? "Zonal Administrator Directory" : "Development Officer Directory");
+  const resolvedDescription =
+    description ||
+    (isZonalAdmins
+      ? "Manage zonal administrator profiles and records."
+      : "Manage development officer profiles and records.");
+  const resolvedSearchPlaceholder =
+    searchPlaceholder ||
+    (isZonalAdmins ? "Search Zonal Administrators" : "Search Development Officers");
+  const resolvedCreateLabel =
+    createLabel ||
+    (isZonalAdmins ? "Add Zonal Administrator" : "Add Development Officer");
 
   return (
     <div className="space-y-6">
@@ -21,10 +42,10 @@ export default function DosHeader({ count, isZonalAdmins, search, setSearch }) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            {title}
+            {resolvedTitle}
           </h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
-            {description}
+            {resolvedDescription}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -41,7 +62,7 @@ export default function DosHeader({ count, isZonalAdmins, search, setSearch }) {
             id="dos-search"
             type="text"
             icon={HiSearch}
-            placeholder={isZonalAdmins ? "Search Zonal Administrators" : "Search DOS Officers"}
+            placeholder={resolvedSearchPlaceholder}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -58,17 +79,23 @@ export default function DosHeader({ count, isZonalAdmins, search, setSearch }) {
             </button>
           </Can>
 
-          <Can permission={PermissionGroups.ZONAL.ADMIN_CREATE}>
+          <Can permission={createPermission}>
             <button
               onClick={() => navigate("create")}
               className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors shadow-sm"
             >
               <HiPlus />
-              {isZonalAdmins ? "Add Zonal Administrator" : "Add DOS Officer"}
+              {resolvedCreateLabel}
             </button>
           </Can>
         </div>
       </div>
+
+      {loadingLabel ? (
+        <p className="text-xs font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">
+          {loadingLabel}
+        </p>
+      ) : null}
     </div>
   );
 }

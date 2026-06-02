@@ -511,15 +511,18 @@ function RegDeoOfficerInner() {
     <div className="p-6 lg:p-10 max-w-5xl mx-auto space-y-8">
       <BackToListButton
         onClick={async () => {
+          const listPath = window.location.pathname.includes("/employees/division")
+            ? "/employees/division/deo"
+            : "/employees/development-officers";
           if (isRegistrationComplete) {
-            await confirmDiscardAndRun(() => navigate("/employees/development-officers"), {
+            await confirmDiscardAndRun(() => navigate(listPath), {
               skipPrompt: true,
               forceDiscard: true,
             });
             return;
           }
 
-          await confirmDiscardAndRun(() => navigate("/employees/development-officers"));
+          await confirmDiscardAndRun(() => navigate(listPath));
         }}
         label="Back To List"
         className="mb-8"
