@@ -588,11 +588,11 @@ class RolePermissionSeeder extends Seeder
 //             | User Management
 //             |--------------------------------------------------------------------------
 //             */
-//             'user.list.view',
+            'user.list.view',
 //             'user.create',
 //             'user.update',
-//             'user.password.reset',
-//             'user.status.update',
+            'user.password.reset',
+            'user.status.update',
 //             'user.delete',
 //             'user.edit',
 

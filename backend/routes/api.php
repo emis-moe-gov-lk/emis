@@ -129,6 +129,8 @@ Route::prefix('')->group(function () {
         Route::get('/teachers/current-appointment-form-data', 'getCurrentAppointmentFormData');      // current appointment (role-filtered)
         Route::post('/teachers/check-contact', 'checkContact');                                       // POST check email/phone
         Route::post('/teachers/{people_id}/education-qualifications', 'saveEducationQualification');
+        Route::post('/teachers/{people_id}/service-history', 'addServiceHistoryEntry');
+        Route::post('/teachers/{people_id}/past-services', 'addPastService');
         Route::get('/education-qualifications', 'getEducationQualifications');                           // GET qualification lookup
         Route::get('/education-qualification-grades', 'getEducationQualificationGrades');               // GET grade lookup
     });
@@ -138,6 +140,8 @@ Route::prefix('')->group(function () {
         Route::post('/principal-create', 'store');
         Route::get('/principal-recruitment-categories', 'recruitmentCategories');
         Route::get('/principal/{people_id}', 'getPrincipal');
+        Route::post('/principals/{people_id}/service-history', 'addServiceHistoryEntry');
+        Route::post('/principals/{people_id}/past-services', 'addPastService');
     });
 
     Route::controller(\App\Http\Controllers\API\AlertController::class)->middleware('auth:jwt')->group(function () {
@@ -163,9 +167,11 @@ Route::prefix('')->group(function () {
 
 
     Route::controller(DosAdminController::class)->middleware('auth:jwt')->prefix('dos-admins')->group(function () {
-        Route::get('/', 'index');         // GET all DOS admins
-        Route::post('/', 'store');        // POST register education administrator
-        Route::get('/{id}', 'show');      // GET single DOS admin profile
+        Route::get('/', 'index');                              // GET all DOS admins
+        Route::post('/', 'store');                             // POST register education administrator
+        Route::get('/{id}', 'show');                          // GET single DOS admin profile
+        Route::post('/{id}/service-history', 'addServiceHistoryEntry'); // POST add service history entry
+        Route::post('/{id}/past-services', 'addPastService');           // POST add past service block
     });
 
     Route::controller(DeoOfficerController::class)->middleware('auth:jwt')->prefix('deo-officers')->group(function () {
