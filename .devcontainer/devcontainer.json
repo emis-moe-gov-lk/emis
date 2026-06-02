@@ -1,0 +1,36 @@
+{
+  "name": "PHP Dev Container",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "forwardPorts": [8080],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "felixbecker.php-pack",
+        "ryannaddy.laravel-artisan",
+        "onecentlin.laravel-blade",
+        "usernamehw.errorlens",
+        "shufo.vscode-blade-formatter",
+        "streetsidesoftware.code-spell-checker",
+        "mtxr.sqltools",
+        "mtxr.sqltools-driver-mysql",
+        "bmewburn.vscode-intelephense-client",
+        "xdebug.php-debug",
+        "phpstan.phpstan"
+      ]
+    }
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    // "ghcr.io/devcontainers/features/php:1": {
+    //   "version": "8.4",
+    //   "installComposer": true,
+    //   "extensions": "mysqli,pdo_mysql,zip,intl,xml,mbstring,exif,pcntl,bcmath"
+    // },
+    "ghcr.io/rosstaco/devcontainer-features/ohmyposh:1": {
+      "theme": "space"
+    }
+  },
+  "postCreateCommand": "cd backend && composer install && php -m | grep gd || echo 'GD NOT INSTALLED'"
+}
