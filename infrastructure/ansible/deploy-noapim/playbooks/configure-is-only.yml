@@ -42,7 +42,7 @@
 
     - name: Set IS management base URL (direct container, port 9444)
       ansible.builtin.set_fact:
-        is_mgmt: "https://{{ is_direct_ip.stdout }}:{{ is_port }}"
+        is_mgmt: "https://192.168.200.2:{{ is_port }}"
 
     # =========================================================================
     # PART 1: Wait for IS
@@ -323,7 +323,7 @@
           Content-Type: "application/json"
         body_format: json
         body:
-          name: "CEMIS-LK M2M"
+          name: "EMIS-HRM M2M"
           description: "Machine-to-Machine application for SCIM2 API access"
           templateId: "m2m-application"
           inboundProtocolConfiguration:
@@ -349,7 +349,7 @@
 
     - name: Re-fetch M2M app ID if not set
       ansible.builtin.uri:
-        url: "{{ is_mgmt }}/api/server/v1/applications?filter=name+eq+CEMIS-LK+M2M"
+        url: "{{ is_mgmt }}/api/server/v1/applications?filter=name+eq+EMIS-HRM+M2M"
         method: GET
         validate_certs: no
         user: "{{ is_admin_name }}"
@@ -488,7 +488,7 @@
       debug:
         msg:
           - "============================================"
-          - "M2M Application: CEMIS-LK M2M"
+          - "M2M Application: EMIS-HRM M2M"
           - "============================================"
           - "Status: {{ 'Already existed' if m2m_app_exists else 'Created successfully' }}"
           - ""
