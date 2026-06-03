@@ -292,7 +292,7 @@
 
     - name: Check if M2M application already exists in IS
       ansible.builtin.uri:
-        url: "{{ is_mgmt }}/api/server/v1/applications?filter=name+eq+CEMIS-LK+M2M"
+        url: "{{ is_mgmt }}/api/server/v1/applications?filter=name+eq+EMIS-HRM+M2M"
         method: GET
         validate_certs: no
         user: "{{ is_admin_name }}"
