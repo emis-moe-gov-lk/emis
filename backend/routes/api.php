@@ -24,6 +24,8 @@ use App\Http\Controllers\API\UserApiController;
 use App\Http\Controllers\API\UserManagementController;
 use App\Http\Controllers\API\RoleController;
 use App\Http\Controllers\API\DeoOfficerController;
+use App\Http\Controllers\API\DivisionDeoController;
+use App\Http\Controllers\API\DivisionAdminController;
 use App\Http\Controllers\API\DosAdminController;
 use App\Http\Controllers\API\MobileTeacherProfileController;
 use App\Http\Controllers\API\EmployerAppointmentConfirmationController;
@@ -181,6 +183,26 @@ Route::prefix('')->group(function () {
         Route::get('/{id}', 'show');            // GET single
         Route::patch('/{id}', 'update');        // PATCH update
         Route::delete('/{id}', 'destroy');      // DELETE deactivate
+    });
+
+    Route::controller(DivisionDeoController::class)->middleware('auth:jwt')->prefix('division-deos')->group(function () {
+        Route::get('/', 'index');
+        Route::get('/form-data', 'formData');
+        Route::get('/current-appointment-form-data', 'currentAppointmentFormData');
+        Route::post('/', 'store');
+        Route::get('/{people_id}', 'show');
+        Route::put('/{people_id}', 'update');
+        Route::delete('/{people_id}', 'destroy');
+        Route::post('/{id}/service-history', 'addServiceHistoryEntry');
+        Route::post('/{id}/past-services', 'addPastService');
+    });
+
+    Route::controller(DivisionAdminController::class)->middleware('auth:jwt')->prefix('division-admins')->group(function () {
+        Route::get('/', 'index');
+        Route::post('/', 'store');
+        Route::get('/{people_id}', 'show');
+        Route::post('/{id}/service-history', 'addServiceHistoryEntry');
+        Route::post('/{id}/past-services', 'addPastService');
     });
 
     Route::get('/identity', AuthIdentityController::class)->middleware('auth:jwt');

@@ -182,6 +182,12 @@ export const PermissionGroups = {
 
   DIVISION: {
     DIVISION_VIEW: "menu.division",
+    ADMIN_VIEW: "menu.division.admin",
+    DEO_VIEW: "menu.division.deo",
+    ADMIN_CREATE: "division.admin.create",
+    ADMIN_PROFILE_VIEW: "division.admin.profile.view",
+    DEO_CREATE: "division.deo.create",
+    DEO_PROFILE_VIEW: "division.deo.profile.view",
   },
 
   ZONAL: {

@@ -66,6 +66,10 @@ import DosBulkUpload from "../pages/dos/DosBulkUpload.jsx";
 import RegDos from "../pages/dos/RegDos.jsx";
 import DosAdminForm from "../pages/dos/DosAdminForm.jsx";
 import RegDeoOfficer from "../pages/dos/RegDeoOfficer.jsx";
+import RegDivisionDeoOfficer from "../pages/division/RegDivisionDeoOfficer.jsx";
+import RegDivisionAdmin from "../pages/division/RegDivisionAdmin.jsx";
+import DivisionDeoProfile from "../pages/division/DivisionDeoProfile.jsx";
+import DivisionAdminProfile from "../pages/division/DivisionAdminProfile.jsx";
 import DosList from "../components/dos/DosList.jsx";
 import DosAdminProfile from "../pages/dos/DosAdminProfile.jsx";
 
@@ -249,16 +253,15 @@ export default function AppRoutes() {
               <Route path="create" element={<RegDeoOfficer />} />
               <Route path=":id" element={<DosAdminProfile />} />
             </Route>
-            <Route path="employees/division">
-              <Route index element={<Navigate to="deo" replace />} />
-              <Route path="deo" element={<DivisionDeoDirectory />} />
-              <Route path="deo/bulk-upload" element={<DosBulkUpload />} />
-              <Route path="deo/create" element={<RegDeoOfficer />} />
-              <Route path="deo/:id" element={<DosAdminProfile />} />
-              <Route path="divisionAdmin" element={<DivisionAdminDirectory />} />
-              <Route path="divisionAdmin/bulk-upload" element={<DosBulkUpload />} />
-              <Route path="divisionAdmin/create" element={<DosAdminForm />} />
-              <Route path="divisionAdmin/:id" element={<DosAdminProfile />} />
+            <Route path="employees/division/deo">
+              <Route index element={<DivisionDeoDirectory />} />
+              <Route path="create" element={<RegDivisionDeoOfficer />} />
+              <Route path=":id" element={<DivisionDeoProfile />} />
+            </Route>
+            <Route path="employees/division/admin">
+              <Route index element={<DivisionAdminDirectory />} />
+              <Route path="create" element={<RegDivisionAdmin />} />
+              <Route path=":id" element={<DivisionAdminProfile />} />
             </Route>
             <Route path="employees/edu-directors">
               <Route index element={<ZonalDirectory />} />

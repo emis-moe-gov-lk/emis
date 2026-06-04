@@ -1043,27 +1043,24 @@ class RolePermissionSeeder extends Seeder
 
 
         'menu.division',
-
-
-        'menu.zonal',
-        'menu.zonal.admin',
-        'menu.zonal.deo',
-        'zonal.admin.create',
-        'zonal.admin.bulk.upload',
-        'zonal.admin.profile.view',
-        'zonal.admin.profile.exportpdf',
-        'zonal.admin.service.add',
-        'zonal.admin.qualification.add',
-        'zonal.admin.wop.edit',
-        'zonal.admin.family.add',
-        'zonal.deo.create',
-        'zonal.deo.bulk.upload',
-        'zonal.deo.profile.view',
-        'zonal.deo.profile.exportpdf',
-        'zonal.deo.qualification.add',
-        'zonal.deo.service.add',
-        'zonal.deo.wop.edit',
-        'zonal.deo.family.add',
+        'menu.division.admin',
+        'menu.division.deo',
+        'division.admin.create',
+        'division.admin.bulk.upload',
+        'division.admin.profile.view',
+        'division.admin.profile.exportpdf',
+        'division.admin.service.add',
+        'division.admin.qualification.add',
+        'division.admin.wop.edit',
+        'division.admin.family.add',
+        'division.deo.create',
+        'division.deo.bulk.upload',
+        'division.deo.profile.view',
+        'division.deo.profile.exportpdf',
+        'division.deo.qualification.add',
+        'division.deo.service.add',
+        'division.deo.wop.edit',
+        'division.deo.family.add',
 
 
         'menu.provincial',
@@ -1268,6 +1265,113 @@ class RolePermissionSeeder extends Seeder
             $role->level = $level;
             $role->save();
             $role->syncPermissions($zonalDeoPermissions);
+        }
+
+        // Divisional Director & Divisional Deputy Director
+        $divisionalAdminPermissions = [
+            'menu.dashboard',
+            'dashboard.analytics',
+            'menu.schools',
+            'menu.schools.teachers',
+            'menu.schools.principals',
+            'teacher.profile.view',
+            'teacher.profile.confirm',
+            'teacher.profile.exportpdf',
+            'teacher.profile.qualification.view',
+            'teacher.profile.employment.view',
+            'principal.profile.view',
+            'principal.profile.qualification.view',
+            'principal.profile.employment.view',
+            'menu.attendance',
+            'attendance.manage.update',
+            'menu.alerts',
+            'alerts.profile.view',
+            'alerts.profile.verify',
+            'alerts.profile.confirm',
+            'menu.division',
+            'menu.division.admin',
+            'menu.division.deo',
+        ];
+
+        foreach (['Divisional Director' => 3, 'Divisional Deputy Director' => 4] as $roleName => $level) {
+            $role        = Role::firstOrCreate(['name' => $roleName]);
+            $role->level = $level;
+            $role->save();
+            $role->syncPermissions($divisionalAdminPermissions);
+        }
+
+        // Divisional DEO HEAD & Divisional DEO
+        $divisionalDeoPermissions = [
+            'menu.dashboard',
+            'dashboard.analytics',
+            'menu.schools',
+            'menu.schools.teachers',
+            'menu.schools.principals',
+            'menu.schools.deo',
+            'teacher.bulk.upload',
+            'teacher.create',
+            'teacher.update',
+            'teacher.delete',
+            'teacher.profile.view',
+            'teacher.profile.confirm',
+            'teacher.profile.printid',
+            'teacher.profile.exportpdf',
+            'teacher.profile.promote',
+            'teacher.profile.edit.view',
+            'teacher.profile.edit.request.view',
+            'teacher.profile.qualification.view',
+            'teacher.profile.employment.view',
+            'teacher.profile.employment.previous.service.create',
+            'teacher.profile.employment.previous.record.view',
+            'teacher.profile.pension.and.payment.update',
+            'teacher.profile.family.create',
+            'principal.bulk.upload',
+            'principal.create',
+            'principal.update',
+            'principal.delete',
+            'principal.profile.view',
+            'principal.profile.edit.view',
+            'principal.profile.edit.request.view',
+            'principal.profile.qualification.view',
+            'principal.profile.employment.view',
+            'principal.profile.employment.previous.service.create',
+            'principal.profile.employment.previous.record.view',
+            'principal.profile.pension.and.payment.update',
+            'principal.profile.family.create',
+            'menu.attendance',
+            'attendance.manage.update',
+            'menu.alerts',
+            'alerts.profile.view',
+            'alerts.profile.verify',
+            'alerts.profile.confirm',
+            'alerts.profile.revise',
+            'alerts.profile.reject',
+            'menu.division',
+            'menu.division.admin',
+            'menu.division.deo',
+            'division.admin.create',
+            'division.admin.bulk.upload',
+            'division.admin.profile.view',
+            'division.admin.profile.exportpdf',
+            'division.admin.service.add',
+            'division.admin.qualification.add',
+            'division.admin.wop.edit',
+            'division.admin.family.add',
+            'division.deo.create',
+            'division.deo.bulk.upload',
+            'division.deo.profile.view',
+            'division.deo.profile.exportpdf',
+            'division.deo.qualification.add',
+            'division.deo.service.add',
+            'division.deo.wop.edit',
+            'division.deo.family.add',
+        ];
+
+        foreach (['Divisional DEO HEAD' => 6, 'Divisional DEO' => 7] as $roleName => $level) {
+            $role        = Role::firstOrCreate(['name' => $roleName]);
+            $role->level = $level;
+            $role->save();
+            $role->syncPermissions($divisionalDeoPermissions);
         }
     }
 }
