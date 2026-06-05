@@ -54,6 +54,13 @@ app_password = "dashboard"
 [oauth]
 authorize_all_scopes = true
 
+[oauth.token_generation]
+access_token_type = "self_contained"
+
+[oauth.oidc.claims]
+enable_oidc_dialect = true
+enable_unmapped_user_attributes = true
+
 [[event_listener]]
 id = "token_revocation"
 type = "org.wso2.carbon.identity.core.handler.AbstractIdentityHandler"
