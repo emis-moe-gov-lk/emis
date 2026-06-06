@@ -470,7 +470,7 @@
       when: teacher_role_lookup.json.totalResults | default(0) | int > 0
 
     # =========================================================================
-    # Summary: display all credentials to paste into env file
+    # Summary: display all credentials and update env/uat.yml
     # =========================================================================
 
     - name: Display EMIS Web App client_id
@@ -492,7 +492,6 @@
           - "============================================"
           - "Status: {{ 'Already existed' if m2m_app_exists else 'Created successfully' }}"
           - ""
-          - "Add these to env/uat.yml then re-run deploy-stack.yml:"
           - "wso2_m2m_client_id={{ m2m_oidc_config.json.clientId | default('N/A') }}"
           - "wso2_m2m_client_secret={{ m2m_oidc_config.json.clientSecret | default('N/A') }}"
           - "wso2_teacher_role_id={{ teacher_role_id | default('NOT_FOUND - create Teacher role first') }}"
@@ -501,3 +500,20 @@
         - m2m_oidc_config is defined
         - m2m_oidc_config is not skipped
         - m2m_oidc_config.json is defined
+
+    - name: Update env/uat.yml with generated credentials
+      ansible.builtin.lineinfile:
+        path: "env/uat.yml"
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+      loop:
+        - { regexp: '^vite_asgardeo_client_id:', line: 'vite_asgardeo_client_id: "{{ webapp_oidc.json.clientId }}"' }
+        - { regexp: '^wso2_m2m_client_id:', line: 'wso2_m2m_client_id:     "{{ m2m_oidc_config.json.clientId }}"' }
+        - { regexp: '^wso2_m2m_client_secret:', line: 'wso2_m2m_client_secret: "{{ m2m_oidc_config.json.clientSecret }}"' }
+        - { regexp: '^wso2_teacher_role_id:', line: 'wso2_teacher_role_id:   "{{ teacher_role_id }}"' }
+      delegate_to: localhost
+      run_once: true
+      when:
+        - webapp_oidc is defined and webapp_oidc is not skipped
+        - m2m_oidc_config is defined and m2m_oidc_config is not skipped
+        - teacher_role_id is defined and teacher_role_id != 'NOT_FOUND'
