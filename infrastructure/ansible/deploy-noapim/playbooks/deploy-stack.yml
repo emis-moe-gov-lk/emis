@@ -9,6 +9,19 @@
     stack_file:  "{{ deploy_path }}/docker-stack.yml"
 
   tasks:
+    - name: Load environment variables
+      ansible.builtin.include_vars:
+        file: ../env/uat.yml
+        name: fresh_vars
+
+    - name: Debug environment variables
+      ansible.builtin.debug:
+        msg:
+          - "vite_asgardeo_client_id: {{ vite_asgardeo_client_id }}"
+          - "wso2_m2m_client_id: {{ wso2_m2m_client_id }}"
+          - "wso2_m2m_client_secret: {{ wso2_m2m_client_secret }}"
+          - "wso2_teacher_role_id: {{ wso2_teacher_role_id }}"
+
     - name: Ensure stack deploy directory exists
       ansible.builtin.file:
         path: "{{ deploy_path }}"

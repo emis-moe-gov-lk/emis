@@ -46,32 +46,17 @@
 # ── Step 6: Configure IS (roles, users, OIDC apps) ───────────────────────────
 - import_playbook: configure-is-only.yml
 
-# ── Step 7: Post-deployment instructions ─────────────────────────────────────
-- name: Post-deployment — credential update instructions
+# ── Step 7: Deploy stack with updated credentials ────────────────────────────
+# - import_playbook: deploy-stack.yml
+
+# ── Step 8: Post-deployment summary ──────────────────────────────────────────
+- name: Post-deployment — status summary
   hosts: localhost
   gather_facts: false
   tasks:
-    - name: Print next steps
+    - name: Print success message
       ansible.builtin.debug:
         msg:
           - "================================================================"
-          - "EMIS No-APIM stack is running. One manual step remains:"
-          - "================================================================"
-          - ""
-          - "1. Copy the credentials printed by Step 6 above."
-          - ""
-          - "2. Edit deploy-noapim/env/uat.yml and set:"
-          - "     vite_asgardeo_client_id: '<EMIS Web App clientId>'"
-          - "     wso2_m2m_client_id:      '<M2M clientId>'"
-          - "     wso2_m2m_client_secret:  '<M2M clientSecret>'  # encrypt with vault"
-          - "     wso2_teacher_role_id:    '<Teacher role ID>'"
-          - ""
-          - "3. Re-deploy the stack to inject the updated credentials:"
-          - "     ansible-playbook deploy-noapim/playbooks/deploy-stack.yml \\"
-          - "       -i deploy-noapim/inventory/uat.yml \\"
-          - "       -e @deploy-noapim/env/uat.yml \\"
-          - "       --vault-password-file deploy-noapim/.vault_pass"
-          - ""
-          - "   The frontend image must also be rebuilt after this step"
-          - "   because VITE_ASGARDEO_CLIENT_ID is baked at build time."
+          - "EMIS No-APIM stack is successfully Configured on {{ deploy_env }}."
           - "================================================================"
