@@ -16,6 +16,12 @@ use App\Helpers\NicHelper;
 
 class SuperAdminSeeder extends Seeder
 {
+    /**
+     * Shared by the local password hash and IS provisioning. Must satisfy
+     * the IS password policy (>= 1 digit) or SCIM user creation fails.
+     */
+    private const PASSWORD = 'Password@123';
+
     public function run(): void
     {
         // Ensure the role exists
@@ -68,7 +74,7 @@ class SuperAdminSeeder extends Seeder
                 'name'          => $person->name_with_initials,
                 'email'         => 'superadmin@example.com',
                 'contact'       => '0712345678',
-                'password'      => 'password@*',
+                'password'      => self::PASSWORD,
                 'active_status' => '1',
             ]
         );
@@ -112,8 +118,7 @@ class SuperAdminSeeder extends Seeder
         $user->assignRole($superAdminRole);
 
         // Mirror into WSO2 IS so JwtGuard can resolve the token's sub claim.
-        app(Wso2IsProvisioningService::class)
-            ->provisionUser($user, 'password@*', $superAdminRole->name);
+        $this->provisionIntoIs($user, $superAdminRole->name);
 
         // ---------------------------------------------------------------
         // Second Super Admin
@@ -160,7 +165,7 @@ class SuperAdminSeeder extends Seeder
                 'name'          => $person2->name_with_initials,
                 'email'         => 'mohammedshadhir5@gmail.com',
                 'contact'       => '0712345679',
-                'password'      => 'password@*',
+                'password'      => self::PASSWORD,
                 'active_status' => '1',
             ]
         );
@@ -197,7 +202,20 @@ class SuperAdminSeeder extends Seeder
 
         $user2->assignRole($superAdminRole);
 
-        app(Wso2IsProvisioningService::class)
-            ->provisionUser($user2, 'password@*', $superAdminRole->name);
+        $this->provisionIntoIs($user2, $superAdminRole->name);
+    }
+
+    private function provisionIntoIs(User $user, string $role): void
+    {
+        $result = app(Wso2IsProvisioningService::class)
+            ->provisionUser($user, self::PASSWORD, $role);
+
+        if (($result['enabled'] ?? false) && ! ($result['provisioned'] ?? false)) {
+            $this->command?->warn(sprintf(
+                'WSO2 IS provisioning failed for %s: %s',
+                $user->email,
+                $result['error'] ?? 'unknown error'
+            ));
+        }
     }
 }

@@ -72,7 +72,7 @@
           - "     vite_asgardeo_client_id: '<EMIS Web App clientId>'"
           - "     wso2_m2m_client_id:      '<M2M clientId>'"
           - "     wso2_m2m_client_secret:  '<M2M clientSecret>'"
-          - "     wso2_teacher_role_id:    '<Teacher role ID>'"
+          - "     wso2_role_ids.teacher:   '<Teacher role ID>' (and other roles as they exist)"
           - ""
           - "3. Rebuild the frontend image with the real client id"
           - "   (VITE_ASGARDEO_CLIENT_ID is baked at build time):"

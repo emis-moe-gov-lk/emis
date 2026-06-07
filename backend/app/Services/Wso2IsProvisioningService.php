@@ -75,9 +75,24 @@ class Wso2IsProvisioningService
 
     private function findUserIdByEmail(string $email): ?string
     {
+        // Fast path: users this service creates have userName = email.
         $response = $this->scimRequest()
             ->get($this->baseUrl() . '/scim2/Users', [
                 'filter' => sprintf('userName eq "PRIMARY/%s"', $email),
+            ])
+            ->throw()
+            ->json();
+
+        if ($id = $response['Resources'][0]['id'] ?? null) {
+            return $id;
+        }
+
+        // Fallback: users created outside this service (e.g. the ansible
+        // playbook) carry a different userName — match the email attribute
+        // so they are linked instead of duplicated.
+        $response = $this->scimRequest()
+            ->get($this->baseUrl() . '/scim2/Users', [
+                'filter' => sprintf('emails eq "%s"', $email),
             ])
             ->throw()
             ->json();
