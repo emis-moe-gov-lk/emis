@@ -64,7 +64,9 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 120s
+      # Startup runs `composer install` (downloads dev deps not baked into the
+      # image) + migrate:fresh --seed — comfortably exceeds 120s.
+      start_period: 600s
     networks:
       - noapim-uat-swm-network
     deploy:
