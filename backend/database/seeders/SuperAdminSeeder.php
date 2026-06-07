@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\People;
 use App\Models\EmployerAppointment;
 use App\Models\EmployerCurrentAppointment;
+use App\Services\Wso2IsProvisioningService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -110,6 +111,10 @@ class SuperAdminSeeder extends Seeder
         // Assign role
         $user->assignRole($superAdminRole);
 
+        // Mirror into WSO2 IS so JwtGuard can resolve the token's sub claim.
+        app(Wso2IsProvisioningService::class)
+            ->provisionUser($user, 'password@*', $superAdminRole->name);
+
         // ---------------------------------------------------------------
         // Second Super Admin
         // ---------------------------------------------------------------
@@ -191,5 +196,8 @@ class SuperAdminSeeder extends Seeder
         );
 
         $user2->assignRole($superAdminRole);
+
+        app(Wso2IsProvisioningService::class)
+            ->provisionUser($user2, 'password@*', $superAdminRole->name);
     }
 }

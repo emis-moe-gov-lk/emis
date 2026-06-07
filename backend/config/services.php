@@ -75,6 +75,7 @@ return [
             'moe administrator'              => env('WSO2_ROLE_ID_MOE_ADMINISTRATOR'),
             'psc officer'                    => env('WSO2_ROLE_ID_PSC_OFFICER'),
             'ssa'                            => env('WSO2_ROLE_ID_SSA'),
+            'super admin'                    => env('WSO2_ROLE_ID_SUPER_ADMIN'),
         ],
     ],
 

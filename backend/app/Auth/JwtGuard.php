@@ -47,15 +47,48 @@ class JwtGuard implements Guard
 
         $roles = (array) ($payload->roles ?? []);
         $this->request->attributes->set('jwt_roles', $roles);
+
+        // Primary resolution: the IS user id. The IS apps are configured with
+        // subject claim = http://wso2.org/claims/userid (the immutable SCIM
+        // UUID), which provisioning persists as identity_provider_user_id.
+        $sub = isset($payload->sub) ? trim((string) $payload->sub) : '';
+
+        $user = $sub !== ''
+            ? User::query()->where('identity_provider_user_id', $sub)->first()
+            : null;
+
+        if (! $user) {
+            $user = $this->resolveByEmailClaim($payload, $sub);
+        }
+
+        if (! $user) {
+            return null;
+        }
+
+        $this->request->attributes->set('jwt_email', strtolower((string) $user->email));
+        $this->request->attributes->set('jwt_people_id', $user->people_id);
+
+        return $this->user = $user;
+    }
+
+    /**
+     * Fallback for users that exist in IS but were never linked locally
+     * (e.g. created by the ansible playbook, or provisioning ran while IS
+     * was unreachable). On a successful match the IS user id is backfilled
+     * so every subsequent request resolves by sub.
+     */
+    private function resolveByEmailClaim(object $payload, string $sub): ?User
+    {
         $email = $payload->email
             ?? $payload->preferred_username
             ?? $payload->upn
             ?? $payload->username
             ?? null;
 
-
         if (! $email) {
-            Log::warning('JWT user resolution failed: no supported identity claim found');
+            Log::warning('JWT user resolution failed: sub did not match and no email claim found', [
+                'sub' => $sub,
+            ]);
             return null;
         }
 
@@ -65,20 +98,23 @@ class JwtGuard implements Guard
             ->whereRaw('LOWER(email) = ?', [$email])
             ->first();
 
-
         if (! $user) {
             Log::warning('JWT user resolution failed: no matching local user', [
+                'sub'   => $sub,
                 'email' => $email,
             ]);
             return null;
         }
 
-        $this->request->attributes->set('jwt_email', $email);
-        $this->request->attributes->set('jwt_people_id', $user->people_id);
+        if ($sub !== '') {
+            Log::info('JWT user resolved by email fallback; backfilling identity_provider_user_id', [
+                'sub'       => $sub,
+                'people_id' => $user->people_id,
+            ]);
+            $user->forceFill(['identity_provider_user_id' => $sub])->saveQuietly();
+        }
 
-
-
-        return $this->user = $user;
+        return $user;
     }
 
     public function validate(array $credentials = []): bool

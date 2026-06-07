@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Helpers\NicHelper;
 use App\Models\EmployerAppointment;
 use App\Models\EmployerCurrentAppointment;
+use App\Services\Wso2IsProvisioningService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 use App\Models\User;
@@ -37,6 +38,8 @@ class UserSeeder extends Seeder
             ['nic' => '900000000017', 'name' => 'School DEO', 'email' => 'schooldeo@gmail.com', 'contact' => '0700000017', 'password' => 'Password@123', 'role' => 'School DEO', 'service_id' => 'SER007', 'rank_id' => 'RANK019', 'position_id' => 'POS021', 'office_level_id' => 'OLID006', 'workplace_kind' => 'school', 'workplace_value' => 'KERAWALAPITIYA VIDYALOKA M.V.'],
         ];
 
+        $provisioner = app(Wso2IsProvisioningService::class);
+
         foreach ($staticUsers as $index => $staticUser) {
             $normalizedNic = NicHelper::normalize($staticUser['nic']);
             $nicHash = NicHelper::hash($normalizedNic);
@@ -63,6 +66,19 @@ class UserSeeder extends Seeder
 
             $role = Role::firstOrCreate(['name' => $staticUser['role']]);
             $user->syncRoles([$role->name]);
+
+            // Provision into WSO2 IS (create-or-link by email, assign role) so
+            // identity_provider_user_id is populated and JwtGuard can resolve
+            // the token's sub claim. No-op when WSO2_ENABLED is false; errors
+            // are logged per-user without aborting the seed run.
+            $result = $provisioner->provisionUser($user, $staticUser['password'], $staticUser['role']);
+            if (($result['enabled'] ?? false) && ! ($result['provisioned'] ?? false)) {
+                $this->command?->warn(sprintf(
+                    'WSO2 IS provisioning failed for %s: %s',
+                    $staticUser['email'],
+                    $result['error'] ?? 'unknown error'
+                ));
+            }
 
             if (! $existingPeopleId) {
                 continue;
