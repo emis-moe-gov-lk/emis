@@ -1,0 +1,37 @@
+# Local-only reverse proxy for the no-APIM stack.
+#
+# Attaches to the stack's attachable overlay network (created by
+# `docker stack deploy`, so deploy the stack first) and terminates TLS for
+# the UAT-mirror hostnames. The network aliases let sibling containers
+# (backend) resolve https://idp.app-uat.emis.moe.gov.lk to this proxy so
+# the OIDC issuer/JWKS URLs match what the browser uses.
+#
+# Usage (after the stack is up):
+#   docker compose -f docker-compose.proxy-local.yml up -d
+#
+# Add /etc/hosts entries pointing the hostnames below at 127.0.0.1.
+# Certs are reused from infrastructure/docker-swarm/nginx-proxy/certs.
+#
+# NOTE: nginx.conf is a single-file bind mount — atomic-write editors break
+# the mount (inode change). Edit with `sed -i` or force-recreate after edits.
+
+networks:
+  hrm-noapim-swm-network:
+    external: true
+
+services:
+  nginx-proxy:
+    image: nginx:1.27-alpine
+    restart: on-failure
+    ports:
+      # 443 only — the stack's frontend service already publishes host port 80.
+      - "443:443"
+    volumes:
+      - ./nginx-proxy-local/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ../../docker-swarm/nginx-proxy/certs:/etc/nginx/certs:ro
+    networks:
+      hrm-noapim-swm-network:
+        aliases:
+          - app-uat.emis.moe.gov.lk
+          - api-uat.emis.moe.gov.lk
+          - idp.app-uat.emis.moe.gov.lk

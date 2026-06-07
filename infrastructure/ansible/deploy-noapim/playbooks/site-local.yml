@@ -1,0 +1,86 @@
+---
+# ============================================================
+# EMIS No-APIM — Local Deployment Orchestration
+# ============================================================
+# Local mirror of site.yml for a single developer machine:
+#   - MySQL runs in a container (mysql-container-local.yml) instead of
+#     being installed on the host (mysql-install.yml)
+#   - A local nginx-proxy terminates TLS for the UAT-mirror hostnames
+#     (add /etc/hosts entries → 127.0.0.1)
+#   - Images are built locally (emis-{frontend,backend,is}:local)
+#
+# Usage:
+#   cd infrastructure/ansible
+#   ANSIBLE_CONFIG=/tmp/ansible-emis-local.cfg ansible-playbook \
+#     deploy-noapim/playbooks/site-local.yml \
+#     -i deploy-noapim/inventory/local.yml \
+#     -e @deploy-noapim/env/local.yml \
+#     -e target_hosts=all -K
+#
+# After it completes: paste the printed credentials into env/local.yml,
+# rebuild the frontend image with the real VITE_ASGARDEO_CLIENT_ID,
+# re-run deploy-stack.yml, then `docker service update --force noapim_frontend`.
+# ============================================================
+
+# ── Step 1: Pre-flight checks ─────────────────────────────────────────────────
+- import_playbook: pre-check.yml
+
+# ── Step 2: MySQL container (replaces host install) ───────────────────────────
+- import_playbook: mysql-container-local.yml
+
+# ── Step 3: Create EMIS application database and user ────────────────────────
+- import_playbook: mysql-setup-emis-db.yml
+
+# ── Step 4: Create WSO2 IS databases and import schemas ──────────────────────
+- import_playbook: mysql-setup-wso2-is-only.yml
+
+# ── Step 5: Render env files and deploy the Docker stack ─────────────────────
+- import_playbook: deploy-stack.yml
+
+# ── Step 6: Start the local nginx reverse proxy ──────────────────────────────
+# Must run after deploy-stack.yml: the proxy attaches to the stack's
+# attachable overlay network, which only exists once the stack is deployed.
+- name: Start local nginx reverse proxy
+  hosts: swarm_managers
+  become: true
+  tasks:
+    - name: Start nginx-proxy on the stack overlay network
+      ansible.builtin.command:
+        cmd: docker compose -f docker-compose.proxy-local.yml up -d
+        chdir: "{{ playbook_dir }}/.."
+      register: proxy_up
+      changed_when: "'Started' in proxy_up.stderr or 'Created' in proxy_up.stderr"
+
+# ── Step 7: Configure IS (roles, users, OIDC apps) ───────────────────────────
+- import_playbook: configure-is-only.yml
+
+# ── Step 8: Post-deployment instructions ─────────────────────────────────────
+- name: Post-deployment — credential update instructions (local)
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Print next steps
+      ansible.builtin.debug:
+        msg:
+          - "================================================================"
+          - "EMIS No-APIM local stack is running. One manual step remains:"
+          - "================================================================"
+          - ""
+          - "1. Copy the credentials printed by Step 7 above."
+          - ""
+          - "2. Edit deploy-noapim/env/local.yml and set:"
+          - "     vite_asgardeo_client_id: '<EMIS Web App clientId>'"
+          - "     wso2_m2m_client_id:      '<M2M clientId>'"
+          - "     wso2_m2m_client_secret:  '<M2M clientSecret>'"
+          - "     wso2_teacher_role_id:    '<Teacher role ID>'"
+          - ""
+          - "3. Rebuild the frontend image with the real client id"
+          - "   (VITE_ASGARDEO_CLIENT_ID is baked at build time):"
+          - "     docker build -t emis-frontend:local --build-arg ... frontend/"
+          - ""
+          - "4. Re-deploy to inject the updated credentials:"
+          - "     ansible-playbook deploy-noapim/playbooks/deploy-stack.yml \\"
+          - "       -i deploy-noapim/inventory/local.yml \\"
+          - "       -e @deploy-noapim/env/local.yml -K"
+          - "     docker service update --force noapim_frontend"
+          - "================================================================"

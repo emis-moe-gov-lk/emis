@@ -1,0 +1,71 @@
+---
+# ---PLAY-MYSQL-CONTAINER-LOCAL-----
+# Local replacement for mysql-install.yml: instead of installing MySQL on
+# the host, runs a dedicated mysql:8.0 container with its socket directory
+# bind-mounted on the host so the unchanged socket-based setup playbooks
+# (mysql-setup-emis-db.yml, mysql-setup-wso2-is-only.yml) can connect via
+# `mysql_socket` (overridden in env/local.yml).
+#
+# Also ensures Docker Swarm is initialized — local mirrors the UAT
+# single-node manager+worker+db layout.
+- name: Run MySQL 8.0 in a local container (host MySQL untouched)
+  hosts: db_host
+  become: true
+  vars:
+    mysql_container_name: emis-noapim-mysql
+    mysql_published_port: "3307"           # 3306 is taken by the host MySQL
+    mysql_socket_dir: "{{ mysql_socket | dirname }}"
+
+  tasks:
+    - name: Check swarm state
+      ansible.builtin.command: docker info --format '{{ "{{" }}.Swarm.LocalNodeState{{ "}}" }}'
+      register: swarm_state
+      changed_when: false
+
+    - name: Initialize single-node swarm
+      ansible.builtin.command: docker swarm init
+      when: swarm_state.stdout != 'active'
+
+    - name: Ensure MySQL socket directory exists on host
+      ansible.builtin.file:
+        path: "{{ mysql_socket_dir }}"
+        state: directory
+        mode: '0777'     # container mysql uid (999) must create the socket here
+
+    - name: Check whether the MySQL container exists
+      ansible.builtin.command: docker ps -aq --filter "name=^{{ mysql_container_name }}$"
+      register: mysql_container
+      changed_when: false
+
+    - name: Start MySQL container
+      ansible.builtin.command: >
+        docker run -d
+        --name {{ mysql_container_name }}
+        --restart unless-stopped
+        -p {{ mysql_published_port }}:3306
+        -e MYSQL_ROOT_PASSWORD={{ mysql_root_password }}
+        -v emis-noapim-mysql-data:/var/lib/mysql
+        -v {{ mysql_socket_dir }}:/var/run/mysqld
+        mysql:8.0
+      when: mysql_container.stdout | length == 0
+
+    - name: Ensure existing MySQL container is running
+      ansible.builtin.command: docker start {{ mysql_container_name }}
+      when: mysql_container.stdout | length > 0
+      register: mysql_start
+      changed_when: false
+
+    - name: Wait for MySQL to accept connections on the socket
+      ansible.builtin.command: >
+        docker exec {{ mysql_container_name }}
+        mysqladmin ping -uroot -p{{ mysql_root_password }} --silent
+      register: mysql_ping
+      retries: 30
+      delay: 5
+      until: mysql_ping.rc == 0
+      changed_when: false
+
+    - name: Ensure PyMySQL is installed on the host (for community.mysql modules)
+      ansible.builtin.package:
+        name: python3-pymysql
+        state: present
