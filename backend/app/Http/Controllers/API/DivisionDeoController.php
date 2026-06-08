@@ -203,7 +203,7 @@ class DivisionDeoController extends Controller
             $query = $query->with([
                 'title',
                 'gender',
-                'appointment',
+                'myAppointments',
                 'currentAppointment.service',
                 'currentAppointment.rank',
                 'currentAppointment.position',
@@ -211,9 +211,15 @@ class DivisionDeoController extends Controller
 
             $officers = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
+            $data = collect($officers->items())->map(function (People $person) {
+                $arr = $person->toArray();
+                $arr['confirmed'] = $person->myAppointments->contains(fn($a) => (int) $a->is_confirmed === 1);
+                return $arr;
+            })->values();
+
             return response()->json([
                 'status'       => 'success',
-                'data'         => $officers->items(),
+                'data'         => $data,
                 'total'        => $officers->total(),
                 'per_page'     => $officers->perPage(),
                 'current_page' => $officers->currentPage(),
@@ -556,12 +562,19 @@ class DivisionDeoController extends Controller
                 'first_appointment_date' => $validated['appointmentDate'],
                 'retirement_date'        => $retirementDate->toDateString(),
                 'service_id'             => $serviceId,
-                'rank_id'                => $validated['rankId'],
+                'rank_id'               => $validated['rankId'],
                 'position_id'            => $validated['positionId'],
                 'office_level_id'        => 'OLID005',
                 'workplace_id'           => $validated['divisionalOfficeId'],
                 'appointment_letter_no'  => $validated['appointmentLetter'],
                 'appointment_letter'     => 'none.pdf',
+                'active_status'          => 1,
+                'is_verified'            => 1,
+                'verified_by'            => auth()->user()?->people_id,
+                'verified_date'          => now()->toDateTimeString(),
+                'is_confirmed'           => 1,
+                'confirmed_by'           => auth()->user()?->people_id,
+                'confirmed_date'         => now()->toDateTimeString(),
             ]);
 
             // ---- CURRENT APPOINTMENT ----
@@ -578,13 +591,19 @@ class DivisionDeoController extends Controller
 
             // ---- USER ----
             $user = User::create([
-                'nic'      => $nic,
-                'nic_hash' => NicHelper::hash($nic),
-                'people_id' => $people->people_id,
-                'name'     => $people->name_with_initials,
-                'email'    => strtolower($validated['email']),
-                'contact'  => $validated['contact'],
-                'password' => Hash::make('Password@123'),
+                'nic'                      => $nic,
+                'nic_hash'                 => NicHelper::hash($nic),
+                'people_id'                => $people->people_id,
+                'name'                     => $people->name_with_initials,
+                'email'                    => strtolower($validated['email']),
+                'contact'                  => $validated['contact'],
+                'password'                 => Hash::make('Password@123'),
+                'identity_provider'        => 'local',
+                'active_status'            => true,
+                'must_change_password'     => true,
+                'password_initialized_at'  => now(),
+                'password_changed_at'      => null,
+                'default_password_version' => 1,
             ]);
 
             $user->assignRole('Divisional DEO');

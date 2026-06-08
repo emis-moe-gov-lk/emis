@@ -113,7 +113,7 @@ class DivisionAdminController extends Controller
             $query = $query->with([
                 'title',
                 'gender',
-                'appointment',
+                'myAppointments',
                 'currentAppointment.service',
                 'currentAppointment.rank',
                 'currentAppointment.position',
@@ -122,9 +122,15 @@ class DivisionAdminController extends Controller
 
             $admins = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
+            $data = collect($admins->items())->map(function (People $person) {
+                $arr = $person->toArray();
+                $arr['confirmed'] = $person->myAppointments->contains(fn($a) => (int) $a->is_confirmed === 1);
+                return $arr;
+            })->values();
+
             return response()->json([
                 'status'       => 'success',
-                'data'         => $admins->items(),
+                'data'         => $data,
                 'total'        => $admins->total(),
                 'per_page'     => $admins->perPage(),
                 'current_page' => $admins->currentPage(),
@@ -319,6 +325,13 @@ class DivisionAdminController extends Controller
                 'appointment_letter'      => 'none.pdf',
                 'recruitment_category_id' => $validated['recruitmentCategory'],
                 'recruitment_subject_id'  => $validated['recruitmentSubject'],
+                'active_status'          => 1,
+                'is_verified'            => 1,
+                'verified_by'            => auth()->user()?->people_id,
+                'verified_date'          => now()->toDateTimeString(),
+                'is_confirmed'           => 1,
+                'confirmed_by'           => auth()->user()?->people_id,
+                'confirmed_date'         => now()->toDateTimeString(),
             ]);
 
             // ==============================
@@ -342,13 +355,19 @@ class DivisionAdminController extends Controller
             $role = $this->resolveRole($validated['currentAppointmentPosition']);
 
             $user = User::create([
-                'nic'      => $nic,
-                'nic_hash' => NicHelper::hash($nic),
-                'people_id' => $people->people_id,
-                'name'     => $people->name_with_initials,
-                'email'    => strtolower($validated['email']),
-                'contact'  => $validated['contact'],
-                'password' => Hash::make('Password@123'),
+                'nic'                      => $nic,
+                'nic_hash'                 => NicHelper::hash($nic),
+                'people_id'                => $people->people_id,
+                'name'                     => $people->name_with_initials,
+                'email'                    => strtolower($validated['email']),
+                'contact'                  => $validated['contact'],
+                'password'                 => Hash::make('Password@123'),
+                'identity_provider'        => 'local',
+                'active_status'            => true,
+                'must_change_password'     => true,
+                'password_initialized_at'  => now(),
+                'password_changed_at'      => null,
+                'default_password_version' => 1,
             ]);
 
             $user->assignRole($role);
