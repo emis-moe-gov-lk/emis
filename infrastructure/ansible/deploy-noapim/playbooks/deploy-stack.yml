@@ -1,0 +1,73 @@
+---
+# ---PLAY-DEPLOY-STACK-NOAPIM-----
+# Renders env files from templates and deploys the no-APIM Docker stack.
+- name: Render environment files and deploy Docker stack
+  hosts: swarm_managers
+  become: true
+  vars:
+    deploy_path: "{{ stack_deploy_path | default('/opt/emis-noapim') }}"
+    stack_file:  "{{ deploy_path }}/docker-stack.yml"
+
+  tasks:
+    - name: Load environment variables
+      ansible.builtin.include_vars:
+        file: ../env/uat.yml
+        name: fresh_vars
+
+    - name: Debug environment variables
+      ansible.builtin.debug:
+        msg:
+          - "vite_asgardeo_client_id: {{ vite_asgardeo_client_id }}"
+          - "wso2_m2m_client_id: {{ wso2_m2m_client_id }}"
+          - "wso2_m2m_client_secret: {{ wso2_m2m_client_secret }}"
+          - "wso2_teacher_role_id: {{ wso2_teacher_role_id }}"
+
+    - name: Ensure stack deploy directory exists
+      ansible.builtin.file:
+        path: "{{ deploy_path }}"
+        state: directory
+        mode: '0755'
+
+    - name: Render docker.env (.env for image tags)
+      ansible.builtin.template:
+        src:  ../templates/docker.env.j2
+        dest: "{{ deploy_path }}/.env"
+        mode: '0600'
+
+    - name: Render frontend.env
+      ansible.builtin.template:
+        src:  ../templates/frontend.env.j2
+        dest: "{{ deploy_path }}/frontend.env"
+        mode: '0600'
+
+    - name: Render backend.env
+      ansible.builtin.template:
+        src:  ../templates/backend.env.j2
+        dest: "{{ deploy_path }}/backend.env"
+        mode: '0600'
+
+    - name: Render is.env
+      ansible.builtin.template:
+        src:  ../templates/is.env.j2
+        dest: "{{ deploy_path }}/is.env"
+        mode: '0600'
+
+    - name: Copy docker-stack.yml to deploy path
+      ansible.builtin.copy:
+        src:  ../docker-stack.yml
+        dest: "{{ stack_file }}"
+        mode: '0644'
+
+    - name: Deploy Docker stack
+      ansible.builtin.shell: |
+        set -a
+        source {{ deploy_path }}/.env
+        set +a
+        docker stack deploy -c {{ stack_file }} {{ stack_name }}
+      args:
+        executable: /bin/bash
+      register: stack_deploy_result
+
+    - name: Show stack deploy output
+      ansible.builtin.debug:
+        var: stack_deploy_result.stdout_lines

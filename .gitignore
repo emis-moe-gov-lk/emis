@@ -44,6 +44,12 @@ vars.yml
 hosts.yml
 .vault_pass
 
+infrastructure/ansible/deploy-noapim/env/*.yml
+!infrastructure/ansible/deploy-noapim/env/*.example
+
+infrastructure/ansible/deploy-noapim/inventory/*.yml
+!infrastructure/ansible/deploy-noapim/inventory/*.example
+
 .facts_cache/
 *actual*.yml
 *.retry

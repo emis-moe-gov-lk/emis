@@ -11,6 +11,7 @@ jobs:
       packages: write
     env:
       REGISTRY_BASE: "ghcr.io/emis-moe-gov-lk/emis-is"
+      REPO_BASE_VER: "7.2.0"
       REPO_VER_FILE: "is/version"
     steps:
       - name: Checkout repository
@@ -20,7 +21,7 @@ jobs:
         run: |
           FILE_VERSION=$(cat ${{ env.REPO_VER_FILE }} | xargs)
           echo "Detected version in repo file: $FILE_VERSION"
-          echo "version=$FILE_VERSION" >> $GITHUB_OUTPUT
+          echo "version=$REPO_BASE_VER-$FILE_VERSION" >> $GITHUB_OUTPUT
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:

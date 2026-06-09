@@ -66,11 +66,10 @@ username = "$env{APIM_WSO2USER_USERNAME}"
 password = "$env{APIM_WSO2USER_PASSWORD}"
 'header.X-WSO2-KEY-MANAGER' = "WSO2-IS"
 
-# --- SCIM2 /Me endpoint (needed for IS console / user self-service) ---
+# --- Allow Admin Basic Auth for managing Roles and Users via SCIM2 ---
 [[resource.access_control]]
-context = "(.*)/scim2/Me"
+context = "(.*)/scim2/(.*)"
 secure = true
-http_method = "GET"
-cross_tenant = true
-permissions = []
-scopes = []
+http_method = "all"
+permissions = ["/permission/admin"]
+allowed_auth_handlers = ["BasicAuthentication", "OAuthAuthentication"]

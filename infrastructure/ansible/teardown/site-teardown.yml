@@ -1,0 +1,71 @@
+---
+# ============================================================
+# EMIS — Master Teardown Orchestration
+# ============================================================
+# Removes ALL EMIS services, databases, and MySQL from the target hosts.
+# Docker Engine is left untouched.
+#
+# Works for both deploy-proto and deploy-noapim — no env file needed.
+# Only the inventory is required at runtime.
+#
+# Usage:
+#   ansible-playbook teardown/site-teardown.yml \
+#     -i deploy-noapim/inventory/uat.yml
+#
+#   ansible-playbook teardown/site-teardown.yml \
+#     -i deploy-proto/inventory/uat.yml
+# ============================================================
+
+# ── Safety confirmation ───────────────────────────────────────────────────────
+- name: Confirm teardown intent
+  hosts: localhost
+  gather_facts: false
+  vars_prompt:
+    - name: confirm
+      prompt: |
+        ================================================================
+        WARNING: This will permanently destroy:
+          - All emis-* Docker stacks and their services
+          - All deployed files under /opt/emis and /opt/emis-nevada
+          - All WSO2 and EMIS MySQL databases
+          - MySQL itself (packages, data, config, logs)
+
+        Docker Engine will NOT be touched.
+
+        Type  yes  to continue, anything else to abort
+        ================================================================
+      private: false
+
+  tasks:
+    - name: Abort if not confirmed
+      ansible.builtin.assert:
+        that: confirm == "yes"
+        fail_msg: "Teardown aborted."
+        success_msg: "Confirmed. Proceeding with teardown."
+
+# ── Step 1: Remove Docker stacks and deployed files ───────────────────────────
+- import_playbook: teardown-stack.yml
+
+# ── Step 2: Drop databases and remove MySQL users ─────────────────────────────
+- import_playbook: teardown-databases.yml
+
+# ── Step 3: Purge MySQL from host ─────────────────────────────────────────────
+- import_playbook: teardown-mysql.yml
+
+# ── Final summary ─────────────────────────────────────────────────────────────
+- name: Teardown complete
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Summary
+      ansible.builtin.debug:
+        msg:
+          - "================================================================"
+          - "EMIS teardown complete."
+          - "  - All emis-* Docker stacks removed"
+          - "  - Deploy dirs /opt/emis and /opt/emis-nevada removed"
+          - "  - All wso2_* and emis* databases dropped"
+          - "  - MySQL users emis-user and wso2-user removed"
+          - "  - MySQL purged from host"
+          - "  - Docker Engine untouched"
+          - "================================================================"

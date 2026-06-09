@@ -1,0 +1,48 @@
+---
+# ---PLAY-DEPLOY-IS-ONLY-NOAPIM-----
+# Renders essential env files and deploys ONLY the WSO2 Identity Server service.
+- name: Render environment files and deploy IS-only Docker stack
+  hosts: swarm_managers
+  become: true
+  vars:
+    deploy_path: "{{ stack_deploy_path | default('/opt/emis-noapim') }}"
+    is_stack_file: "{{ deploy_path }}/docker-stack-is.yml"
+
+  tasks:
+    - name: Ensure stack deploy directory exists
+      ansible.builtin.file:
+        path: "{{ deploy_path }}"
+        state: directory
+        mode: '0755'
+
+    - name: Render docker.env (.env for image tags)
+      ansible.builtin.template:
+        src:  ../templates/docker.env.j2
+        dest: "{{ deploy_path }}/.env"
+        mode: '0600'
+
+    - name: Render is.env
+      ansible.builtin.template:
+        src:  ../templates/is.env.j2
+        dest: "{{ deploy_path }}/is.env"
+        mode: '0600'
+
+    - name: Copy IS-only docker-stack file
+      ansible.builtin.copy:
+        src: ../docker-stack-is.yml
+        dest: "{{ is_stack_file }}"
+        mode: '0644'
+
+    - name: Deploy IS-only Docker stack
+      ansible.builtin.shell: |
+        set -a
+        source {{ deploy_path }}/.env
+        set +a
+        docker stack deploy -c {{ is_stack_file }} {{ stack_name }}
+      args:
+        executable: /bin/bash
+      register: is_deploy_result
+
+    - name: Show IS-only deploy output
+      ansible.builtin.debug:
+        var: is_deploy_result.stdout_lines

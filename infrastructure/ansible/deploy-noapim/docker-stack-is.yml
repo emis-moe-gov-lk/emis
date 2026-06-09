@@ -1,0 +1,29 @@
+# ── NETWORKS ──────────────────────────────────────────────────────────────────
+networks:
+  noapim-uat-swm-network:
+    driver: overlay
+    name: hrm-noapim-swm-network
+    attachable: true
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.21.0.0/16
+
+# ── SERVICES ──────────────────────────────────────────────────────────────────
+services:
+
+  # ── WSO2 Identity Server ───────────────────────────────────────────────────
+  wso2-is:
+    image: "${WSO2_IS_DOCKERIMG_REPO}:${WSO2_IS_DOCKERIMG_TAG}"
+    ports:
+      - "9444:9444"
+    env_file:
+      - is.env
+    networks:
+      - noapim-uat-swm-network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3

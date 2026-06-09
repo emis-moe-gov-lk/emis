@@ -1,0 +1,77 @@
+# ── NETWORKS ──────────────────────────────────────────────────────────────────
+networks:
+  noapim-uat-swm-network:
+    driver: overlay
+    name: hrm-noapim-swm-network
+    attachable: true
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.21.0.0/16
+
+# ── SERVICES ──────────────────────────────────────────────────────────────────
+services:
+
+  # ── WSO2 Identity Server ───────────────────────────────────────────────────
+  wso2-is:
+    image: "${WSO2_IS_DOCKERIMG_REPO}:${WSO2_IS_DOCKERIMG_TAG}"
+    ports:
+      - "9444:9444"
+    env_file:
+      - is.env
+    networks:
+      - noapim-uat-swm-network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+
+  # ── Frontend ───────────────────────────────────────────────────────────────
+  frontend:
+    image: "${FRONTEND_DOCKERIMG_REPO}:${FRONTEND_DOCKERIMG_TAG}"
+    ports:
+      - "80:80"
+    env_file:
+      - frontend.env
+    networks:
+      - noapim-uat-swm-network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+  # ── Backend ────────────────────────────────────────────────────────────────
+  backend:
+    image: "${BACKEND_DOCKERIMG_REPO}:${BACKEND_DOCKERIMG_TAG}"
+    ports:
+      - "9000:80"
+    env_file:
+      - backend.env
+    command: >
+      sh -c "
+      composer install --no-interaction &&
+      cp .env.example .env &&
+      php artisan key:generate --force &&
+      php artisan migrate:fresh --seed --force &&
+      frankenphp run --config /etc/caddy/Caddyfile
+      "
+    extra_hosts:
+      - "idp.app-uat.emis.moe.gov.lk:192.168.200.1"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:2019/metrics || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 120s
+    networks:
+      - noapim-uat-swm-network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3

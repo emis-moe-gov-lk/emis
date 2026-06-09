@@ -1,0 +1,36 @@
+---
+# ---PLAY-SETUP-MYSQL-EMIS-DB-----
+- name: Create MySQL database and user for EMIS application
+  hosts: db_host
+  become: true
+  vars:
+    mysql_root_user_val: "{{ mysql_root_user | default('root') }}"
+    mysql_socket:        /var/run/mysqld/mysqld.sock
+
+  tasks:
+    - name: Create the EMIS database
+      community.mysql.mysql_db:
+        name: "{{ mysql_emis_db }}"
+        state: present
+        login_user: "{{ mysql_root_user_val }}"
+        login_password: "{{ mysql_root_password }}"
+        login_unix_socket: "{{ mysql_socket }}"
+      register: db_creation
+
+    - name: Create MySQL user for EMIS database
+      community.mysql.mysql_user:
+        name: "{{ mysql_emis_user }}"
+        password: "{{ mysql_emis_password }}"
+        priv: "{{ mysql_emis_db }}.*:ALL"
+        host: "%"
+        state: present
+        login_user: "{{ mysql_root_user_val }}"
+        login_password: "{{ mysql_root_password }}"
+        login_unix_socket: "{{ mysql_socket }}"
+
+    - name: Flush MySQL privileges
+      community.mysql.mysql_query:
+        query: "FLUSH PRIVILEGES"
+        login_user: "{{ mysql_root_user_val }}"
+        login_password: "{{ mysql_root_password }}"
+        login_unix_socket: "{{ mysql_socket }}"
