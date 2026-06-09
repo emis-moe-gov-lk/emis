@@ -15,9 +15,12 @@ php artisan key:generate --no-interaction --force 2>/dev/null || true
 echo "==> Running database migrations..."
 php artisan migrate --force --no-interaction
 
+echo "==> Linking storage..."
+php artisan storage:link --force
+
 echo "==> Clearing caches..."
 php artisan config:clear
 php artisan route:clear
 
-echo "==> Starting PHP-FPM..."
-exec php-fpm
+echo "==> Starting FrankenPHP..."
+exec frankenphp run --config /etc/caddy/Caddyfile
