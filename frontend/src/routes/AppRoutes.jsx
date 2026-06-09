@@ -279,9 +279,6 @@ export default function AppRoutes() {
           </Route>
         </Route>
 
-
-          
-
         {/* Errors */}
         <Route path="/not-authorized" element={<NotAuthorizedPage />} />
         <Route path="*" element={<NotFound />} />

@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { Banknote, FileText, CreditCard, Pencil } from "lucide-react";
 
+import Can from "@/components/common/Can";
+import { PermissionGroups } from "@/data/permissionGroups";
+
 export default function PensionPaymentDetails({ employee, canEdit, onSave }) {
   const [isOpen, setIsOpen] = useState(false);
   const [wopNo, setWopNo] = useState(employee?.appointment?.w_op_no || "");
@@ -39,13 +42,15 @@ export default function PensionPaymentDetails({ employee, canEdit, onSave }) {
         </div>
 
         {canEdit && (
-          <button
-            onClick={() => setIsOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 text-sm rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"
-          >
-            <Pencil size={16} />
-            Edit Details
-          </button>
+          <Can permission={PermissionGroups.MY_PROFILE.WOP_EDIT}>
+            <button
+              onClick={() => setIsOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 text-sm rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+            >
+              <Pencil size={16} />
+              Edit Details
+            </button>
+          </Can>
         )}
       </div>
 

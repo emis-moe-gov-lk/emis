@@ -84,3 +84,19 @@ export const getEducationQualificationGrades = async () => {
   const response = await api.get("/education-qualification-grades");
   return response.data;
 };
+
+/**
+ * Add a service history entry for a teacher
+ * @param {string} peopleId - The teacher's people_id
+ * @param {Object} data - History entry details
+ * @returns {Promise} - Axios response payload
+ */
+export const addServiceHistoryEntry = async (peopleId, data) => {
+  const response = await api.post(`/teachers/${peopleId}/service-history`, data);
+  return response.data;
+};
+
+export const addPastService = async (peopleId, data) => {
+  const response = await api.post(`/teachers/${peopleId}/past-services`, data);
+  return response.data;
+};

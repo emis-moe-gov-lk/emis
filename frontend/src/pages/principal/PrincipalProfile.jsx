@@ -10,7 +10,7 @@ import {
   HiX,
 } from "react-icons/hi";
 import api from "@/api/axios";
-import { downloadPrincipalProfileDocument } from "@/api/principalService";
+import { downloadPrincipalProfileDocument, addServiceHistoryEntry, addPastService } from "@/api/principalService";
 import { downloadTeacherProfileDocument } from "@/api/teacherService";
 import toast from "react-hot-toast";
 import { Badge, Spinner } from "flowbite-react";
@@ -24,6 +24,14 @@ import DarkSafeModal, {
 import Can from "@/components/common/Can";
 import { PermissionGroups } from "@/data/permissionGroups";
 import BackToListButton from "@/components/UiComponents/BackToListButton";
+import {
+  DEFAULT_SERVICE_HISTORY_FORM,
+  DEFAULT_PAST_SERVICE_FORM,
+  ServiceHistoryTab,
+  ServiceHistoryModal,
+  PastServiceModal,
+  isSchoolBasedService,
+} from "@/components/common/ServiceHistory";
 import UIButton from "@/components/UiComponents/Button";
 import StatusBadge from "@/components/common/StatusBadge";
 import { resolveProfileImage } from "@/utils/profileImage";
@@ -276,6 +284,7 @@ const PrincipalProfile = () => {
     { id: "general", label: "General" },
     { id: "qualification", label: "Qualification" },
     { id: "employment", label: "Employment" },
+    { id: "service_history", label: "Service History" },
     { id: "wop", label: "W&OP and Payment" },
     { id: "family", label: "Family" },
     { id: "edit", label: "Edit Request" },
@@ -302,6 +311,13 @@ const PrincipalProfile = () => {
   const [currentUserName, setCurrentUserName] = useState("");
   const [showUpdateAction, setShowUpdateAction] = useState(false);
   const [isDownloadingDocument, setIsDownloadingDocument] = useState(false);
+  const [serviceHistory, setServiceHistory] = useState({ appointments: [], historyEntries: [], currentAppointment: null });
+  const [isServiceHistoryModalOpen, setIsServiceHistoryModalOpen] = useState(false);
+  const [serviceHistoryForm, setServiceHistoryForm] = useState(DEFAULT_SERVICE_HISTORY_FORM);
+  const [isSavingServiceHistory, setIsSavingServiceHistory] = useState(false);
+  const [isPastServiceModalOpen, setIsPastServiceModalOpen] = useState(false);
+  const [pastServiceForm, setPastServiceForm] = useState(DEFAULT_PAST_SERVICE_FORM);
+  const [isSavingPastService, setIsSavingPastService] = useState(false);
 
   /**
    * Load Principal Profile from API
@@ -461,6 +477,13 @@ const PrincipalProfile = () => {
         paySheetNo: d.appointment?.pay_sheet_no,
       });
 
+      /* SERVICE HISTORY */
+      setServiceHistory({
+        appointments: Array.isArray(d.my_appointments) ? d.my_appointments : [],
+        historyEntries: Array.isArray(d.appointment_history) ? d.appointment_history : [],
+        currentAppointment: d.current_appointment ?? null,
+      });
+
       setQualifications([]);
       setFamily({ spouses: [] });
       setEditRequests([]);
@@ -471,6 +494,120 @@ const PrincipalProfile = () => {
       setLoading(false);
     }
   }, [id, loadRejectComment]);
+
+  const openServiceHistoryModal = useCallback(() => {
+    const defaultAppointmentId = serviceHistory.appointments.find((a) => a.active_status === 1)?.appointment_id ?? serviceHistory.appointments[0]?.appointment_id ?? "";
+    const defaultServiceId = serviceHistory.appointments.find((a) => a.appointment_id === defaultAppointmentId)?.service_id ?? "";
+    setServiceHistoryForm({ ...DEFAULT_SERVICE_HISTORY_FORM, appointment_id: defaultAppointmentId, service_id: defaultServiceId });
+    setIsServiceHistoryModalOpen(true);
+  }, [serviceHistory.appointments]);
+
+  const closeServiceHistoryModal = useCallback(() => {
+    setIsServiceHistoryModalOpen(false);
+    setServiceHistoryForm(DEFAULT_SERVICE_HISTORY_FORM);
+  }, []);
+
+  const handleServiceHistoryFieldChange = useCallback((key, value) => {
+    setServiceHistoryForm((prev) => {
+      const next = { ...prev, [key]: value };
+      if (key === "appointment_id") {
+        const appt = serviceHistory.appointments.find((a) => a.appointment_id === value);
+        next.service_id = appt?.service_id ?? "";
+        next.zone = "";
+        next.inst_category = "";
+        next.workplace_id = "";
+      }
+      if (key === "zone") {
+        next.inst_category = "";
+        next.workplace_id = "";
+      }
+      if (key === "inst_category") {
+        next.workplace_id = "";
+      }
+      return next;
+    });
+  }, [serviceHistory.appointments]);
+
+  const handleServiceHistorySave = useCallback(async () => {
+    const { appointment_id, appoint_date, service_id, rank_id, position_id, office_level_id, workplace_id, updated_type } = serviceHistoryForm;
+    if (!appointment_id || !appoint_date || !service_id || !rank_id || !position_id || !workplace_id) {
+      toast.error("Please fill in all required fields.");
+      return;
+    }
+    setIsSavingServiceHistory(true);
+    try {
+      await addServiceHistoryEntry(principal.id, {
+        appointment_id,
+        appoint_date,
+        end_date: serviceHistoryForm.end_date || undefined,
+        service_id,
+        rank_id,
+        position_id,
+        office_level_id,
+        workplace_id,
+        updated_type,
+        appointment_letter_no: serviceHistoryForm.appointment_letter_no || undefined,
+        remarks: serviceHistoryForm.remarks || undefined,
+      });
+      toast.success("Service history entry added.");
+      closeServiceHistoryModal();
+      loadPrincipalProfile();
+    } catch (err) {
+      const errors = err?.response?.data?.errors;
+      if (errors) {
+        Object.values(errors).flat().forEach((msg) => toast.error(msg));
+      } else {
+        toast.error(err?.response?.data?.message ?? "Failed to save service history entry.");
+      }
+    } finally {
+      setIsSavingServiceHistory(false);
+    }
+  }, [serviceHistoryForm, principal?.id, closeServiceHistoryModal, loadPrincipalProfile]);
+
+  const openPastServiceModal = useCallback(() => {
+    setPastServiceForm(DEFAULT_PAST_SERVICE_FORM);
+    setIsPastServiceModalOpen(true);
+  }, []);
+
+  const closePastServiceModal = useCallback(() => {
+    setIsPastServiceModalOpen(false);
+    setPastServiceForm(DEFAULT_PAST_SERVICE_FORM);
+  }, []);
+
+  const handlePastServiceFieldChange = useCallback((key, value) => {
+    setPastServiceForm((prev) => ({ ...prev, [key]: value }));
+  }, []);
+
+  const handlePastServiceSave = useCallback(async () => {
+    const { service_id, rank_id, position_id, workplace_id, first_appointment_date } = pastServiceForm;
+    if (!service_id || !rank_id || !position_id || !workplace_id || !first_appointment_date) {
+      toast.error("Please fill in all required fields.");
+      return;
+    }
+    if (!principal?.id) return;
+    setIsSavingPastService(true);
+    try {
+      const serviceName = pastServiceForm._service_name ?? "";
+      const officeLevelId = isSchoolBasedService(serviceName) ? "OLID006" : "OLID004";
+      const res = await addPastService(principal.id, { ...pastServiceForm, office_level_id: officeLevelId });
+      if (res?.status === "success") {
+        toast.success("Past service block added.");
+        closePastServiceModal();
+        await loadPrincipalProfile();
+      } else {
+        toast.error(res?.message ?? "Failed to save.");
+      }
+    } catch (err) {
+      const errors = err?.response?.data?.errors;
+      if (errors) {
+        Object.values(errors).flat().forEach((msg) => toast.error(msg));
+      } else {
+        toast.error(err?.response?.data?.message ?? "Failed to save.");
+      }
+    } finally {
+      setIsSavingPastService(false);
+    }
+  }, [pastServiceForm, principal?.id, closePastServiceModal, loadPrincipalProfile]);
 
   const handleDownloadDocument = useCallback(async () => {
     if (!principal?.id) return;
@@ -914,6 +1051,14 @@ const PrincipalProfile = () => {
           {activeTab === "employment" && (
             <EmploymentTab employment={employment} onEdit={setModalSection} />
           )}
+          {activeTab === "service_history" && (
+            <ServiceHistoryTab
+              serviceHistory={serviceHistory}
+              onAddPosting={openServiceHistoryModal}
+              onAddPastService={openPastServiceModal}
+            />
+          )}
+          
           {activeTab === "wop" && <WopTab wopAndPayment={wopAndPayment} onEdit={setModalSection} />}
           {activeTab === "family" && <FamilyTab family={family} />}
           {activeTab === "edit" && (
@@ -976,6 +1121,26 @@ const PrincipalProfile = () => {
         onChangeComment={setUpdateComment}
         onClose={closeUpdateModal}
         onSubmit={handleUpdateSubmit}
+      />
+
+      <ServiceHistoryModal
+        isOpen={isServiceHistoryModalOpen}
+        form={serviceHistoryForm}
+        appointments={serviceHistory.appointments}
+        onChange={handleServiceHistoryFieldChange}
+        onClose={closeServiceHistoryModal}
+        onSubmit={handleServiceHistorySave}
+        isSubmitting={isSavingServiceHistory}
+      />
+
+      <PastServiceModal
+        isOpen={isPastServiceModalOpen}
+        form={pastServiceForm}
+        onChange={handlePastServiceFieldChange}
+        onClose={closePastServiceModal}
+        onSubmit={handlePastServiceSave}
+        isSubmitting={isSavingPastService}
+        allowedServiceIds={['SER001']}
       />
     </div>
   );
