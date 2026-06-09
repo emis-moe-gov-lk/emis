@@ -30,6 +30,7 @@ use App\Http\Controllers\API\EmployerAppointmentConfirmationController;
 use App\Http\Controllers\API\ProfileController;
 use App\Http\Controllers\Pdf\TeacherPdf;
 
+
 // Route::get('/user', function (Request $request) {
 //     return $request->user();
 // })->middleware('auth:sanctum');
@@ -185,8 +186,11 @@ Route::prefix('')->group(function () {
 
     Route::get('/identity', AuthIdentityController::class)->middleware('auth:jwt');
     Route::get('/mobile/identity', MobileTeacherProfileController::class)->middleware('auth:jwt');
-    Route::patch('/profile', [ProfileController::class, 'update'])->middleware('auth:jwt');
-    Route::post('/profile/photo', [ProfileController::class, 'uploadPhoto']);
+    Route::get('/profile', [ProfileController::class, 'show'])->middleware('auth:jwt');
+    Route::get('/profile/avatar', [ProfileController::class, 'getAvatar'])->middleware('auth:jwt');
+    Route::patch('/profile/avatar', [ProfileController::class, 'updateAvatar'])->middleware('auth:jwt');
+    Route::post('/profile/avatar', [ProfileController::class, 'uploadProfileAvatar'])->middleware('auth:jwt');
+    Route::delete('/profile/avatar', [ProfileController::class, 'deleteProfileAvatar'])->middleware('auth:jwt');
     Route::patch('/profile/password', [ProfileController::class, 'changePassword'])->middleware('auth:jwt');
     Route::post('/profile/password/complete-external', [ProfileController::class, 'completeExternalPasswordChange'])->middleware('auth:jwt');
     Route::get('/user/{people_id}', UserApiController::class)->middleware('auth:jwt');

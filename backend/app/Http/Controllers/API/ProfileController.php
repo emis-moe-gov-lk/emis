@@ -18,10 +18,49 @@ use App\Services\Wso2IsProvisioningService;
 class ProfileController extends Controller
 {
     // -------------------------------------------------------
-    // PATCH /profile
-    // Update the authenticated user's own profile.
+    // GET /profile/avatar  
+    // Fetch the authenticated user's own profile avatar.
     // -------------------------------------------------------
-    public function update(Request $request)
+    public function getAvatar(Request $request)
+    {
+        $user = $request->user() ?: User::where('email', $request->attributes->get('jwt_email'))->first();
+
+        if (! $user) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'User not found',
+            ], 404);
+        }
+
+        try {
+            $disk     = config('filesystems.profile_photo_disk', 'public');
+            $filename = $user->profile_picture;
+            $url      = $filename && $filename !== 'default.png'
+                ? Storage::disk($disk)->url('profile-photos/' . $filename)
+                : null;
+
+            return response()->json([
+                'status' => 'success',
+                'data'   => [
+                    'profile_picture' => $filename,
+                    'url'             => $url,
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Profile fetch error', ['message' => $e->getMessage()]);
+
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Failed to fetch profile',
+            ], 500);
+        }
+    }
+
+    // -------------------------------------------------------
+    // PATCH /profile/avatar
+    // Update the authenticated user's own profile avatar.
+    // -------------------------------------------------------
+    public function updateAvatar(Request $request)
     {
         $user = $request->user() ?: User::where('email', $request->attributes->get('jwt_email'))->first();
 
@@ -162,10 +201,10 @@ class ProfileController extends Controller
 }
 
     // -------------------------------------------------------
-    // POST /profile/photo
-    // Upload or replace the authenticated user's profile photo.
+    // POST /profile/avatar
+    // Upload or replace the authenticated user's profile avatar.
     // -------------------------------------------------------
-    public function uploadPhoto(Request $request)
+    public function uploadProfileAvatar(Request $request)
     {
         $user = $request->user() ?: User::where('email', $request->attributes->get('jwt_email'))->first();
 
@@ -226,6 +265,60 @@ class ProfileController extends Controller
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Failed to upload profile photo',
+            ], 500);
+        }
+    }
+
+    // -------------------------------------------------------
+    // DELETE /profile/avatar
+    // Delete the authenticated user's profile avatar.
+    // -------------------------------------------------------
+    public function deleteProfileAvatar(Request $request)
+    {
+        $user = $request->user() ?: User::where('email', $request->attributes->get('jwt_email'))->first();
+
+        if (! $user) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'User not found',
+            ], 404);
+        }
+
+        try {
+            $disk     = config('filesystems.profile_photo_disk', 'public');
+            $existing = $user->profile_picture;
+
+            // Don't delete if it's the default
+            if ($existing && $existing !== 'default.png') {
+                $existingPath = 'profile-photos/' . $existing;
+                if (Storage::disk($disk)->exists($existingPath)) {
+                    Storage::disk($disk)->delete($existingPath);
+                }
+            }
+
+            DB::transaction(function () use ($user) {
+                $user->update(['profile_picture' => 'default.png']);
+
+                if ($user->people_id) {
+                    People::where('people_id', $user->people_id)
+                        ->update(['profile_picture' => 'default.png']);
+                }
+            });
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Profile photo deleted successfully',
+                'data'    => [
+                    'profile_picture' => 'default.png',
+                    'url'             => null,
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Profile photo delete error', ['message' => $e->getMessage()]);
+
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Failed to delete profile photo',
             ], 500);
         }
     }
