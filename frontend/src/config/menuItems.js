@@ -304,7 +304,7 @@ export const menuItems = [
             id: "system-settings",
             label: "System Settings",
             to: "/dashboard/settings",
-            permission: "menu.settings.system-settings",
+            permission: "menu.settings.system.settings",
           },
           {
             id: "version",

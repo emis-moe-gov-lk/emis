@@ -7,6 +7,9 @@ import { format } from "date-fns";
 import { Badge } from "flowbite-react";
 import StatusBadge from "@/components/common/StatusBadge";
 
+import Can from "@/components/common/Can";
+import { PermissionGroups } from "@/data/permissionGroups";
+
 const FirstAppointment = ({ employee, canEdit, options }) => {
   const [showModal, setShowModal] = useState(false);
   const [appointmentDate, setAppointmentDate] = useState(
@@ -66,12 +69,14 @@ const FirstAppointment = ({ employee, canEdit, options }) => {
             </StatusBadge>
 
             {canEdit && (
-              <button
-                className="px-3 py-1 border rounded-full text-sm hover:bg-gray-50"
-                onClick={() => setShowModal(true)}
-              >
-                Edit
-              </button>
+              <Can permission={PermissionGroups.MY_PROFILE.EMPLOYMENT_EDIT}>
+                <button
+                  className="px-3 py-1 border rounded-full text-sm hover:bg-gray-50"
+                  onClick={() => setShowModal(true)}
+                >
+                  Edit
+                </button>
+              </Can>
             )}
           </div>
         </div>

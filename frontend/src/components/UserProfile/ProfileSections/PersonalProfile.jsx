@@ -5,6 +5,9 @@ import Input from "./Input";
 import Select from "./Select";
 import Card from "./Card";
 
+import Can from "@/components/common/Can";
+import { PermissionGroups } from "@/data/permissionGroups";
+
 const PersonalProfile = ({
   employee,
   canEdit,
@@ -52,12 +55,14 @@ const PersonalProfile = ({
           </div>
 
           {canEdit && (
-            <button
-              onClick={() => setShowModal(true)}
-              className="px-4 py-2 text-sm font-medium rounded-full border hover:bg-gray-100 dark:hover:bg-gray-700"
-            >
-              Edit Details
-            </button>
+            <Can permission={PermissionGroups.MY_PROFILE.GENERAL_EDIT}>
+              <button
+                onClick={() => setShowModal(true)}
+                className="px-4 py-2 text-sm font-medium rounded-full border hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                Edit Details
+              </button>
+            </Can>
           )}
         </div>
 

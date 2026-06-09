@@ -1,6 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter } from "react-router"; // use react-router-dom, not react-router
+import { BrowserRouter } from "react-router-dom";
 import { AuthProvider } from "@asgardeo/auth-react";
 import AppRoutes from "./routes/AppRoutes.jsx";
 import { asgardeoConfig } from "./authConfig.js";
@@ -9,7 +9,6 @@ import "leaflet/dist/leaflet.css";
 import { AuthUserProvider } from "./context/AuthUserContext.jsx";
 import { initTheme } from "./lib/theme";
 
-// initialize theme runtime (also handled by inline boot script for first paint)
 initTheme();
 
 createRoot(document.getElementById("root")).render(

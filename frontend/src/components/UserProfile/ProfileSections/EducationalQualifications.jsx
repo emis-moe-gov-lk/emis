@@ -6,6 +6,9 @@ import Input from "./Input";
 import Select from "./Select";
 import { HiAcademicCap, HiBuildingLibrary, HiTrash } from "react-icons/hi2";
 
+import Can from "@/components/common/Can";
+import { PermissionGroups } from "@/data/permissionGroups";
+
 const EducationalQualifications = ({
   qualificationList = [],
   educationQualificationList = [],
@@ -53,13 +56,15 @@ const EducationalQualifications = ({
         </div>
 
         {canCreate && (
-          <button
-            onClick={() => setShowModal(true)}
-            className="px-4 py-2 text-sm font-medium rounded-full border hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-1"
-          >
-            <HiAcademicCap className="w-5 h-5" />
-            Add New
-          </button>
+          <Can permission={PermissionGroups.MY_PROFILE.QUALIFICATION_ADD}>
+            <button
+              onClick={() => setShowModal(true)}
+              className="px-4 py-2 text-sm font-medium rounded-full border hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-1"
+            >
+              <HiAcademicCap className="w-5 h-5" />
+              Add New
+            </button>
+          </Can>
         )}
       </div>
 
