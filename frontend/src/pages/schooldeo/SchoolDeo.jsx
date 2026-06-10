@@ -89,7 +89,7 @@ const SchoolDeo = () => {
 
   // UI Only Action Handlers
   const handleCreateDEO = () => {
-    alert("Create DEO button clicked (UI Only)");
+    navigate("/employees/schooldeo/create");
   };
 
   const handlePrintId = (employee) => {
@@ -176,7 +176,7 @@ const SchoolDeo = () => {
         <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700">
           <Spinner size="xl" color="info" />
           <p className="mt-4 text-gray-500 dark:text-gray-400 animate-pulse font-medium">
-            Loading Teachers List...
+            Loading School DEO List...
           </p>
         </div>
       ) : (

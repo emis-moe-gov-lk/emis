@@ -29,6 +29,8 @@ import RegPrincipal from "@/pages/principal/RegPrincipal";
 
 import SchoolDeo from "@/pages/schooldeo/SchoolDeo";
 import DeoProfile from "@/pages/schooldeo/DeoProfile";
+import RegDeo from "@/pages/schooldeo/RegDeo";
+
 
 import OfficesOverview from "@/pages/offices/OfficesOverview";
 import MoeOfficeList from "@/pages/offices/MoeOfficeList";
@@ -244,15 +246,18 @@ export default function AppRoutes() {
               <Route path=":id" element={<TeacherProfile />} />
             </Route>
 
-            <Route path="employees/schooldeo" element={<SchoolDeo />} />
-             <Route
-              path="employees/schooldeo/:id"
-              element={
-                <TeacherFormProvider>
-                  <DeoProfile />
-                </TeacherFormProvider>
-              }
-            />
+            <Route path="employees/schooldeo">
+              <Route index element={<SchoolDeo />} />
+              <Route path="create" element={<RegDeo />} />
+              <Route
+                path=":id"
+                element={
+                  <TeacherFormProvider>
+                    <DeoProfile />
+                  </TeacherFormProvider>
+                }
+              />
+            </Route>
 
             <Route path="employees/development-officers">
               <Route index element={<DosDirectory />} />
