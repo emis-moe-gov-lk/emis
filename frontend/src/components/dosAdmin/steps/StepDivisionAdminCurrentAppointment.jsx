@@ -36,7 +36,7 @@ export default function StepDivisionAdminCurrentAppointment({ formData, setFormD
         const d = res.data;
         setData({
           ranks: d.serviceRanks ?? [],
-          positions: d.zonalPositions ?? [], // Frontend usually maps all non-institution positions here
+          positions: d.divisionalPositions ?? [],
           divisionalOffices: d.workplacesByLevel ?? [],
         });
       } catch (error) {

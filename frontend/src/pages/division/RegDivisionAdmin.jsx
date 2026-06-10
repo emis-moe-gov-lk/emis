@@ -270,7 +270,13 @@ function RegDivisionAdminInner() {
         </div>
         {currentStep < STEPS.length && (
             <div className="border-t">
-                <StepNavigation currentStep={currentStep} totalSteps={STEPS.length} onBack={handleBack} onNext={handleNext} isProcessing={isSubmitting} />
+                <StepNavigation currentStep={currentStep} totalSteps={STEPS.length} onBack={handleBack} onNext={handleNext} isProcessing={isSubmitting} canNext={
+                    currentStep === 1 ? isNicVerified :
+                    currentStep === 2 ? isPersonalValid :
+                    currentStep === 3 ? isContactValid :
+                    currentStep === 4 ? isFirstApptValid :
+                    currentStep === 5 ? isCurrentApptValid : true
+                } />
             </div>
         )}
       </div>
