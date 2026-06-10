@@ -152,13 +152,13 @@ export const menuItems = [
           {
             id: "schooldeo",
             label: "School DEO",
-            to: "/schools/schooldeo",
+            to: "/employees/schooldeo",
             permission: "menu.schools.deo",
           },
           {
             id: "schoolclerks",
             label: "School Clerks",
-            to: "/schools/schoolclerks",
+            to: "/employees/schoolclerks",
             permission: "menu.schools.clerk",
           },
 

@@ -152,7 +152,7 @@ export const menuItems = [
           {
             id: "schooldeo",
             label: "School DEO",
-            to: "/schools/schooldeo",
+            to: "/employees/schooldeo",
             permission: "menu.schools.deo",
           },
           {
@@ -203,10 +203,6 @@ export const menuItems = [
             id: "zonaldirector",
             label: "Zonal Administrators",
             to: "/employees/edu-directors",
-<<<<<<< HEAD
-            permission: "zonaladmin.view",
-          },
-=======
             permission: "menu.zonal.admin",
           },
 
@@ -216,8 +212,6 @@ export const menuItems = [
             to: "/employees/development-officers",
             permission: "menu.zonal.deo",
           },
-
->>>>>>> 6fd80b216d2b1cb05d4fe30cb240211ee7e7abfb
           // {
           //   id: "zonalclerk",
           //   label: "Zonal Clerk",
