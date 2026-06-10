@@ -503,7 +503,7 @@
 
     - name: Update env/uat.yml with generated credentials
       ansible.builtin.lineinfile:
-        path: "{{ playbook_dir }}/../env/uat.yml"
+        path: "{{ playbook_dir }}/../env/{{ deploy_env }}.yml"
         regexp: "{{ item.regexp }}"
         line: "{{ item.line }}"
       loop:

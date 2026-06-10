@@ -2,12 +2,12 @@
 networks:
   noapim-uat-swm-network:
     driver: overlay
-    name: hrm-noapim-swm-network
+    name: "${STACK_NAME}-network"
     attachable: true
     ipam:
       driver: default
       config:
-        - subnet: 172.21.0.0/16
+        - subnet: "${STACK_NETWORK_SUBNET}"
 
 # ── SERVICES ──────────────────────────────────────────────────────────────────
 services:
@@ -16,7 +16,7 @@ services:
   wso2-is:
     image: "${WSO2_IS_DOCKERIMG_REPO}:${WSO2_IS_DOCKERIMG_TAG}"
     ports:
-      - "9444:9444"
+      - "${IS_HOST_PORT}:9444"
     env_file:
       - is.env
     networks:
@@ -32,7 +32,7 @@ services:
   frontend:
     image: "${FRONTEND_DOCKERIMG_REPO}:${FRONTEND_DOCKERIMG_TAG}"
     ports:
-      - "80:80"
+      - "${FRONTEND_HOST_PORT}:80"
     env_file:
       - frontend.env
     networks:
@@ -48,7 +48,7 @@ services:
   backend:
     image: "${BACKEND_DOCKERIMG_REPO}:${BACKEND_DOCKERIMG_TAG}"
     ports:
-      - "9000:80"
+      - "${BACKEND_HOST_PORT}:80"
     env_file:
       - backend.env
     command: >

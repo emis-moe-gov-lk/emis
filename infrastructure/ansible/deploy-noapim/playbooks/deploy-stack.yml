@@ -11,7 +11,7 @@
   tasks:
     - name: Load environment variables
       ansible.builtin.include_vars:
-        file: ../env/uat.yml
+        file: "../env/{{ deploy_env }}.yml"
         name: fresh_vars
 
     - name: Debug environment variables
