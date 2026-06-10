@@ -230,6 +230,9 @@ class Wso2IsProvisioningService
                 'account_provisioned_at'    => now(),
             ])->saveQuietly();
 
+            // Mirror the IS user ID onto the linked person as their auth uuid
+            $user->people?->forceFill(['uuid' => $isUserId])->saveQuietly();
+
             return [
                 'enabled'       => true,
                 'provisioned'   => true,
