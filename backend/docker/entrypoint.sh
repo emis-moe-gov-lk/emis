@@ -1,6 +1,12 @@
 #!/bin/sh
 set -e
 
+# Extract hostname from APP_URL for Caddy (e.g., http://api.example.com -> api.example.com)
+if [ -n "$APP_URL" ]; then
+    export SERVER_NAME=$(echo "$APP_URL" | sed -e 's|^[^/]*//||' -e 's|/.*$||')
+    echo "==> Setting SERVER_NAME to: $SERVER_NAME"
+fi
+
 echo "==> Installing Composer dependencies..."
 composer install --no-interaction --optimize-autoloader --no-scripts
 php artisan package:discover --ansi || true

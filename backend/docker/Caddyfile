@@ -3,9 +3,8 @@
     frankenphp
 }
 
-# Listen strictly on HTTP port 80. 
-# We specify http:// so it knows NOT to try and generate an SSL cert for this domain.
-http://api-uat.emis.moe.gov.lk, :80 {
+# Use {$SERVER_NAME} with a fallback to localhost
+http://{$SERVER_NAME:localhost}, :80 {
     # Set this to the directory where your main index.php lives
     root * /app/public 
     
