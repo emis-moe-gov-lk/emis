@@ -66,6 +66,7 @@ return [
             'divisional head'                => env('WSO2_ROLE_ID_DIVISIONAL_HEAD'),
             'development officer'            => env('WSO2_ROLE_ID_DEVELOPMENT_OFFICER'),
             'development officer head'       => env('WSO2_ROLE_ID_DEVELOPMENT_OFFICER_HEAD'),
+            'super admin'                    => env('WSO2_ROLE_ID_SUPER_ADMIN'),
             'provincial director'            => env('WSO2_ROLE_ID_PROVINCIAL_DIRECTOR'),
             'provincial deputy director'     => env('WSO2_ROLE_ID_PROVINCIAL_DEPUTY_DIRECTOR'),
             'provincial subject head'        => env('WSO2_ROLE_ID_PROVINCIAL_SUBJECT_HEAD'),
