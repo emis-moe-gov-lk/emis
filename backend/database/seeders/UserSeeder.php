@@ -12,10 +12,11 @@ use App\Models\People;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
+use App\Services\Wso2IsProvisioningService;
 
 class UserSeeder extends Seeder
 {
-    public function run(): void
+    public function run(Wso2IsProvisioningService $wso2Is): void
     {
         $staticUsers = [
             ['nic' => '900000000001', 'name' => 'SSA', 'email' => 'superadmin@gmail.com', 'contact' => '0700000001', 'password' => 'Password@123', 'role' => 'SSA', 'service_id' => 'SER006', 'rank_id' => 'RANK018', 'position_id' => 'POS019', 'office_level_id' => 'OLID001', 'workplace_kind' => 'national', 'workplace_value' => 'MOE0000001'],
@@ -63,6 +64,8 @@ class UserSeeder extends Seeder
 
             $role = Role::firstOrCreate(['name' => $staticUser['role']]);
             $user->syncRoles([$role->name]);
+
+            $wso2Is->provisionUser($user, $staticUser['password'], $staticUser['role']);
 
             if (! $existingPeopleId) {
                 continue;
