@@ -1,0 +1,183 @@
+% ============================================================
+%  sections/summary.tex
+% ============================================================
+\newpage
+\section*{Endpoint Summary}
+\addcontentsline{toc}{section}{Endpoint Summary}
+
+\rowcolors{2}{cbg}{white}
+\begin{longtable}{@{} >{\small}p{1.6cm} p{8.8cm} >{\small}p{1.5cm} >{\small}p{2.3cm} @{}}
+\toprule
+\rowcolor{cnavy}
+\color{white}\bfseries Method &
+\color{white}\bfseries Path &
+\color{white}\bfseries Auth &
+\color{white}\bfseries Section \\
+\midrule
+\endfirsthead
+\toprule
+\rowcolor{cnavy}
+\color{white}\bfseries Method &
+\color{white}\bfseries Path &
+\color{white}\bfseries Auth &
+\color{white}\bfseries Section \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\tGET  & /test                                                  & \tPUB & Health Check \\
+\tPOST & /login                                                 & \tPUB & Auth \\
+\midrule
+\tGET   & /apointed-subjects              & \tPUB & Ref Data \\
+\tPATCH & /apointed-subjects/\{id\}       & \tPUB & Ref Data \\
+\tGET   & /authorities                    & \tPUB & Ref Data \\
+\tPUT   & /authorities/\{id\}             & \tPUB & Ref Data \\
+\tGET   & /blood-groups                   & \tPUB & Ref Data \\
+\tPUT   & /blood-groups/\{id\}            & \tPUB & Ref Data \\
+\tGET   & /titles                         & \tPUB & Ref Data \\
+\tPUT   & /titles/\{id\}                  & \tPUB & Ref Data \\
+\tGET   & /teacher-types                  & \tPUB & Ref Data \\
+\tPUT   & /teacher-types/\{id\}           & \tPUB & Ref Data \\
+\tGET   & /teacher-categories             & \tPUB & Ref Data \\
+\tGET   & /teacher-categories/\{id\}      & \tPUB & Ref Data \\
+\tPUT   & /teacher-categories/\{id\}      & \tPUB & Ref Data \\
+\tGET   & /services                       & \tPUB & Ref Data \\
+\tGET   & /services/\{id\}               & \tPUB & Ref Data \\
+\tPUT   & /services/\{id\}               & \tPUB & Ref Data \\
+\tGET   & /service-ranks                  & \tPUB & Ref Data \\
+\tGET   & /service-ranks/\{id\}          & \tPUB & Ref Data \\
+\tPUT   & /service-ranks/\{id\}          & \tPUB & Ref Data \\
+\tGET   & /subjects                       & \tPUB & Ref Data \\
+\tGET   & /subjects/\{id\}               & \tPUB & Ref Data \\
+\tPUT   & /subjects/\{id\}               & \tPUB & Ref Data \\
+\midrule
+\tGET & /moe-list                                     & \tPUB & Offices \\
+\tGET & /pmoe-list                                    & \tPUB & Offices \\
+\tGET & /peo-list                                     & \tPUB & Offices \\
+\tGET & /zeo-list                                     & \tJWT & Offices \\
+\tGET & /deo-list                                     & \tJWT & Offices \\
+\tGET & /office/\{type\}/\{workplace\_id\}            & \tPUB & Offices \\
+\midrule
+\tGET & /institutions                                 & \tJWT & Institutions \\
+\tGET & /institutions/filters                         & \tJWT & Institutions \\
+\tGET & /institutions/\{id\}                          & \tJWT & Institutions \\
+\tPUT & /institutions/\{id\}                          & \tJWT & Institutions \\
+\midrule
+\tGET   & /teacher-settings                                     & \tJWT & Teachers \\
+\tGET   & /teachers-list                                        & \tJWT & Teachers \\
+\tGET   & /teacher/\{people\_id\}                               & \tJWT & Teachers \\
+\tGET   & /teachers/check-nic/\{nic\}                           & \tJWT & Teachers \\
+\tGET   & /teachers/personal-form-data                          & \tJWT & Teachers \\
+\tGET   & /register/appointment-form-data                       & \tJWT & Teachers \\
+\tGET   & /teachers/current-appointment-form-data               & \tJWT & Teachers \\
+\tGET   & /education-qualifications                             & \tJWT & Teachers \\
+\tGET   & /education-qualification-grades                       & \tJWT & Teachers \\
+\tPOST  & /teacher-create                                       & \tJWT & Teachers \\
+\tPATCH & /teachers/\{people\_id\}                              & \tJWT & Teachers \\
+\tPOST  & /teachers/check-contact                               & \tJWT & Teachers \\
+\tPOST  & /teachers/\{people\_id\}/education-qualifications     & \tJWT & Teachers \\
+\tPOST  & /teachers/\{people\_id\}/service-history              & \tJWT & Teachers \\
+\tPOST  & /teachers/\{people\_id\}/past-services                & \tJWT & Teachers \\
+\midrule
+\tGET  & /principals-list                                      & \tJWT & Principals \\
+\tPOST & /principal-create                                     & \tJWT & Principals \\
+\tGET  & /principal-recruitment-categories                     & \tJWT & Principals \\
+\tGET  & /principal/\{people\_id\}                             & \tJWT & Principals \\
+\tPOST & /principals/\{people\_id\}/service-history            & \tJWT & Principals \\
+\tPOST & /principals/\{people\_id\}/past-services              & \tJWT & Principals \\
+\midrule
+\tGET & /alerts/counts                                         & \tJWT & Alerts \\
+\tGET & /alerts/pending-verification                           & \tJWT & Alerts \\
+\tGET & /alerts/revised                                        & \tJWT & Alerts \\
+\tGET & /alerts/pending-confirmation                           & \tJWT & Alerts \\
+\tGET & /alerts/rejected                                       & \tJWT & Alerts \\
+\midrule
+\tGET   & /employer-appointment-reject-comments                 & \tJWT & Emp.\ Confirm \\
+\tGET   & /employer-appointment-reject-comments/profile/\{id\} & \tJWT & Emp.\ Confirm \\
+\tPATCH & /employer-appointment-reject-comments/\{id\}         & \tJWT & Emp.\ Confirm \\
+\tPATCH & /teachers/\{people\_id\}/verify                      & \tJWT & Emp.\ Confirm \\
+\tPATCH & /teachers/\{people\_id\}/confirm                     & \tJWT & Emp.\ Confirm \\
+\tPATCH & /principals/\{people\_id\}/confirm                   & \tJWT & Emp.\ Confirm \\
+\tPATCH & /teachers/\{people\_id\}/promote                     & \tJWT & Emp.\ Confirm \\
+\tPATCH & /teachers/\{people\_id\}/reject                      & \tJWT & Emp.\ Confirm \\
+\tPATCH & /teachers/\{people\_id\}/update                      & \tJWT & Emp.\ Confirm \\
+\tPATCH & /teachers/\{people\_id\}/rejected-status             & \tJWT & Emp.\ Confirm \\
+\midrule
+\tGET  & /dos-admins                                           & \tJWT & DOS Admins \\
+\tPOST & /dos-admins                                           & \tJWT & DOS Admins \\
+\tGET  & /dos-admins/\{id\}                                    & \tJWT & DOS Admins \\
+\tPOST & /dos-admins/\{id\}/service-history                    & \tJWT & DOS Admins \\
+\tPOST & /dos-admins/\{id\}/past-services                      & \tJWT & DOS Admins \\
+\midrule
+\tGET   & /deo-officers                                         & \tJWT & DEO Officers \\
+\tGET   & /deo-officers/form-data                               & \tJWT & DEO Officers \\
+\tGET   & /deo-officers/current-appointment-form-data           & \tJWT & DEO Officers \\
+\tPOST  & /deo-officers                                         & \tJWT & DEO Officers \\
+\tGET   & /deo-officers/\{id\}                                  & \tJWT & DEO Officers \\
+\tPATCH & /deo-officers/\{id\}                                  & \tJWT & DEO Officers \\
+\tDEL   & /deo-officers/\{id\}                                  & \tJWT & DEO Officers \\
+\midrule
+\tGET   & /identity                                             & \tJWT & Profile \\
+\tGET   & /mobile/identity                                      & \tJWT & Profile \\
+\tGET   & /profile                                              & \tJWT & Profile \\
+\tGET   & /user/\{people\_id\}                                  & \tJWT & Profile \\
+\tGET   & /dashboard/\{people\_id\}                             & \tJWT & Profile \\
+\tGET   & /pdf/teacher/\{people\_id\}                           & \tJWT & Profile \\
+\tGET   & /profile/avatar                                       & \tJWT & Profile \\
+\tPOST  & /profile/avatar                                       & \tJWT & Profile \\
+\tPATCH & /profile/avatar                                       & \tJWT & Profile \\
+\tDEL   & /profile/avatar                                       & \tJWT & Profile \\
+\tPATCH & /profile/password                                     & \tJWT & Profile \\
+\tPOST  & /profile/password/complete-external                   & \tJWT & Profile \\
+\midrule
+\tGET   & /users                                                & \tJWT & User Mgmt \\
+\tPOST  & /users                                                & \tJWT & User Mgmt \\
+\tGET   & /users/\{id\}                                         & \tJWT & User Mgmt \\
+\tPATCH & /users/\{id\}                                         & \tJWT & User Mgmt \\
+\tDEL   & /users/\{id\}                                         & \tJWT & User Mgmt \\
+\tPATCH & /users/\{id\}/toggle-status                           & \tJWT & User Mgmt \\
+\tPOST  & /users/\{id\}/reset-password                          & \tJWT & User Mgmt \\
+\midrule
+\tGET  & /roles                                                 & \tJWT & Roles \\
+\tPOST & /roles                                                 & \tJWT & Roles \\
+\tPUT  & /roles/\{id\}                                          & \tJWT & Roles \\
+\tGET  & /permissions                                           & \tPUB & Permissions \\
+\tGET  & /permissions/\{roleid\}                                & \tPUB & Permissions \\
+\tDEL  & /permissions/\{roleid\}                                & \tPUB & Permissions \\
+\midrule
+\tGET  & /versions                                              & \tPUB & Versions \\
+\tPOST & /versions                                              & \tPUB & Versions \\
+\tPUT  & /versions/\{id\}                                       & \tPUB & Versions \\
+\tDEL  & /versions/\{id\}                                       & \tPUB & Versions \\
+\midrule
+\tGET  & /v1/subjects                                           & \tPUB & Timetable \\
+\tGET  & /v1/timetable/init                                     & \tJWT & Timetable \\
+\tGET  & /v1/timetable/week                                     & \tJWT & Timetable \\
+\tGET  & /v1/timetable/current-class                            & \tJWT & Timetable \\
+\tGET  & /v1/timetable/setup                                    & \tJWT & Timetable \\
+\tPOST & /v1/timetable/setup                                    & \tJWT & Timetable \\
+\tGET  & /v1/timetable/slots                                    & \tJWT & Timetable \\
+\tPOST & /v1/timetable/slots                                    & \tJWT & Timetable \\
+\tPUT  & /v1/timetable/slots/\{slot\}                           & \tJWT & Timetable \\
+\tDEL  & /v1/timetable/slots/\{slot\}                           & \tJWT & Timetable \\
+\tGET  & /v1/timetable/slots/\{slot\}/comments                  & \tJWT & Timetable \\
+\tGET  & /v1/timetable/periods                                  & \tJWT & Timetable \\
+\tPUT  & /v1/timetable/periods/\{period\}                       & \tJWT & Timetable \\
+\tGET  & /v1/timetable/intervals                                & \tJWT & Timetable \\
+\tPUT  & /v1/timetable/intervals/\{interval\}                   & \tJWT & Timetable \\
+\tGET  & /v1/timetable/subject-colors                           & \tJWT & Timetable \\
+\tPOST & /v1/timetable/subject-colors                           & \tJWT & Timetable \\
+\tDEL  & /v1/timetable/subject-colors/\{subjectColor\}          & \tJWT & Timetable \\
+\tGET  & /v1/timetable/holidays                                 & \tJWT & Timetable \\
+\tPOST & /v1/timetable/holidays                                 & \tJWT & Timetable \\
+\tDEL  & /v1/timetable/holidays/\{holiday\}                     & \tJWT & Timetable \\
+\tGET  & /v1/timetable/lesson-records                           & \tJWT & Timetable \\
+\tGET  & /v1/timetable/lesson-records/dates                     & \tJWT & Timetable \\
+\tGET  & /v1/timetable/lesson-records/by-slot/\{slot\}          & \tJWT & Timetable \\
+\tPOST & /v1/timetable/lesson-records                           & \tJWT & Timetable \\
+\tPUT  & /v1/timetable/lesson-records/\{lessonRecord\}          & \tJWT & Timetable \\
+\tDEL  & /v1/timetable/lesson-records/\{lessonRecord\}          & \tJWT & Timetable \\
+\tGET  & /v1/timetable/report                                   & \tJWT & Timetable \\
+
+\end{longtable}

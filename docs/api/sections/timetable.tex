@@ -1,0 +1,55 @@
+% ============================================================
+%  sections/timetable.tex
+% ============================================================
+\section{Timetable}
+
+All timetable endpoints use the prefix \texttt{/v1}.
+All \texttt{/v1/timetable} endpoints require authentication.
+
+\subsection{Subjects}
+\apiendpoint{\GET}{/v1/subjects}{\noauth}{Returns the global subjects list used by the timetable module.}
+
+\subsection{Core}
+\apiendpoint{\GET}{/v1/timetable/init}{\authjwt}{Returns the full initialisation payload (setup, periods, intervals, slots, subject colours, holidays) in a single call — used to bootstrap the timetable UI.}
+\apiendpoint{\GET}{/v1/timetable/week}{\authjwt}{Returns the full week timetable for the authenticated teacher.}
+\apiendpoint{\GET}{/v1/timetable/current-class}{\authjwt}{Returns the currently active class (dashboard widget).}
+
+\subsection{Setup}
+\apiendpoint{\GET}{/v1/timetable/setup}{\authjwt}{Returns the timetable configuration for the authenticated teacher.}
+\apiendpoint{\POST}{/v1/timetable/setup}{\authjwt}{Creates or replaces the timetable configuration.}
+
+\subsection{Slots}
+\apiendpoint{\GET}{/v1/timetable/slots}{\authjwt}{Returns all timetable slots.}
+\apiendpoint{\POST}{/v1/timetable/slots}{\authjwt}{Creates a new timetable slot.}
+\apiendpoint{\PUT}{/v1/timetable/slots/\{slot\}}{\authjwt}{Updates a timetable slot.}
+\apiendpoint{\DELETE}{/v1/timetable/slots/\{slot\}}{\authjwt}{Deletes a timetable slot.}
+\apiendpoint{\GET}{/v1/timetable/slots/\{slot\}/comments}{\authjwt}{Returns comments attached to a specific slot.}
+
+\subsection{Periods}
+\apiendpoint{\GET}{/v1/timetable/periods}{\authjwt}{Returns all periods in the authenticated teacher's timetable.}
+\apiendpoint{\PUT}{/v1/timetable/periods/\{period\}}{\authjwt}{Updates a period.}
+
+\subsection{Intervals}
+\apiendpoint{\GET}{/v1/timetable/intervals}{\authjwt}{Returns all intervals (breaks) in the timetable.}
+\apiendpoint{\PUT}{/v1/timetable/intervals/\{interval\}}{\authjwt}{Updates an interval.}
+
+\subsection{Subject Colours}
+\apiendpoint{\GET}{/v1/timetable/subject-colors}{\authjwt}{Returns all subject colour mappings.}
+\apiendpoint{\POST}{/v1/timetable/subject-colors}{\authjwt}{Creates a new subject colour mapping.}
+\apiendpoint{\DELETE}{/v1/timetable/subject-colors/\{subjectColor\}}{\authjwt}{Deletes a subject colour mapping.}
+
+\subsection{Holidays}
+\apiendpoint{\GET}{/v1/timetable/holidays}{\authjwt}{Returns all holidays configured in the timetable.}
+\apiendpoint{\POST}{/v1/timetable/holidays}{\authjwt}{Creates a new holiday entry.}
+\apiendpoint{\DELETE}{/v1/timetable/holidays/\{holiday\}}{\authjwt}{Deletes a holiday entry.}
+
+\subsection{Lesson Records}
+\apiendpoint{\GET}{/v1/timetable/lesson-records}{\authjwt}{Returns all lesson records for the authenticated teacher.}
+\apiendpoint{\GET}{/v1/timetable/lesson-records/dates}{\authjwt}{Returns the dates on which lesson records exist.}
+\apiendpoint{\GET}{/v1/timetable/lesson-records/by-slot/\{slot\}}{\authjwt}{Returns lesson records filtered to a specific slot.}
+\apiendpoint{\POST}{/v1/timetable/lesson-records}{\authjwt}{Creates a new lesson record.}
+\apiendpoint{\PUT}{/v1/timetable/lesson-records/\{lessonRecord\}}{\authjwt}{Updates a lesson record.}
+\apiendpoint{\DELETE}{/v1/timetable/lesson-records/\{lessonRecord\}}{\authjwt}{Deletes a lesson record.}
+
+\subsection{Report}
+\apiendpoint{\GET}{/v1/timetable/report}{\authjwt}{Returns the timetable report for the authenticated teacher.}
