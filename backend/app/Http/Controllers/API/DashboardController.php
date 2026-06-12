@@ -110,6 +110,8 @@ class DashboardController extends Controller
             $q->where('workplace_id', $workplaceId);
         })->count();
 
+        $officeLists = collect();
+
         if($workplace->office_level_id == 'OLID001'){
             $officeLists = ProvincialMinistryOfEducationOffice::query()
                 ->whereIn('provincial_ministry_of_education_offices.workplace_id', $chilWorkpalceList)
