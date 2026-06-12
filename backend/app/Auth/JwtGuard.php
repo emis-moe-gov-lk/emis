@@ -3,6 +3,7 @@
 namespace App\Auth;
 
 
+use App\Models\People;
 use App\Models\User;
 use Firebase\JWT\JWK;
 use Firebase\JWT\JWT;
@@ -47,36 +48,62 @@ class JwtGuard implements Guard
 
         $roles = (array) ($payload->roles ?? []);
         $this->request->attributes->set('jwt_roles', $roles);
-        $email = $payload->email
-            ?? $payload->preferred_username
-            ?? $payload->upn
-            ?? $payload->username
-            ?? null;
 
+        $uuid = $payload->sub ?? null;
 
-        if (! $email) {
-            Log::warning('JWT user resolution failed: no supported identity claim found');
+        if (! $uuid) {
+            Log::warning('JWT user resolution failed: no uuid (sub) claim found');
             return null;
         }
 
-        $email = strtolower(trim((string) $email));
+        $uuid = trim((string) $uuid);
 
-        $user = User::query()
-            ->whereRaw('LOWER(email) = ?', [$email])
-            ->first();
+        $person = People::where('uuid', $uuid)->first();
 
-
-        if (! $user) {
-            Log::warning('JWT user resolution failed: no matching local user', [
-                'email' => $email,
+        if (! $person) {
+            Log::warning('JWT user resolution failed: no matching person for uuid', [
+                'uuid' => $uuid,
             ]);
             return null;
         }
 
-        $this->request->attributes->set('jwt_email', $email);
+        $user = User::where('people_id', $person->people_id)->first();
+
+        if (! $user) {
+            Log::warning('JWT user resolution failed: no matching local user for person', [
+                'uuid' => $uuid,
+                'people_id' => $person->people_id,
+            ]);
+            return null;
+        }
+
+        // -----------------------------------------------------------------
+        // EMERGENCY EMAIL FALLBACK 
+        //
+        // Legacy email-based resolution, kept here for reference in case the
+        // uuid (sub) claim is ever missing from issued tokens  and a hotfix
+        // is needed before a proper fix can
+        // be deployed. Re-enabling this re-introduces email-based identity
+        // resolution, which this change was specifically meant to remove.
+        // -----------------------------------------------------------------
+
+
+        // if (! $person) {
+        //     $email = $payload->email
+        //         ?? $payload->preferred_username
+        //         ?? $payload->upn
+        //         ?? $payload->username
+        //         ?? null;
+        //
+        //     if ($email) {
+        //         $email = strtolower(trim((string) $email));
+        //         $user = User::query()->whereRaw('LOWER(email) = ?', [$email])->first();
+        //         $this->request->attributes->set('jwt_email', $email);
+        //     }
+        // }
+
+        $this->request->attributes->set('jwt_uuid', $uuid);
         $this->request->attributes->set('jwt_people_id', $user->people_id);
-
-
 
         return $this->user = $user;
     }
