@@ -61,6 +61,7 @@ services:
       "
     extra_hosts:
       - "idp.app-uat.emis.moe.gov.lk:192.168.200.1"
+      - "idp-dev.emis.moe.gov.lk:192.168.200.1"
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:2019/metrics || exit 1"]
       interval: 30s

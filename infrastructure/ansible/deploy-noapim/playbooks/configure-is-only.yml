@@ -3,46 +3,19 @@
   gather_facts: false
   vars:
     # IS connection settings (local aliases to avoid collisions with env-file vars)
-    is_host:       "{{ is_hostname | default('idp.app-uat.emis.moe.gov.lk') }}"
-    is_port:       "{{ is_mgmt_port | default('9444') }}"
-    is_admin_name: "{{ is_admin_user | default('admin') }}"
-    is_admin_pass: "{{ is_admin_password | default('ADMIN11') }}"
+    is_host:       "{{ is_hostname  }}"
+    is_port:       "{{ is_port }}"
+    is_admin_name: "{{ is_admin_user  }}"
+    is_admin_pass: "{{ is_admin_password  }}"
 
-    roles_to_create: "{{ nemis_roles | default([]) }}"
-    users_to_create: "{{ nemis_users | default([]) }}"
-    apps_to_create:  "{{ nemis_apps | default([]) }}"
+    roles_to_create: "{{ emis_roles }}"
+    users_to_create: "{{ emis_users }}"
+    apps_to_create:  "{{ emis_apps }}"
 
   tasks:
-    # =========================================================================
-    # PART 0: Resolve IS container IP (bypasses nginx Bearer enforcement)
-    # =========================================================================
-    # The public hostname sits behind nginx which requires Bearer auth for all
-    # endpoints. The IS container's overlay network IP accepts Basic Auth on
-    # port 9444 directly. This approach mirrors what setup.sh does locally
-    # (curl localhost:9444), but uses the container IP to avoid the Docker
-    # swarm routing-mesh loopback issue.
-
-    - name: Get IS container overlay network IP
-      ansible.builtin.shell: |
-        CONTAINER_ID=$(docker ps -q --filter 'name=wso2-is' | head -1)
-        if [ -z "$CONTAINER_ID" ]; then exit 1; fi
-        docker inspect "$CONTAINER_ID" | python3 -c "
-        import json, sys
-        nets = json.load(sys.stdin)[0]['NetworkSettings']['Networks']
-        for name, net in nets.items():
-            if 'ingress' not in name and net.get('IPAddress'):
-                print(net['IPAddress'])
-                break
-        "
-      register: is_direct_ip
-      changed_when: false
-      retries: 12
-      delay: 15
-      until: is_direct_ip.rc == 0 and is_direct_ip.stdout | length > 0
-
     - name: Set IS management base URL (direct container, port 9444)
       ansible.builtin.set_fact:
-        is_mgmt: "https://192.168.200.2:{{ is_port }}"
+        is_mgmt: "https://{{ is_hostname }}"
 
     # =========================================================================
     # PART 1: Wait for IS
