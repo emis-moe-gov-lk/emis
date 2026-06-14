@@ -61,3 +61,50 @@
         that: become_check.stdout == "root"
         fail_msg: "User {{ ansible_user }} cannot become root on {{ inventory_hostname }}"
         success_msg: "User {{ ansible_user }} can become root"
+
+# ── NEW CHECKS ───────────────────────────────────────────────
+
+    - name: Check MySQL port is reachable
+      ansible.builtin.wait_for:
+        host: "{{ ansible_host }}"
+        port: 3306
+        timeout: 5
+      delegate_to: "{{ item }}"
+      with_items: "{{ groups['db_host'] }}"
+      when: inventory_hostname in groups['db_host']
+      register: mysql_check
+      ignore_errors: yes
+
+    - name: Assert MySQL port is reachable
+      ansible.builtin.assert:
+        that: mysql_check is succeeded
+        fail_msg: "MySQL port 3306 is not reachable on {{ inventory_hostname }}"
+        success_msg: "MySQL port 3306 is reachable on {{ inventory_hostname }}"
+      when: inventory_hostname in groups['db_host']
+
+    - name: Check Docker is installed
+      ansible.builtin.command: docker --version
+      register: docker_check
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Assert Docker is installed
+      ansible.builtin.assert:
+        that: docker_check.rc == 0
+        fail_msg: "Docker is not installed on {{ inventory_hostname }}"
+        success_msg: "Docker is installed on {{ inventory_hostname }}"
+
+    - name: Check Docker Swarm mode
+      ansible.builtin.command: docker info --format '{{'{{'}}.Swarm.LocalNodeState{{'}}'}}'
+      register: swarm_check
+      changed_when: false
+      when: inventory_hostname in groups['swarm_managers']
+      ignore_errors: yes
+
+    - name: Assert Docker Swarm mode is active
+      ansible.builtin.assert:
+        that: swarm_check.stdout == "active"
+        fail_msg: "Docker is not in active Swarm mode on {{ inventory_hostname }}"
+        success_msg: "Docker is in active Swarm mode on {{ inventory_hostname }}"
+      when: inventory_hostname in groups['swarm_managers']
+

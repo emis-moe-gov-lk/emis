@@ -248,7 +248,6 @@
         - webapp_id is defined
         - webapp_id | length > 0
 
-
     - name: Configure email and roles claims for EMIS Web App
       ansible.builtin.uri:
         url: "{{ is_mgmt }}/api/server/v1/applications/{{ webapp_id }}"
@@ -281,6 +280,41 @@
         - webapp_id is defined
         - webapp_id | length > 0
 
+    - name: Configure organization roles for EMIS Web App
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/api/server/v1/applications/{{ webapp_id }}"
+        method: PATCH
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          associatedRoles:
+            allowedAudience: "ORGANIZATION"
+        status_code: [200]
+      when:
+        - webapp_id is defined
+        - webapp_id | length > 0
+
+    - name: Get existing OIDC protocol config
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/api/server/v1/applications/{{ webapp_id }}/inbound-protocols/oidc"
+        method: GET
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+        status_code: [200]
+      register: oidc_existing
+      when:
+        - webapp_id is defined
+        - webapp_id | length > 0
+
     - name: Configure OIDC protocol to include claims in access token and ID token
       ansible.builtin.uri:
         url: "{{ is_mgmt }}/api/server/v1/applications/{{ webapp_id }}/inbound-protocols/oidc"
@@ -293,6 +327,7 @@
           Content-Type: "application/json"
         body_format: json
         body:
+          clientId: "{{ oidc_existing.json.clientId }}"
           grantTypes:
             - "authorization_code"
             - "refresh_token"
@@ -301,18 +336,50 @@
           allowedOrigins:
             - "{{ vite_signin_redirect_url | regex_replace('(https?://[^/]+).*', '\\1') }}"
           publicClient: true
+          pkce:
+            mandatory: false
+            supportPlainTransformAlgorithm: false
+          hybridFlow:
+            enable: false
+            responseType: "null"
           accessToken:
             type: "JWT"
             userAccessTokenExpiryInSeconds: 3600
             applicationAccessTokenExpiryInSeconds: 3600
+            revokeTokensWhenIDPSessionTerminated: false
+            validateTokenBinding: false
+            accessTokenAttributes:
+                - "email"
+                - "given_name"
+                - "roles"
+          refreshToken:
+            expiryInSeconds: 86400
+            renewRefreshToken: false
+          subjectToken:
+            enable: false
+            applicationSubjectTokenExpiryInSeconds: 180
           idToken:
             expiryInSeconds: 3600
+            audience: []
+            idTokenSignedResponseAlg: ""
+            encryption:
+              enabled: false
+              algorithm: ""
+              method: ""
+          logout: {}
+          validateRequestObjectSignature: false
+          scopeValidators: []
+          clientAuthentication: {}
+          requestObject:
+            requestObjectSigningAlg: ""
+            encryption:
+              algorithm: ""
+              method: ""
+          pushAuthorizationRequest:
+            requirePushAuthorizationRequest: false
           subject:
-            sectorIdentifierUri: ""
             subjectType: "public"
-          claimsConfig:
-            mappings: []
-            requestedOIDCClaims: []
+          isFAPIApplication: false
         status_code: [200]
       when:
         - webapp_id is defined
