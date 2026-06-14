@@ -63,6 +63,33 @@
         label: "{{ role }}"
       when: roles_to_create | length > 0
 
+    - name: Get all role IDs
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/scim2/v2/Roles?filter=displayName+eq+{{ role | urlencode }}"
+        method: GET
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+      loop: "{{ roles_to_create }}"
+      loop_control:
+        loop_var: role
+      register: role_lookups
+      when: roles_to_create | length > 0
+
+    - name: Map role names to IDs
+      set_fact:
+        role_id_mapping: "{{ role_id_mapping | default({}) | combine({ item.role: item.json.Resources[0].id }) }}"
+      loop: "{{ role_lookups.results }}"
+      loop_control:
+        label: "{{ item.role }}"
+      when:
+        - roles_to_create | length > 0
+        - item.json is defined
+        - item.json.totalResults | default(0) | int > 0
+
     # =========================================================================
     # PART 3: Create Users in IS
     # =========================================================================
@@ -116,7 +143,7 @@
 
     - name: Assign roles to users
       ansible.builtin.uri:
-        url: "{{ is_mgmt }}/scim2/Users/{{ user_role.0.json.Resources[0].id }}"
+        url: "{{ is_mgmt }}/scim2/v2/Roles/{{ role_id_mapping[user_role.1] }}"
         method: PATCH
         validate_certs: no
         user: "{{ is_admin_name }}"
@@ -130,15 +157,19 @@
             - "urn:ietf:params:scim:api:messages:2.0:PatchOp"
           Operations:
             - op: "add"
-              path: "groups"
+              path: "users"
               value:
-                - display: "{{ user_role.1 }}"
+                - value: "{{ user_role.0.json.Resources[0].id }}"
+                  display: "{{ user_role.0.user.username }}"
         status_code: [200, 204]
       loop: "{{ user_lookups.results | default([]) | subelements('user.roles', skip_missing=True) }}"
       loop_control:
         loop_var: user_role
         label: "Assigning {{ user_role.1 }} to {{ user_role.0.user.username }}"
-      when: user_lookups.results is defined and user_lookups.results | length > 0
+      when:
+        - user_lookups.results is defined
+        - user_lookups.results | length > 0
+        - role_id_mapping[user_role.1] is defined
 
     # =========================================================================
     # PART 4: Create OIDC Applications Directly in IS (no APIM devportal)
@@ -176,17 +207,14 @@
                 - "authorization_code"
                 - "refresh_token"
               callbackURLs:
-                - "{{ vite_signin_redirect_url }}"
+                - "regexp=({{ vite_signin_redirect_url }}|{{ vite_signout_redirect_url }})"
               allowedOrigins:
                 - "{{ vite_signin_redirect_url | regex_replace('(https?://[^/]+).*', '\\1') }}"
               publicClient: true
-              accessToken:
-                type: "JWT"
-                userAccessTokenExpiryInSeconds: 3600
-                applicationAccessTokenExpiryInSeconds: 3600
         status_code: [201, 409]
       register: webapp_created
       when: webapp_check.json.totalResults | default(0) | int == 0
+
 
     - name: Get EMIS Web App ID
       ansible.builtin.uri:
@@ -220,7 +248,8 @@
         - webapp_id is defined
         - webapp_id | length > 0
 
-    - name: Configure JWT claims for EMIS Web App (email, roles, groups)
+
+    - name: Configure email and roles claims for EMIS Web App
       ansible.builtin.uri:
         url: "{{ is_mgmt }}/api/server/v1/applications/{{ webapp_id }}"
         method: PATCH
@@ -241,19 +270,49 @@
               - claim:
                   uri: "http://wso2.org/claims/roles"
                 mandatory: false
-              - claim:
-                  uri: "http://wso2.org/claims/groups"
-                mandatory: false
             subject:
               claim:
                 uri: "http://wso2.org/claims/userid"
               includeUserDomain: false
               includeTenantDomain: false
               useMappedLocalSubject: false
-            role:
-              includeUserDomain: false
-              claim:
-                uri: "http://wso2.org/claims/roles"
+        status_code: [200]
+      when:
+        - webapp_id is defined
+        - webapp_id | length > 0
+
+    - name: Configure OIDC protocol to include claims in access token and ID token
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/api/server/v1/applications/{{ webapp_id }}/inbound-protocols/oidc"
+        method: PUT
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          grantTypes:
+            - "authorization_code"
+            - "refresh_token"
+          callbackURLs:
+            - "regexp=({{ vite_signin_redirect_url }}|{{ vite_signout_redirect_url }})"
+          allowedOrigins:
+            - "{{ vite_signin_redirect_url | regex_replace('(https?://[^/]+).*', '\\1') }}"
+          publicClient: true
+          accessToken:
+            type: "JWT"
+            userAccessTokenExpiryInSeconds: 3600
+            applicationAccessTokenExpiryInSeconds: 3600
+          idToken:
+            expiryInSeconds: 3600
+          subject:
+            sectorIdentifierUri: ""
+            subjectType: "public"
+          claimsConfig:
+            mappings: []
+            requestedOIDCClaims: []
         status_code: [200]
       when:
         - webapp_id is defined
