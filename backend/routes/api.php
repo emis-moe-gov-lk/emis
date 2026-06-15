@@ -144,6 +144,12 @@ Route::prefix('')->group(function () {
         Route::post('/principals/{people_id}/past-services', 'addPastService');
     });
 
+    Route::controller(\App\Http\Controllers\API\SchoolDeoApiController::class)->middleware('auth:jwt')->group(function () {
+        Route::get('/schooldeo-list', 'index');
+        Route::post('/schooldeo-create', 'store');
+        Route::get('/schooldeo/{people_id}', 'show');
+    });
+
     Route::controller(\App\Http\Controllers\API\AlertController::class)->middleware('auth:jwt')->group(function () {
         Route::get('/alerts/counts', 'counts');
         Route::get('/alerts/pending-verification', 'pendingVerification');

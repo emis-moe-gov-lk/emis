@@ -7,17 +7,16 @@ import Swal from "sweetalert2";
 import StepperHeader from "@/components/teacher/StepperHeader";
 import StepNavigation from "@/components/teacher/StepNavigation";
 
-import StepNICVerification from "@/components/teacher/steps/StepNICVerification";
-import StepPersonalDetails from "@/components/teacher/steps/StepPersonalDetails";
-import StepContactDetails from "@/components/teacher/steps/StepContactDetails";
-import StepFirstAppointment from "@/components/teacher/steps/StepFirstAppointment";
-import StepCurrentAppointment from "@/components/teacher/steps/StepCurrentAppointment";
+import StepNICVerification from "@/components/schooldeo/steps/StepNICVerification";
+import StepPersonalDetails from "@/components/schooldeo/steps/StepPersonalDetails";
+import StepContactDetails from "@/components/schooldeo/steps/StepContactDetails";
+import StepCurrentAppointment from "@/components/schooldeo/steps/StepCurrentAppointment";
 
 import {
-  checkTeacherContact,
-  downloadTeacherProfileDocument,
-  registerTeacher,
-} from "@/api/teacherService";
+  checkSchoolDeoContact,
+  registerSchoolDeo,
+} from "@/api/schoolDeoService";
+import { downloadTeacherProfileDocument } from "@/api/teacherService";
 import toast from "react-hot-toast";
 import { HiCheckCircle } from "react-icons/hi";
 import { useAuthUser } from "@/context/useAuthUser";
@@ -26,7 +25,7 @@ import Button from "@/components/UiComponents/Button";
 
 const REG_DEO_HISTORY_OWNER = "regDeoCreate";
 const REG_DEO_HISTORY_STEP_KEY = "regDeoStep";
-const REG_DEO_TOTAL_STEPS = 6;
+const REG_DEO_TOTAL_STEPS = 5;
 
 function RegDeoInner() {
   const navigate = useNavigate();
@@ -55,7 +54,6 @@ function RegDeoInner() {
     isNicVerified,
     isPersonalValid,
     isContactValid,
-    isFirstApptValid,
     isCurrentApptValid,
     error,
     isRestored,
@@ -314,9 +312,8 @@ function RegDeoInner() {
     { id: 1, label: "Verification" },
     { id: 2, label: "Personal" },
     { id: 3, label: "Contact" },
-    { id: 4, label: "First Appt" },
-    { id: 5, label: "Current Appt" },
-    { id: 6, label: "Finishing" },
+    { id: 4, label: "Current Appt" },
+    { id: 5, label: "Finishing" },
   ];
 
   const resetRegistration = () => {
@@ -383,8 +380,7 @@ function RegDeoInner() {
     if (currentStep === 1 && !isNicVerified) return;
     if (currentStep === 2 && !isPersonalValid) return;
     if (currentStep === 3 && !isContactValid) return;
-    if (currentStep === 4 && !isFirstApptValid) return;
-    if (currentStep === 5 && !isCurrentApptValid) return;
+    if (currentStep === 4 && !isCurrentApptValid) return;
 
     if (stepId === currentStep + 1) {
       dispatch({ type: "SET_STEP", payload: stepId });
@@ -430,7 +426,7 @@ function RegDeoInner() {
           setIsSubmitting(true);
           setContactApiErrors({});
 
-          const result = await checkTeacherContact(payload);
+          const result = await checkSchoolDeoContact(payload);
           const emailExists = Boolean(result?.email?.exists);
           const phoneExists = Boolean(result?.phone?.exists);
 
@@ -453,16 +449,6 @@ function RegDeoInner() {
       }
     }
     if (currentStep === 4) {
-      // Trigger error display for First Appointment Details
-      if (window.__triggerFirstAppointmentValidation) {
-        window.__triggerFirstAppointmentValidation();
-      }
-      if (!isFirstApptValid) {
-        showErrorToast("Compulsory fields should be completed.", "first-appointment-required");
-        return;
-      }
-    }
-    if (currentStep === 5) {
       // Trigger error display for Current Appointment Details
       if (window.__triggerCurrentAppointmentValidation) {
         window.__triggerCurrentAppointmentValidation();
@@ -473,13 +459,13 @@ function RegDeoInner() {
       }
     }
 
-    if (currentStep === 5) {
+    if (currentStep === 4) {
       try {
         setIsSubmitting(true);
         dispatch({ type: "SET_ERROR", payload: null });
 
-        // Using registerTeacher as it seems to be the common entry for school-level employees
-        const result = await registerTeacher(formData);
+        // Using registerSchoolDeo as it is the specific entry for school-level DEO
+        const result = await registerSchoolDeo(formData);
 
         if (result.status === "success") {
           const responseData = result.data || {};
@@ -508,7 +494,7 @@ function RegDeoInner() {
           dispatch({ type: "COMPLETE_REGISTRATION" });
           setIsRegistrationComplete(true);
           showSuccessToast("School DEO registered successfully", "deo-registration-success");
-          dispatch({ type: "SET_STEP", payload: 6 });
+          dispatch({ type: "SET_STEP", payload: 5 });
         } else {
           dispatch({
             type: "SET_ERROR",
@@ -539,7 +525,7 @@ function RegDeoInner() {
   };
 
   const back = async () => {
-    if (currentStep === 6) return;
+    if (currentStep === 5) return;
 
     const targetStep = Math.max(currentStep - 1, 1);
     if (targetStep === 1 && currentStep > 1) {
@@ -614,26 +600,17 @@ function RegDeoInner() {
           )}
 
           {currentStep === 4 && (
-            <StepFirstAppointment
-              formData={formData}
-              setFormData={setFormData}
-              onValid={(isValid) =>
-                dispatch({ type: "SET_FIRST_APPT_VALID", payload: isValid })
-              }
-            />
-          )}
-
-          {currentStep === 5 && (
             <StepCurrentAppointment
               formData={formData}
               setFormData={setFormData}
+              isDeo={true}
               onValid={(isValid) =>
                 dispatch({ type: "SET_CURRENT_APPT_VALID", payload: isValid })
               }
             />
           )}
 
-          {currentStep === 6 && (
+          {currentStep === 5 && (
             <div className="space-y-8">
               <div className="flex items-start gap-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900/40 rounded-2xl p-6">
                 <HiCheckCircle className="text-green-600 dark:text-green-500 w-8 h-8 mt-1" />
@@ -682,7 +659,7 @@ function RegDeoInner() {
           </div>
         )}
 
-        {currentStep !== 6 && (
+        {currentStep !== 5 && (
           <div className="border-t">
             <StepNavigation
               currentStep={currentStep}
