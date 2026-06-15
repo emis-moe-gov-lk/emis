@@ -1269,5 +1269,32 @@ class RolePermissionSeeder extends Seeder
             $role->save();
             $role->syncPermissions($zonalDeoPermissions);
         }
+
+        // Divisinal Director & Divisional Deputy Director 
+         $divisionalApproveViewPermissions = [
+            'menu.dashboard',
+            'dashboard.analytics',
+            'menu.schools',
+            'menu.schools.teachers',
+            'menu.schools.principals',
+            'teacher.profile.view',
+            'menu.division',
+            'menu.attendance',
+            'attendance.manage.update',
+            'menu.alerts',
+            'alerts.profile.view',
+            'alerts.profile.verify',
+            'alerts.profile.confirm',
+           
+        ];
+        
+        foreach (['Divisional Director' => 8, 'Divisional Deputy Director' => 9] as $roleName => $level) {
+            $role        = Role::firstOrCreate(['name' => $roleName]);
+            $role->level = $level;
+            $role->save();
+            $role->syncPermissions($divisionalApproveViewPermissions);
+        }
+
+       
     }
 }

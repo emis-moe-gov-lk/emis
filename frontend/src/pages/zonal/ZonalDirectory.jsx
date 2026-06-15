@@ -2,12 +2,12 @@ import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { Spinner } from "flowbite-react";
 import { HiUser } from "react-icons/hi";
-import DosHeader from "../components/dos/DosHeader";
-import DosList from "../components/dos/DosList";
-import { useDosService } from "../services/dosService";
-import { getAllDosAdmins } from "../api/dosAdminService";
+import DosHeader from "@/components/dos/DosHeader";
+import DosList from "@/components/dos/DosList";
+import { useDosService } from "@/services/dosService";
+import { getAllDosAdmins } from "@/api/dosAdminService";
 
-export default function DosDirectory() {
+export default function ZonalDirectory() {
   const [employees, setEmployees] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -77,8 +77,6 @@ export default function DosDirectory() {
       ) : (
         <DosList employees={employees} />
       )}
-
-      {/* Inline search now in header — modal removed */}
     </div>
   );
 }
