@@ -1,3 +1,4 @@
+import { PermissionGroups } from "@/data/permissionGroups";
 import {
   HiCalendar,
   HiChartPie,
@@ -169,27 +170,20 @@ export const menuItems = [
         id: "division",
         label: "Division",
         icon: HiUserGroup,
-        permission: "menu.division",
+        permission: PermissionGroups.DIVISION.DIVISION_VIEW,
         children: [
           {
             id: "divisiondirector",
-            label: "Division Director",
-            to: "/employees/divisiondirector",
-            permission: "menu.division.admin",
+            label: "Division Administrators",
+            to: "/employees/division/admin",
+            // permission: PermissionGroups.DIVISION.ADMIN_VIEW,
           },
-          // {
-          //   id: "divisionhead",
-          //   label: "Division Head",
-          //   to: "/employees/divisionhead",
-          //   permission: "divisionhead.list.view",
-          // },
-          // {
-          //   id: "divisionclerk",
-          //   label: "Division Clerk",
-          //   to: "/employees/divisionclerk",
-          //   permission: "divisionclerk.list.view",
-          // },
-          
+          {
+            id: "divisiondeo",
+            label: "Division DEO",
+            to: "/employees/division/deo",
+            // permission: PermissionGroups.DIVISION.DEO_VIEW,
+          },
         ],
       },
 
@@ -206,7 +200,7 @@ export const menuItems = [
             permission: "menu.zonal.admin",
           },
 
-            {
+          {
             id: "zonaldeo",
             label: "Zonal Deo",
             to: "/employees/development-officers",

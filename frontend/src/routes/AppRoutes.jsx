@@ -64,11 +64,17 @@ import UserCreate from "@/pages/users/UserCreate";
 import UserEdit from "@/pages/users/UserEdit";
 import { TimetableProvider } from "../context/TimeTableContext.jsx";
 import { TeacherFormProvider } from "../context/TeacherFormContext.jsx";
-import DosDirectory from "../pages/DosDirectory.jsx";
+import ZonalDirectory from "../pages/zonal/ZonalDirectory.jsx";
+import DivisionDeoDirectory from "../pages/division/DivisionDeoDirectory.jsx";
+import DivisionAdminDirectory from "../pages/division/DivisionAdminDirectory.jsx";
 import DosBulkUpload from "../pages/dos/DosBulkUpload.jsx";
 import RegDos from "../pages/dos/RegDos.jsx";
 import DosAdminForm from "../pages/dos/DosAdminForm.jsx";
 import RegDeoOfficer from "../pages/dos/RegDeoOfficer.jsx";
+import RegDivisionDeoOfficer from "../pages/division/RegDivisionDeoOfficer.jsx";
+import RegDivisionAdmin from "../pages/division/RegDivisionAdmin.jsx";
+import DivisionDeoProfile from "../pages/division/DivisionDeoProfile.jsx";
+import DivisionAdminProfile from "../pages/division/DivisionAdminProfile.jsx";
 import DosList from "../components/dos/DosList.jsx";
 import DosAdminProfile from "../pages/dos/DosAdminProfile.jsx";
 
@@ -260,20 +266,30 @@ export default function AppRoutes() {
             </Route>
 
             <Route path="employees/development-officers">
-              <Route index element={<DosDirectory />} />
+              <Route index element={<ZonalDirectory />} />
               <Route path="bulk-upload" element={<DosBulkUpload />} />
               <Route path="create" element={<RegDeoOfficer />} />
               <Route path=":id" element={<DosAdminProfile />} />
             </Route>
+            <Route path="employees/division/deo">
+              <Route index element={<DivisionDeoDirectory />} />
+              <Route path="create" element={<RegDivisionDeoOfficer />} />
+              <Route path=":id" element={<DivisionDeoProfile />} />
+            </Route>
+            <Route path="employees/division/admin">
+              <Route index element={<DivisionAdminDirectory />} />
+              <Route path="create" element={<RegDivisionAdmin />} />
+              <Route path=":id" element={<DivisionAdminProfile />} />
+            </Route>
             <Route path="employees/edu-directors">
-              <Route index element={<DosDirectory />} />
+              <Route index element={<ZonalDirectory />} />
               <Route path="bulk-upload" element={<DosBulkUpload />} />
               <Route path="create" element={<DosAdminForm />} />
               <Route path=":id" element={<DosAdminProfile />} />
             </Route>
 
             <Route path="employees/zonaldirector">
-              <Route index element={<DosDirectory />} />
+              <Route index element={<ZonalDirectory />} />
               <Route path="bulk-upload" element={<DosBulkUpload />} />
               <Route path="create" element={<RegDos />} />
               <Route path=":id" element={<DosAdminProfile />} />

@@ -22,7 +22,6 @@
 "use client";
 import { useState, useContext, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "flowbite-react";
 import { TeacherFormContext, TeacherFormProvider } from "@/context/TeacherFormContext";
 import Swal from "sweetalert2";
 
@@ -40,6 +39,8 @@ import toast from "react-hot-toast";
 import { HiCheckCircle } from "react-icons/hi";
 import { useAuthUser } from "@/context/useAuthUser";
 import BackToListButton from "@/components/UiComponents/BackToListButton";
+import Button from "@/components/UiComponents/Button";
+import { downloadDosAdminProfileDocument } from "@/api/dosAdminService";
 
 /**
  * History state management constants
@@ -438,7 +439,10 @@ function DosAdminFormInner() {
    * Navigates back to DOS Admin list with draft protection
    */
   const handleBackToList = async () => {
-    await confirmDiscardAndRun(() => navigate("/employees/edu-directors"));
+    const listPath = window.location.pathname.includes("/employees/division")
+      ? "/employees/division/divisionAdmin"
+      : "/employees/edu-directors";
+    await confirmDiscardAndRun(() => navigate(listPath));
   };
 
   /**
@@ -472,6 +476,47 @@ function DosAdminFormInner() {
   };
 
   /**
+   * Resets the entire registration form
+   */
+  const resetRegistration = () => {
+    dispatch({ type: "CLEAR" });
+    setIsRegistrationComplete(false);
+    setRegistrationSummary(null);
+  };
+
+  /**
+   * Downloads DOS Admin profile document
+   */
+  const handleDownloadProfile = async () => {
+    const peopleId =
+      registrationSummary?.people_id ||
+      registrationSummary?.id ||
+      formData?.people_id ||
+      formData?.id;
+
+    if (!peopleId) {
+      toast.error("Missing ID for profile download.");
+      return;
+    }
+
+    try {
+      const data = await downloadDosAdminProfileDocument(peopleId);
+      const blob = new Blob([data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `zonal-admin-profile-${peopleId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Download error:", err);
+      toast.error("Failed to download profile document.");
+    }
+  };
+
+  /**
    * Handle step progression and form submission
    */
   const handleNext = async () => {
@@ -489,8 +534,23 @@ function DosAdminFormInner() {
 
         if (result.status === "success" || res.status === 201) {
           toast.success("Zonal Administrator registered successfully");
+
+          const responseData = result.data || {};
+          const summary = {
+            fullName: responseData.fullName || responseData.full_name || formData.fullName,
+            nic: responseData.nic || responseData.nic_no || formData.nic,
+            email: responseData.email || responseData.email_address || formData.email,
+            contact: responseData.contact || responseData.phone || responseData.phone_no || formData.contact,
+            currentPosition:
+              responseData.currentAppointmentPositionLabel ||
+              responseData.currentAppointmentPosition ||
+              formData.currentAppointmentPositionLabel ||
+              formData.currentAppointmentPosition,
+            people_id: responseData.people_id || responseData.id || null,
+          };
+
           setIsRegistrationComplete(true);
-          setRegistrationSummary(result.data);
+          setRegistrationSummary(summary);
           dispatch({ type: "SET_STEP", payload: 6 });
         } else {
           toast.error(result.message || "Registration failed");
@@ -573,20 +633,47 @@ function DosAdminFormInner() {
           {/* Step 6: Completion */}
           {currentStep === 6 && isRegistrationComplete && (
             <div className="space-y-8">
-              <div className="flex items-start gap-4 bg-green-50 border border-green-200 rounded-2xl p-6">
-                <HiCheckCircle className="text-green-600 w-8 h-8 mt-1 flex-shrink-0" />
+              <div className="flex items-start gap-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900/40 rounded-2xl p-6">
+                <HiCheckCircle className="text-green-600 dark:text-green-500 w-8 h-8 mt-1 flex-shrink-0" />
                 <div>
-                  <h3 className="font-semibold text-green-800">Zonal Administrator Registration Successful</h3>
-                  <p className="text-sm text-green-700 mt-1">Registration has been completed successfully.</p>
+                  <h3 className="font-semibold text-green-800 dark:text-green-300">
+                    Zonal Administrator Registration Successful
+                  </h3>
+                  <p className="text-sm text-green-700 dark:text-green-400 mt-1">
+                    Registration has been completed successfully.
+                  </p>
                 </div>
               </div>
 
               {registrationSummary && (
-                <div className="bg-gray-50 rounded-2xl p-6 space-y-2 text-sm">
-                  <p><strong className="text-gray-700">Name:</strong> <span className="text-gray-600">{registrationSummary.fullName}</span></p>
-                  <p><strong className="text-gray-700">NIC:</strong> <span className="text-gray-600">{registrationSummary.nic}</span></p>
+                <div className="surface rounded-2xl p-6 space-y-2 text-sm">
+                  <p className="text-gray-900 dark:text-gray-100">
+                    <strong>Name:</strong> {registrationSummary.fullName || "-"}
+                  </p>
+                  <p className="text-gray-900 dark:text-gray-100">
+                    <strong>NIC:</strong> {registrationSummary.nic || "-"}
+                  </p>
+                  <p className="text-gray-900 dark:text-gray-100">
+                    <strong>Email:</strong> {registrationSummary.email || "-"}
+                  </p>
+                  <p className="text-gray-900 dark:text-gray-100">
+                    <strong>Contact Number:</strong> {registrationSummary.contact || "-"}
+                  </p>
+                  <p className="text-gray-900 dark:text-gray-100">
+                    <strong>Current Appointed Position:</strong>{" "}
+                    {registrationSummary.currentPosition || "-"}
+                  </p>
                 </div>
               )}
+
+              <div className="flex justify-center gap-4 pt-4">
+                <Button variant="secondary" onClick={resetRegistration}>
+                  New Registration
+                </Button>
+                <Button variant="primary" onClick={handleDownloadProfile}>
+                  Download Profile
+                </Button>
+              </div>
             </div>
           )}
         </div>
