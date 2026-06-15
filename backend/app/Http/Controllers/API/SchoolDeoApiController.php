@@ -177,7 +177,6 @@ class SchoolDeoApiController extends Controller
                 'currentAppointmentRank' => 'nullable|string',    // Optional for DEO
                 'currentAppointmentInstitution' => 'required|string',
                 'currentAppointmentPosition' => 'required|string',
-                'currentAppointmentSubject' => 'nullable|string', // Optional for DEO
             ]);
 
             DB::beginTransaction();
@@ -256,8 +255,6 @@ class SchoolDeoApiController extends Controller
                 'office_level_id' => 'OLID006',
                 'position_id' => $validated['currentAppointmentPosition'],
                 'workplace_id' => $validated['currentAppointmentInstitution'],
-                // Subject is typically not needed for DEO, but we handle it if provided
-                'subject_id' => ($validated['currentAppointmentSubject'] ?? null) ?: null,
             ]);
 
             // Create User Record
