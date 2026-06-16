@@ -16,6 +16,9 @@ export default function DosDirectory() {
   const { getAllDos } = useDosService();
   const location = useLocation();
   const isZonalAdmins = location.pathname.includes("/employees/edu-directors");
+  const isProvincialAdmins = location.pathname.includes("/employees/provincial-administrators");
+  const isProvincialDeo = location.pathname.includes("/employees/provincial-deo");
+  const isMoeAdmins = location.pathname.includes("/employees/moe-administrators");
 
   useEffect(() => {
     fetchData();
@@ -32,8 +35,17 @@ export default function DosDirectory() {
 
     try {
       let data;
-      if (isZonalAdmins) {
+      if (isProvincialAdmins) {
+        data = await getAllDosAdmins({ search, scope: "provincial" });
+        setEmployees(data.data || data);
+      } else if (isZonalAdmins) {
         data = await getAllDosAdmins({ search });
+        setEmployees(data.data || data);
+      } else if (isMoeAdmins) {
+        data = await getAllDosAdmins({ search, scope: "moe" });
+        setEmployees(data.data || data);
+      } else if (isProvincialDeo) {
+        data = await getAllDos({ search, scope: "provincial" });
         setEmployees(data.data || data);
       } else {
         data = await getAllDos({ search });
@@ -61,7 +73,13 @@ export default function DosDirectory() {
         <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700">
           <Spinner size="xl" color="info" />
           <p className="mt-4 text-gray-500 dark:text-gray-400 animate-pulse font-medium">
-            {isZonalAdmins ? "Loading Zonal Administrators List..." : "Loading Development Officers List..."}
+            {isProvincialAdmins
+              ? "Loading Provincial Administrators List..."
+              : isProvincialDeo
+              ? "Loading Provincial DEO List..."
+              : isZonalAdmins
+              ? "Loading Zonal Administrators List..."
+              : "Loading Development Officers List..."}
           </p>
         </div>
       ) : error ? (

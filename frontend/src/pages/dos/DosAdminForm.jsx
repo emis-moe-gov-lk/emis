@@ -21,7 +21,7 @@
 
 "use client";
 import { useState, useContext, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "flowbite-react";
 import { TeacherFormContext, TeacherFormProvider } from "@/context/TeacherFormContext";
 import Swal from "sweetalert2";
@@ -83,6 +83,14 @@ function DosAdminFormInner() {
     isAuthenticated,
     isLoading: isAuthLoading,
   } = useAuthUser();
+  const location = useLocation();
+  const isProvincialAdmins = location.pathname.includes("/employees/provincial-administrators");
+  const isMoeAdmins = location.pathname.includes("/employees/moe-administrators");
+  const listPath = isProvincialAdmins
+    ? "/employees/provincial-administrators"
+    : isMoeAdmins
+    ? "/employees/moe-administrators"
+    : "/employees/edu-directors";
 
   // Form submission state
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -175,7 +183,7 @@ function DosAdminFormInner() {
    * Keeps ref updated for navigation handlers
    */
   useEffect(() => {
-    currentStepRef.current = clampStep(currentStep);
+    currentStepRef.current = clampStep(currentStep);  
   }, [currentStep]);
 
   /**
@@ -189,8 +197,8 @@ function DosAdminFormInner() {
     toast.error("Only Super Admin and Zonal DEO can create DOS Admin profiles.", {
       id: "dos-admin-create-unauthorized",
     });
-    navigate("/employees/dos-admins", { replace: true });
-  }, [canCreateDosAdmin, dispatch, isDosAdminCreateAuthLoading, navigate]);
+    navigate(listPath, { replace: true });
+  }, [canCreateDosAdmin, dispatch, isDosAdminCreateAuthLoading, listPath, navigate]);
 
   /**
    * Effect: History state management and popstate handling
@@ -438,7 +446,7 @@ function DosAdminFormInner() {
    * Navigates back to DOS Admin list with draft protection
    */
   const handleBackToList = async () => {
-    await confirmDiscardAndRun(() => navigate("/employees/edu-directors"));
+    await confirmDiscardAndRun(() => navigate(listPath));
   };
 
   /**
@@ -483,12 +491,19 @@ function DosAdminFormInner() {
           ...formData,
           is_new_registration: formData.currentAppointmentRegType === "new",
           currentAppointmentWorkplace: formData.currentAppointmentZone,
+          scope: isProvincialAdmins ? "provincial" : isMoeAdmins ? "moe" : "zonal",
         };
         const res = await api.post("/dos-admins", payload);
         const result = res?.data ?? {};
 
         if (result.status === "success" || res.status === 201) {
-          toast.success("Zonal Administrator registered successfully");
+          toast.success(
+            isProvincialAdmins
+              ? "Provincial Administrator registered successfully"
+              : isMoeAdmins
+              ? "MOE Administrator registered successfully"
+              : "Zonal Administrator registered successfully"
+          );
           setIsRegistrationComplete(true);
           setRegistrationSummary(result.data);
           dispatch({ type: "SET_STEP", payload: 6 });
@@ -576,7 +591,11 @@ function DosAdminFormInner() {
               <div className="flex items-start gap-4 bg-green-50 border border-green-200 rounded-2xl p-6">
                 <HiCheckCircle className="text-green-600 w-8 h-8 mt-1 flex-shrink-0" />
                 <div>
-                  <h3 className="font-semibold text-green-800">Zonal Administrator Registration Successful</h3>
+                  <h3 className="font-semibold text-green-800">
+                    {isProvincialAdmins
+                      ? "Provincial Administrator Registration Successful"
+                      : "Zonal Administrator Registration Successful"}
+                  </h3>
                   <p className="text-sm text-green-700 mt-1">Registration has been completed successfully.</p>
                 </div>
               </div>

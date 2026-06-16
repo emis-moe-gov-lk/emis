@@ -19,7 +19,7 @@
 
 "use client";
 import { useState, useContext, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   TeacherFormContext,
   TeacherFormProvider,
@@ -75,6 +75,19 @@ const LEAVE_WARNING_MESSAGE =
  */
 function RegDosInner() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isProvincialAdmins = location.pathname.includes("/employees/provincial-administrators");
+  const isProvincialDirector = location.pathname.includes("/employees/provincialdirector");
+  const registrationTitle = isProvincialAdmins
+    ? "Provincial Administrator"
+    : isProvincialDirector
+    ? "Provincial Director"
+    : "Zonal Administrator";
+  const backPath = isProvincialAdmins
+    ? "/employees/provincial-administrators"
+    : isProvincialDirector
+    ? "/employees/provincialdirector"
+    : "/employees/zonal-administrators";
   const { state, dispatch } = useContext(TeacherFormContext);
 
   // State for managing form submission
@@ -225,8 +238,8 @@ function RegDosInner() {
    * Confirms discard if draft data exists
    */
   const handleBackToList = useCallback(() => {
-    confirmDiscardAndRun(() => navigate("/employees/development-officers"));
-  }, [confirmDiscardAndRun, navigate]);
+    confirmDiscardAndRun(() => navigate(backPath));
+  }, [backPath, confirmDiscardAndRun, navigate]);
 
   // Get authenticated user details
   const { identity, workplace } = useAuthUser() || {};
@@ -269,16 +282,30 @@ function RegDosInner() {
         setIsSubmitting(true);
         dispatch({ type: "SET_ERROR", payload: null });
 
-        const res = await api.post("/dos-admins", formData);
+        const res = await api.post("/dos-admins", {
+          ...formData,
+          scope: isProvincialAdmins || isProvincialDirector ? "provincial" : "zonal",
+        });
         const result = res?.data ?? {};
 
         if (result.status === "success" || res.status === 201) {
-          toast.success("Zonal Administrator registered successfully");
+          toast.success(
+            isProvincialAdmins
+              ? "Provincial Administrator registered successfully"
+              : isProvincialDirector
+              ? "Provincial Director registered successfully"
+              : "Zonal Administrator registered successfully"
+          );
           dispatch({ type: "SET_STEP", payload: 6 });
         } else {
           dispatch({
             type: "SET_ERROR",
-            payload: result.message || "Failed to register zonal administrator",
+            payload: result.message ||
+              (isProvincialAdmins
+                ? "Failed to register provincial administrator"
+                : isProvincialDirector
+                ? "Failed to register provincial director"
+                : "Failed to register zonal administrator"),
           });
         }
       } catch (err) {
@@ -418,7 +445,7 @@ function RegDosInner() {
               <div className="flex items-start gap-4 bg-green-50 border border-green-200 rounded-2xl p-6">
                 <HiCheckCircle className="text-green-600 w-8 h-8 mt-1 flex-shrink-0" />
                 <div>
-                  <h3 className="font-semibold text-green-800">Zonal Administrator Registration Successful</h3>
+                  <h3 className="font-semibold text-green-800">{registrationTitle} Registration Successful</h3>
                   <p className="text-sm text-green-700 mt-1">Registration has been completed successfully.</p>
                 </div>
               </div>

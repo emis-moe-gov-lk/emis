@@ -1067,6 +1067,8 @@ class RolePermissionSeeder extends Seeder
 
 
         'menu.provincial',
+        'menu.provincial.admin',
+        'menu.provincial.deo',
         'menu.moe',
 
 

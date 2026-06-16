@@ -14,10 +14,14 @@ export default function DosList({ employees }) {
   // Determine the base route for navigation
   const getProfileRoute = (employeeId) => {
     const currentPath = location.pathname;
-    if (currentPath.includes("edu-directors")) {
-      return `/employees/edu-directors/${employeeId}`;
-    } else if (currentPath.includes("zonaldirector")) {
-      return `/employees/zonaldirector/${employeeId}`;
+    if (currentPath.includes("zonal-administrators") || currentPath.includes("edu-directors")) {
+      return `/employees/zonal-administrators/${employeeId}`;
+    } else if (currentPath.includes("provincial-administrators")) {
+      return `/employees/provincial-administrators/${employeeId}`;
+    } else if (currentPath.includes("moe-administrators")) {
+      return `/employees/moe-administrators/${employeeId}`;
+    } else if (currentPath.includes("provincial-deo")) {
+      return `/employees/provincial-deo/${employeeId}`;
     }
     return `/employees/development-officers/${employeeId}`;
   };
@@ -29,8 +33,14 @@ export default function DosList({ employees }) {
           <HiUser className="w-8 h-8 text-gray-400" />
         </div>
         <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-          {location.pathname.includes("edu-directors")
+          {location.pathname.includes("zonal-administrators") || location.pathname.includes("edu-directors")
             ? "No Zonal Administrators found"
+            : location.pathname.includes("provincial-administrators")
+            ? "No Provincial Administrators found"
+            : location.pathname.includes("moe-administrators")
+            ? "No MOE Administrators found"
+            : location.pathname.includes("provincial-deo")
+            ? "No Provincial DEO found"
             : "No Development Officers found"}
         </h3>
         <p className="text-gray-500 max-w-sm mx-auto mt-2">

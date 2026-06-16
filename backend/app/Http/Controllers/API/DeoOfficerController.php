@@ -18,6 +18,7 @@ use App\Models\Service;
 use App\Models\ServiceRank;
 use App\Models\Institution;
 use App\Models\ZonalEducationOffice;
+use App\Models\ProvincialEducationOffice;
 use App\Models\InstitutionCategory;
 use App\Models\DistrictsList;
 use App\Models\EmployerAppointment;
@@ -68,6 +69,7 @@ class DeoOfficerController extends Controller
         $districtId = $request->query('district');
         $dsOfficeDsoId = $this->resolveDsOfficeDsoId($request->query('ds_office'));
         $serviceId  = $request->query('service');
+        $scope = strtolower(trim((string) $request->query('scope', 'zonal')));
 
         return response()->json([
             'status' => 'success',
@@ -94,7 +96,9 @@ class DeoOfficerController extends Controller
                 : [],
             'positions'    => Position::where('position_name', 'Development Officer')->active()->get(),
 
-            'zonalOffices' => ZonalEducationOffice::active()->get(),
+            'zonalOffices' => $scope === 'provincial'
+                ? ProvincialEducationOffice::active()->get()
+                : ZonalEducationOffice::active()->get(),
         ]);
     }
 
@@ -151,11 +155,15 @@ class DeoOfficerController extends Controller
             $perPage = (int) $request->get('per_page', 20);
             $deoWpId = $request->get('deo_wp_id');
             $search  = trim($request->get('search', $request->get('nic', '')));
+            $scope   = strtolower(trim((string) $request->get('scope', 'zonal')));
+            $roleNames = $scope === 'provincial'
+                ? ['provincial clerk (deo)']
+                : ['development officer', 'zonal deo', 'zonal deo head'];
 
             $deoOfficerPeopleIds = User::query()
-                ->whereHas('roles', function ($query) {
-                    $query->whereIn('name', ['development officer', 'Zonal DEO', 'Zonal DEO HEAD']);
-                })
+                ->whereHas('roles', function ($query) use ($roleNames) {
+                    $query->whereIn(DB::raw('LOWER(name)'), $roleNames);
+                })   
                 ->pluck('people_id');
 
             $baseQuery = People::query()
@@ -296,6 +304,7 @@ class DeoOfficerController extends Controller
         try {
             $validated = $request->validate([
                 // PERSONAL
+                'scope'                      => 'nullable|in:zonal,provincial',
                 'nic'                        => 'required|string',
                 'titleId'                    => 'required|string',
                 'fullName'                   => 'required|string',
@@ -328,6 +337,10 @@ class DeoOfficerController extends Controller
             ]);
 
             DB::beginTransaction();
+            $scope = $validated['scope'] ?? 'zonal';
+            $currentOfficeLevel = $scope === 'provincial' ? 'OLID003' : 'OLID004';
+            $role = $scope === 'provincial' ? 'Provincial Clerk (DEO)' : 'Zonal DEO';
+            $provisioningRole = strtolower($role);
 
             $nic        = NicHelper::normalize($validated['nic']);
             $initials   = People::generateInitials($validated['fullName']);
@@ -395,7 +408,7 @@ class DeoOfficerController extends Controller
                 'service_id'             => $serviceId,
                 'rank_id'                => $validated['rankId'],
                 'position_id'            => $validated['positionId'],
-                'office_level_id'        => 'OLID004',
+                'office_level_id'        => $currentOfficeLevel,
                 'workplace_id'           => $validated['zonalOfficeId'],
                 'appointment_letter_no'  => $validated['appointmentLetter'],
                 'appointment_letter'     => 'none.pdf',
@@ -408,7 +421,7 @@ class DeoOfficerController extends Controller
                 'appoint_date'    => $validated['appointmentDate'],
                 'service_id'      => $serviceId,
                 'rank_id'         => $validated['rankId'],
-                'office_level_id' => 'OLID001',
+                'office_level_id' => $currentOfficeLevel,
                 'position_id'     => $validated['positionId'],
                 'workplace_id'    => $validated['zonalOfficeId'],
             ]);
@@ -424,11 +437,11 @@ class DeoOfficerController extends Controller
                 'password' => Hash::make('Password@123'),
             ]);
 
-            $user->assignRole('Zonal DEO');
+            $user->assignRole($role);
 
             DB::commit();
 
-            $wso2Is->provisionUser($user, 'Password@123', 'zonal deo');
+            $wso2Is->provisionUser($user, 'Password@123', $provisioningRole);
 
             return response()->json([
                 'status'           => 'success',

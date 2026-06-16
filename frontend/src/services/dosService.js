@@ -76,6 +76,7 @@ export const useDosService = () => {
     if (options.page) params.append("page", options.page);
     if (options.per_page) params.append("per_page", options.per_page);
     if (options.search) params.append("search", options.search);
+    if (options.scope) params.append("scope", options.scope);
     
     const queryString = params.toString();
     const url = queryString 

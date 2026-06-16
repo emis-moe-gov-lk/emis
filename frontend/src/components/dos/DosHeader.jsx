@@ -1,17 +1,34 @@
 import { Badge, TextInput } from "flowbite-react";
 import StatusBadge from "@/components/common/StatusBadge";
 import { HiSearch, HiUpload, HiPlus } from "react-icons/hi";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import Can from "@/components/common/Can";
 import { PermissionGroups } from "@/data/permissionGroups";
 
 export default function DosHeader({ count, isZonalAdmins, search, setSearch }) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isProvincialDirector = location.pathname.includes("/employees/provincialdirector");
+  const isProvincialAdmins = location.pathname.includes("/employees/provincial-administrators");
+  const isMoeAdmins = location.pathname.includes("/employees/moe-administrators");
+  const isProvincialDeo = location.pathname.includes("/employees/provincial-deo");
 
-  const title = isZonalAdmins
+  const title = isProvincialDirector
+    ? "Provincial Director Directory"
+    : isProvincialAdmins
+    ? "Provincial Administrator Directory"
+    : isProvincialDeo
+    ? "Provincial DEO Directory"
+    : isZonalAdmins
     ? "Zonal Administrator Directory"
     : "Development Officer Directory";
-  const description = isZonalAdmins
+  const description = isProvincialDirector
+    ? "Manage provincial director profiles and records."
+    : isProvincialAdmins
+    ? "Manage provincial administrator profiles and records."
+    : isProvincialDeo
+    ? "Manage provincial DEO profiles and records."
+    : isZonalAdmins
     ? "Manage zonal administrator profiles and records."
     : "Manage development officer profiles and records.";
 
@@ -41,7 +58,17 @@ export default function DosHeader({ count, isZonalAdmins, search, setSearch }) {
             id="dos-search"
             type="text"
             icon={HiSearch}
-            placeholder={isZonalAdmins ? "Search Zonal Administrators" : "Search DOS Officers"}
+            placeholder={isProvincialDirector
+              ? "Search Provincial Directors"
+              : isProvincialAdmins
+              ? "Search Provincial Administrators"
+              : isMoeAdmins
+              ? "Search MOE Administrators"
+              : isProvincialDeo
+              ? "Search Provincial DEO"
+              : isZonalAdmins
+              ? "Search Zonal Administrators"
+              : "Search DOS Officers"}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -58,13 +85,23 @@ export default function DosHeader({ count, isZonalAdmins, search, setSearch }) {
             </button>
           </Can>
 
-          <Can permission={PermissionGroups.ZONAL.ADMIN_CREATE}>
+          <Can permission={PermissionGroups.ZONAL.ADMIN_CREATE}>  
             <button
               onClick={() => navigate("create")}
               className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors shadow-sm"
             >
               <HiPlus />
-              {isZonalAdmins ? "Add Zonal Administrator" : "Add DOS Officer"}
+              {isProvincialDirector
+                ? "Add Provincial Director"
+                : isProvincialAdmins
+                ? "Add Provincial Administrator"
+                : isMoeAdmins
+                ? "Add MOE Administrator"
+                : isProvincialDeo
+                ? "Add Provincial DEO"
+                : isZonalAdmins
+                ? "Add Zonal Administrator"
+                : "Add DOS Officer"}
             </button>
           </Can>
         </div>

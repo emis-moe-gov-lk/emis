@@ -11,7 +11,7 @@ export default function StepFirstAppointment({
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
+    return `${year}-${month}-${day}`;  
   };
 
   const getMinimumFirstAppointmentDate = (dateOfBirth) => {
@@ -106,7 +106,7 @@ export default function StepFirstAppointment({
     } else if (!isAllowedFirstAppointmentService(formData.firstAppointmentService)) {
       e.firstAppointmentService = "Only SLTS service can be selected";
     }
-    if (!formData.firstAppointmentRank) e.firstAppointmentRank = "Required";
+    if (!formData.firstAppointmentRank) e.firstAppointmentRank = "Required"; 
     if (!formData.firstAppointmentType) e.firstAppointmentType = "Required";
     if (!formData.firstAppointmentSubject) e.firstAppointmentSubject = "Required";
     if (!formData.firstAppointmentMedium) e.firstAppointmentMedium = "Required";
@@ -114,10 +114,10 @@ export default function StepFirstAppointment({
     if (!formData.firstAppointmentZone) e.firstAppointmentZone = "Required";
     if (!formData.firstAppointmentInstCategory) e.firstAppointmentInstCategory = "Required";
     if (!formData.firstAppointmentInstitution) e.firstAppointmentInstitution = "Required";
-    if (!formData.firstAppointmentPosition) e.firstAppointmentPosition = "Required";
+    if (!formData.firstAppointmentPosition) e.firstAppointmentPosition = "Required"; 
 
     setValidationErrors(e);
-    return Object.keys(e).length === 0;
+    return Object.keys(e).length === 0; 
   };
 
   useEffect(() => {
@@ -388,7 +388,7 @@ export default function StepFirstAppointment({
             >
               <option value="">{selectPlaceholder}</option>
               {firstAppointmentInstCategories.map((c) => (
-                <option key={c.id} value={c.institution_category_id}>
+                <option key={c.id} value={c.institution_category_id}> 
                   {c.institution_category_name || c.name}
                 </option>
               ))}

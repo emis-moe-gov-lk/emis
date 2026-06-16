@@ -205,19 +205,17 @@ export const menuItems = [
             to: "/employees/edu-directors",
             permission: "menu.zonal.admin",
           },
-
-            {
+          {
             id: "zonaldeo",
             label: "Zonal Deo",
             to: "/employees/development-officers",
             permission: "menu.zonal.deo",
           },
-
           // {
           //   id: "zonalclerk",
           //   label: "Zonal Clerk",
           //   to: "/employees/zonalclerk",
-          //   permission: "zonalclerk.list.view",
+          //   permission: "zonalclerk.list.view", 
           // },
           
         ],
@@ -227,13 +225,19 @@ export const menuItems = [
         id: "provincial",
         label: "Provincial",
         icon: HiUserGroup,
-        permission: "menu.provincial",
+        anyPermissions: ["menu.provincial", "menu.provincial.admin", "menu.provincial.deo"],
         children: [
           {
-            id: "provincialdirector",
-            label: "Provincial Director",
-            to: "/employees/provincialdirector",
-            permission: "menu.provincial.admin",
+            id: "provincialadministrators",
+            label: "Provincial Administrators",
+            to: "/employees/provincial-administrators",
+            anyPermissions: ["menu.provincial", "menu.provincial.admin"],
+          },
+          {
+            id: "provincialdeo",
+            label: "Provincial DEO",
+            to: "/employees/provincial-deo",
+            anyPermissions: ["menu.provincial", "menu.provincial.deo"],
           },
           // {
           //   id: "provincialhead",
@@ -250,7 +254,6 @@ export const menuItems = [
           
         ],
       },
-
       {
         id: "moe",
         label: "MOE",
@@ -258,14 +261,14 @@ export const menuItems = [
         permission: "menu.moe",
         children: [
           {
-            id: "moedirector",
-            label: "MOE Director",
-            to: "/employees/moedirector",
-            permission: "menu.moe.admin",
+            id: "moeadministrators",
+            label: "MOE Administrators",
+            to: "/employees/moe-administrators",
+            permission: "menu.moe",
           },
-          
         ],
       },
+
 
     ],
   },

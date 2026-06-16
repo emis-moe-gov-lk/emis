@@ -1,6 +1,6 @@
 "use client";
 import { useState, useContext, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { TeacherFormContext, TeacherFormProvider } from "@/context/TeacherFormContext";
 import Swal from "sweetalert2";
 
@@ -37,6 +37,9 @@ const STEPS = [
 
 function RegDeoOfficerInner() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isProvincialDeo = location.pathname.includes("/employees/provincial-deo");
+  const backPath = isProvincialDeo ? "/employees/provincial-deo" : "/employees/development-officers";
   const { state, dispatch } = useContext(TeacherFormContext);
   const { identity, hasRole, isAuthenticated, isLoading: isAuthLoading } = useAuthUser();
 
@@ -432,6 +435,7 @@ function RegDeoOfficerInner() {
           rankId: formData.currentAppointmentRank,
           positionId: formData.currentAppointmentPosition,
           zonalOfficeId: formData.currentAppointmentZone,
+          scope: isProvincialDeo ? "provincial" : "zonal",
         };
 
         const result = await registerDeoOfficer(payload);
@@ -462,7 +466,12 @@ function RegDeoOfficerInner() {
           dispatch({ type: "UPDATE_FORM_DATA", payload: summary });
           dispatch({ type: "COMPLETE_REGISTRATION" });
           setIsRegistrationComplete(true);
-          showSuccessToast("Development Officer registered successfully", "deo-officer-registration-success");
+          showSuccessToast(
+            isProvincialDeo
+              ? "Provincial DEO registered successfully"
+              : "Development Officer registered successfully",
+            "deo-officer-registration-success",
+          );
           dispatch({ type: "SET_STEP", payload: 5 });
         } else {
           dispatch({
@@ -512,14 +521,17 @@ function RegDeoOfficerInner() {
       <BackToListButton
         onClick={async () => {
           if (isRegistrationComplete) {
-            await confirmDiscardAndRun(() => navigate("/employees/development-officers"), {
-              skipPrompt: true,
-              forceDiscard: true,
-            });
+            await confirmDiscardAndRun(
+              () => navigate(backPath),
+              {
+                skipPrompt: true,
+                forceDiscard: true,
+              },
+            );
             return;
           }
 
-          await confirmDiscardAndRun(() => navigate("/employees/development-officers"));
+          await confirmDiscardAndRun(() => navigate(backPath));
         }}
         label="Back To List"
         className="mb-8"

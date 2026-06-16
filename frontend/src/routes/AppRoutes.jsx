@@ -254,6 +254,27 @@ export default function AppRoutes() {
               <Route path=":id" element={<DosAdminProfile />} />
             </Route>
 
+            <Route path="employees/provincial-administrators">
+              <Route index element={<DosDirectory />} />
+              <Route path="bulk-upload" element={<DosBulkUpload />} />
+              <Route path="create" element={<DosAdminForm />} />
+              <Route path=":id" element={<DosAdminProfile />} />
+            </Route>
+
+            <Route path="employees/provincial-deo">
+              <Route index element={<DosDirectory />} />
+              <Route path="bulk-upload" element={<DosBulkUpload />} />
+              <Route path="create" element={<RegDeoOfficer />} />
+              <Route path=":id" element={<DosAdminProfile />} />
+            </Route>
+
+            <Route path="employees/moe-administrators">
+              <Route index element={<DosDirectory />} />
+              <Route path="bulk-upload" element={<DosBulkUpload />} />
+              <Route path="create" element={<DosAdminForm />} />
+              <Route path=":id" element={<DosAdminProfile />} />
+            </Route>
+
             <Route path="employees/zonaldirector">
               <Route index element={<DosDirectory />} />
               <Route path="bulk-upload" element={<DosBulkUpload />} />

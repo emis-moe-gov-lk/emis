@@ -22,7 +22,9 @@ use App\Services\Wso2IsProvisioningService;
 class DosAdminController extends Controller
 {
     private const SLEAS_SERVICE_ID  = 'SER005';
+    private const MINISTRY_OFFICE_LEVEL = 'OLID001';
     private const ZONAL_OFFICE_LEVEL = 'OLID004';
+    private const PROVINCIAL_OFFICE_LEVEL = 'OLID003';
 
     // ==============================
     // HELPERS
@@ -48,11 +50,23 @@ class DosAdminController extends Controller
         return $this->resolveDsOffice($value)?->id;
     }
 
-    private function resolveRole(string $positionId): string
+    private function resolveRole(string $positionId, string $scope = 'zonal'): string
     {
+        if ($scope === 'moe') {
+            return 'MOE Administrator';
+        }
+
         $positionName = Position::where('position_id', $positionId)->value('position_name') ?? '';
 
         $lowerName = strtolower($positionName);
+
+        if (str_contains($lowerName, 'provincial')) {
+            if (str_contains($lowerName, 'deputy') || str_contains($lowerName, 'assistant')) {
+                return 'provincial deputy director';
+            }
+
+            return 'provincial director';
+        }
 
         if (str_contains($lowerName, 'deputy') || str_contains($lowerName, 'assistant')) {
             return 'zonal deputy director';
@@ -71,9 +85,19 @@ class DosAdminController extends Controller
             $perPage = (int) $request->get('per_page', 20);
             $search  = trim($request->get('search', $request->get('nic', '')));
 
+            $scope = strtolower(trim((string) $request->query('scope', 'zonal')));
+            
+            if ($scope === 'provincial') {
+                $roleNames = ['provincial director', 'provincial deputy director'];
+            } elseif ($scope === 'moe') {
+                $roleNames = ['MOE Administrator', 'SSA'];
+            } else {
+                $roleNames = ['zonal director', 'zonal deputy director'];
+            }
+
             $dosAdminPeopleIds = User::query()
-                ->whereHas('roles', function ($query) {
-                    $query->whereIn('name', ['zonal director', 'zonal deputy director']);
+                ->whereHas('roles', function ($query) use ($roleNames) {
+                    $query->whereIn('name', $roleNames);
                 })
                 ->pluck('people_id');
 
@@ -252,13 +276,14 @@ class DosAdminController extends Controller
                 'currentAppointmentRank'         => 'required|string',
                 'currentAppointmentWorkplace'    => 'required|string',
                 'currentAppointmentPosition'     => 'required|string',
+                'scope'                          => 'nullable|in:zonal,provincial,moe',
             ]);
+
+            $scope = $validated['scope'] ?? 'zonal';
 
             DB::beginTransaction();
 
-            // ==============================
-            // PEOPLE
-            // ==============================
+            // ... (rest of people creation)
             $nic      = NicHelper::normalize($validated['nic']);
             $initials = People::generateInitials($validated['fullName']);
 
@@ -324,6 +349,12 @@ class DosAdminController extends Controller
             // ==============================
             // CURRENT APPOINTMENT
             // ==============================
+            $officeLevelId = match($scope) {
+                'moe' => self::MINISTRY_OFFICE_LEVEL,
+                'provincial' => self::PROVINCIAL_OFFICE_LEVEL,
+                default => self::ZONAL_OFFICE_LEVEL,
+            };
+
             EmployerCurrentAppointment::create([
                 'appointment_id'       => $appointmentId,
                 'employee_id'          => $people->people_id,
@@ -331,7 +362,7 @@ class DosAdminController extends Controller
                 'appointment_letter_no' => $validated['currentAppointmentLetter'],
                 'service_id'           => self::SLEAS_SERVICE_ID,
                 'rank_id'              => $validated['currentAppointmentRank'],
-                'office_level_id'      => self::ZONAL_OFFICE_LEVEL,
+                'office_level_id'      => $officeLevelId,
                 'position_id'          => $validated['currentAppointmentPosition'],
                 'workplace_id'         => $validated['currentAppointmentWorkplace'],
             ]);
@@ -339,7 +370,7 @@ class DosAdminController extends Controller
             // ==============================
             // SYSTEM USER
             // ==============================
-            $role = $this->resolveRole($validated['currentAppointmentPosition']);
+            $role = $this->resolveRole($validated['currentAppointmentPosition'], $scope);
 
             $user = User::create([
                 'nic'      => $nic,

@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { Label, Select, TextInput, Radio } from "flowbite-react";
 import { HiInformationCircle } from "react-icons/hi";
+import { useLocation } from "react-router-dom";
 import api from "@/api/axios";
 
 // SLEAS service ID and Zonal office level — matches backend constants
 const SLEAS_SERVICE_ID = "SER005";
 const ZONAL_OFFICE_LEVEL = "OLID004";
+const PROVINCIAL_OFFICE_LEVEL = "OLID003";
 
 const FormGroup = ({ label, error, required = false, children }) => (
   <div>
@@ -18,6 +20,10 @@ const FormGroup = ({ label, error, required = false, children }) => (
 );
 
 export default function StepCurrentAppointment({ formData, setFormData, onValid }) {
+  const location = useLocation();
+  const isProvincial = location.pathname.includes("/employees/provincial");
+  const officeLevel = isProvincial ? PROVINCIAL_OFFICE_LEVEL : ZONAL_OFFICE_LEVEL;
+  const officeLabel = isProvincial ? "Provincial Education Office" : "Zonal Education Office";
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState({});
 
@@ -31,12 +37,17 @@ export default function StepCurrentAppointment({ formData, setFormData, onValid 
     const fetchData = async () => {
       try {
         const res = await api.get(
-          `/register/appointment-form-data?service=${SLEAS_SERVICE_ID}&office_level=${ZONAL_OFFICE_LEVEL}`,
+          `/register/appointment-form-data?service=${SLEAS_SERVICE_ID}&office_level=${officeLevel}`,
         );
         const d = res.data;
+        const positions = isProvincial
+          ? (d.positions ?? []).filter((position) =>
+              String(position.position_name || "").toLowerCase().includes("provincial"),
+            )
+          : d.zonalPositions ?? [];
         setData({
           ranks: d.serviceRanks ?? [],
-          positions: d.zonalPositions ?? [],
+          positions,
           zonalOffices: d.workplacesByLevel ?? [],
         });
       } catch (error) {
@@ -47,7 +58,7 @@ export default function StepCurrentAppointment({ formData, setFormData, onValid 
     };
 
     fetchData();
-  }, []);
+  }, [isProvincial, officeLevel]);
 
   const validate = useCallback(() => {
     const e = {};
@@ -189,7 +200,7 @@ export default function StepCurrentAppointment({ formData, setFormData, onValid 
           </Select>
         </FormGroup>
 
-        <FormGroup label="Zonal Education Office" required error={errors.currentAppointmentZone} className="lg:col-span-2">
+        <FormGroup label={officeLabel} required error={errors.currentAppointmentZone} className="lg:col-span-2">
           <Select
             value={formData.currentAppointmentZone || ""}
             disabled={loading}

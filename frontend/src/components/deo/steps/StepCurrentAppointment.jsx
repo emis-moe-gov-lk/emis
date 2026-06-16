@@ -1,6 +1,7 @@
 import { Label, Select, TextInput, Radio } from "flowbite-react";
 import { HiInformationCircle } from "react-icons/hi";
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import api from "@/api/axios";
 
 const isSLTSService = (service) =>
@@ -9,6 +10,9 @@ const isSLTSService = (service) =>
     .some((value) => String(value).trim().toUpperCase() === "SLTS");
 
 export default function StepCurrentAppointment({ formData, setFormData, onValid }) {
+  const location = useLocation();
+  const isProvincial = location.pathname.includes("/employees/provincial-deo");
+  const officeLabel = isProvincial ? "Provincial Education Office" : "Zonal Education Office";
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState({});
 
@@ -26,7 +30,9 @@ export default function StepCurrentAppointment({ formData, setFormData, onValid 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await api.get(`/deo-officers/form-data?service=${formData.currentAppointmentService || ""}`);
+        const res = await api.get(
+          `/deo-officers/form-data?service=${formData.currentAppointmentService || ""}&scope=${isProvincial ? "provincial" : "zonal"}`,
+        );
         const data = res.data || {};
 
         setServices(data.services ?? []);
@@ -41,7 +47,7 @@ export default function StepCurrentAppointment({ formData, setFormData, onValid 
     };
 
     fetchData();
-  }, [formData.currentAppointmentService]);
+  }, [formData.currentAppointmentService, isProvincial]);
 
   useEffect(() => {
     if (!services.length || formData.currentAppointmentService) return;
@@ -214,7 +220,7 @@ export default function StepCurrentAppointment({ formData, setFormData, onValid 
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-4 gap-y-2">
         <div>
-          <Label htmlFor="currentAppointmentZone">Zonal Education Office <span className="text-red-600">*</span></Label>
+          <Label htmlFor="currentAppointmentZone">{officeLabel} <span className="text-red-600">*</span></Label>
           <Select
             id="currentAppointmentZone"
             value={formData.currentAppointmentZone || ""}
