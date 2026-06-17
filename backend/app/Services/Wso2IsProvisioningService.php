@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\User;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -146,10 +147,43 @@ class Wso2IsProvisioningService
 
     private function roleIdForRole(string $role): ?string
     {
+        $key    = strtolower(trim($role));
+        $cached = (array) Cache::get('wso2_role_ids', []);
+
+        if (isset($cached[$key])) {
+            return $cached[$key];
+        }
+
         $roleIds = (array) config('services.wso2_is.role_ids', []);
-        $key     = strtolower(trim($role));
 
         return $roleIds[$key] ?? null;
+    }
+
+    public function warmRoleIdCache(): int
+    {
+        $response = $this->scimRequest()
+            ->get($this->baseUrl() . '/scim2/v2/Roles', ['count' => 100])
+            ->throw()
+            ->json();
+
+        $map = [];
+
+        foreach ($response['Resources'] ?? [] as $role) {
+            $displayName = (string) ($role['displayName'] ?? '');
+            $id          = (string) ($role['id'] ?? '');
+
+            if ($displayName === '' || $id === '') {
+                continue;
+            }
+
+            // Strip domain prefix (e.g. "APPLICATION/Teacher" → "teacher")
+            $name       = (string) preg_replace('/^[^\/]+\//', '', $displayName);
+            $map[strtolower(trim($name))] = $id;
+        }
+
+        Cache::put('wso2_role_ids', $map, now()->addDay());
+
+        return count($map);
     }
 
     private function assignRoleToUser(string $isUserId, string $roleId): void
