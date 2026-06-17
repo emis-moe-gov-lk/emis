@@ -61,3 +61,30 @@
         that: become_check.stdout == "root"
         fail_msg: "User {{ ansible_user }} cannot become root on {{ inventory_hostname }}"
         success_msg: "User {{ ansible_user }} can become root"
+
+    - name: Check Docker is installed
+      ansible.builtin.command: docker --version
+      register: docker_check
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Assert Docker is installed
+      ansible.builtin.assert:
+        that: docker_check.rc == 0
+        fail_msg: "Docker is not installed on {{ inventory_hostname }}"
+        success_msg: "Docker is installed on {{ inventory_hostname }}"
+
+    - name: Check Docker Swarm mode
+      ansible.builtin.command: docker info --format '{{'{{'}}.Swarm.LocalNodeState{{'}}'}}'
+      register: swarm_check
+      changed_when: false
+      when: inventory_hostname in groups['swarm_managers']
+      ignore_errors: yes
+
+    - name: Assert Docker Swarm mode is active
+      ansible.builtin.assert:
+        that: swarm_check.stdout == "active"
+        fail_msg: "Docker is not in active Swarm mode on {{ inventory_hostname }}"
+        success_msg: "Docker is in active Swarm mode on {{ inventory_hostname }}"
+      when: inventory_hostname in groups['swarm_managers']
+

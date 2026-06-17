@@ -24,11 +24,14 @@
     - name: confirm
       prompt: |
         ================================================================
-        WARNING: This will permanently destroy:
-          - All emis-* Docker stacks and their services
-          - All deployed files under /opt/emis and /opt/emis-nevada
-          - All WSO2 and EMIS MySQL databases
+        WARNING: This will permanently destroy only the resources defined in your variables:
+          - Docker stack: {{ stack_name | default('UNDEFINED - WILL BE SKIPPED') }}
+          - Deployed files under: {{ stack_deploy_path | default('UNDEFINED - WILL BE SKIPPED') }}
+          - MySQL databases: {{ [mysql_emis_db, mysql_is_db, mysql_is_shared_db] | select('defined') | list | join(' ') | default('UNDEFINED - WILL BE SKIPPED') }}
+          - MySQL users: {{ [mysql_emis_user, mysql_wso2_user] | select('defined') | list | join(' ') | default('UNDEFINED - WILL BE SKIPPED') }}
+          {% if purge_mysql | default(false) | bool %}
           - MySQL itself (packages, data, config, logs)
+          {% endif %}
 
         Docker Engine will NOT be touched.
 
@@ -43,6 +46,22 @@
         fail_msg: "Teardown aborted."
         success_msg: "Confirmed. Proceeding with teardown."
 
+# ── Pre-flight checks ────────────────────────────────────────────────────────
+- name: Pre-flight checks
+  hosts: swarm_managers,db_host
+  gather_facts: false
+  become: true
+  any_errors_fatal: true
+  tasks:
+    - name: Verify host reachability
+      ansible.builtin.ping:
+
+    - name: Verify sudo access
+      ansible.builtin.command: whoami
+      register: become_check
+      changed_when: false
+      failed_when: become_check.stdout != 'root'
+
 # ── Step 1: Remove Docker stacks and deployed files ───────────────────────────
 - import_playbook: teardown-stack.yml
 
@@ -51,6 +70,7 @@
 
 # ── Step 3: Purge MySQL from host ─────────────────────────────────────────────
 - import_playbook: teardown-mysql.yml
+  when: purge_mysql | default(false) | bool
 
 # ── Final summary ─────────────────────────────────────────────────────────────
 - name: Teardown complete
@@ -59,13 +79,15 @@
   tasks:
     - name: Summary
       ansible.builtin.debug:
-        msg:
-          - "================================================================"
-          - "EMIS teardown complete."
-          - "  - All emis-* Docker stacks removed"
-          - "  - Deploy dirs /opt/emis and /opt/emis-nevada removed"
-          - "  - All wso2_* and emis* databases dropped"
-          - "  - MySQL users emis-user and wso2-user removed"
-          - "  - MySQL purged from host"
-          - "  - Docker Engine untouched"
-          - "================================================================"
+        msg: |
+          ================================================================
+          EMIS teardown complete.
+            - Docker stack: {{ stack_name | default('SKIPPED') }}
+            - Deploy dir: {{ stack_deploy_path | default('SKIPPED') }}
+            - Databases dropped: {{ [mysql_emis_db, mysql_is_db, mysql_is_shared_db] | select('defined') | list | join(' ') | default('NONE') }}
+            - MySQL users removed: {{ [mysql_emis_user, mysql_wso2_user] | select('defined') | list | join(' ') | default('NONE') }}
+            {% if purge_mysql | default(false) | bool %}
+            - MySQL purged from host
+            {% endif %}
+            - Docker Engine untouched
+          ================================================================

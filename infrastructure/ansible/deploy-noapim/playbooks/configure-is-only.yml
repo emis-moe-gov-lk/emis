@@ -3,46 +3,19 @@
   gather_facts: false
   vars:
     # IS connection settings (local aliases to avoid collisions with env-file vars)
-    is_host:       "{{ is_hostname | default('idp.app-uat.emis.moe.gov.lk') }}"
-    is_port:       "{{ is_mgmt_port | default('9444') }}"
-    is_admin_name: "{{ is_admin_user | default('admin') }}"
-    is_admin_pass: "{{ is_admin_password | default('ADMIN11') }}"
+    is_host:       "{{ is_hostname  }}"
+    is_port:       "{{ is_port }}"
+    is_admin_name: "{{ is_admin_user  }}"
+    is_admin_pass: "{{ is_admin_password  }}"
 
-    roles_to_create: "{{ nemis_roles | default([]) }}"
-    users_to_create: "{{ nemis_users | default([]) }}"
-    apps_to_create:  "{{ nemis_apps | default([]) }}"
+    roles_to_create: "{{ emis_roles }}"
+    users_to_create: "{{ emis_users }}"
+    apps_to_create:  "{{ emis_apps }}"
 
   tasks:
-    # =========================================================================
-    # PART 0: Resolve IS container IP (bypasses nginx Bearer enforcement)
-    # =========================================================================
-    # The public hostname sits behind nginx which requires Bearer auth for all
-    # endpoints. The IS container's overlay network IP accepts Basic Auth on
-    # port 9444 directly. This approach mirrors what setup.sh does locally
-    # (curl localhost:9444), but uses the container IP to avoid the Docker
-    # swarm routing-mesh loopback issue.
-
-    - name: Get IS container overlay network IP
-      ansible.builtin.shell: |
-        CONTAINER_ID=$(docker ps -q --filter 'name=wso2-is' | head -1)
-        if [ -z "$CONTAINER_ID" ]; then exit 1; fi
-        docker inspect "$CONTAINER_ID" | python3 -c "
-        import json, sys
-        nets = json.load(sys.stdin)[0]['NetworkSettings']['Networks']
-        for name, net in nets.items():
-            if 'ingress' not in name and net.get('IPAddress'):
-                print(net['IPAddress'])
-                break
-        "
-      register: is_direct_ip
-      changed_when: false
-      retries: 12
-      delay: 15
-      until: is_direct_ip.rc == 0 and is_direct_ip.stdout | length > 0
-
     - name: Set IS management base URL (direct container, port 9444)
       ansible.builtin.set_fact:
-        is_mgmt: "https://192.168.200.2:{{ is_port }}"
+        is_mgmt: "https://{{ is_hostname }}"
 
     # =========================================================================
     # PART 1: Wait for IS
@@ -89,6 +62,33 @@
         loop_var: role
         label: "{{ role }}"
       when: roles_to_create | length > 0
+
+    - name: Get all role IDs
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/scim2/v2/Roles?filter=displayName+eq+{{ role | urlencode }}"
+        method: GET
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+      loop: "{{ roles_to_create }}"
+      loop_control:
+        loop_var: role
+      register: role_lookups
+      when: roles_to_create | length > 0
+
+    - name: Map role names to IDs
+      set_fact:
+        role_id_mapping: "{{ role_id_mapping | default({}) | combine({ item.role: item.json.Resources[0].id }) }}"
+      loop: "{{ role_lookups.results }}"
+      loop_control:
+        label: "{{ item.role }}"
+      when:
+        - roles_to_create | length > 0
+        - item.json is defined
+        - item.json.totalResults | default(0) | int > 0
 
     # =========================================================================
     # PART 3: Create Users in IS
@@ -143,7 +143,7 @@
 
     - name: Assign roles to users
       ansible.builtin.uri:
-        url: "{{ is_mgmt }}/scim2/Users/{{ user_role.0.json.Resources[0].id }}"
+        url: "{{ is_mgmt }}/scim2/v2/Roles/{{ role_id_mapping[user_role.1] }}"
         method: PATCH
         validate_certs: no
         user: "{{ is_admin_name }}"
@@ -157,15 +157,19 @@
             - "urn:ietf:params:scim:api:messages:2.0:PatchOp"
           Operations:
             - op: "add"
-              path: "groups"
+              path: "users"
               value:
-                - display: "{{ user_role.1 }}"
+                - value: "{{ user_role.0.json.Resources[0].id }}"
+                  display: "{{ user_role.0.user.username }}"
         status_code: [200, 204]
       loop: "{{ user_lookups.results | default([]) | subelements('user.roles', skip_missing=True) }}"
       loop_control:
         loop_var: user_role
         label: "Assigning {{ user_role.1 }} to {{ user_role.0.user.username }}"
-      when: user_lookups.results is defined and user_lookups.results | length > 0
+      when:
+        - user_lookups.results is defined
+        - user_lookups.results | length > 0
+        - role_id_mapping[user_role.1] is defined
 
     # =========================================================================
     # PART 4: Create OIDC Applications Directly in IS (no APIM devportal)
@@ -203,17 +207,14 @@
                 - "authorization_code"
                 - "refresh_token"
               callbackURLs:
-                - "{{ vite_signin_redirect_url }}"
+                - "regexp=({{ vite_signin_redirect_url }}|{{ vite_signout_redirect_url }})"
               allowedOrigins:
                 - "{{ vite_signin_redirect_url | regex_replace('(https?://[^/]+).*', '\\1') }}"
               publicClient: true
-              accessToken:
-                type: "JWT"
-                userAccessTokenExpiryInSeconds: 3600
-                applicationAccessTokenExpiryInSeconds: 3600
         status_code: [201, 409]
       register: webapp_created
       when: webapp_check.json.totalResults | default(0) | int == 0
+
 
     - name: Get EMIS Web App ID
       ansible.builtin.uri:
@@ -247,7 +248,7 @@
         - webapp_id is defined
         - webapp_id | length > 0
 
-    - name: Configure JWT claims for EMIS Web App (email, roles, groups)
+    - name: Configure email and roles claims for EMIS Web App
       ansible.builtin.uri:
         url: "{{ is_mgmt }}/api/server/v1/applications/{{ webapp_id }}"
         method: PATCH
@@ -268,19 +269,117 @@
               - claim:
                   uri: "http://wso2.org/claims/roles"
                 mandatory: false
-              - claim:
-                  uri: "http://wso2.org/claims/groups"
-                mandatory: false
             subject:
               claim:
                 uri: "http://wso2.org/claims/userid"
               includeUserDomain: false
               includeTenantDomain: false
               useMappedLocalSubject: false
-            role:
-              includeUserDomain: false
-              claim:
-                uri: "http://wso2.org/claims/roles"
+        status_code: [200]
+      when:
+        - webapp_id is defined
+        - webapp_id | length > 0
+
+    - name: Configure organization roles for EMIS Web App
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/api/server/v1/applications/{{ webapp_id }}"
+        method: PATCH
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          associatedRoles:
+            allowedAudience: "ORGANIZATION"
+        status_code: [200]
+      when:
+        - webapp_id is defined
+        - webapp_id | length > 0
+
+    - name: Get existing OIDC protocol config
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/api/server/v1/applications/{{ webapp_id }}/inbound-protocols/oidc"
+        method: GET
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+        status_code: [200]
+      register: oidc_existing
+      when:
+        - webapp_id is defined
+        - webapp_id | length > 0
+
+    - name: Configure OIDC protocol to include claims in access token and ID token
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/api/server/v1/applications/{{ webapp_id }}/inbound-protocols/oidc"
+        method: PUT
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          clientId: "{{ oidc_existing.json.clientId }}"
+          grantTypes:
+            - "authorization_code"
+            - "refresh_token"
+          callbackURLs:
+            - "regexp=({{ vite_signin_redirect_url }}|{{ vite_signout_redirect_url }})"
+          allowedOrigins:
+            - "{{ vite_signin_redirect_url | regex_replace('(https?://[^/]+).*', '\\1') }}"
+          publicClient: true
+          pkce:
+            mandatory: false
+            supportPlainTransformAlgorithm: false
+          hybridFlow:
+            enable: false
+            responseType: "null"
+          accessToken:
+            type: "JWT"
+            userAccessTokenExpiryInSeconds: 3600
+            applicationAccessTokenExpiryInSeconds: 3600
+            revokeTokensWhenIDPSessionTerminated: false
+            validateTokenBinding: false
+            accessTokenAttributes:
+                - "email"
+                - "given_name"
+                - "roles"
+          refreshToken:
+            expiryInSeconds: 86400
+            renewRefreshToken: false
+          subjectToken:
+            enable: false
+            applicationSubjectTokenExpiryInSeconds: 180
+          idToken:
+            expiryInSeconds: 3600
+            audience: []
+            idTokenSignedResponseAlg: ""
+            encryption:
+              enabled: false
+              algorithm: ""
+              method: ""
+          logout: {}
+          validateRequestObjectSignature: false
+          scopeValidators: []
+          clientAuthentication: {}
+          requestObject:
+            requestObjectSigningAlg: ""
+            encryption:
+              algorithm: ""
+              method: ""
+          pushAuthorizationRequest:
+            requirePushAuthorizationRequest: false
+          subject:
+            subjectType: "public"
+          isFAPIApplication: false
         status_code: [200]
       when:
         - webapp_id is defined
@@ -503,7 +602,7 @@
 
     - name: Update env/uat.yml with generated credentials
       ansible.builtin.lineinfile:
-        path: "{{ playbook_dir }}/../env/uat.yml"
+        path: "{{ playbook_dir }}/../env/{{ deploy_env }}.yml"
         regexp: "{{ item.regexp }}"
         line: "{{ item.line }}"
       loop:
