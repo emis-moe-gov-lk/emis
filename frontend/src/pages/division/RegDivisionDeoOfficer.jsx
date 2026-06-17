@@ -10,22 +10,21 @@ import StepNavigation from "@/components/teacher/StepNavigation";
 import StepNICVerification from "@/components/teacher/steps/StepNICVerification";
 import StepPersonalDetails from "@/components/teacher/steps/StepPersonalDetails";
 import StepContactDetails from "@/components/teacher/steps/StepContactDetails";
-import StepCurrentAppointment from "@/components/deo/steps/StepCurrentAppointment";
+import StepDivisionCurrentAppointment from "@/components/deo/steps/StepDivisionCurrentAppointment";
 
 import {
-  checkDeoOfficerContact,
-  downloadDeoOfficerProfileDocument,
-  registerDeoOfficer,
-} from "@/api/deoOfficerService";
+  checkDivisionDeoContact,
+  registerDivisionDeo,
+} from "@/api/divisionDeoService";
 import toast from "react-hot-toast";
 import { HiCheckCircle } from "react-icons/hi";
 import { useAuthUser } from "@/context/useAuthUser";
 import BackToListButton from "@/components/UiComponents/BackToListButton";
 import Button from "@/components/UiComponents/Button";
 
-const REG_DEO_OFFICER_HISTORY_OWNER = "regDeoOfficerCreate";
-const REG_DEO_OFFICER_HISTORY_STEP_KEY = "regDeoOfficerStep";
-const REG_DEO_OFFICER_TOTAL_STEPS = 5;
+const REG_DIVISION_DEO_HISTORY_OWNER = "regDivisionDeoCreate";
+const REG_DIVISION_DEO_HISTORY_STEP_KEY = "regDivisionDeoStep";
+const REG_DIVISION_DEO_TOTAL_STEPS = 5;
 
 const STEPS = [
   { id: 1, label: "Verification" },
@@ -35,7 +34,7 @@ const STEPS = [
   { id: 5, label: "Finishing" },
 ];
 
-function RegDeoOfficerInner() {
+function RegDivisionDeoOfficerInner() {
   const navigate = useNavigate();
   const { state, dispatch } = useContext(TeacherFormContext);
   const { identity, hasRole, isAuthenticated, isLoading: isAuthLoading } = useAuthUser();
@@ -49,7 +48,7 @@ function RegDeoOfficerInner() {
   const currentStepRef = useRef(1);
 
   const LEAVE_WARNING_MESSAGE =
-    "Saved development officer registration draft will be lost. Do you want to continue?";
+    "Saved division development officer registration draft will be lost. Do you want to continue?";
 
   const {
     formData,
@@ -66,29 +65,29 @@ function RegDeoOfficerInner() {
     !isRegistrationComplete &&
     (currentStep > 1 || Object.keys(formData || {}).length > 0);
 
-  const canCreateDeoOfficer = hasRole("super admin") || hasRole("zonal deo");
+  const canCreateDeoOfficer = hasRole("super admin") || hasRole("Divisional DEO HEAD") || hasRole("Divisional DEO") || hasRole("zonal deo");
   const isDeoOfficerCreateAuthLoading =
     isAuthLoading || (isAuthenticated && !identity);
 
   const clampStep = (value) => {
     const parsed = Number(value);
     if (!Number.isFinite(parsed)) return 1;
-    return Math.min(Math.max(Math.trunc(parsed), 1), REG_DEO_OFFICER_TOTAL_STEPS);
+    return Math.min(Math.max(Math.trunc(parsed), 1), REG_DIVISION_DEO_TOTAL_STEPS);
   };
 
   const isRegDeoOfficerHistoryState = (historyState) =>
     Boolean(
       historyState &&
-      historyState.__regDeoOfficerOwner === REG_DEO_OFFICER_HISTORY_OWNER &&
-      Number.isFinite(Number(historyState[REG_DEO_OFFICER_HISTORY_STEP_KEY])),
+      historyState.__regDeoOfficerOwner === REG_DIVISION_DEO_HISTORY_OWNER &&
+      Number.isFinite(Number(historyState[REG_DIVISION_DEO_HISTORY_STEP_KEY])),
     );
 
   const buildRegDeoOfficerHistoryState = (step) => {
     const baseState = window.history.state || {};
     return {
       ...baseState,
-      __regDeoOfficerOwner: REG_DEO_OFFICER_HISTORY_OWNER,
-      [REG_DEO_OFFICER_HISTORY_STEP_KEY]: clampStep(step),
+      __regDeoOfficerOwner: REG_DIVISION_DEO_HISTORY_OWNER,
+      [REG_DIVISION_DEO_HISTORY_STEP_KEY]: clampStep(step),
     };
   };
 
@@ -100,10 +99,10 @@ function RegDeoOfficerInner() {
     if (isDeoOfficerCreateAuthLoading || canCreateDeoOfficer) return;
 
     dispatch({ type: "CLEAR" });
-    toast.error("Only Super Admin and Zonal DEO can create development officer profiles.", {
-      id: "deo-officer-create-unauthorized",
+    toast.error("Unauthorized access.", {
+      id: "division-deo-officer-create-unauthorized",
     });
-    navigate("/employees/development-officers", { replace: true });
+    navigate("/employees/division/deo", { replace: true });
   }, [canCreateDeoOfficer, dispatch, isDeoOfficerCreateAuthLoading, navigate]);
 
   useEffect(() => {
@@ -115,7 +114,7 @@ function RegDeoOfficerInner() {
 
     if (!isRegDeoOfficerHistoryState(baseState)) {
       window.history.replaceState(buildRegDeoOfficerHistoryState(initialStep), "", currentUrl);
-    } else if (clampStep(baseState[REG_DEO_OFFICER_HISTORY_STEP_KEY]) !== initialStep) {
+    } else if (clampStep(baseState[REG_DIVISION_DEO_HISTORY_STEP_KEY]) !== initialStep) {
       window.history.replaceState(buildRegDeoOfficerHistoryState(initialStep), "", currentUrl);
     }
 
@@ -134,7 +133,7 @@ function RegDeoOfficerInner() {
         return;
       }
 
-      const stepFromHistory = clampStep(event.state[REG_DEO_OFFICER_HISTORY_STEP_KEY]);
+      const stepFromHistory = clampStep(event.state[REG_DIVISION_DEO_HISTORY_STEP_KEY]);
 
       if (stepFromHistory === 1 && currentUiStep > 1) {
         if (hasDraftData) {
@@ -293,39 +292,6 @@ function RegDeoOfficerInner() {
     toast.success(message, { id });
   };
 
-  const handleDownloadProfile = async () => {
-    const peopleId = registrationSummary?.people_id || formData?.people_id || formData?.peopleId;
-
-    if (!peopleId) {
-      showErrorToast("Missing people id for PDF download.", "deo-officer-profile-download-missing-id");
-      return;
-    }
-
-    try {
-      const response = await downloadDeoOfficerProfileDocument(peopleId);
-      const contentType = response.headers?.["content-type"] || "application/pdf";
-      const disposition = response.headers?.["content-disposition"] || "";
-      const filenameMatch = disposition.match(/filename="?([^";]+)"?/i);
-      const filename = filenameMatch?.[1] || `deo-officer-profile-${peopleId}.pdf`;
-
-      const blob = new Blob([response.data], { type: contentType });
-      const url = window.URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-
-      anchor.href = url;
-      anchor.download = filename;
-      document.body.appendChild(anchor);
-      anchor.click();
-
-      window.setTimeout(() => {
-        window.URL.revokeObjectURL(url);
-        anchor.remove();
-      }, 3000);
-    } catch {
-      showErrorToast("Unable to download profile PDF.", "deo-officer-profile-download-failed");
-    }
-  };
-
   const handleStepClick = async (stepId) => {
     if (stepId < currentStep) {
       if (stepId === 1 && currentStep > 1) {
@@ -376,7 +342,7 @@ function RegDeoOfficerInner() {
           setIsSubmitting(true);
           setContactApiErrors({});
 
-          const result = await checkDeoOfficerContact(payload);
+          const result = await checkDivisionDeoContact(payload);
           const emailExists = Boolean(result?.email?.exists);
           const phoneExists = Boolean(result?.phone?.exists);
 
@@ -431,10 +397,10 @@ function RegDeoOfficerInner() {
           appointmentLetter: formData.currentAppointmentLetter,
           rankId: formData.currentAppointmentRank,
           positionId: formData.currentAppointmentPosition,
-          zonalOfficeId: formData.currentAppointmentZone,
+          divisionalOfficeId: formData.currentAppointmentZone,
         };
 
-        const result = await registerDeoOfficer(payload);
+        const result = await registerDivisionDeo(payload);
 
         if (result.status === "success") {
           const responseData = result.data || {};
@@ -462,12 +428,12 @@ function RegDeoOfficerInner() {
           dispatch({ type: "UPDATE_FORM_DATA", payload: summary });
           dispatch({ type: "COMPLETE_REGISTRATION" });
           setIsRegistrationComplete(true);
-          showSuccessToast("Development Officer registered successfully", "deo-officer-registration-success");
+          showSuccessToast("Division Development Officer registered successfully", "division-deo-officer-registration-success");
           dispatch({ type: "SET_STEP", payload: 5 });
         } else {
           dispatch({
             type: "SET_ERROR",
-            payload: result.message || "Failed to register development officer",
+            payload: result.message || "Failed to register division development officer",
           });
         }
       } catch {
@@ -511,9 +477,7 @@ function RegDeoOfficerInner() {
     <div className="p-6 lg:p-10 max-w-5xl mx-auto space-y-8">
       <BackToListButton
         onClick={async () => {
-          const listPath = window.location.pathname.includes("/employees/division")
-            ? "/employees/division/deo"
-            : "/employees/development-officers";
+          const listPath = "/employees/division/deo";
           if (isRegistrationComplete) {
             await confirmDiscardAndRun(() => navigate(listPath), {
               skipPrompt: true,
@@ -560,7 +524,7 @@ function RegDeoOfficerInner() {
           )}
 
           {currentStep === 4 && (
-            <StepCurrentAppointment
+            <StepDivisionCurrentAppointment
               formData={formData}
               setFormData={setFormData}
               onValid={(isValid) => dispatch({ type: "SET_CURRENT_APPT_VALID", payload: isValid })}
@@ -573,7 +537,7 @@ function RegDeoOfficerInner() {
                 <HiCheckCircle className="text-green-600 dark:text-green-500 w-8 h-8 mt-1" />
                 <div>
                   <h3 className="font-semibold text-green-800 dark:text-green-300">
-                    Development Officer Registration Successfully
+                    Division Development Officer Registered Successfully
                   </h3>
                   <p className="text-sm text-green-700 dark:text-green-400 mt-1">
                     Registration has been completed successfully.
@@ -591,7 +555,6 @@ function RegDeoOfficerInner() {
 
               <div className="flex justify-center gap-4 pt-4">
                 <Button variant="secondary" onClick={resetRegistration}>New Registration</Button>
-                <Button variant="primary" onClick={handleDownloadProfile}>Download Profile</Button>
               </div>
             </div>
           )}
@@ -620,10 +583,10 @@ function RegDeoOfficerInner() {
   );
 }
 
-export default function RegDeoOfficer() {
+export default function RegDivisionDeoOfficer() {
   return (
     <TeacherFormProvider>
-      <RegDeoOfficerInner />
+      <RegDivisionDeoOfficerInner />
     </TeacherFormProvider>
   );
 }

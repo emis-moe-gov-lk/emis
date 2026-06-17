@@ -3,13 +3,15 @@ import { HiUser } from "react-icons/hi";
 import DirectoryCard from "../common/DirectoryCard";
 import profileMale from "../../assets/images/profile_m.png";
 import profileFemale from "../../assets/images/profile_f.png";
-
-import Can from "@/components/common/Can";
 import { PermissionGroups } from "@/data/permissionGroups";
 
 export default function DosList({ employees }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const isZonalAdmins = location.pathname.includes("/employees/edu-directors") || location.pathname.includes("/employees/division/divisionAdmin");
+  const profileViewPermission = isZonalAdmins
+    ? PermissionGroups.ZONAL.ADMIN_PROFILE_VIEW
+    : PermissionGroups.ZONAL.DEO_PROFILE_VIEW;
 
   // Determine the base route for navigation
   const getProfileRoute = (employeeId) => {
@@ -18,6 +20,10 @@ export default function DosList({ employees }) {
       return `/employees/edu-directors/${employeeId}`;
     } else if (currentPath.includes("zonaldirector")) {
       return `/employees/zonaldirector/${employeeId}`;
+    } else if (currentPath.includes("/employees/division/divisionAdmin")) {
+      return `/employees/division/divisionAdmin/${employeeId}`;
+    } else if (currentPath.includes("/employees/division")) {
+      return `/employees/division/deo/${employeeId}`;
     }
     return `/employees/development-officers/${employeeId}`;
   };
@@ -29,7 +35,9 @@ export default function DosList({ employees }) {
           <HiUser className="w-8 h-8 text-gray-400" />
         </div>
         <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-          {location.pathname.includes("edu-directors")
+          {location.pathname.includes("divisionAdmin")
+            ? "No Division Administrators found"
+            : location.pathname.includes("edu-directors")
             ? "No Zonal Administrators found"
             : "No Development Officers found"}
         </h3>
@@ -60,12 +68,8 @@ export default function DosList({ employees }) {
           maleProfileImage={profileMale}
           femaleProfileImage={profileFemale}
           genderId={emp.gender_id}
-          permissions={{}}
-          onView={(employee) => (
-            <Can permission={PermissionGroups.ZONAL.ADMIN_PROFILE_VIEW}>
-              {navigate(getProfileRoute(employee.people_id))}
-            </Can>
-          )}
+          permissions={{ view: profileViewPermission }}
+          onView={(employee) => navigate(getProfileRoute(employee.people_id))}
           onPrintId={(employee) => {
             window.open(`/print-id/${employee.id}`, "_blank");
           }}

@@ -398,7 +398,7 @@ const TeacherProfile = () => {
 
     setLoading(true);
     try {
-      const res = await api.get(`/teacher/${id}`);
+      const res = await api.get(apiEndpoint);
       console.log("DEBUG: Full API response:", res.data);
       
       if (res.data?.status !== "success") return;

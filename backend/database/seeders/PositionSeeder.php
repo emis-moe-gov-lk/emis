@@ -226,6 +226,18 @@ class PositionSeeder extends Seeder
                 'description'   => 'Handles office File Works and clerical duties',
                 'active_status' => '1',
             ],
+            [
+                /*
+                |--------------------------------------------------------------------------
+                | SLEAS
+                |--------------------------------------------------------------------------
+                */
+                'position_id'   => 'POS025',
+                'service_id'    => 'SER005',
+                'position_name' => 'Deputy Divisional Director of Education',
+                'description'   => 'Handles Divisional office administration and clerical duties',
+                'active_status' => '1',
+            ],
 
         ];
 

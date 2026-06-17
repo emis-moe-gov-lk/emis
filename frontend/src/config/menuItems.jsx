@@ -1,3 +1,4 @@
+import { PermissionGroups } from "@/data/permissionGroups";
 import {
   HiCalendar,
   HiChartPie,
@@ -152,7 +153,7 @@ export const menuItems = [
           {
             id: "schooldeo",
             label: "School DEO",
-            to: "/schools/schooldeo",
+            to: "/employees/schooldeo",
             permission: "menu.schools.deo",
           },
           {
@@ -169,27 +170,20 @@ export const menuItems = [
         id: "division",
         label: "Division",
         icon: HiUserGroup,
-        permission: "menu.division",
+        permission: PermissionGroups.DIVISION.DIVISION_VIEW,
         children: [
           {
             id: "divisiondirector",
-            label: "Division Director",
-            to: "/employees/divisiondirector",
-            permission: "menu.division.admin",
+            label: "Division Administrators",
+            to: "/employees/division/admin",
+            // permission: PermissionGroups.DIVISION.ADMIN_VIEW,
           },
-          // {
-          //   id: "divisionhead",
-          //   label: "Division Head",
-          //   to: "/employees/divisionhead",
-          //   permission: "divisionhead.list.view",
-          // },
-          // {
-          //   id: "divisionclerk",
-          //   label: "Division Clerk",
-          //   to: "/employees/divisionclerk",
-          //   permission: "divisionclerk.list.view",
-          // },
-          
+          {
+            id: "divisiondeo",
+            label: "Division DEO",
+            to: "/employees/division/deo",
+            // permission: PermissionGroups.DIVISION.DEO_VIEW,
+          },
         ],
       },
 
@@ -203,21 +197,15 @@ export const menuItems = [
             id: "zonaldirector",
             label: "Zonal Administrators",
             to: "/employees/edu-directors",
-<<<<<<< HEAD
-            permission: "zonaladmin.view",
-          },
-=======
             permission: "menu.zonal.admin",
           },
 
-            {
+          {
             id: "zonaldeo",
             label: "Zonal Deo",
             to: "/employees/development-officers",
             permission: "menu.zonal.deo",
           },
-
->>>>>>> 6fd80b216d2b1cb05d4fe30cb240211ee7e7abfb
           // {
           //   id: "zonalclerk",
           //   label: "Zonal Clerk",
