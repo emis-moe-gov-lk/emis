@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+﻿import { Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 
 import App from "@/App";
@@ -77,6 +77,10 @@ import DivisionDeoProfile from "../pages/division/DivisionDeoProfile.jsx";
 import DivisionAdminProfile from "../pages/division/DivisionAdminProfile.jsx";
 import DosList from "../components/dos/DosList.jsx";
 import DosAdminProfile from "../pages/dos/DosAdminProfile.jsx";
+
+import MoeAdminDirectory from "../pages/moe/MoeAdminDirectory.jsx";
+import RegMoeAdmin from "../pages/moe/RegMoeAdmin.jsx";
+import MoeAdminProfile from "../pages/moe/MoeAdminProfile.jsx";
 
 import AlertsOverview from "../components/Alert/AlertsOverview.jsx";
 
@@ -280,6 +284,11 @@ export default function AppRoutes() {
               <Route index element={<DivisionAdminDirectory />} />
               <Route path="create" element={<RegDivisionAdmin />} />
               <Route path=":id" element={<DivisionAdminProfile />} />
+            </Route>
+            <Route path="employees/moe/admin">
+              <Route index element={<MoeAdminDirectory />} />
+              <Route path="create" element={<RegMoeAdmin />} />
+              <Route path=":id" element={<MoeAdminProfile />} />
             </Route>
             <Route path="employees/edu-directors">
               <Route index element={<ZonalDirectory />} />
