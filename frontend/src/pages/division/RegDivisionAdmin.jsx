@@ -4,14 +4,14 @@ import { useNavigate } from "react-router-dom";
 import { DivisionAdminFormContext, DivisionAdminFormProvider } from "@/context/DivisionAdminFormContext";
 import Swal from "sweetalert2";
 
-import StepperHeader from "@/components/division/division-admin/StepperHeader";
-import StepNavigation from "@/components/division/division-admin/StepNavigation";
+import StepperHeader from "@/components/division/head/StepperHeader";
+import StepNavigation from "@/components/division/head/StepNavigation";
 
-import StepNICVerification from "@/components/division/division-admin/steps/StepNICVerification";
-import StepPersonalDetails from "@/components/division/division-admin/steps/StepPersonalDetails";
-import StepContactDetails from "@/components/division/division-admin/steps/StepContactDetails";
-import StepCurrentAppointment from "@/components/division/division-admin/steps/StepCurrentAppointment";
-import StepFinishing from "@/components/division/division-admin/steps/StepFinishing";
+import StepNICVerification from "@/components/division/head/steps/StepNICVerification";
+import StepPersonalDetails from "@/components/division/head/steps/StepPersonalDetails";
+import StepContactDetails from "@/components/division/head/steps/StepContactDetails";
+import StepCurrentAppointment from "@/components/division/head/steps/StepCurrentAppointment";
+import StepFinishing from "@/components/division/head/steps/StepFinishing";
 
 import {
   downloadDivisionAdminProfileDocument,

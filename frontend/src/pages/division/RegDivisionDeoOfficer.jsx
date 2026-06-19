@@ -10,7 +10,7 @@ import StepNavigation from "@/components/teacher/StepNavigation";
 import StepNICVerification from "@/components/teacher/steps/StepNICVerification";
 import StepPersonalDetails from "@/components/teacher/steps/StepPersonalDetails";
 import StepContactDetails from "@/components/teacher/steps/StepContactDetails";
-import StepDivisionCurrentAppointment from "@/components/deo/steps/StepDivisionCurrentAppointment";
+import StepDivisionCurrentAppointment from "@/components/division/deo/steps/StepDivisionCurrentAppointment";
 
 import {
   checkDivisionDeoContact,
