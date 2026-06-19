@@ -11,6 +11,7 @@
 # ── Stack identity ───────────────────────────────────────────
 stack_name: emis-example
 deploy_env: example
+expected_public_ip: "127.0.0.1" # [REQUIRED] Update to actual reverse proxy IP
 stack_deploy_path: /opt/emis-example
 stack_network_subnet: "172.x.0.0/16"
 
