@@ -50,15 +50,9 @@ class DivisionAdminController extends Controller
 
     private function resolveRole(string $positionId): string
     {
-        $positionName = Position::where('position_id', $positionId)->value('position_name') ?? '';
-
-        $lowerName = strtolower($positionName);
-
-        if (str_contains($lowerName, 'deputy') || str_contains($lowerName, 'assistant')) {
-            return 'Divisional Deputy Director';
-        }
-
-        return 'Divisional Director';
+        // Both 'Divisional Director of Education' and 'Deputy Divisional Director of Education'
+        // are assigned the 'Divisional Head' role (the only divisional-level head role that exists).
+        return 'Divisional Head';
     }
 
     // ==============================
@@ -73,7 +67,7 @@ class DivisionAdminController extends Controller
 
             $dosAdminPeopleIds = User::query()
                 ->whereHas('roles', function ($query) {
-                    $query->whereIn('name', ['Divisional Director', 'Divisional Deputy Director']);
+                    $query->whereIn('name', ['Divisional Head']);
                 })
                 ->pluck('people_id');
 
@@ -242,15 +236,15 @@ class DivisionAdminController extends Controller
                 'postalCode'   => 'required|string',
 
                 // FIRST APPOINTMENT
-                'firstAppointmentDate'     => 'required|date',
-                'firstAppointmentLetter'   => 'required|string',
-                'firstAppointmentService'  => 'required|string',
-                'firstAppointmentRank'     => 'required|string',
-                'firstAppointmentOfficeLevel' => 'required|string',
-                'firstAppointmentWorkplace'   => 'required|string',
-                'firstAppointmentPosition'    => 'required|string',
-                'recruitmentCategory'      => 'required|string',
-                'recruitmentSubject'       => 'required|string',
+                'firstAppointmentDate'     => 'nullable|date',
+                'firstAppointmentLetter'   => 'nullable|string',
+                'firstAppointmentService'  => 'nullable|string',
+                'firstAppointmentRank'     => 'nullable|string',
+                'firstAppointmentOfficeLevel' => 'nullable|string',
+                'firstAppointmentWorkplace'   => 'nullable|string',
+                'firstAppointmentPosition'    => 'nullable|string',
+                'recruitmentCategory'      => 'nullable|string',
+                'recruitmentSubject'       => 'nullable|string',
 
                 // CURRENT APPOINTMENT
                 'currentAppointmentDate'         => 'required|date',
@@ -282,7 +276,7 @@ class DivisionAdminController extends Controller
                     'civil_status_id'  => $validated['civilStatusId'],
                     'blood_group_id'   => $validated['bloodGroupId'],
                     'health_condition' => $validated['healthCondition'],
-                    'health_problem'   => $validated['healthConditionDescription'],
+                    'health_problem'   => $validated['healthConditionDescription'] ?? null,
                     'district_id'      => $validated['districtId'],
                     'gn_division_id'   => $validated['gnDivisionId'],
                     'ds_office_id'     => $this->resolveDsOfficePrimaryKey($validated['dsOfficeId']),
@@ -306,25 +300,17 @@ class DivisionAdminController extends Controller
             }
 
             // ==============================
-            // FIRST APPOINTMENT
+            // APPOINTMENT (PARENT)
             // ==============================
             $retirementDate = Carbon::parse($people->date_of_birth)->addYears(55);
-            $appointmentId  = EmployerAppointment::generateAppointmentId($validated['firstAppointmentDate']);
+            $appointmentDate = !empty($validated['firstAppointmentDate']) ? $validated['firstAppointmentDate'] : $validated['currentAppointmentDate'];
+            $appointmentId = EmployerAppointment::generateAppointmentId($appointmentDate);
 
-            EmployerAppointment::create([
+            $apptData = [
                 'appointment_id'          => $appointmentId,
                 'employee_id'             => $people->people_id,
-                'first_appointment_date'  => $validated['firstAppointmentDate'],
+                'first_appointment_date'  => $appointmentDate,
                 'retirement_date'         => $retirementDate->toDateString(),
-                'service_id'              => $validated['firstAppointmentService'],
-                'rank_id'                 => $validated['firstAppointmentRank'],
-                'position_id'             => $validated['firstAppointmentPosition'],
-                'office_level_id'         => $validated['firstAppointmentOfficeLevel'],
-                'workplace_id'            => $validated['firstAppointmentWorkplace'],
-                'appointment_letter_no'   => $validated['firstAppointmentLetter'],
-                'appointment_letter'      => 'none.pdf',
-                'recruitment_category_id' => $validated['recruitmentCategory'],
-                'recruitment_subject_id'  => $validated['recruitmentSubject'],
                 'active_status'          => 1,
                 'is_verified'            => 1,
                 'verified_by'            => auth()->user()?->people_id,
@@ -332,7 +318,33 @@ class DivisionAdminController extends Controller
                 'is_confirmed'           => 1,
                 'confirmed_by'           => auth()->user()?->people_id,
                 'confirmed_date'         => now()->toDateTimeString(),
-            ]);
+            ];
+
+            if (!empty($validated['firstAppointmentDate'])) {
+                $apptData = array_merge($apptData, [
+                    'service_id'              => $validated['firstAppointmentService'],
+                    'rank_id'                 => $validated['firstAppointmentRank'],
+                    'position_id'             => $validated['firstAppointmentPosition'],
+                    'office_level_id'         => $validated['firstAppointmentOfficeLevel'],
+                    'workplace_id'            => $validated['firstAppointmentWorkplace'],
+                    'appointment_letter_no'   => $validated['firstAppointmentLetter'],
+                    'appointment_letter'      => 'none.pdf',
+                    'recruitment_category_id' => $validated['recruitmentCategory'],
+                    'recruitment_subject_id'  => $validated['recruitmentSubject'],
+                ]);
+            } else {
+                $apptData = array_merge($apptData, [
+                    'service_id'              => self::SLEAS_SERVICE_ID,
+                    'rank_id'                 => $validated['currentAppointmentRank'],
+                    'position_id'             => $validated['currentAppointmentPosition'],
+                    'office_level_id'         => self::DIVISIONAL_OFFICE_LEVEL,
+                    'workplace_id'            => $validated['currentAppointmentWorkplace'],
+                    'appointment_letter_no'   => $validated['currentAppointmentLetter'],
+                    'appointment_letter'      => 'none.pdf',
+                ]);
+            }
+
+            EmployerAppointment::create($apptData);
 
             // ==============================
             // CURRENT APPOINTMENT
@@ -426,7 +438,7 @@ class DivisionAdminController extends Controller
             array_map('strtolower', $dbRoles),
         ));
 
-        $allowed = ['super admin', 'divisional director', 'divisional deputy director', 'divisional deo', 'divisional deo head'];
+        $allowed = ['super admin', 'divisional head', 'divisional deo'];
         if (empty(array_intersect($roles, $allowed))) {
             return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
         }
@@ -508,7 +520,7 @@ class DivisionAdminController extends Controller
             array_map('strtolower', $dbRoles),
         ));
 
-        $allowed = ['super admin', 'divisional director', 'divisional deputy director', 'divisional deo', 'divisional deo head'];
+        $allowed = ['super admin', 'divisional head', 'divisional deo'];
         if (empty(array_intersect($roles, $allowed))) {
             return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
         }

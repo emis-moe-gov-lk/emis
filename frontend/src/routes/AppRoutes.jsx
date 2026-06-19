@@ -72,7 +72,7 @@ import RegDos from "../pages/dos/RegDos.jsx";
 import DosAdminForm from "../pages/dos/DosAdminForm.jsx";
 import RegDeoOfficer from "../pages/dos/RegDeoOfficer.jsx";
 import RegDivisionDeoOfficer from "../pages/division/RegDivisionDeoOfficer.jsx";
-import RegDivisionAdmin from "../pages/division/RegDivisionAdmin.jsx";
+import RegAdmin from "../pages/division/RegDivisionAdmin";
 import DivisionDeoProfile from "../pages/division/DivisionDeoProfile.jsx";
 import DivisionAdminProfile from "../pages/division/DivisionAdminProfile.jsx";
 import DosList from "../components/dos/DosList.jsx";
@@ -278,7 +278,7 @@ export default function AppRoutes() {
             </Route>
             <Route path="employees/division/admin">
               <Route index element={<DivisionAdminDirectory />} />
-              <Route path="create" element={<RegDivisionAdmin />} />
+              <Route path="create" element={<RegAdmin />} />
               <Route path=":id" element={<DivisionAdminProfile />} />
             </Route>
             <Route path="employees/edu-directors">
