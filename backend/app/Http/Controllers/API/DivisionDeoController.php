@@ -528,7 +528,7 @@ class DivisionDeoController extends Controller
                     'civil_status_id'    => $validated['civilStatusId'],
                     'blood_group_id'     => $validated['bloodGroupId'],
                     'health_condition'   => $validated['healthCondition'],
-                    'health_problem'     => $validated['healthConditionDescription'],
+                    'health_problem'     => $validated['healthConditionDescription'] ?? null,
                     'district_id'        => $validated['districtId'],
                     'gn_division_id'     => $validated['gnDivisionId'],
                     'ds_office_id'       => $this->resolveDsOfficePrimaryKey($validated['dsOfficeId']),
