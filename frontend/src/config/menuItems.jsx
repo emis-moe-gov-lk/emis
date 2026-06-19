@@ -224,23 +224,16 @@ export const menuItems = [
         children: [
           {
             id: "provincialdirector",
-            label: "Provincial Director",
-            to: "/employees/provincialdirector",
+            label: "Provincial Administrators",
+            to: "/employees/provincial/admin",
             permission: "menu.provincial.admin",
           },
-          // {
-          //   id: "provincialhead",
-          //   label: "Provincial Head",
-          //   to: "/employees/provincialhead",
-          //   permission: "provincialhead.list.view",
-          // },
-          // {
-          //   id: "provincialclerk",
-          //   label: "Provincial Clerk",
-          //   to: "/employees/provincialclerk",
-          //   permission: "provincialclerk.list.view",
-          // },
-          
+          {
+            id: "provincialdeo",
+            label: "Provincial DEO",
+            to: "/employees/provincial/deo",
+            permission: "menu.provincial.deo",
+          },
         ],
       },
 

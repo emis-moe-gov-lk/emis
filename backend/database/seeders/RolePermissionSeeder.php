@@ -1067,6 +1067,24 @@ class RolePermissionSeeder extends Seeder
 
 
         'menu.provincial',
+        'menu.provincial.admin',
+        'menu.provincial.deo',
+        'provincial.admin.create',
+        'provincial.admin.bulk.upload',
+        'provincial.admin.profile.view',
+        'provincial.admin.profile.exportpdf',
+        'provincial.admin.service.add',
+        'provincial.admin.qualification.add',
+        'provincial.admin.wop.edit',
+        'provincial.admin.family.add',
+        'provincial.deo.create',
+        'provincial.deo.bulk.upload',
+        'provincial.deo.profile.view',
+        'provincial.deo.profile.exportpdf',
+        'provincial.deo.qualification.add',
+        'provincial.deo.service.add',
+        'provincial.deo.wop.edit',
+        'provincial.deo.family.add',
         'menu.moe',
 
 
@@ -1145,11 +1163,21 @@ class RolePermissionSeeder extends Seeder
             'menu.zonal.deo',
         ];
 
-        // provincial director same permissions as zonal director
-        $provincialRole = Role::firstOrCreate(['name' => 'Provincial Director']);
-        $provincialRole->level = 3;
-        $provincialRole->save();
-        $provincialRole->syncPermissions($zonalApproveViewPermissions);
+        // provincial director same permissions as zonal director + provincial permissions
+        $provincialApproveViewPermissions = array_merge($zonalApproveViewPermissions, [
+            'menu.provincial',
+            'menu.provincial.admin',
+            'menu.provincial.deo',
+            'provincial.admin.profile.view',
+            'provincial.deo.profile.view',
+        ]);
+
+        foreach (['Provincial Director' => 3, 'Provincial Deputy Director' => 3, 'Provincial Subject Head' => 3] as $roleName => $level) {
+            $role = Role::firstOrCreate(['name' => $roleName]);
+            $role->level = $level;
+            $role->save();
+            $role->syncPermissions($provincialApproveViewPermissions);
+        }
         
 
        
@@ -1232,11 +1260,31 @@ class RolePermissionSeeder extends Seeder
         ];
 
 
-         // provincial DEO same permissions as zonal director
-        $provincialRole = Role::firstOrCreate(['name' => 'Provincial DEO']);
-        $provincialRole->level = 4;
-        $provincialRole->save();
-        $provincialRole->syncPermissions($zonalDeoPermissions);
+         // provincial DEO same permissions as zonal DEO + provincial permissions
+        $provincialDeoPermissionsList = array_merge($zonalDeoPermissions, [
+            'menu.provincial',
+            'menu.provincial.admin',
+            'menu.provincial.deo',
+            'provincial.admin.create',
+            'provincial.admin.profile.view',
+            'provincial.admin.service.add',
+            'provincial.admin.qualification.add',
+            'provincial.admin.wop.edit',
+            'provincial.admin.family.add',
+            'provincial.deo.create',
+            'provincial.deo.profile.view',
+            'provincial.deo.qualification.add',
+            'provincial.deo.service.add',
+            'provincial.deo.wop.edit',
+            'provincial.deo.family.add',
+        ]);
+
+        foreach (['Provincial DEO' => 4, 'Provincial Clerk (DEO)' => 4] as $roleName => $level) {
+            $role = Role::firstOrCreate(['name' => $roleName]);
+            $role->level = $level;
+            $role->save();
+            $role->syncPermissions($provincialDeoPermissionsList);
+        }
         
             $role        = Role::firstOrCreate(['name' => 'Zonal DEO']);
             $role->level = 7;

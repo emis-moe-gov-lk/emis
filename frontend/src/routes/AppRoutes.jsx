@@ -78,6 +78,13 @@ import DivisionAdminProfile from "../pages/division/DivisionAdminProfile.jsx";
 import DosList from "../components/dos/DosList.jsx";
 import DosAdminProfile from "../pages/dos/DosAdminProfile.jsx";
 
+import ProvincialAdminDirectory from "@/pages/provincial/ProvincialAdminDirectory";
+import ProvincialDeoDirectory from "@/pages/provincial/ProvincialDeoDirectory";
+import RegProvincialAdmin from "@/pages/provincial/RegProvincialAdmin";
+import RegProvincialDeoOfficer from "@/pages/provincial/RegProvincialDeoOfficer";
+import ProvincialAdminProfile from "@/pages/provincial/ProvincialAdminProfile";
+import ProvincialDeoProfile from "@/pages/provincial/ProvincialDeoProfile";
+
 import AlertsOverview from "../components/Alert/AlertsOverview.jsx";
 
 import PendingConfirmationList from "../components/Alert/PendingConfirmationList.jsx";
@@ -280,6 +287,16 @@ export default function AppRoutes() {
               <Route index element={<DivisionAdminDirectory />} />
               <Route path="create" element={<RegDivisionAdmin />} />
               <Route path=":id" element={<DivisionAdminProfile />} />
+            </Route>
+            <Route path="employees/provincial/admin">
+              <Route index element={<ProvincialAdminDirectory />} />
+              <Route path="create" element={<RegProvincialAdmin />} />
+              <Route path=":id" element={<ProvincialAdminProfile />} />
+            </Route>
+            <Route path="employees/provincial/deo">
+              <Route index element={<ProvincialDeoDirectory />} />
+              <Route path="create" element={<RegProvincialDeoOfficer />} />
+              <Route path=":id" element={<ProvincialDeoProfile />} />
             </Route>
             <Route path="employees/edu-directors">
               <Route index element={<ZonalDirectory />} />

@@ -1152,6 +1152,10 @@ class TeacherApiController extends Controller
                 ->where('position_name', 'like', '%Divisional%')
                 ->active()
                 ->get(),
+            'provincialPositions' => Position::where('service_id', 'SER005')
+                ->where('position_name', 'like', '%Provincial%')
+                ->active()
+                ->get(),
             'officeLevels' => OfficeLevel::active()->orderBy('office_level_rank')->get(),
             'workplacesByLevel' => $workplacesByLevel,
         ]);
