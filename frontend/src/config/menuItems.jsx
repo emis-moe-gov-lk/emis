@@ -251,10 +251,10 @@ export const menuItems = [
         permission: "menu.moe",
         children: [
           {
-            id: "moedirector",
-            label: "MOE Director",
-            to: "/employees/moedirector",
-            permission: "menu.moe.admin",
+            id: "moeadministrator",
+            label: "MOE Administrator",
+            to: "/employees/moe-administrators",
+            anyPermissions: ["menu.moe.admin", "menu.moe"],
           },
           
         ],

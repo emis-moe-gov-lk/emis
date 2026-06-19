@@ -27,6 +27,7 @@ use App\Http\Controllers\API\DeoOfficerController;
 use App\Http\Controllers\API\DivisionDeoController;
 use App\Http\Controllers\API\DivisionAdminController;
 use App\Http\Controllers\API\DosAdminController;
+use App\Http\Controllers\API\MoeAdministratorController;
 use App\Http\Controllers\API\MobileTeacherProfileController;
 use App\Http\Controllers\API\EmployerAppointmentConfirmationController;
 use App\Http\Controllers\API\ProfileController;
@@ -180,6 +181,15 @@ Route::prefix('')->group(function () {
         Route::get('/{id}', 'show');                          // GET single DOS admin profile
         Route::post('/{id}/service-history', 'addServiceHistoryEntry'); // POST add service history entry
         Route::post('/{id}/past-services', 'addPastService');           // POST add past service block
+    });
+
+    Route::controller(MoeAdministratorController::class)->middleware('auth:jwt')->prefix('moe-administrators')->group(function () {
+        Route::get('/', 'index');
+        Route::get('/{id}', 'show');
+        Route::patch('/{id}', 'update');
+        Route::post('/', 'store');
+        Route::post('/{id}/service-history', 'addServiceHistoryEntry');
+        Route::post('/{id}/past-services', 'addPastService');
     });
 
     Route::controller(DeoOfficerController::class)->middleware('auth:jwt')->prefix('deo-officers')->group(function () {

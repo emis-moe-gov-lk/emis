@@ -77,6 +77,9 @@ import DivisionDeoProfile from "../pages/division/DivisionDeoProfile.jsx";
 import DivisionAdminProfile from "../pages/division/DivisionAdminProfile.jsx";
 import DosList from "../components/dos/DosList.jsx";
 import DosAdminProfile from "../pages/dos/DosAdminProfile.jsx";
+import MoeAdministratorList from "@/pages/moe/MoeAdministratorList";
+import MoeAdministratorForm from "@/pages/moe/MoeAdministratorForm";
+import MoeAdministratorProfile from "@/pages/moe/MoeAdministratorProfile";
 
 import AlertsOverview from "../components/Alert/AlertsOverview.jsx";
 
@@ -286,6 +289,11 @@ export default function AppRoutes() {
               <Route path="bulk-upload" element={<DosBulkUpload />} />
               <Route path="create" element={<DosAdminForm />} />
               <Route path=":id" element={<DosAdminProfile />} />
+            </Route>
+            <Route path="employees/moe-administrators">
+              <Route index element={<MoeAdministratorList />} />
+              <Route path="create" element={<MoeAdministratorForm />} />
+              <Route path=":id" element={<MoeAdministratorProfile />} />
             </Route>
 
             <Route path="employees/zonaldirector">
