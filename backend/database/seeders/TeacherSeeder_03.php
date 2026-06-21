@@ -319,12 +319,12 @@ class TeacherSeeder_03 extends Seeder
                     'name'      => $people->name_with_initials,
                     'email'     => $email,
                     'contact'   => $phone,
-                    'password'  => 'password@123',
+                    'password'  => 'Password@123',
                 ]);
 
                 $user->assignRole('teacher');
 
-                $result = $wso2Is->provisionUser($user, 'password@123', 'teacher');
+                $result = $wso2Is->provisionUser($user, 'Password@123', 'teacher');
                 if ($result['provisioned'] ?? false) {
                     $this->command->info("  WSO2: provisioned {$email}");
                 } else {
