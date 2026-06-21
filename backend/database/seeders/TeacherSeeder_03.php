@@ -324,7 +324,13 @@ class TeacherSeeder_03 extends Seeder
 
                 $user->assignRole('teacher');
 
-                $wso2Is->provisionUser($user, 'password@123', 'teacher');
+                $result = $wso2Is->provisionUser($user, 'password@123', 'teacher');
+                if ($result['provisioned'] ?? false) {
+                    $this->command->info("  WSO2: provisioned {$email}");
+                } else {
+                    $reason = $result['error'] ?? ($result['skipped'] ?? false ? 'WSO2 disabled' : 'unknown');
+                    $this->command->warn("  WSO2 provisioning failed for {$email}: {$reason}");
+                }
 
                 $created++;
             });
