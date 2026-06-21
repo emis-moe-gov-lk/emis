@@ -13,12 +13,13 @@ use App\Models\PeopleEducationQualification;
 use App\Models\Teacher;
 use App\Models\User;
 use Carbon\Carbon;
+use App\Services\Wso2IsProvisioningService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
 class TeacherSeeder_02 extends Seeder
 {
-    public function run(): void
+    public function run(Wso2IsProvisioningService $wso2Is): void
     {
         $workplaceId = DB::table('workplaces')
             ->where('office_level_id', 'OLID006')
@@ -247,7 +248,7 @@ class TeacherSeeder_02 extends Seeder
         ];
 
         foreach ($teachers as $data) {
-            DB::transaction(function () use ($data, $workplaceId) {
+            DB::transaction(function () use ($data, $workplaceId, $wso2Is) {
                 $nic = NicHelper::normalize($data['nic']);
 
                 $existingPeople = People::where('nic_hash', NicHelper::hash($nic))->first();
@@ -421,18 +422,21 @@ class TeacherSeeder_02 extends Seeder
                 }
 
                 // 10. System user
+                $plainPassword = 'User@' . $nic;
                 $user = User::create([
                     'nic'                   => $nic,
                     'people_id'             => $people->people_id,
                     'name'                  => $people->name_with_initials,
                     'email'                 => $data['email'],
                     'contact'               => $data['phone'],
-                    'password'              => 'User@' . $nic,
+                    'password'              => $plainPassword,
                     'identity_provider'     => 'local',
                     'must_change_password'  => true,
                 ]);
 
                 $user->assignRole('teacher');
+
+                $wso2Is->provisionUser($user, $plainPassword, 'teacher');
             });
         }
     }

@@ -9,12 +9,13 @@ use App\Models\People;
 use App\Models\Teacher;
 use App\Models\User;
 use Carbon\Carbon;
+use App\Services\Wso2IsProvisioningService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
 class TeacherSeeder_03 extends Seeder
 {
-    public function run(): void
+    public function run(Wso2IsProvisioningService $wso2Is): void
     {
         // Load one representative workplace per ZEO zone so teachers are spread
         // across different zones. Groups institution workplaces by zeo_wp_id and
@@ -205,7 +206,7 @@ class TeacherSeeder_03 extends Seeder
                 $workplacesByZone, $zoneCount, $addresses, $districts, $gnDivisions,
                 $bloodGroups, $civilStatuses, $teacherCategories, $teacherTypes,
                 $mediums, $subjects, $statusMap,
-                &$created, &$skipped
+                &$created, &$skipped, $wso2Is
             ) {
                 // NIC: YYYY + day-of-year (female = day+500) + 5-digit unique index
                 $nicDay = ($genderId === 'G02' ? 500 : 0) + 100 + ($index % 200);
@@ -322,6 +323,8 @@ class TeacherSeeder_03 extends Seeder
                 ]);
 
                 $user->assignRole('teacher');
+
+                $wso2Is->provisionUser($user, 'password@123', 'teacher');
 
                 $created++;
             });
