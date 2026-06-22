@@ -63,7 +63,7 @@ export const menuItems = [
         label: "Users",
         icon: HiUserGroup,
         to: "/users",
-        permission: "menu.users",
+        permission: "menu.user",
       },
       {
         id: "DMSApprovedCader",
@@ -147,8 +147,8 @@ export const menuItems = [
           {
             id: "principal",
             label: "Principals",
-              to: "/employees/principal",
-              permission: "menu.schools.principals",
+            to: "/employees/principal",
+            permission: "menu.schools.principals",
           },
           {
             id: "schooldeo",
@@ -156,15 +156,7 @@ export const menuItems = [
             to: "/employees/schooldeo",
             permission: "menu.schools.deo",
           },
-          {
-            id: "schoolclerks",
-            label: "School Clerks",
-            to: "/schools/schoolclerks",
-            permission: "menu.schools.clerk",
-          },
-
         ],
-
       },
       {
         id: "division",
@@ -212,7 +204,6 @@ export const menuItems = [
           //   to: "/employees/zonalclerk",
           //   permission: "zonalclerk.list.view",
           // },
-          
         ],
       },
 
@@ -240,7 +231,6 @@ export const menuItems = [
           //   to: "/employees/provincialclerk",
           //   permission: "provincialclerk.list.view",
           // },
-          
         ],
       },
 
@@ -256,10 +246,8 @@ export const menuItems = [
             to: "/employees/moedirector",
             permission: "menu.moe.admin",
           },
-          
         ],
       },
-
     ],
   },
 
@@ -270,16 +258,16 @@ export const menuItems = [
         id: "inbox",
         label: "Inbox",
         icon: HiInbox,
-        to: "/message",
+        to: "/inbox",
         permission: "menu.inbox",
       },
-      {
-        id: "admin",
-        label: "Admin",
-        icon: HiShieldCheck,
-        to: "/admin",
-        permission: "menu.admin",
-      },
+      // {
+      //   id: "admin",
+      //   label: "Admin",
+      //   icon: HiShieldCheck,
+      //   to: "/admin",
+      //   permission: "menu.admin",
+      // },
 
       {
         id: "time_table",
@@ -297,7 +285,7 @@ export const menuItems = [
             id: "system-settings",
             label: "System Settings",
             to: "/dashboard/settings",
-            permission: "menu.settings.system-settings",
+            permission: "menu.settings.system.settings",
           },
           {
             id: "version",
@@ -357,7 +345,9 @@ export const filterMenuItemsByPermissions = (sections, canAccess) =>
           }
 
           if (item.children) {
-            return hasAccess(item, canAccess) ? { ...item, children: [] } : null;
+            return hasAccess(item, canAccess)
+              ? { ...item, children: [] }
+              : null;
           }
 
           return hasAccess(item, canAccess) ? item : null;
