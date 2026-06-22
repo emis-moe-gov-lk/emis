@@ -95,7 +95,6 @@ const DEFAULT_QUALIFICATION_FORM = {
 
 const TeacherProfile = () => {
   const { id } = useParams();
-  const apiEndpoint = `/teacher/${id}`;
   const { state: authState, getDecodedIDToken } = useAuthContext();
   const { roles: identityRoles, user: authUser } = useAuthUser();
 
