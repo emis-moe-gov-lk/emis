@@ -227,6 +227,15 @@ export const PermissionGroups = {
 
   MOE: {
     MOE_VIEW: "menu.moe",
+    ADMIN: "menu.moe.admin",
+    ADMIN_CREATE: "moe.admin.create",
+    ADMIN_BULK_UPLOAD: "moe.admin.bulk.upload",
+    ADMIN_PROFILE_VIEW: "moe.admin.profile.view",
+    ADMIN_DOCUMENTS: "moe.admin.profile.exportpdf",
+    ADMIN_SERVICES: "moe.admin.service.add",
+    ADMIN_QUALIFICATIONS: "moe.admin.qualification.add",
+    ADMIN_WOP: "moe.admin.wop.edit",
+    ADMIN_FAMILY: "moe.admin.family.add",
   },
 
 

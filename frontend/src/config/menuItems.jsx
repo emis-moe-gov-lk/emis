@@ -1,4 +1,4 @@
-import { PermissionGroups } from "@/data/permissionGroups";
+﻿import { PermissionGroups } from "@/data/permissionGroups";
 import {
   HiCalendar,
   HiChartPie,
@@ -215,8 +215,8 @@ export const menuItems = [
         children: [
           {
             id: "provincialdirector",
-            label: "Provincial Director",
-            to: "/employees/provincialdirector",
+            label: "Provincial Administrators",
+            to: "/employees/provincial/admin",
             permission: "menu.provincial.admin",
           },
           // {
@@ -231,6 +231,12 @@ export const menuItems = [
           //   to: "/employees/provincialclerk",
           //   permission: "provincialclerk.list.view",
           // },
+          {
+            id: "provincialdeo",
+            label: "Provincial DEO",
+            to: "/employees/provincial/deo",
+            permission: "menu.provincial.deo",
+          },
         ],
       },
 
@@ -241,9 +247,9 @@ export const menuItems = [
         permission: "menu.moe",
         children: [
           {
-            id: "moedirector",
-            label: "MOE Director",
-            to: "/employees/moedirector",
+            id: "moeadmin",
+            label: "MOE Administrators",
+            to: "/employees/moe/admin",
             permission: "menu.moe.admin",
           },
         ],
