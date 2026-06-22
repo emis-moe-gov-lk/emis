@@ -138,8 +138,8 @@ export default function EditRequestTimeline({ editRequests = [] }) {
                                       <User size={12} />
                                     </div>
                                     <p className="text-[10px] uppercase font-bold tracking-widest">
-                                      {request.reviewer.title}{" "}
-                                      {request.reviewer.name}
+                                      {request.reviewer.title?.title_name}{" "}
+                                      {request.reviewer.name_with_initials}
                                     </p>
                                   </div>
                                 )}

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\People;
+use App\Models\PeopleProfileEditRequest;
 use App\Traits\ResolvesZonalScope;
 use Illuminate\Http\Request;
 
@@ -39,8 +40,9 @@ class AlertController extends Controller
 
     public function counts(Request $request)
     {
-        $roles = $this->resolvedRoles($request);
-        $query = $this->baseQuery($request);
+        $roles            = $this->resolvedRoles($request);
+        $zonalWorkplaceId = $this->isSuperAdmin($roles) ? null : $this->resolveUserZonalWorkplaceId($request);
+        $query            = $this->baseQuery($request);
 
         if ($query === null) {
             return response()->json(['status' => 'error', 'message' => 'No zonal workplace mapped for this user.'], 403);
@@ -74,13 +76,22 @@ class AlertController extends Controller
             ->whereHas('appointment', fn ($q) => $q->where('is_verified', 3))
             ->count();
 
+        $pendingEditRequests = PeopleProfileEditRequest::where('status', '1')
+            ->whereHas('person', function ($q) use ($zonalWorkplaceId, $roles) {
+                if (! $this->isSuperAdmin($roles)) {
+                    $this->applyTeacherZonalScope($q, $zonalWorkplaceId);
+                }
+            })
+            ->count();
+
         return response()->json([
             'status' => 'success',
             'data' => [
-                'pending_verification' => $pendingVerification,
-                'revised'              => $revised,
-                'pending_confirmation' => $pendingConfirmation,
-                'rejected'             => $rejected,
+                'pending_verification'  => $pendingVerification,
+                'revised'               => $revised,
+                'pending_confirmation'  => $pendingConfirmation,
+                'rejected'              => $rejected,
+                'pending_edit_requests' => $pendingEditRequests,
             ],
         ]);
     }
@@ -180,5 +191,35 @@ class AlertController extends Controller
             ->withQueryString();
 
         return response()->json(['status' => 'success', 'data' => $teachers]);
+    }
+
+    public function editRequests(Request $request)
+    {
+        $roles            = $this->resolvedRoles($request);
+        $zonalWorkplaceId = $this->isSuperAdmin($roles) ? null : $this->resolveUserZonalWorkplaceId($request);
+
+        if (! $this->isSuperAdmin($roles) && ! $zonalWorkplaceId) {
+            return response()->json(['status' => 'error', 'message' => 'No zonal workplace mapped for this user.'], 403);
+        }
+
+        $query = PeopleProfileEditRequest::with([
+            'person:people_id,full_name,name_with_initials',
+            'person.currentAppointment.workplace.institution:workplace_id,census_no,name',
+        ])->where('status', '1');
+
+        if (! $this->isSuperAdmin($roles)) {
+            $query->whereHas('person', function ($q) use ($zonalWorkplaceId) {
+                $this->applyTeacherZonalScope($q, $zonalWorkplaceId);
+            });
+        }
+
+        $requests = $query
+            ->orderBy('created_at', 'desc')
+            ->paginate((int) $request->get('per_page', 10))
+            ->withQueryString();
+
+        $requests->getCollection()->each->append(['status_text', 'created_ago']);
+
+        return response()->json(['status' => 'success', 'data' => $requests]);
     }
 }
