@@ -5,35 +5,13 @@ import profileMale from "../../assets/images/profile_m.png";
 import profileFemale from "../../assets/images/profile_f.png";
 import { PermissionGroups } from "@/data/permissionGroups";
 
-export default function DosList({ employees }) {
+export default function MoeAdminList({ employees }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const isZonalAdmins = location.pathname.includes("/employees/edu-directors") 
-    || location.pathname.includes("/employees/division/divisionAdmin")
-    || location.pathname.includes("/employees/division/admin")
-    || location.pathname.includes("/employees/provincial/admin");
-    
-  const profileViewPermission = isZonalAdmins
-    ? PermissionGroups.ZONAL.ADMIN_PROFILE_VIEW
-    : PermissionGroups.ZONAL.DEO_PROFILE_VIEW;
+  const profileViewPermission = PermissionGroups.ZONAL.ADMIN_PROFILE_VIEW;
 
-  // Determine the base route for navigation
   const getProfileRoute = (employeeId) => {
-    const currentPath = location.pathname;
-    if (currentPath.includes("edu-directors")) {
-      return `/employees/edu-directors/${employeeId}`;
-    } else if (currentPath.includes("zonaldirector")) {
-      return `/employees/zonaldirector/${employeeId}`;
-    } else if (currentPath.includes("/employees/division/divisionAdmin") || currentPath.includes("/employees/division/admin")) {
-      return `/employees/division/admin/${employeeId}`;
-    } else if (currentPath.includes("/employees/division/deo")) {
-      return `/employees/division/deo/${employeeId}`;
-    } else if (currentPath.includes("/employees/provincial/admin")) {
-      return `/employees/provincial/admin/${employeeId}`;
-    } else if (currentPath.includes("/employees/provincial/deo")) {
-      return `/employees/provincial/deo/${employeeId}`;
-    }
-    return `/employees/development-officers/${employeeId}`;
+    return `/employees/moe/admin/${employeeId}`;
   };
 
   if (!employees.length) {
@@ -43,15 +21,7 @@ export default function DosList({ employees }) {
           <HiUser className="w-8 h-8 text-gray-400" />
         </div>
         <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-          {location.pathname.includes("divisionAdmin") || location.pathname.includes("division/admin")
-            ? "No Division Administrators found"
-            : location.pathname.includes("provincial/admin")
-            ? "No Provincial Administrators found"
-            : location.pathname.includes("provincial/deo")
-            ? "No Provincial DEOs found"
-            : location.pathname.includes("edu-directors")
-            ? "No Zonal Administrators found"
-            : "No Development Officers found"}
+          No MOE Administrators found
         </h3>
         <p className="text-gray-500 max-w-sm mx-auto mt-2">
           No officers match this search.

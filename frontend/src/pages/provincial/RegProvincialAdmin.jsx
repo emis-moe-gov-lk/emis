@@ -1,42 +1,41 @@
 "use client";
 import { useState, useContext, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { DivisionAdminFormContext, DivisionAdminFormProvider } from "@/context/DivisionAdminFormContext";
+import { TeacherFormContext, TeacherFormProvider } from "@/context/TeacherFormContext";
 import Swal from "sweetalert2";
 
-import StepperHeader from "@/components/division/head/StepperHeader";
-import StepNavigation from "@/components/division/head/StepNavigation";
+import StepperHeader from "@/components/teacher/StepperHeader";
+import StepNavigation from "@/components/teacher/StepNavigation";
 
-import StepNICVerification from "@/components/division/head/steps/StepNICVerification";
-import StepPersonalDetails from "@/components/division/head/steps/StepPersonalDetails";
-import StepContactDetails from "@/components/division/head/steps/StepContactDetails";
-import StepCurrentAppointment from "@/components/division/head/steps/StepCurrentAppointment";
-import StepFinishing from "@/components/division/head/steps/StepFinishing";
+import StepNICVerification from "@/components/dos/steps/StepNICVerification";
+import StepPersonalDetails from "@/components/dos/steps/StepPersonalDetails";
+import StepContactDetails from "@/components/dos/steps/StepContactDetails";
+import StepFirstAppointment from "@/components/dosAdmin/steps/StepFirstAppointment";
+import StepProvincialAdminCurrentAppointment from "@/components/dosAdmin/steps/StepProvincialAdminCurrentAppointment";
 
-import {
-  downloadDivisionAdminProfileDocument,
-  registerDivisionAdmin,
-} from "@/api/divisionAdminService";
+import api from "@/api/axios";
 import toast from "react-hot-toast";
 import { useAuthUser } from "@/context/useAuthUser";
 import BackToListButton from "@/components/UiComponents/BackToListButton";
 import Button from "@/components/UiComponents/Button";
+import { downloadProvincialAdminProfileDocument } from "@/api/provincialAdminService";
 
-const REG_DIVISION_ADMIN_HISTORY_OWNER = "regDivisionAdminCreate";
-const REG_DIVISION_ADMIN_HISTORY_STEP_KEY = "regDivisionAdminStep";
-const REG_DIVISION_ADMIN_TOTAL_STEPS = 5;
+const REG_PROVINCIAL_ADMIN_HISTORY_OWNER = "regProvincialAdminCreate";
+const REG_PROVINCIAL_ADMIN_HISTORY_STEP_KEY = "regProvincialAdminStep";
+const REG_PROVINCIAL_ADMIN_TOTAL_STEPS = 6;
 
 const STEPS = [
   { id: 1, label: "Verification" },
   { id: 2, label: "Personal" },
   { id: 3, label: "Contact" },
-  { id: 4, label: "Current Appt" },
-  { id: 5, label: "Finishing" },
+  { id: 4, label: "First Appt" },
+  { id: 5, label: "Current Appt" },
+  { id: 6, label: "Finishing" },
 ];
 
-function RegDivisionAdminInner() {
+function RegProvincialAdminInner() {
   const navigate = useNavigate();
-  const { state, dispatch } = useContext(DivisionAdminFormContext);
+  const { state, dispatch } = useContext(TeacherFormContext);
   const { identity, hasRole, isAuthenticated, isLoading: isAuthLoading } = useAuthUser();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -47,7 +46,7 @@ function RegDivisionAdminInner() {
   const currentStepRef = useRef(1);
 
   const LEAVE_WARNING_MESSAGE =
-    "Saved Division Administrator registration draft will be lost. Do you want to continue?";
+    "Saved Provincial Administrator registration draft will be lost. Do you want to continue?";
 
   const {
     formData,
@@ -55,8 +54,8 @@ function RegDivisionAdminInner() {
     isNicVerified,
     isPersonalValid,
     isContactValid,
+    isFirstApptValid,
     isCurrentApptValid,
-    error,
     isRestored,
   } = state;
 
@@ -64,28 +63,28 @@ function RegDivisionAdminInner() {
     !isRegistrationComplete &&
     (currentStep > 1 || Object.keys(formData || {}).length > 0);
 
-  const canCreateDivisionAdmin = hasRole("super admin"); 
+  const canCreateProvincialAdmin = hasRole("super admin") || hasRole("Provincial Director") || hasRole("Provincial Deputy Director");
   const isAuthLoadingFinal = isAuthLoading || (isAuthenticated && !identity);
 
   const clampStep = (value) => {
     const parsed = Number(value);
     if (!Number.isFinite(parsed)) return 1;
-    return Math.min(Math.max(Math.trunc(parsed), 1), REG_DIVISION_ADMIN_TOTAL_STEPS);
+    return Math.min(Math.max(Math.trunc(parsed), 1), REG_PROVINCIAL_ADMIN_TOTAL_STEPS);
   };
 
-  const isRegDivisionAdminHistoryState = (historyState) =>
+  const isRegProvincialAdminHistoryState = (historyState) =>
     Boolean(
       historyState &&
-      historyState.__regDivisionAdminOwner === REG_DIVISION_ADMIN_HISTORY_OWNER &&
-      Number.isFinite(Number(historyState[REG_DIVISION_ADMIN_HISTORY_STEP_KEY])),
+      historyState.__regProvincialAdminOwner === REG_PROVINCIAL_ADMIN_HISTORY_OWNER &&
+      Number.isFinite(Number(historyState[REG_PROVINCIAL_ADMIN_HISTORY_STEP_KEY])),
     );
 
-  const buildRegDivisionAdminHistoryState = (step) => {
+  const buildRegProvincialAdminHistoryState = (step) => {
     const baseState = window.history.state || {};
     return {
       ...baseState,
-      __regDivisionAdminOwner: REG_DIVISION_ADMIN_HISTORY_OWNER,
-      [REG_DIVISION_ADMIN_HISTORY_STEP_KEY]: clampStep(step),
+      __regProvincialAdminOwner: REG_PROVINCIAL_ADMIN_HISTORY_OWNER,
+      [REG_PROVINCIAL_ADMIN_HISTORY_STEP_KEY]: clampStep(step),
     };
   };
 
@@ -94,12 +93,12 @@ function RegDivisionAdminInner() {
   }, [currentStep]);
 
   useEffect(() => {
-    if (isAuthLoadingFinal || canCreateDivisionAdmin) return;
+    if (isAuthLoadingFinal || canCreateProvincialAdmin) return;
 
     dispatch({ type: "CLEAR" });
-    toast.error("Unauthorized access.", { id: "division-admin-create-unauthorized" });
-    navigate("/employees/division/admin", { replace: true });
-  }, [canCreateDivisionAdmin, dispatch, isAuthLoadingFinal, navigate]);
+    toast.error("Unauthorized access.", { id: "provincial-admin-create-unauthorized" });
+    navigate("/employees/provincial/admin", { replace: true });
+  }, [canCreateProvincialAdmin, dispatch, isAuthLoadingFinal, navigate]);
 
   useEffect(() => {
     if (!isRestored) return;
@@ -108,26 +107,26 @@ function RegDivisionAdminInner() {
     const initialStep = clampStep(currentStepRef.current);
     const baseState = window.history.state;
 
-    if (!isRegDivisionAdminHistoryState(baseState)) {
-      window.history.replaceState(buildRegDivisionAdminHistoryState(initialStep), "", currentUrl);
+    if (!isRegProvincialAdminHistoryState(baseState)) {
+      window.history.replaceState(buildRegProvincialAdminHistoryState(initialStep), "", currentUrl);
     }
 
-    window.history.pushState(buildRegDivisionAdminHistoryState(initialStep), "", currentUrl);
+    window.history.pushState(buildRegProvincialAdminHistoryState(initialStep), "", currentUrl);
     lastHistoryStepRef.current = initialStep;
 
     const handlePopState = async (event) => {
       const currentUiStep = clampStep(currentStepRef.current);
 
-      if (!isRegDivisionAdminHistoryState(event.state)) {
+      if (!isRegProvincialAdminHistoryState(event.state)) {
         window.history.pushState(
-          buildRegDivisionAdminHistoryState(lastHistoryStepRef.current || currentUiStep || 1),
+          buildRegProvincialAdminHistoryState(lastHistoryStepRef.current || currentUiStep || 1),
           "",
           currentUrl,
         );
         return;
       }
 
-      const stepFromHistory = clampStep(event.state[REG_DIVISION_ADMIN_HISTORY_STEP_KEY]);
+      const stepFromHistory = clampStep(event.state[REG_PROVINCIAL_ADMIN_HISTORY_STEP_KEY]);
 
       if (stepFromHistory === 1 && currentUiStep > 1) {
         if (hasDraftData) {
@@ -142,7 +141,7 @@ function RegDivisionAdminInner() {
           });
 
           if (!result.isConfirmed) {
-            window.history.pushState(buildRegDivisionAdminHistoryState(currentUiStep), "", currentUrl);
+            window.history.pushState(buildRegProvincialAdminHistoryState(currentUiStep), "", currentUrl);
             lastHistoryStepRef.current = currentUiStep;
             return;
           }
@@ -171,7 +170,7 @@ function RegDivisionAdminInner() {
 
     if (lastHistoryStepRef.current === normalizedStep) return;
 
-    window.history.pushState(buildRegDivisionAdminHistoryState(normalizedStep), "", window.location.href);
+    window.history.pushState(buildRegProvincialAdminHistoryState(normalizedStep), "", window.location.href);
     lastHistoryStepRef.current = normalizedStep;
   }, [currentStep, isRestored]);
 
@@ -195,19 +194,20 @@ function RegDivisionAdminInner() {
     onConfirm();
   };
 
-  if (!isRestored || isAuthLoadingFinal || !canCreateDivisionAdmin) {
+  if (!isRestored || isAuthLoadingFinal || !canCreateProvincialAdmin) {
     return <div className="text-center py-12">Loading...</div>;
   }
 
   const setFormData = (updateOrValue) => dispatch({ type: "UPDATE_FORM_DATA", payload: updateOrValue });
+  
   const handleStepClick = (stepId) => {
-    if (stepId < currentStep || (currentStep === 1 && isNicVerified) || (currentStep === 2 && isPersonalValid) || (currentStep === 3 && isContactValid) || (currentStep === 4 && isCurrentApptValid)) {
+    if (stepId < currentStep || (currentStep === 1 && isNicVerified) || (currentStep === 2 && isPersonalValid) || (currentStep === 3 && isContactValid) || (currentStep === 4 && isFirstApptValid)) {
         dispatch({ type: "SET_STEP", payload: stepId });
     }
   };
 
   const handleNext = async () => {
-    if (currentStep === 4) {
+    if (currentStep === 5) {
       try {
         setIsSubmitting(true);
         const payload = {
@@ -215,10 +215,11 @@ function RegDivisionAdminInner() {
             is_new_registration: formData.currentAppointmentRegType === "new",
             currentAppointmentWorkplace: formData.currentAppointmentZone,
         };
-        const result = await registerDivisionAdmin(payload);
+        const res = await api.post("/provincial-admins", payload);
+        const result = res.data;
 
         if (result.status === "success") {
-          toast.success("Division Administrator registered successfully");
+          toast.success("Provincial Administrator registered successfully");
           setRegistrationSummary({
               fullName: result.data.fullName,
               nic: result.data.nic,
@@ -228,7 +229,7 @@ function RegDivisionAdminInner() {
               people_id: result.people_id,
           });
           setIsRegistrationComplete(true);
-          dispatch({ type: "SET_STEP", payload: 5 });
+          dispatch({ type: "SET_STEP", payload: 6 });
         } else {
           toast.error(result.message || "Registration failed");
         }
@@ -248,15 +249,23 @@ function RegDivisionAdminInner() {
 
   return (
     <div className="p-6 lg:p-10 max-w-5xl mx-auto space-y-8">
-      <BackToListButton onClick={() => confirmDiscardAndRun(() => navigate("/employees/division/admin"))} label="Back To List" className="mb-8" />
+      <BackToListButton onClick={() => confirmDiscardAndRun(() => navigate("/employees/provincial/admin"))} label="Back To List" className="mb-8" />
       <div className="border border-gray-200 overflow-hidden rounded-lg">
         <StepperHeader steps={STEPS} currentStep={currentStep} onStepClick={handleStepClick} />
         <div className="p-6 lg:p-8">
           {currentStep === 1 && <StepNICVerification formData={formData} setFormData={setFormData} onVerified={() => dispatch({ type: "SET_NIC_VERIFIED", payload: true })} />}
           {currentStep === 2 && <StepPersonalDetails formData={formData} setFormData={setFormData} onValid={(v) => dispatch({ type: "SET_PERSONAL_VALID", payload: v })} />}
           {currentStep === 3 && <StepContactDetails formData={formData} setFormData={setFormData} onValid={(v) => dispatch({ type: "SET_CONTACT_VALID", payload: v })} />}
-          {currentStep === 4 && <StepCurrentAppointment formData={formData} setFormData={setFormData} onValid={(v) => dispatch({ type: "SET_CURRENT_APPT_VALID", payload: v })} />}
-          {currentStep === 5 && <StepFinishing formData={registrationSummary || formData} />}
+          {currentStep === 4 && <StepFirstAppointment formData={formData} setFormData={setFormData} onValid={(v) => dispatch({ type: "SET_FIRST_APPT_VALID", payload: v })} />}
+          {currentStep === 5 && <StepProvincialAdminCurrentAppointment formData={formData} setFormData={setFormData} onValid={(v) => dispatch({ type: "SET_CURRENT_APPT_VALID", payload: v })} />}
+          {currentStep === 6 && (
+            <div className="space-y-4">
+              <h3 className="font-semibold text-green-700">Provincial Administrator Registered Successfully!</h3>
+              <p>Name: {registrationSummary?.fullName}</p>
+              <Button variant="primary" onClick={() => downloadProvincialAdminProfileDocument(registrationSummary?.people_id)}>Download Profile</Button>
+              <Button variant="secondary" onClick={() => { dispatch({ type: "CLEAR" }); setIsRegistrationComplete(false); dispatch({ type: "SET_STEP", payload: 1 }); }}>New Registration</Button>
+            </div>
+          )}
         </div>
         {currentStep < STEPS.length && (
             <div className="border-t">
@@ -264,7 +273,8 @@ function RegDivisionAdminInner() {
                     currentStep === 1 ? isNicVerified :
                     currentStep === 2 ? isPersonalValid :
                     currentStep === 3 ? isContactValid :
-                    currentStep === 4 ? isCurrentApptValid : true
+                    currentStep === 4 ? isFirstApptValid :
+                    currentStep === 5 ? isCurrentApptValid : true
                 } />
             </div>
         )}
@@ -273,6 +283,6 @@ function RegDivisionAdminInner() {
   );
 }
 
-export default function RegDivisionAdmin() {
-  return <DivisionAdminFormProvider><RegDivisionAdminInner /></DivisionAdminFormProvider>;
+export default function RegProvincialAdmin() {
+  return <TeacherFormProvider><RegProvincialAdminInner /></TeacherFormProvider>;
 }

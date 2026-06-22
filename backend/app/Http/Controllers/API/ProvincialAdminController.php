@@ -10,7 +10,6 @@ use App\Helpers\NicHelper;
 use App\Models\EmployerAppointment;
 use App\Models\EmployerAppointmentHistory;
 use App\Models\EmployerCurrentAppointment;
-use App\Models\DivisionalSecretariatOffice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -19,40 +18,30 @@ use Illuminate\Validation\ValidationException;
 use App\Http\Controllers\Controller;
 use App\Services\Wso2IsProvisioningService;
 
-class DivisionAdminController extends Controller
+class ProvincialAdminController extends Controller
 {
     private const SLEAS_SERVICE_ID  = 'SER005';
-    private const DIVISIONAL_OFFICE_LEVEL = 'OLID005';
+    private const PROVINCIAL_PEO_LEVEL = 'OLID003';
 
     // ==============================
     // HELPERS
     // ==============================
 
-    private function resolveDsOffice(?string $value): ?DivisionalSecretariatOffice
-    {
-        $normalized = trim((string) $value);
-
-        if ($normalized === '') {
-            return null;
-        }
-
-        if (ctype_digit($normalized)) {
-            return DivisionalSecretariatOffice::find((int) $normalized);
-        }
-
-        return DivisionalSecretariatOffice::where('dso_id', $normalized)->first();
-    }
-
-    private function resolveDsOfficePrimaryKey(?string $value): ?int
-    {
-        return $this->resolveDsOffice($value)?->id;
-    }
-
     private function resolveRole(string $positionId): string
     {
-        // Both 'Divisional Director of Education' and 'Deputy Divisional Director of Education'
-        // are assigned the 'Divisional Head' role (the only divisional-level head role that exists).
-        return 'Divisional Head';
+        $positionName = Position::where('position_id', $positionId)->value('position_name') ?? '';
+
+        $lowerName = strtolower($positionName);
+
+        if (str_contains($lowerName, 'deputy')) {
+            return 'Provincial Deputy Director';
+        }
+
+        if (str_contains($lowerName, 'assistant') || str_contains($lowerName, 'subject')) {
+            return 'Provincial Subject Head';
+        }
+
+        return 'Provincial Director';
     }
 
     // ==============================
@@ -65,14 +54,14 @@ class DivisionAdminController extends Controller
             $perPage = (int) $request->get('per_page', 20);
             $search  = trim($request->get('search', $request->get('nic', '')));
 
-            $dosAdminPeopleIds = User::query()
+            $provAdminPeopleIds = User::query()
                 ->whereHas('roles', function ($query) {
-                    $query->whereIn('name', ['Divisional Head']);
+                    $query->whereIn('name', ['Provincial Director', 'Provincial Deputy Director', 'Provincial Subject Head']);
                 })
                 ->pluck('people_id');
 
             $baseQuery = People::query()
-                ->whereIn('people_id', $dosAdminPeopleIds);
+                ->whereIn('people_id', $provAdminPeopleIds);
 
             $query = clone $baseQuery;
 
@@ -131,7 +120,7 @@ class DivisionAdminController extends Controller
                 'last_page'    => $admins->lastPage(),
             ], 200);
         } catch (\Throwable $e) {
-            Log::error('Divisional Admin List Error', [
+            Log::error('Provincial Admin List Error', [
                 'message' => $e->getMessage(),
                 'file'    => $e->getFile(),
                 'line'    => $e->getLine(),
@@ -139,7 +128,7 @@ class DivisionAdminController extends Controller
 
             return response()->json([
                 'status'  => 'error',
-                'message' => 'Failed to fetch Divisional admin list',
+                'message' => 'Failed to fetch Provincial admin list',
             ], 500);
         }
     }
@@ -180,7 +169,7 @@ class DivisionAdminController extends Controller
             if (! $admin) {
                 return response()->json([
                     'status'  => 'error',
-                    'message' => 'Divisional admin not found',
+                    'message' => 'Provincial admin not found',
                 ], 404);
             }
 
@@ -189,7 +178,7 @@ class DivisionAdminController extends Controller
                 'data'   => $admin,
             ], 200);
         } catch (\Throwable $e) {
-            Log::error('Divisional Admin Show Error', [
+            Log::error('Provincial Admin Show Error', [
                 'message' => $e->getMessage(),
                 'file'    => $e->getFile(),
                 'line'    => $e->getLine(),
@@ -197,7 +186,7 @@ class DivisionAdminController extends Controller
 
             return response()->json([
                 'status'  => 'error',
-                'message' => 'Failed to fetch Divisional admin profile',
+                'message' => 'Failed to fetch Provincial admin profile',
             ], 500);
         }
     }
@@ -236,15 +225,15 @@ class DivisionAdminController extends Controller
                 'postalCode'   => 'required|string',
 
                 // FIRST APPOINTMENT
-                'firstAppointmentDate'     => 'nullable|date',
-                'firstAppointmentLetter'   => 'nullable|string',
-                'firstAppointmentService'  => 'nullable|string',
-                'firstAppointmentRank'     => 'nullable|string',
-                'firstAppointmentOfficeLevel' => 'nullable|string',
-                'firstAppointmentWorkplace'   => 'nullable|string',
-                'firstAppointmentPosition'    => 'nullable|string',
-                'recruitmentCategory'      => 'nullable|string',
-                'recruitmentSubject'       => 'nullable|string',
+                'firstAppointmentDate'     => 'required|date',
+                'firstAppointmentLetter'   => 'required|string',
+                'firstAppointmentService'  => 'required|string',
+                'firstAppointmentRank'     => 'required|string',
+                'firstAppointmentOfficeLevel' => 'required|string',
+                'firstAppointmentWorkplace'   => 'required|string',
+                'firstAppointmentPosition'    => 'required|string',
+                'recruitmentCategory'      => 'required|string',
+                'recruitmentSubject'       => 'required|string',
 
                 // CURRENT APPOINTMENT
                 'currentAppointmentDate'         => 'required|date',
@@ -276,7 +265,7 @@ class DivisionAdminController extends Controller
                     'civil_status_id'  => $validated['civilStatusId'],
                     'blood_group_id'   => $validated['bloodGroupId'],
                     'health_condition' => $validated['healthCondition'],
-                    'health_problem'   => $validated['healthConditionDescription'] ?? null,
+                    'health_problem'   => $validated['healthConditionDescription'],
                     'district_id'      => $validated['districtId'],
                     'gn_division_id'   => $validated['gnDivisionId'],
                     'ds_office_id'     => $this->resolveDsOfficePrimaryKey($validated['dsOfficeId']),
@@ -300,17 +289,25 @@ class DivisionAdminController extends Controller
             }
 
             // ==============================
-            // APPOINTMENT (PARENT)
+            // FIRST APPOINTMENT
             // ==============================
-            $retirementDate = Carbon::parse($people->date_of_birth)->addYears(55);
-            $appointmentDate = !empty($validated['firstAppointmentDate']) ? $validated['firstAppointmentDate'] : $validated['currentAppointmentDate'];
-            $appointmentId = EmployerAppointment::generateAppointmentId($appointmentDate);
+            $retirementDate = Carbon::parse($people->date_of_birth)->addYears(60);
+            $appointmentId  = EmployerAppointment::generateAppointmentId($validated['firstAppointmentDate']);
 
-            $apptData = [
+            EmployerAppointment::create([
                 'appointment_id'          => $appointmentId,
                 'employee_id'             => $people->people_id,
-                'first_appointment_date'  => $appointmentDate,
+                'first_appointment_date'  => $validated['firstAppointmentDate'],
                 'retirement_date'         => $retirementDate->toDateString(),
+                'service_id'              => $validated['firstAppointmentService'],
+                'rank_id'                 => $validated['firstAppointmentRank'],
+                'position_id'             => $validated['firstAppointmentPosition'],
+                'office_level_id'         => $validated['firstAppointmentOfficeLevel'],
+                'workplace_id'            => $validated['firstAppointmentWorkplace'],
+                'appointment_letter_no'   => $validated['firstAppointmentLetter'],
+                'appointment_letter'      => 'none.pdf',
+                'recruitment_category_id' => $validated['recruitmentCategory'],
+                'recruitment_subject_id'  => $validated['recruitmentSubject'],
                 'active_status'          => 1,
                 'is_verified'            => 1,
                 'verified_by'            => auth()->user()?->people_id,
@@ -318,33 +315,12 @@ class DivisionAdminController extends Controller
                 'is_confirmed'           => 1,
                 'confirmed_by'           => auth()->user()?->people_id,
                 'confirmed_date'         => now()->toDateTimeString(),
-            ];
+            ]);
 
-            if (!empty($validated['firstAppointmentDate'])) {
-                $apptData = array_merge($apptData, [
-                    'service_id'              => $validated['firstAppointmentService'],
-                    'rank_id'                 => $validated['firstAppointmentRank'],
-                    'position_id'             => $validated['firstAppointmentPosition'],
-                    'office_level_id'         => $validated['firstAppointmentOfficeLevel'],
-                    'workplace_id'            => $validated['firstAppointmentWorkplace'],
-                    'appointment_letter_no'   => $validated['firstAppointmentLetter'],
-                    'appointment_letter'      => 'none.pdf',
-                    'recruitment_category_id' => $validated['recruitmentCategory'],
-                    'recruitment_subject_id'  => $validated['recruitmentSubject'],
-                ]);
-            } else {
-                $apptData = array_merge($apptData, [
-                    'service_id'              => self::SLEAS_SERVICE_ID,
-                    'rank_id'                 => $validated['currentAppointmentRank'],
-                    'position_id'             => $validated['currentAppointmentPosition'],
-                    'office_level_id'         => self::DIVISIONAL_OFFICE_LEVEL,
-                    'workplace_id'            => $validated['currentAppointmentWorkplace'],
-                    'appointment_letter_no'   => $validated['currentAppointmentLetter'],
-                    'appointment_letter'      => 'none.pdf',
-                ]);
-            }
-
-            EmployerAppointment::create($apptData);
+            // Determine Office Level from Workplace
+            $officeLevelId = DB::table('workplaces')
+                ->where('workplace_id', $validated['currentAppointmentWorkplace'])
+                ->value('office_level_id') ?? self::PROVINCIAL_PEO_LEVEL;
 
             // ==============================
             // CURRENT APPOINTMENT
@@ -356,7 +332,7 @@ class DivisionAdminController extends Controller
                 'appointment_letter_no' => $validated['currentAppointmentLetter'],
                 'service_id'           => self::SLEAS_SERVICE_ID,
                 'rank_id'              => $validated['currentAppointmentRank'],
-                'office_level_id'      => self::DIVISIONAL_OFFICE_LEVEL,
+                'office_level_id'      => $officeLevelId,
                 'position_id'          => $validated['currentAppointmentPosition'],
                 'workplace_id'         => $validated['currentAppointmentWorkplace'],
             ]);
@@ -393,7 +369,7 @@ class DivisionAdminController extends Controller
 
             return response()->json([
                 'status'  => 'success',
-                'message' => 'Divisional education administrator registered successfully',
+                'message' => 'Provincial education administrator registered successfully',
                 'data'    => [
                     'name'                         => $people->full_name,
                     'fullName'                     => $people->full_name,
@@ -416,13 +392,22 @@ class DivisionAdminController extends Controller
 
         } catch (\Throwable $e) {
             DB::rollBack();
-            Log::error('DivisionAdmin Store Error', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            Log::error('ProvincialAdmin Store Error', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
 
             return response()->json([
                 'status'  => 'error',
                 'message' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    private function resolveDsOfficePrimaryKey(?string $value): ?int
+    {
+        if (empty($value)) return null;
+        if (ctype_digit($value)) {
+            return (int) $value;
+        }
+        return DB::table('divisional_secretariat_offices')->where('dso_id', $value)->value('id');
     }
 
     // ==============================
@@ -438,7 +423,7 @@ class DivisionAdminController extends Controller
             array_map('strtolower', $dbRoles),
         ));
 
-        $allowed = ['super admin', 'divisional head', 'divisional deo'];
+        $allowed = ['super admin', 'provincial director', 'provincial deputy director', 'provincial subject head', 'provincial deo'];
         if (empty(array_intersect($roles, $allowed))) {
             return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
         }
@@ -501,7 +486,7 @@ class DivisionAdminController extends Controller
                 'errors'  => $e->errors(),
             ], 422);
         } catch (\Throwable $e) {
-            Log::error('Add Divisional Admin Service History Entry Error', [
+            Log::error('Add Provincial Admin Service History Entry Error', [
                 'message' => $e->getMessage(),
                 'file'    => $e->getFile(),
                 'line'    => $e->getLine(),
@@ -520,7 +505,7 @@ class DivisionAdminController extends Controller
             array_map('strtolower', $dbRoles),
         ));
 
-        $allowed = ['super admin', 'divisional head', 'divisional deo'];
+        $allowed = ['super admin', 'provincial director', 'provincial deputy director', 'provincial subject head', 'provincial deo'];
         if (empty(array_intersect($roles, $allowed))) {
             return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
         }
@@ -552,7 +537,7 @@ class DivisionAdminController extends Controller
                 ], 422);
             }
 
-            $retirementDate = Carbon::parse($person->date_of_birth)->addYears(55);
+            $retirementDate = Carbon::parse($person->date_of_birth)->addYears(60);
 
             $appointment = EmployerAppointment::create([
                 'employee_id'            => $id,
@@ -583,7 +568,7 @@ class DivisionAdminController extends Controller
                 'errors'  => $e->errors(),
             ], 422);
         } catch (\Throwable $e) {
-            Log::error('Add Divisional Admin Past Service Error', [
+            Log::error('Add Provincial Admin Past Service Error', [
                 'message' => $e->getMessage(),
                 'file'    => $e->getFile(),
                 'line'    => $e->getLine(),

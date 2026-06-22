@@ -27,6 +27,9 @@ use App\Http\Controllers\API\DeoOfficerController;
 use App\Http\Controllers\API\DivisionDeoController;
 use App\Http\Controllers\API\DivisionAdminController;
 use App\Http\Controllers\API\DosAdminController;
+use App\Http\Controllers\API\MoeAdministratorController;
+use App\Http\Controllers\API\ProvincialAdminController;
+use App\Http\Controllers\API\ProvincialDeoController;
 use App\Http\Controllers\API\MobileTeacherProfileController;
 use App\Http\Controllers\API\EmployerAppointmentConfirmationController;
 use App\Http\Controllers\API\ProfileController;
@@ -210,6 +213,38 @@ Route::prefix('')->group(function () {
         Route::get('/', 'index');
         Route::post('/', 'store');
         Route::get('/{people_id}', 'show');
+        Route::post('/{id}/service-history', 'addServiceHistoryEntry');
+        Route::post('/{id}/past-services', 'addPastService');
+    });
+
+    Route::controller(ProvincialAdminController::class)->middleware('auth:jwt')->prefix('provincial-admins')->group(function () {
+        Route::get('/', 'index');
+        Route::post('/', 'store');
+        Route::get('/{people_id}', 'show');
+        Route::post('/{id}/service-history', 'addServiceHistoryEntry');
+        Route::post('/{id}/past-services', 'addPastService');
+    });
+
+    Route::controller(ProvincialDeoController::class)->middleware('auth:jwt')->prefix('provincial-deos')->group(function () {
+        Route::get('/', 'index');
+        Route::get('/form-data', 'formData');
+        Route::get('/current-appointment-form-data', 'currentAppointmentFormData');
+        Route::post('/', 'store');
+        Route::get('/{people_id}', 'show');
+        Route::put('/{people_id}', 'update');
+        Route::delete('/{people_id}', 'destroy');
+        Route::post('/{id}/service-history', 'addServiceHistoryEntry');
+        Route::post('/{id}/past-services', 'addPastService');
+    });
+
+    Route::controller(MoeAdministratorController::class)->middleware('auth:jwt')->prefix('moe-admins')->group(function () {
+        Route::get('/', 'index');
+        Route::get('/form-data', 'formData');
+        Route::get('/current-appointment-form-data', 'currentAppointmentFormData');
+        Route::post('/', 'store');
+        Route::get('/{people_id}', 'show');
+        Route::put('/{people_id}', 'update');
+        Route::delete('/{people_id}', 'destroy');
         Route::post('/{id}/service-history', 'addServiceHistoryEntry');
         Route::post('/{id}/past-services', 'addPastService');
     });

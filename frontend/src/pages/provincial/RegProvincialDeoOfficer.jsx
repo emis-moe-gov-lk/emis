@@ -4,27 +4,27 @@ import { useNavigate } from "react-router-dom";
 import { TeacherFormContext, TeacherFormProvider } from "@/context/TeacherFormContext";
 import Swal from "sweetalert2";
 
-import StepperHeader from "@/components/division/deo/StepperHeader";
-import StepNavigation from "@/components/division/deo/StepNavigation";
+import StepperHeader from "@/components/teacher/StepperHeader";
+import StepNavigation from "@/components/teacher/StepNavigation";
 
-import StepNICVerification from "@/components/division/deo/steps/StepNICVerification";
-import StepPersonalDetails from "@/components/division/deo/steps/StepPersonalDetails";
-import StepContactDetails from "@/components/division/deo/steps/StepContactDetails";
-import StepDivisionCurrentAppointment from "@/components/division/deo/steps/StepDivisionCurrentAppointment";
+import StepNICVerification from "@/components/teacher/steps/StepNICVerification";
+import StepPersonalDetails from "@/components/teacher/steps/StepPersonalDetails";
+import StepContactDetails from "@/components/teacher/steps/StepContactDetails";
+import StepProvincialDeoCurrentAppointment from "@/components/deo/steps/StepProvincialDeoCurrentAppointment";
 
 import {
-  checkDivisionDeoContact,
-  registerDivisionDeo,
-} from "@/api/divisionDeoService";
+  checkProvincialDeoContact,
+  registerProvincialDeo,
+} from "@/api/provincialDeoService";
 import toast from "react-hot-toast";
 import { HiCheckCircle } from "react-icons/hi";
 import { useAuthUser } from "@/context/useAuthUser";
 import BackToListButton from "@/components/UiComponents/BackToListButton";
 import Button from "@/components/UiComponents/Button";
 
-const REG_DIVISION_DEO_HISTORY_OWNER = "regDivisionDeoCreate";
-const REG_DIVISION_DEO_HISTORY_STEP_KEY = "regDivisionDeoStep";
-const REG_DIVISION_DEO_TOTAL_STEPS = 5;
+const REG_PROVINCIAL_DEO_HISTORY_OWNER = "regProvincialDeoCreate";
+const REG_PROVINCIAL_DEO_HISTORY_STEP_KEY = "regProvincialDeoStep";
+const REG_PROVINCIAL_DEO_TOTAL_STEPS = 5;
 
 const STEPS = [
   { id: 1, label: "Verification" },
@@ -34,7 +34,7 @@ const STEPS = [
   { id: 5, label: "Finishing" },
 ];
 
-function RegDivisionDeoOfficerInner() {
+function RegProvincialDeoOfficerInner() {
   const navigate = useNavigate();
   const { state, dispatch } = useContext(TeacherFormContext);
   const { identity, hasRole, isAuthenticated, isLoading: isAuthLoading } = useAuthUser();
@@ -48,7 +48,7 @@ function RegDivisionDeoOfficerInner() {
   const currentStepRef = useRef(1);
 
   const LEAVE_WARNING_MESSAGE =
-    "Saved division development officer registration draft will be lost. Do you want to continue?";
+    "Saved Provincial Development Officer registration draft will be lost. Do you want to continue?";
 
   const {
     formData,
@@ -57,7 +57,6 @@ function RegDivisionDeoOfficerInner() {
     isPersonalValid,
     isContactValid,
     isCurrentApptValid,
-    error,
     isRestored,
   } = state;
 
@@ -65,29 +64,29 @@ function RegDivisionDeoOfficerInner() {
     !isRegistrationComplete &&
     (currentStep > 1 || Object.keys(formData || {}).length > 0);
 
-  const canCreateDeoOfficer = hasRole("super admin") || hasRole("Divisional DEO HEAD") || hasRole("Divisional DEO") || hasRole("zonal deo");
+  const canCreateProvincialDeo = hasRole("super admin") || hasRole("Provincial Director") || hasRole("Provincial Deputy Director") || hasRole("Provincial DEO");
   const isDeoOfficerCreateAuthLoading =
     isAuthLoading || (isAuthenticated && !identity);
 
   const clampStep = (value) => {
     const parsed = Number(value);
     if (!Number.isFinite(parsed)) return 1;
-    return Math.min(Math.max(Math.trunc(parsed), 1), REG_DIVISION_DEO_TOTAL_STEPS);
+    return Math.min(Math.max(Math.trunc(parsed), 1), REG_PROVINCIAL_DEO_TOTAL_STEPS);
   };
 
   const isRegDeoOfficerHistoryState = (historyState) =>
     Boolean(
       historyState &&
-      historyState.__regDeoOfficerOwner === REG_DIVISION_DEO_HISTORY_OWNER &&
-      Number.isFinite(Number(historyState[REG_DIVISION_DEO_HISTORY_STEP_KEY])),
+      historyState.__regDeoOfficerOwner === REG_PROVINCIAL_DEO_HISTORY_OWNER &&
+      Number.isFinite(Number(historyState[REG_PROVINCIAL_DEO_HISTORY_STEP_KEY])),
     );
 
   const buildRegDeoOfficerHistoryState = (step) => {
     const baseState = window.history.state || {};
     return {
       ...baseState,
-      __regDeoOfficerOwner: REG_DIVISION_DEO_HISTORY_OWNER,
-      [REG_DIVISION_DEO_HISTORY_STEP_KEY]: clampStep(step),
+      __regDeoOfficerOwner: REG_PROVINCIAL_DEO_HISTORY_OWNER,
+      [REG_PROVINCIAL_DEO_HISTORY_STEP_KEY]: clampStep(step),
     };
   };
 
@@ -96,14 +95,14 @@ function RegDivisionDeoOfficerInner() {
   }, [currentStep]);
 
   useEffect(() => {
-    if (isDeoOfficerCreateAuthLoading || canCreateDeoOfficer) return;
+    if (isDeoOfficerCreateAuthLoading || canCreateProvincialDeo) return;
 
     dispatch({ type: "CLEAR" });
     toast.error("Unauthorized access.", {
-      id: "division-deo-officer-create-unauthorized",
+      id: "provincial-deo-officer-create-unauthorized",
     });
-    navigate("/employees/division/deo", { replace: true });
-  }, [canCreateDeoOfficer, dispatch, isDeoOfficerCreateAuthLoading, navigate]);
+    navigate("/employees/provincial/deo", { replace: true });
+  }, [canCreateProvincialDeo, dispatch, isDeoOfficerCreateAuthLoading, navigate]);
 
   useEffect(() => {
     if (!isRestored) return;
@@ -114,7 +113,7 @@ function RegDivisionDeoOfficerInner() {
 
     if (!isRegDeoOfficerHistoryState(baseState)) {
       window.history.replaceState(buildRegDeoOfficerHistoryState(initialStep), "", currentUrl);
-    } else if (clampStep(baseState[REG_DIVISION_DEO_HISTORY_STEP_KEY]) !== initialStep) {
+    } else if (clampStep(baseState[REG_PROVINCIAL_DEO_HISTORY_STEP_KEY]) !== initialStep) {
       window.history.replaceState(buildRegDeoOfficerHistoryState(initialStep), "", currentUrl);
     }
 
@@ -133,7 +132,7 @@ function RegDivisionDeoOfficerInner() {
         return;
       }
 
-      const stepFromHistory = clampStep(event.state[REG_DIVISION_DEO_HISTORY_STEP_KEY]);
+      const stepFromHistory = clampStep(event.state[REG_PROVINCIAL_DEO_HISTORY_STEP_KEY]);
 
       if (stepFromHistory === 1 && currentUiStep > 1) {
         if (hasDraftData) {
@@ -266,7 +265,7 @@ function RegDivisionDeoOfficerInner() {
     };
   }, [hasDraftData]);
 
-  if (!isRestored || isDeoOfficerCreateAuthLoading || !canCreateDeoOfficer) {
+  if (!isRestored || isDeoOfficerCreateAuthLoading || !canCreateProvincialDeo) {
     return (
       <div className="p-6 lg:p-10 max-w-5xl mx-auto">
         <div className="text-center py-12">
@@ -342,37 +341,48 @@ function RegDivisionDeoOfficerInner() {
           setIsSubmitting(true);
           setContactApiErrors({});
 
-          const result = await checkDivisionDeoContact(payload);
+          const result = await checkProvincialDeoContact(payload);
           const emailExists = Boolean(result?.email?.exists);
           const phoneExists = Boolean(result?.phone?.exists);
 
           if (emailExists || phoneExists) {
             const nextErrors = {};
-            if (emailExists) nextErrors.email = "This email already exists.";
-            if (phoneExists) nextErrors.contact = "This phone number already exists.";
+            if (emailExists) {
+              nextErrors.email = result?.email?.message || "E-mail has been already registered";
+              showErrorToast(
+                result?.email?.message || "E-mail has been already registered",
+                "email-already-registered",
+              );
+            }
+            if (phoneExists) {
+              nextErrors.contact = result?.phone?.message || "Mobile number has been already registered";
+              showErrorToast(
+                result?.phone?.message || "Mobile number has been already registered",
+                "phone-already-registered",
+              );
+            }
             setContactApiErrors(nextErrors);
-            showErrorToast("Email or phone number already exists.", "contact-exists");
             return;
           }
-        } catch {
-          showErrorToast("Unable to verify contact details. Please try again.", "contact-verify-failed");
+        } catch (error) {
+          console.error("Failed to check contact validation details", error);
+          showErrorToast("Failed to validate contact details. Please try again.", "contact-check-failure");
           return;
         } finally {
           setIsSubmitting(false);
         }
       }
     }
-    if (currentStep === 4 && !isCurrentApptValid) {
-      showErrorToast("Compulsory fields should be completed.", "current-appointment-required");
-      return;
-    }
 
     if (currentStep === 4) {
       try {
         setIsSubmitting(true);
-        dispatch({ type: "SET_ERROR", payload: null });
+
+        const currentWp = formData.currentAppointmentZone;
+        const currentPos = formData.currentAppointmentPosition;
 
         const payload = {
+          // Personal details
           nic: formData.nic,
           titleId: formData.titleId,
           fullName: formData.fullName,
@@ -387,111 +397,66 @@ function RegDivisionDeoOfficerInner() {
           districtId: formData.districtId,
           gnDivisionId: formData.gnDivisionId,
           dsOfficeId: formData.dsOfficeId,
+
+          // Contact details
           email: formData.email,
           contact: formData.contact,
           addressLine1: formData.addressLine1,
           addressLine2: formData.addressLine2,
           addressLine3: formData.addressLine3,
           postalCode: formData.postalCode,
+
+          // Current appointment details mapped to expected controller fields
           appointmentDate: formData.currentAppointmentDate,
           appointmentLetter: formData.currentAppointmentLetter,
           rankId: formData.currentAppointmentRank,
-          positionId: formData.currentAppointmentPosition,
-          divisionalOfficeId: formData.currentAppointmentZone,
+          positionId: currentPos,
+          provincialOfficeId: currentWp,
         };
 
-        const result = await registerDivisionDeo(payload);
+        const result = await registerProvincialDeo(payload);
 
-        if (result.status === "success") {
-          const responseData = result.data || {};
-          const summary = {
-            name:
-              responseData.name ||
-              responseData.fullName ||
-              responseData.full_name ||
-              formData.fullName,
-            nic: responseData.nic || responseData.NIC || responseData.nic_no || formData.nic,
-            email: responseData.email || responseData.email_address || formData.email,
-            contact: responseData.contact || responseData.phone || responseData.phone_no || formData.contact,
-            currentAppointmentPositionName:
-              responseData.currentAppointmentPositionName ||
-              responseData.current_appointment_position_name ||
-              responseData.currentAppointmentPositionLabel ||
-              responseData.currentAppointmentPosition ||
-              formData.currentAppointmentPositionName ||
-              formData.currentAppointmentPositionLabel ||
-              formData.currentAppointmentPosition,
-            people_id: result.people_id || responseData.people_id || null,
-          };
-
-          setRegistrationSummary(summary);
-          dispatch({ type: "UPDATE_FORM_DATA", payload: summary });
-          dispatch({ type: "COMPLETE_REGISTRATION" });
+        if (result?.status === "success") {
+          showSuccessToast("Provincial Development Officer registered successfully.", "deo-create-success");
+          setRegistrationSummary({
+            fullName: result?.data?.fullName || "",
+            nic: result?.data?.nic || "",
+            email: result?.data?.email || "",
+            contact: result?.data?.contact || "",
+            currentPosition: result?.data?.currentAppointmentPositionName || "",
+            defaultPassword: result?.default_password || "",
+          });
           setIsRegistrationComplete(true);
-          showSuccessToast("Division Development Officer registered successfully", "division-deo-officer-registration-success");
           dispatch({ type: "SET_STEP", payload: 5 });
         } else {
-          dispatch({
-            type: "SET_ERROR",
-            payload: result.message || "Failed to register division development officer",
-          });
+          showErrorToast(result?.message || "Registration failed. Please try again.", "deo-create-api-error");
         }
-      } catch {
-        dispatch({
-          type: "SET_ERROR",
-          payload: "Unable to complete registration. Please try again.",
-        });
+      } catch (error) {
+        console.error("Failed to submit Development Officer details", error);
+        showErrorToast("Something went wrong during registration.", "deo-create-failure");
       } finally {
         setIsSubmitting(false);
       }
       return;
     }
 
-    dispatch({ type: "SET_STEP", payload: Math.min(currentStep + 1, STEPS.length) });
+    dispatch({ type: "SET_STEP", payload: currentStep + 1 });
   };
 
-  const handleContactFieldEdit = (field) => {
-    setContactApiErrors((prev) => {
-      if (!prev[field]) return prev;
-      const nextErrors = { ...prev };
-      delete nextErrors[field];
-      return nextErrors;
-    });
-  };
-
-  const back = async () => {
-    if (currentStep === 5) return;
-
-    const targetStep = Math.max(currentStep - 1, 1);
-    if (targetStep === 1 && currentStep > 1) {
-      await confirmDiscardAndRun(() => {
-        dispatch({ type: "SET_STEP", payload: 1 });
-      });
-      return;
-    }
-
-    dispatch({ type: "SET_STEP", payload: targetStep });
+  const back = () => {
+    if (currentStep === 1) return;
+    dispatch({ type: "SET_STEP", payload: currentStep - 1 });
   };
 
   return (
-    <div className="p-6 lg:p-10 max-w-5xl mx-auto space-y-8">
+    <div className="p-6 lg:p-10 max-w-5xl mx-auto space-y-8 bg-gradient-to-b from-slate-50 via-white to-blue-50/40 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
       <BackToListButton
-        onClick={async () => {
-          const listPath = "/employees/division/deo";
-          if (isRegistrationComplete) {
-            await confirmDiscardAndRun(() => navigate(listPath), {
-              skipPrompt: true,
-              forceDiscard: true,
-            });
-            return;
-          }
-
-          await confirmDiscardAndRun(() => navigate(listPath));
-        }}
+        onClick={() => confirmDiscardAndRun(() => navigate("/employees/provincial/deo"), { forceDiscard: true })}
         label="Back To List"
         className="mb-8"
       />
-      <div className="border border-gray-200 overflow-hidden">
+
+      <div className="border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden rounded-3xl shadow-sm">
         <StepperHeader steps={STEPS} currentStep={currentStep} onStepClick={handleStepClick} />
 
         <div className="p-6 lg:p-8">
@@ -499,9 +464,7 @@ function RegDivisionDeoOfficerInner() {
             <StepNICVerification
               formData={formData}
               setFormData={setFormData}
-              isVerified={isNicVerified}
               onVerified={() => dispatch({ type: "SET_NIC_VERIFIED", payload: true })}
-              onVerificationReset={() => dispatch({ type: "SET_NIC_VERIFIED", payload: false })}
             />
           )}
 
@@ -509,7 +472,7 @@ function RegDivisionDeoOfficerInner() {
             <StepPersonalDetails
               formData={formData}
               setFormData={setFormData}
-              onValid={(isValid) => dispatch({ type: "SET_PERSONAL_VALID", payload: isValid })}
+              onValid={(valid) => dispatch({ type: "SET_PERSONAL_VALID", payload: valid })}
             />
           )}
 
@@ -518,63 +481,87 @@ function RegDivisionDeoOfficerInner() {
               formData={formData}
               setFormData={setFormData}
               apiErrors={contactApiErrors}
-              onContactFieldEdit={handleContactFieldEdit}
-              onValid={(isValid) => dispatch({ type: "SET_CONTACT_VALID", payload: isValid })}
+              onValid={(valid) => dispatch({ type: "SET_CONTACT_VALID", payload: valid })}
             />
           )}
 
           {currentStep === 4 && (
-            <StepDivisionCurrentAppointment
+            <StepProvincialDeoCurrentAppointment
               formData={formData}
               setFormData={setFormData}
-              onValid={(isValid) => dispatch({ type: "SET_CURRENT_APPT_VALID", payload: isValid })}
+              onValid={(valid) => dispatch({ type: "SET_CURRENT_APPT_VALID", payload: valid })}
             />
           )}
 
           {currentStep === 5 && (
-            <div className="space-y-8">
-              <div className="flex items-start gap-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900/40 rounded-2xl p-6">
-                <HiCheckCircle className="text-green-600 dark:text-green-500 w-8 h-8 mt-1" />
-                <div>
-                  <h3 className="font-semibold text-green-800 dark:text-green-300">
-                    Division Development Officer Registered Successfully
-                  </h3>
-                  <p className="text-sm text-green-700 dark:text-green-400 mt-1">
-                    Registration has been completed successfully.
+            <div className="space-y-6 text-center max-w-xl mx-auto py-6">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 mx-auto">
+                <HiCheckCircle className="w-10 h-10" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Registration Complete!</h3>
+                <p className="text-gray-500">Provincial Development Officer credentials successfully initialized.</p>
+              </div>
+
+              <div className="border border-gray-200 dark:border-gray-800 rounded-2xl p-6 bg-slate-50 dark:bg-gray-800/40 text-left space-y-3 font-medium text-gray-700 dark:text-gray-300">
+                <p><span className="text-gray-400 dark:text-gray-500 font-normal">Full Name:</span> {registrationSummary?.fullName}</p>
+                <p><span className="text-gray-400 dark:text-gray-500 font-normal">NIC Number:</span> {registrationSummary?.nic}</p>
+                <p><span className="text-gray-400 dark:text-gray-500 font-normal">Registered Email:</span> {registrationSummary?.email}</p>
+                <p><span className="text-gray-400 dark:text-gray-500 font-normal">Contact Number:</span> {registrationSummary?.contact}</p>
+                <p><span className="text-gray-400 dark:text-gray-500 font-normal">Designation:</span> {registrationSummary?.currentPosition}</p>
+                <div className="border-t border-gray-200 dark:border-gray-800 pt-3 text-sm">
+                  <p className="text-amber-600 dark:text-amber-400 flex items-center gap-1.5 font-semibold">
+                    🔑 Temporary password: {registrationSummary?.defaultPassword}
                   </p>
                 </div>
               </div>
 
-              <div className="surface rounded-2xl p-6 space-y-2 text-sm">
-                <p className="text-gray-900 dark:text-gray-100"><strong>Name:</strong> {registrationSummary?.name || "-"}</p>
-                <p className="text-gray-900 dark:text-gray-100"><strong>NIC:</strong> {registrationSummary?.nic || "-"}</p>
-                <p className="text-gray-900 dark:text-gray-100"><strong>Email:</strong> {registrationSummary?.email || "-"}</p>
-                <p className="text-gray-900 dark:text-gray-100"><strong>Contact Number:</strong> {registrationSummary?.contact || "-"}</p>
-                <p className="text-gray-900 dark:text-gray-100"><strong>Current Appointed Position:</strong> {registrationSummary?.currentAppointmentPositionName || "-"}</p>
-              </div>
-
-              <div className="flex justify-center gap-4 pt-4">
-                <Button variant="secondary" onClick={resetRegistration}>New Registration</Button>
+              <div className="flex gap-4 justify-center">
+                <Button
+                  variant="primary"
+                  onClick={() =>
+                    confirmDiscardAndRun(() => navigate("/employees/provincial/deo"), {
+                      skipPrompt: true,
+                      forceDiscard: true,
+                    })
+                  }
+                >
+                  Return to Directory
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    resetRegistration();
+                    setIsRegistrationComplete(false);
+                    dispatch({ type: "SET_STEP", payload: 1 });
+                  }}
+                >
+                  Register Another
+                </Button>
               </div>
             </div>
           )}
         </div>
 
-        {error && (
-          <div className="px-6 pt-4">
-            <div className="p-4 bg-red-50 text-red-700 rounded-2xl border border-red-100 text-sm">{error}</div>
-          </div>
-        )}
-
-        {currentStep !== 5 && (
-          <div className="border-t">
+        {currentStep < STEPS.length && (
+          <div className="border-t border-gray-100 dark:border-gray-800">
             <StepNavigation
               currentStep={currentStep}
               totalSteps={STEPS.length}
               onBack={back}
               onNext={next}
               isProcessing={isSubmitting}
-              canNext={currentStep !== 1 || isNicVerified}
+              canNext={
+                currentStep === 1
+                  ? isNicVerified
+                  : currentStep === 2
+                  ? isPersonalValid
+                  : currentStep === 3
+                  ? isContactValid
+                  : currentStep === 4
+                  ? isCurrentApptValid
+                  : true
+              }
             />
           </div>
         )}
@@ -583,10 +570,10 @@ function RegDivisionDeoOfficerInner() {
   );
 }
 
-export default function RegDivisionDeoOfficer() {
+export default function RegProvincialDeoOfficer() {
   return (
     <TeacherFormProvider>
-      <RegDivisionDeoOfficerInner />
+      <RegProvincialDeoOfficerInner />
     </TeacherFormProvider>
   );
 }

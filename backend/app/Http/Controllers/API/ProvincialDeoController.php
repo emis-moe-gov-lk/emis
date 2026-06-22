@@ -4,12 +4,24 @@ namespace App\Http\Controllers\API;
 
 use Carbon\Carbon;
 use App\Models\User;
+use App\Models\Title;
 use App\Models\People;
 use App\Models\Position;
+use App\Models\Religion;
+use App\Models\Ethnicity;
 use App\Helpers\NicHelper;
+use App\Models\BloodGroup;
+use App\Models\GenderList;
+use App\Models\GnDivision;
+use App\Models\CivilStatus;
+use App\Models\Service;
+use App\Models\ServiceRank;
+use App\Models\DistrictsList;
 use App\Models\EmployerAppointment;
 use App\Models\EmployerAppointmentHistory;
 use App\Models\EmployerCurrentAppointment;
+use App\Models\ProvincialEducationOffice;
+use App\Models\ProvincialMinistryOfEducationOffice;
 use App\Models\DivisionalSecretariatOffice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,14 +31,10 @@ use Illuminate\Validation\ValidationException;
 use App\Http\Controllers\Controller;
 use App\Services\Wso2IsProvisioningService;
 
-class DivisionAdminController extends Controller
+class ProvincialDeoController extends Controller
 {
-    private const SLEAS_SERVICE_ID  = 'SER005';
-    private const DIVISIONAL_OFFICE_LEVEL = 'OLID005';
-
-    // ==============================
-    // HELPERS
-    // ==============================
+    private const GENERAL_SERVICE_ID = 'SER007';
+    private const PROVINCIAL_PEO_LEVEL = 'OLID003';
 
     private function resolveDsOffice(?string $value): ?DivisionalSecretariatOffice
     {
@@ -43,36 +51,98 @@ class DivisionAdminController extends Controller
         return DivisionalSecretariatOffice::where('dso_id', $normalized)->first();
     }
 
+    private function resolveDsOfficeDsoId(?string $value): ?string
+    {
+        return $this->resolveDsOffice($value)?->dso_id;
+    }
+
     private function resolveDsOfficePrimaryKey(?string $value): ?int
     {
         return $this->resolveDsOffice($value)?->id;
     }
 
-    private function resolveRole(string $positionId): string
+    // ==========================================
+    // FORM DATA
+    // ==========================================
+
+    public function formData(Request $request)
     {
-        // Both 'Divisional Director of Education' and 'Deputy Divisional Director of Education'
-        // are assigned the 'Divisional Head' role (the only divisional-level head role that exists).
-        return 'Divisional Head';
+        $districtId = $request->query('district');
+        $dsOfficeDsoId = $this->resolveDsOfficeDsoId($request->query('ds_office'));
+        $serviceId  = $request->query('service');
+
+        return response()->json([
+            'status' => 'success',
+
+            'titles'       => Title::active()->get(),
+            'genders'      => GenderList::active()->get(),
+            'religions'    => Religion::active()->get(),
+            'ethnicities'  => Ethnicity::active()->get(),
+            'civilStatuses' => CivilStatus::active()->get(),
+            'bloodGroups'  => BloodGroup::all(),
+            'districts'    => DistrictsList::active()->get(),
+
+            'divisionalSecretariats' => $districtId
+                ? DivisionalSecretariatOffice::where('district_id', $districtId)->active()->get()
+                : [],
+
+            'gnDivisions' => $dsOfficeDsoId
+                ? GnDivision::where('dso_id', $dsOfficeDsoId)->active()->get()
+                : [],
+
+            'services'     => Service::active()->get(),
+            'serviceRanks' => $serviceId
+                ? ServiceRank::where('service_id', $serviceId)->active()->get()
+                : [],
+            'positions'    => Position::where('position_name', 'Development Officer')->active()->get(),
+
+            'provincialOffices' => ProvincialEducationOffice::active()->get(),
+            'provincialMinistries' => ProvincialMinistryOfEducationOffice::active()->get(),
+        ]);
     }
 
-    // ==============================
+    public function currentAppointmentFormData(Request $request)
+    {
+        $service = $request->query('service');
+
+        $positions = $service
+            ? Position::where('service_id', $service)->active()->get()
+            : Position::where('position_name', 'Development Officer')->active()->get();
+
+        return response()->json([
+            'status' => 'success',
+            'service' => Service::active()->get(),
+            'serviceRanks' => $service ? ServiceRank::where('service_id', $service)->active()->get() : [],
+            'positions' => $positions,
+            'provincialOffices' => ProvincialEducationOffice::active()->get(),
+            'provincialMinistries' => ProvincialMinistryOfEducationOffice::active()->get(),
+        ]);
+    }
+
+    // ==========================================
     // LIST
-    // ==============================
+    // ==========================================
 
     public function index(Request $request)
     {
         try {
             $perPage = (int) $request->get('per_page', 20);
+            $provWpId = $request->get('provincial_wp_id');
             $search  = trim($request->get('search', $request->get('nic', '')));
 
-            $dosAdminPeopleIds = User::query()
+            $deoOfficerPeopleIds = User::query()
                 ->whereHas('roles', function ($query) {
-                    $query->whereIn('name', ['Divisional Head']);
+                    $query->whereIn('name', ['Provincial DEO', 'Provincial Clerk (DEO)']);
                 })
                 ->pluck('people_id');
 
             $baseQuery = People::query()
-                ->whereIn('people_id', $dosAdminPeopleIds);
+                ->whereIn('people_id', $deoOfficerPeopleIds)
+                ->when($provWpId, function ($q) use ($provWpId) {
+                    $q->whereHas('currentAppointment', function ($q2) use ($provWpId) {
+                        $q2->where('workplace_id', $provWpId);
+                    });
+                });
 
             $query = clone $baseQuery;
 
@@ -114,9 +184,9 @@ class DivisionAdminController extends Controller
                 'currentAppointment.workplace',
             ]);
 
-            $admins = $query->orderBy('created_at', 'desc')->paginate($perPage);
+            $officers = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
-            $data = collect($admins->items())->map(function (People $person) {
+            $data = collect($officers->items())->map(function (People $person) {
                 $arr = $person->toArray();
                 $arr['confirmed'] = $person->myAppointments->contains(fn($a) => (int) $a->is_confirmed === 1);
                 return $arr;
@@ -125,13 +195,13 @@ class DivisionAdminController extends Controller
             return response()->json([
                 'status'       => 'success',
                 'data'         => $data,
-                'total'        => $admins->total(),
-                'per_page'     => $admins->perPage(),
-                'current_page' => $admins->currentPage(),
-                'last_page'    => $admins->lastPage(),
+                'total'        => $officers->total(),
+                'per_page'     => $officers->perPage(),
+                'current_page' => $officers->currentPage(),
+                'last_page'    => $officers->lastPage(),
             ], 200);
         } catch (\Throwable $e) {
-            Log::error('Divisional Admin List Error', [
+            Log::error('Provincial DEO Officer List Error', [
                 'message' => $e->getMessage(),
                 'file'    => $e->getFile(),
                 'line'    => $e->getLine(),
@@ -139,19 +209,19 @@ class DivisionAdminController extends Controller
 
             return response()->json([
                 'status'  => 'error',
-                'message' => 'Failed to fetch Divisional admin list',
+                'message' => 'Failed to fetch Provincial DEO officer list',
             ], 500);
         }
     }
 
-    // ==============================
+    // ==========================================
     // SHOW
-    // ==============================
+    // ==========================================
 
     public function show($people_id)
     {
         try {
-            $admin = People::with([
+            $officer = People::with([
                 'title',
                 'gender',
                 'religion',
@@ -177,19 +247,19 @@ class DivisionAdminController extends Controller
                 'appointmentHistory.workplace.institution',
             ])->where('people_id', $people_id)->first();
 
-            if (! $admin) {
+            if (! $officer) {
                 return response()->json([
                     'status'  => 'error',
-                    'message' => 'Divisional admin not found',
+                    'message' => 'Provincial DEO officer not found',
                 ], 404);
             }
 
             return response()->json([
                 'status' => 'success',
-                'data'   => $admin,
+                'data'   => $officer,
             ], 200);
         } catch (\Throwable $e) {
-            Log::error('Divisional Admin Show Error', [
+            Log::error('Provincial DEO Show Error', [
                 'message' => $e->getMessage(),
                 'file'    => $e->getFile(),
                 'line'    => $e->getLine(),
@@ -197,35 +267,34 @@ class DivisionAdminController extends Controller
 
             return response()->json([
                 'status'  => 'error',
-                'message' => 'Failed to fetch Divisional admin profile',
+                'message' => 'Failed to fetch Provincial DEO profile',
             ], 500);
         }
     }
 
-    // ==============================
+    // ==========================================
     // STORE
-    // ==============================
+    // ==========================================
 
     public function store(Request $request, Wso2IsProvisioningService $wso2Is)
     {
         try {
             $validated = $request->validate([
                 // PERSONAL
-                'nic'                         => 'required|string',
-                'is_new_registration'         => 'required|boolean',
-                'titleId'                     => 'required|string',
-                'fullName'                    => 'required|string',
-                'dateOfBirth'                 => 'required|date',
-                'genderId'                    => 'required|string',
-                'religionId'                  => 'required|string',
-                'ethnicityId'                 => 'required|string',
-                'civilStatusId'               => 'required|string',
-                'bloodGroupId'                => 'required|string',
-                'healthCondition'             => 'required',
-                'healthConditionDescription'  => 'nullable|string',
-                'districtId'                  => 'required|string',
-                'gnDivisionId'                => 'required|string',
-                'dsOfficeId'                  => 'required|string',
+                'nic'                        => 'required|string',
+                'titleId'                    => 'required|string',
+                'fullName'                   => 'required|string',
+                'dateOfBirth'                => 'required|date',
+                'genderId'                   => 'required|string',
+                'religionId'                 => 'required|string',
+                'ethnicityId'                => 'required|string',
+                'civilStatusId'              => 'required|string',
+                'bloodGroupId'               => 'required|string',
+                'healthCondition'            => 'required',
+                'healthConditionDescription' => 'nullable|string',
+                'districtId'                 => 'required|string',
+                'gnDivisionId'               => 'required|string',
+                'dsOfficeId'                 => 'required|string',
 
                 // CONTACT
                 'email'        => 'required|email',
@@ -235,82 +304,67 @@ class DivisionAdminController extends Controller
                 'addressLine3' => 'nullable|string',
                 'postalCode'   => 'required|string',
 
-                // FIRST APPOINTMENT
-                'firstAppointmentDate'     => 'nullable|date',
-                'firstAppointmentLetter'   => 'nullable|string',
-                'firstAppointmentService'  => 'nullable|string',
-                'firstAppointmentRank'     => 'nullable|string',
-                'firstAppointmentOfficeLevel' => 'nullable|string',
-                'firstAppointmentWorkplace'   => 'nullable|string',
-                'firstAppointmentPosition'    => 'nullable|string',
-                'recruitmentCategory'      => 'nullable|string',
-                'recruitmentSubject'       => 'nullable|string',
-
-                // CURRENT APPOINTMENT
-                'currentAppointmentDate'         => 'required|date',
-                'currentAppointmentLetter'       => 'required|string',
-                'currentAppointmentRank'         => 'required|string',
-                'currentAppointmentWorkplace'    => 'required|string',
-                'currentAppointmentPosition'     => 'required|string',
+                // APPOINTMENT
+                'appointmentDate'     => 'required|date',
+                'appointmentLetter'   => 'required|string',
+                'rankId'              => 'required|string',
+                'positionId'          => 'required|string',
+                'provincialOfficeId'  => 'required|string',
             ]);
 
             DB::beginTransaction();
 
-            // ==============================
-            // PEOPLE
-            // ==============================
             $nic      = NicHelper::normalize($validated['nic']);
             $initials = People::generateInitials($validated['fullName']);
 
             $people = People::updateOrCreate(
                 ['nic_hash' => NicHelper::hash($nic)],
                 [
-                    'nic'              => $nic,
-                    'title_id'         => $validated['titleId'],
-                    'full_name'        => ucwords(strtolower($validated['fullName'])),
+                    'nic'                => $nic,
+                    'title_id'           => $validated['titleId'],
+                    'full_name'          => ucwords(strtolower($validated['fullName'])),
                     'name_with_initials' => $initials,
-                    'gender_id'        => $validated['genderId'],
-                    'date_of_birth'    => $validated['dateOfBirth'],
-                    'religion_id'      => $validated['religionId'],
-                    'ethnicity_id'     => $validated['ethnicityId'],
-                    'civil_status_id'  => $validated['civilStatusId'],
-                    'blood_group_id'   => $validated['bloodGroupId'],
-                    'health_condition' => $validated['healthCondition'],
-                    'health_problem'   => $validated['healthConditionDescription'] ?? null,
-                    'district_id'      => $validated['districtId'],
-                    'gn_division_id'   => $validated['gnDivisionId'],
-                    'ds_office_id'     => $this->resolveDsOfficePrimaryKey($validated['dsOfficeId']),
-                    'email'            => strtolower($validated['email']),
-                    'phone'            => $validated['contact'],
-                    'address_line1'    => $validated['addressLine1'],
-                    'address_line2'    => $validated['addressLine2'],
-                    'address_line3'    => $validated['addressLine3'],
-                    'postal_code'      => $validated['postalCode'],
-                    'profile_picture'  => 'default.png',
+                    'gender_id'          => $validated['genderId'],
+                    'date_of_birth'      => $validated['dateOfBirth'],
+                    'religion_id'        => $validated['religionId'],
+                    'ethnicity_id'       => $validated['ethnicityId'],
+                    'civil_status_id'    => $validated['civilStatusId'],
+                    'blood_group_id'     => $validated['bloodGroupId'],
+                    'health_condition'   => $validated['healthCondition'],
+                    'health_problem'     => $validated['healthConditionDescription'],
+                    'district_id'        => $validated['districtId'],
+                    'gn_division_id'     => $validated['gnDivisionId'],
+                    'ds_office_id'       => $this->resolveDsOfficePrimaryKey($validated['dsOfficeId']),
+                    'email'              => strtolower($validated['email']),
+                    'phone'              => $validated['contact'],
+                    'address_line1'      => $validated['addressLine1'],
+                    'address_line2'      => $validated['addressLine2'],
+                    'address_line3'      => $validated['addressLine3'] ?? null,
+                    'postal_code'        => $validated['postalCode'],
+                    'profile_picture'    => 'default.png',
                 ]
             );
 
-            // ==============================
-            // GUARD: DUPLICATE APPOINTMENT
-            // ==============================
             if (EmployerCurrentAppointment::where('employee_id', $people->people_id)->exists()) {
                 DB::rollBack();
-
                 throw new \Exception('This person already has an active appointment. Cannot register again.');
             }
 
-            // ==============================
-            // APPOINTMENT (PARENT)
-            // ==============================
-            $retirementDate = Carbon::parse($people->date_of_birth)->addYears(55);
-            $appointmentDate = !empty($validated['firstAppointmentDate']) ? $validated['firstAppointmentDate'] : $validated['currentAppointmentDate'];
-            $appointmentId = EmployerAppointment::generateAppointmentId($appointmentDate);
+            $retirementDate = Carbon::parse($people->date_of_birth)->addYears(60);
+            $appointmentId  = EmployerAppointment::generateAppointmentId($validated['appointmentDate']);
 
-            $apptData = [
+            EmployerAppointment::create([
                 'appointment_id'          => $appointmentId,
                 'employee_id'             => $people->people_id,
-                'first_appointment_date'  => $appointmentDate,
+                'first_appointment_date'  => $validated['appointmentDate'],
                 'retirement_date'         => $retirementDate->toDateString(),
+                'service_id'              => self::GENERAL_SERVICE_ID,
+                'rank_id'                 => $validated['rankId'],
+                'position_id'             => $validated['positionId'],
+                'office_level_id'         => self::PROVINCIAL_PEO_LEVEL,
+                'workplace_id'            => $validated['provincialOfficeId'],
+                'appointment_letter_no'   => $validated['appointmentLetter'],
+                'appointment_letter'      => 'none.pdf',
                 'active_status'          => 1,
                 'is_verified'            => 1,
                 'verified_by'            => auth()->user()?->people_id,
@@ -318,53 +372,26 @@ class DivisionAdminController extends Controller
                 'is_confirmed'           => 1,
                 'confirmed_by'           => auth()->user()?->people_id,
                 'confirmed_date'         => now()->toDateTimeString(),
-            ];
+            ]);
 
-            if (!empty($validated['firstAppointmentDate'])) {
-                $apptData = array_merge($apptData, [
-                    'service_id'              => $validated['firstAppointmentService'],
-                    'rank_id'                 => $validated['firstAppointmentRank'],
-                    'position_id'             => $validated['firstAppointmentPosition'],
-                    'office_level_id'         => $validated['firstAppointmentOfficeLevel'],
-                    'workplace_id'            => $validated['firstAppointmentWorkplace'],
-                    'appointment_letter_no'   => $validated['firstAppointmentLetter'],
-                    'appointment_letter'      => 'none.pdf',
-                    'recruitment_category_id' => $validated['recruitmentCategory'],
-                    'recruitment_subject_id'  => $validated['recruitmentSubject'],
-                ]);
-            } else {
-                $apptData = array_merge($apptData, [
-                    'service_id'              => self::SLEAS_SERVICE_ID,
-                    'rank_id'                 => $validated['currentAppointmentRank'],
-                    'position_id'             => $validated['currentAppointmentPosition'],
-                    'office_level_id'         => self::DIVISIONAL_OFFICE_LEVEL,
-                    'workplace_id'            => $validated['currentAppointmentWorkplace'],
-                    'appointment_letter_no'   => $validated['currentAppointmentLetter'],
-                    'appointment_letter'      => 'none.pdf',
-                ]);
-            }
+            // Determine Office Level from Workplace
+            $officeLevelId = DB::table('workplaces')
+                ->where('workplace_id', $validated['provincialOfficeId'])
+                ->value('office_level_id') ?? self::PROVINCIAL_PEO_LEVEL;
 
-            EmployerAppointment::create($apptData);
-
-            // ==============================
-            // CURRENT APPOINTMENT
-            // ==============================
             EmployerCurrentAppointment::create([
                 'appointment_id'       => $appointmentId,
                 'employee_id'          => $people->people_id,
-                'appoint_date'         => $validated['currentAppointmentDate'],
-                'appointment_letter_no' => $validated['currentAppointmentLetter'],
-                'service_id'           => self::SLEAS_SERVICE_ID,
-                'rank_id'              => $validated['currentAppointmentRank'],
-                'office_level_id'      => self::DIVISIONAL_OFFICE_LEVEL,
-                'position_id'          => $validated['currentAppointmentPosition'],
-                'workplace_id'         => $validated['currentAppointmentWorkplace'],
+                'appoint_date'         => $validated['appointmentDate'],
+                'appointment_letter_no' => $validated['appointmentLetter'],
+                'service_id'           => self::GENERAL_SERVICE_ID,
+                'rank_id'              => $validated['rankId'],
+                'office_level_id'      => $officeLevelId,
+                'position_id'          => $validated['positionId'],
+                'workplace_id'         => $validated['provincialOfficeId'],
             ]);
 
-            // ==============================
-            // SYSTEM USER
-            // ==============================
-            $role = $this->resolveRole($validated['currentAppointmentPosition']);
+            $roleName = 'Provincial DEO';
 
             $user = User::create([
                 'nic'                      => $nic,
@@ -382,25 +409,25 @@ class DivisionAdminController extends Controller
                 'default_password_version' => 1,
             ]);
 
-            $user->assignRole($role);
+            $user->assignRole($roleName);
 
             DB::commit();
 
-            $wso2Is->provisionUser($user, 'Password@123', strtolower($role));
+            $wso2Is->provisionUser($user, 'Password@123', strtolower($roleName));
 
-            $positionName = Position::where('position_id', $validated['currentAppointmentPosition'])
+            $positionName = Position::where('position_id', $validated['positionId'])
                 ->value('position_name');
 
             return response()->json([
                 'status'  => 'success',
-                'message' => 'Divisional education administrator registered successfully',
+                'message' => 'Provincial DEO registered successfully',
                 'data'    => [
                     'name'                         => $people->full_name,
                     'fullName'                     => $people->full_name,
                     'nic'                          => $people->nic,
                     'email'                        => $people->email,
                     'contact'                      => $people->phone,
-                    'role'                         => $role,
+                    'role'                         => $roleName,
                     'currentAppointmentPositionName' => $positionName,
                 ],
                 'people_id'        => $people->people_id,
@@ -413,10 +440,9 @@ class DivisionAdminController extends Controller
                 'message' => 'Validation failed',
                 'errors'  => $e->errors(),
             ], 422);
-
         } catch (\Throwable $e) {
             DB::rollBack();
-            Log::error('DivisionAdmin Store Error', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            Log::error('Provincial DEO Store Error', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
 
             return response()->json([
                 'status'  => 'error',
@@ -425,9 +451,123 @@ class DivisionAdminController extends Controller
         }
     }
 
-    // ==============================
+    public function update(Request $request, $people_id)
+    {
+        try {
+            $validated = $request->validate([
+                'fullName'                   => 'required|string',
+                'titleId'                    => 'required|string',
+                'genderId'                   => 'required|string',
+                'dateOfBirth'                => 'required|date',
+                'religionId'                 => 'required|string',
+                'ethnicityId'                => 'required|string',
+                'civilStatusId'              => 'required|string',
+                'bloodGroupId'               => 'required|string',
+                'healthCondition'            => 'required',
+                'healthConditionDescription' => 'nullable|string',
+                'districtId'                 => 'required|string',
+                'gnDivisionId'               => 'required|string',
+                'dsOfficeId'                 => 'required|string',
+
+                'email'        => 'required|email',
+                'contact'      => 'required|string',
+                'addressLine1' => 'required|string',
+                'addressLine2' => 'required|string',
+                'addressLine3' => 'nullable|string',
+                'postalCode'   => 'required|string',
+            ]);
+
+            $people = People::where('people_id', $people_id)->first();
+            if (! $people) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Provincial DEO not found',
+                ], 404);
+            }
+
+            DB::beginTransaction();
+
+            $initials = People::generateInitials($validated['fullName']);
+
+            $people->update([
+                'title_id'           => $validated['titleId'],
+                'full_name'          => ucwords(strtolower($validated['fullName'])),
+                'name_with_initials' => $initials,
+                'gender_id'          => $validated['genderId'],
+                'date_of_birth'      => $validated['dateOfBirth'],
+                'religion_id'        => $validated['religionId'],
+                'ethnicity_id'       => $validated['ethnicityId'],
+                'civil_status_id'    => $validated['civilStatusId'],
+                'blood_group_id'     => $validated['bloodGroupId'],
+                'health_condition'   => $validated['healthCondition'],
+                'health_problem'     => $validated['healthConditionDescription'],
+                'district_id'        => $validated['districtId'],
+                'gn_division_id'     => $validated['gnDivisionId'],
+                'ds_office_id'       => $this->resolveDsOfficePrimaryKey($validated['dsOfficeId']),
+                'email'              => strtolower($validated['email']),
+                'phone'              => $validated['contact'],
+                'address_line1'      => $validated['addressLine1'],
+                'address_line2'      => $validated['addressLine2'],
+                'address_line3'      => $validated['addressLine3'],
+                'postal_code'        => $validated['postalCode'],
+            ]);
+
+            User::where('people_id', $people_id)->update([
+                'name'    => $initials,
+                'email'   => strtolower($validated['email']),
+                'contact' => $validated['contact'],
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Provincial DEO updated successfully',
+                'data'    => $people,
+            ], 200);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'status'  => 'validation_error',
+                'message' => 'Validation failed',
+                'errors'  => $e->errors(),
+            ], 422);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('Provincial DEO Update Error', ['error' => $e->getMessage()]);
+
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Failed to update Provincial DEO',
+            ], 500);
+        }
+    }
+
+    public function destroy($people_id)
+    {
+        try {
+            $user = User::where('people_id', $people_id)->first();
+            if ($user) {
+                $user->active_status = false;
+                $user->save();
+            }
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Provincial DEO deactivated successfully',
+            ], 200);
+        } catch (\Throwable $e) {
+            Log::error('Provincial DEO Delete Error', ['error' => $e->getMessage()]);
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Failed to deactivate Provincial DEO',
+            ], 500);
+        }
+    }
+
+    // ==========================================
     // SERVICE HISTORY
-    // ==============================
+    // ==========================================
 
     public function addServiceHistoryEntry(Request $request, string $id)
     {
@@ -438,7 +578,7 @@ class DivisionAdminController extends Controller
             array_map('strtolower', $dbRoles),
         ));
 
-        $allowed = ['super admin', 'divisional head', 'divisional deo'];
+        $allowed = ['super admin', 'provincial director', 'provincial deputy director', 'provincial subject head', 'provincial deo'];
         if (empty(array_intersect($roles, $allowed))) {
             return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
         }
@@ -501,7 +641,7 @@ class DivisionAdminController extends Controller
                 'errors'  => $e->errors(),
             ], 422);
         } catch (\Throwable $e) {
-            Log::error('Add Divisional Admin Service History Entry Error', [
+            Log::error('Add Provincial DEO Service History Entry Error', [
                 'message' => $e->getMessage(),
                 'file'    => $e->getFile(),
                 'line'    => $e->getLine(),
@@ -520,7 +660,7 @@ class DivisionAdminController extends Controller
             array_map('strtolower', $dbRoles),
         ));
 
-        $allowed = ['super admin', 'divisional head', 'divisional deo'];
+        $allowed = ['super admin', 'provincial director', 'provincial deputy director', 'provincial subject head', 'provincial deo'];
         if (empty(array_intersect($roles, $allowed))) {
             return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
         }
@@ -552,7 +692,7 @@ class DivisionAdminController extends Controller
                 ], 422);
             }
 
-            $retirementDate = Carbon::parse($person->date_of_birth)->addYears(55);
+            $retirementDate = Carbon::parse($person->date_of_birth)->addYears(60);
 
             $appointment = EmployerAppointment::create([
                 'employee_id'            => $id,
@@ -583,7 +723,7 @@ class DivisionAdminController extends Controller
                 'errors'  => $e->errors(),
             ], 422);
         } catch (\Throwable $e) {
-            Log::error('Add Divisional Admin Past Service Error', [
+            Log::error('Add Provincial DEO Past Service Error', [
                 'message' => $e->getMessage(),
                 'file'    => $e->getFile(),
                 'line'    => $e->getLine(),
