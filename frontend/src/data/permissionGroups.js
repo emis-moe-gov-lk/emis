@@ -163,7 +163,6 @@ export const PermissionGroups = {
     TEACHER: "menu.schools.teachers",
     PRINCIPAL: "menu.schools.principals",
     DEO: "menu.schools.deo",
-    CLERK: "menu.schools.clerk",
     BULK_UPLOAD: "teacher.bulk.upload",
     CREATE: "teacher.create",
     DELETE: "teacher.delete",
@@ -253,9 +252,9 @@ export const PermissionGroups = {
     INBOX_VIEW: "menu.inbox",
   },
 
-  ADMIN: {
-    ADMIN_VIEW: "menu.admin",
-  },
+  // ADMIN: {
+  //   ADMIN_VIEW: "menu.admin",
+  // },
 
   TIMETABLE: {
     TIMETABLE_VIEW: "menu.timetable",

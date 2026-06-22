@@ -31,7 +31,6 @@ import SchoolDeo from "@/pages/schooldeo/SchoolDeo";
 import DeoProfile from "@/pages/schooldeo/DeoProfile";
 import RegDeo from "@/pages/schooldeo/RegDeo";
 
-
 import OfficesOverview from "@/pages/offices/OfficesOverview";
 import MoeOfficeList from "@/pages/offices/MoeOfficeList";
 import PmoeOfficeList from "@/pages/offices/PmoeOfficeList";
@@ -94,6 +93,7 @@ import PendingConfirmationList from "../components/Alert/PendingConfirmationList
 import PendingVerificationList from "../components/Alert/PendingVerificationList.jsx";
 import RejectedList from "../components/Alert/RejectedList.jsx";
 import RevisedList from "../components/Alert/RevisedList.jsx";
+import Inbox from "../pages/inbox/inbox.jsx";
 
 export default function AppRoutes() {
   return (
@@ -148,6 +148,8 @@ export default function AppRoutes() {
                 <Route path="report" element={<TeacherReport />} />
               </Route>
             </Route>
+
+            <Route path="inbox" element={<Inbox />} />
 
             <Route path="/dashboard" element={<UpdateDashbord />} />
 
