@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { getEditRequests, reviewEditRequest } from "@/api/userService";
 import { useParams, useNavigate } from "react-router-dom";
 import { HiDocumentText, HiPlus } from "react-icons/hi";
 import { Badge, Spinner } from "flowbite-react";
@@ -37,6 +38,8 @@ export default function DivisionAdminProfile() {
   const [admin, setAdmin] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("general");
+  const [editRequests, setEditRequests] = useState([]);
+  const [editRequestRefreshKey, setEditRequestRefreshKey] = useState(0);
 
   const [serviceHistory, setServiceHistory] = useState({ appointments: [], historyEntries: [], currentAppointment: null });
   const [isServiceHistoryModalOpen, setIsServiceHistoryModalOpen] = useState(false);
@@ -67,6 +70,13 @@ export default function DivisionAdminProfile() {
     };
     load();
   }, [id]);
+
+  useEffect(() => {
+    if (!admin?.people_id) return;
+    getEditRequests(admin.people_id)
+      .then((res) => setEditRequests(res.data?.data ?? []))
+      .catch(() => setEditRequests([]));
+  }, [admin?.people_id, editRequestRefreshKey]);
 
   const openServiceHistoryModal = () => {
     const firstApptId = serviceHistory.appointments[0]?.appointment_id ?? "";
@@ -306,7 +316,7 @@ export default function DivisionAdminProfile() {
           {activeTab === "service" && <ServiceTab />}
           {activeTab === "wop" && <WopTab />}
           {activeTab === "family" && <FamilyTab />}
-          {activeTab === "edit" && <EditRequestTab />}
+          {activeTab === "edit" && <EditRequestTab editRequests={editRequests} onReviewed={() => setEditRequestRefreshKey((k) => k + 1)} />}
         </section>
       </div>
 
@@ -786,19 +796,77 @@ function FamilyTab() {
    TAB: Edit Request
 ========================================================= */
 
-function EditRequestTab() {
+function EditRequestTab({ editRequests, onReviewed }) {
+  const [reviewing, setReviewing] = useState(null);
+  const [comment, setComment] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const openReview = (id, action) => { setReviewing({ id, action }); setComment(""); };
+
+  const handleSubmitReview = async () => {
+    if (!comment.trim()) { toast.error("Please add a review comment."); return; }
+    setSubmitting(true);
+    try {
+      await reviewEditRequest(reviewing.id, { status: reviewing.action === "approve" ? "2" : "3", review_comments: comment });
+      toast.success(reviewing.action === "approve" ? "Request approved." : "Request rejected.");
+      setReviewing(null);
+      onReviewed?.();
+    } catch { toast.error("Failed to submit review."); }
+    finally { setSubmitting(false); }
+  };
+
+  if (!editRequests?.length) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-3xl text-center">
+        <p className="text-sm font-bold dark:text-white">No edit requests found.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
-          Edit Requests
-        </h2>
-      </div>
-
-      <div className="rounded-2xl overflow-hidden border surface">
-        <div className="p-6 text-sm text-gray-600 dark:text-gray-400">
-          No edit requests found.
-        </div>
+      <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">Edit Requests</h2>
+      <div className="space-y-4">
+        {editRequests.map((r) => {
+          const isPending = r.status_text?.toLowerCase() === "pending";
+          return (
+            <div key={r.id} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden shadow-sm">
+              <div className="bg-gray-50 dark:bg-gray-800/50 px-4 py-2 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                <span className="text-xs font-bold text-gray-600 dark:text-gray-400 tracking-wider">{r.complaint_request_ref}</span>
+                <span className={`text-xs font-bold px-2 py-0.5 rounded text-white ${isPending ? "bg-amber-500" : r.status_text?.toLowerCase() === "approved" ? "bg-emerald-500" : "bg-red-500"}`}>{r.status_text}</span>
+              </div>
+              <div className="p-4 space-y-1">
+                {r.requested_changes?.subject && <p className="text-sm font-bold text-gray-900 dark:text-white">{r.requested_changes.subject}</p>}
+                {r.requested_changes?.complaint && <p className="text-sm text-gray-600 dark:text-gray-400">{r.requested_changes.complaint}</p>}
+                <p className="text-[10px] text-gray-400 italic">{r.created_ago}</p>
+              </div>
+              {r.review_comments && (
+                <div className="px-4 pb-4">
+                  <p className="text-xs italic text-gray-500 dark:text-gray-400 border-l-2 border-gray-300 dark:border-gray-600 pl-3">"{r.review_comments}"</p>
+                  {r.reviewer && <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-wider">— {r.reviewer.title?.title_name} {r.reviewer.name_with_initials}</p>}
+                </div>
+              )}
+              {isPending && (
+                <div className="border-t border-gray-100 dark:border-gray-800 px-4 py-3">
+                  {reviewing?.id === r.id ? (
+                    <div className="space-y-2">
+                      <textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder={reviewing.action === "approve" ? "Add an approval comment…" : "Reason for rejection…"} rows={3} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none" />
+                      <div className="flex gap-2">
+                        <button onClick={handleSubmitReview} disabled={submitting} className={`flex-1 py-1.5 rounded-xl text-sm font-bold text-white transition-colors disabled:opacity-60 ${reviewing.action === "approve" ? "bg-emerald-500 hover:bg-emerald-600" : "bg-red-500 hover:bg-red-600"}`}>{submitting ? "Submitting…" : reviewing.action === "approve" ? "Confirm Approve" : "Confirm Reject"}</button>
+                        <button onClick={() => setReviewing(null)} className="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <button onClick={() => openReview(r.id, "approve")} className="flex-1 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors">Approve</button>
+                      <button onClick={() => openReview(r.id, "reject")} className="flex-1 py-1.5 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-xs font-bold text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors">Reject</button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

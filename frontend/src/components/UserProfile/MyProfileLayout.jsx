@@ -14,14 +14,19 @@ import ServiceHistory from "./ProfileSections/ServiceHistory";
 import PensionPaymentDetails from "./ProfileSections/PensionPaymentDetails";
 import FamilyManagement from "./ProfileSections/FamilyManagement";
 import EditRequestTimeline from "./ProfileSections/EditRequestTimeline";
+import EditRequestModal from "./ProfileSections/EditRequestModal";
 import axios from "axios";
 import Spinner from "../UiComponents/Spinner";
 import { useAuthContext } from "@asgardeo/auth-react";
 import { useParams } from "react-router-dom";
+import { getEditRequests } from "@/api/userService";
 
 const MyProfileLayout = () => {
   const [activeTab, setActiveTab] = useState("General");
   const [profileData, setProfileData] = useState(null);
+  const [editRequests, setEditRequests] = useState([]);
+  const [editRequestsLoaded, setEditRequestsLoaded] = useState(false);
+  const [showEditRequestModal, setShowEditRequestModal] = useState(false);
   const { getAccessToken } = useAuthContext();
   const { id: peopleId } = useParams();
 
@@ -52,6 +57,25 @@ const MyProfileLayout = () => {
     fetchProfile();
   }, [peopleId, getAccessToken]);
 
+  const fetchEditRequests = async () => {
+    const storedPeopleId = localStorage.getItem("peopleId");
+    if (!storedPeopleId) return;
+    try {
+      const res = await getEditRequests(storedPeopleId);
+      setEditRequests(res.data?.data ?? []);
+      setEditRequestsLoaded(true);
+    } catch (err) {
+      console.error("Error fetching edit requests:", err);
+    }
+  };
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    if (tab === "Edit Request" && !editRequestsLoaded) {
+      fetchEditRequests();
+    }
+  };
+
   if (!profileData) {
     <Spinner />;
   }
@@ -67,8 +91,9 @@ const MyProfileLayout = () => {
           canConfirm: false,
           canDownload: true,
         }}
-        activeTab={activeTab} // pass current active tab
-        onTabChange={(tab) => setActiveTab(tab)} // update tab on click
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        onSendEditRequest={() => setShowEditRequestModal(true)}
       />
 
       {/* MAIN CONTENT */}
@@ -121,10 +146,16 @@ const MyProfileLayout = () => {
             </div>
           )}
           {activeTab === "Edit Request" && (
-            <div>
-              <EditRequestTimeline
-                requests={profileData?.edit_requests || []}
-              />
+            <div className="space-y-4">
+              <div className="flex justify-end">
+                <button
+                  onClick={() => setShowEditRequestModal(true)}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl transition-colors"
+                >
+                  + New Request
+                </button>
+              </div>
+              <EditRequestTimeline editRequests={editRequests} />
             </div>
           )}
         </div>
@@ -139,6 +170,16 @@ const MyProfileLayout = () => {
           </div>
         </div>
       </div>
+
+      {showEditRequestModal && (
+        <EditRequestModal
+          onClose={() => setShowEditRequestModal(false)}
+          onSuccess={() => {
+            setEditRequestsLoaded(false);
+            fetchEditRequests();
+          }}
+        />
+      )}
     </div>
   );
 };

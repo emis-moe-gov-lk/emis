@@ -20,6 +20,7 @@ import {
   getEducationQualificationGrades,
   addServiceHistoryEntry,
 } from "@/api/teacherService";
+import { getEditRequests, reviewEditRequest } from "@/api/userService";
 import toast from "react-hot-toast";
 import {
   Badge,
@@ -97,6 +98,8 @@ const TeacherProfile = () => {
   const apiEndpoint = `/teacher/${id}`;
   const { state: authState, getDecodedIDToken } = useAuthContext();
   const { roles: identityRoles, user: authUser } = useAuthUser();
+
+  const apiEndpoint = `/teacher/${id}`;
 
   const findRejectCommentRecords = (payload, teacherId, appointmentId) => {
     const collectRecords = (value) => {
@@ -614,7 +617,13 @@ const TeacherProfile = () => {
       }
 
       setFamily({ spouses: [] });
-      setEditRequests([]);
+
+      try {
+        const erRes = await getEditRequests(d.people_id);
+        setEditRequests(erRes.data?.data ?? []);
+      } catch {
+        setEditRequests([]);
+      }
     } catch (error) {
       console.error(error);
       toast.error("Failed to load teacher profile.");
@@ -1236,16 +1245,16 @@ const TeacherProfile = () => {
       {/* promote button moved into left menu as a tab-style button */}
 
       {/* Verify alert strip */}
-      {shouldShowVerificationStrip && (
+      {teacher && shouldShowVerificationStrip && (
         <VerifyStrip
           onVerify={handleVerify}
           onReject={openRejectModal}
           isVerifying={isVerifying}
           isRejecting={isRejecting}
-          isVerified={teacher.verified && !teacher.rejected}
-          isRejected={teacher.rejected}
-          isRevised={teacher.revised}
-          rejectReason={teacher.rejectReason}
+          isVerified={teacher?.verified && !teacher?.rejected}
+          isRejected={teacher?.rejected}
+          isRevised={teacher?.revised}
+          rejectReason={teacher?.rejectReason}
           showUpdateAction={showUpdateAction || shouldShowUpdateOnly}
           confirmOnly={isZonalDirector}
           hideRejectAction={
@@ -1391,7 +1400,10 @@ const TeacherProfile = () => {
           {activeTab === "wop" && <WopTab wopAndPayment={wopAndPayment} onEdit={setModalSection} />}
           {activeTab === "family" && <FamilyTab family={family} />}
           {activeTab === "edit" && (
-            <EditRequestTab editRequests={editRequests} />
+            <EditRequestTab
+              editRequests={editRequests}
+              onReviewed={loadTeacherProfile}
+            />
           )}
         </section>
       </div>
@@ -2552,39 +2564,172 @@ function FamilyTab({ family }) {
    TAB: Edit Request
 ========================================================= */
 
-function EditRequestTab({ editRequests }) {
+function EditRequestTab({ editRequests, onReviewed }) {
+  const [reviewing, setReviewing] = useState(null); // { id, action: 'approve'|'reject' }
+  const [comment, setComment] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const openReview = (id, action) => {
+    setReviewing({ id, action });
+    setComment("");
+  };
+
+  const handleSubmitReview = async () => {
+    if (!comment.trim()) {
+      toast.error("Please add a review comment.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await reviewEditRequest(reviewing.id, {
+        status: reviewing.action === "approve" ? "2" : "3",
+        review_comments: comment,
+      });
+      toast.success(
+        reviewing.action === "approve" ? "Request approved." : "Request rejected.",
+      );
+      setReviewing(null);
+      onReviewed?.();
+    } catch {
+      toast.error("Failed to submit review.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (!editRequests?.length) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-3xl text-center">
+        <p className="text-sm font-bold dark:text-white">No edit requests found.</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          No requests have been submitted for this profile.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
-          Edit Requests
-        </h2>
-      </div>
+      <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
+        Edit Requests
+      </h2>
 
-      <div className="rounded-2xl overflow-hidden border surface">
-        <div className="p-6 text-sm text-gray-700 dark:text-gray-300">
-          {editRequests?.length ? (
-            <ul className="space-y-3">
-              {editRequests.map((r) => (
-                <li
-                  key={r.id}
-                  className="rounded-2xl border border-gray-200 dark:border-gray-700 px-4 py-3"
+      <div className="space-y-4">
+        {editRequests.map((r) => {
+          const isPending = r.status_text?.toLowerCase() === "pending";
+          return (
+            <div
+              key={r.id}
+              className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden shadow-sm"
+            >
+              {/* Header */}
+              <div className="bg-gray-50 dark:bg-gray-800/50 px-4 py-2 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                <span className="text-xs font-bold text-gray-600 dark:text-gray-400 tracking-wider">
+                  {r.complaint_request_ref}
+                </span>
+                <span
+                  className={`text-xs font-bold px-2 py-0.5 rounded text-white ${
+                    isPending
+                      ? "bg-amber-500"
+                      : r.status_text?.toLowerCase() === "approved"
+                        ? "bg-emerald-500"
+                        : "bg-red-500"
+                  }`}
                 >
-                  <div className="font-extrabold text-gray-900 dark:text-gray-100">
-                    {r.title}
-                  </div>
-                  <div className="text-gray-600 dark:text-gray-400">
-                    {r.note}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="text-gray-600 dark:text-gray-400">
-              No edit requests found.
+                  {r.status_text}
+                </span>
+              </div>
+
+              {/* Body */}
+              <div className="p-4 space-y-1">
+                {r.requested_changes?.subject && (
+                  <p className="text-sm font-bold text-gray-900 dark:text-white">
+                    {r.requested_changes.subject}
+                  </p>
+                )}
+                {r.requested_changes?.complaint && (
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {r.requested_changes.complaint}
+                  </p>
+                )}
+                <p className="text-[10px] text-gray-400 italic">{r.created_ago}</p>
+              </div>
+
+              {/* Review comment if exists */}
+              {r.review_comments && (
+                <div className="px-4 pb-4">
+                  <p className="text-xs italic text-gray-500 dark:text-gray-400 border-l-2 border-gray-300 dark:border-gray-600 pl-3">
+                    "{r.review_comments}"
+                  </p>
+                  {r.reviewer && (
+                    <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-wider">
+                      — {r.reviewer.title?.title_name} {r.reviewer.name_with_initials}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Approve / Reject for pending */}
+              {isPending && (
+                <div className="border-t border-gray-100 dark:border-gray-800 px-4 py-3">
+                  {reviewing?.id === r.id ? (
+                    <div className="space-y-2">
+                      <textarea
+                        value={comment}
+                        onChange={(e) => setComment(e.target.value)}
+                        placeholder={
+                          reviewing.action === "approve"
+                            ? "Add an approval comment…"
+                            : "Reason for rejection…"
+                        }
+                        rows={3}
+                        className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleSubmitReview}
+                          disabled={submitting}
+                          className={`flex-1 py-1.5 rounded-xl text-sm font-bold text-white transition-colors disabled:opacity-60 ${
+                            reviewing.action === "approve"
+                              ? "bg-emerald-500 hover:bg-emerald-600"
+                              : "bg-red-500 hover:bg-red-600"
+                          }`}
+                        >
+                          {submitting
+                            ? "Submitting…"
+                            : reviewing.action === "approve"
+                              ? "Confirm Approve"
+                              : "Confirm Reject"}
+                        </button>
+                        <button
+                          onClick={() => setReviewing(null)}
+                          className="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => openReview(r.id, "approve")}
+                        className="flex-1 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => openReview(r.id, "reject")}
+                        className="flex-1 py-1.5 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-xs font-bold text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          );
+        })}
       </div>
     </div>
   );
