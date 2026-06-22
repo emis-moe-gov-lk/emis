@@ -94,6 +94,7 @@ const DEFAULT_QUALIFICATION_FORM = {
 
 const TeacherProfile = () => {
   const { id } = useParams();
+  const apiEndpoint = `/teacher/${id}`;
   const { state: authState, getDecodedIDToken } = useAuthContext();
   const { roles: identityRoles, user: authUser } = useAuthUser();
 
@@ -1193,6 +1194,17 @@ const TeacherProfile = () => {
         <Spinner size="xl" color="info" />
         <p className="mt-4 text-gray-500 dark:text-gray-400 animate-pulse">
           Loading teacher profile...
+        </p>
+      </div>
+    );
+  }
+
+  if (!teacher) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 m-6">
+        <HiOutlineExclamationCircle className="h-12 w-12 text-red-500" />
+        <p className="mt-4 text-gray-500 dark:text-gray-400">
+          Teacher profile not found or failed to load.
         </p>
       </div>
     );
