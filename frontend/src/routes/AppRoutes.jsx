@@ -1,4 +1,4 @@
-﻿import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 
 import App from "@/App";
@@ -290,6 +290,11 @@ export default function AppRoutes() {
               <Route index element={<DivisionAdminDirectory />} />
               <Route path="create" element={<RegAdmin />} />
               <Route path=":id" element={<DivisionAdminProfile />} />
+            </Route>
+            <Route path="employees/moe/admin">
+              <Route index element={<MoeAdminDirectory />} />
+              <Route path="create" element={<RegMoeAdmin />} />
+              <Route path=":id" element={<MoeAdminProfile />} />
             </Route>
             <Route path="employees/provincial/admin">
               <Route index element={<ProvincialAdminDirectory />} />
