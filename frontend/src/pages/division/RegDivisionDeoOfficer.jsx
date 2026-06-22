@@ -4,13 +4,13 @@ import { useNavigate } from "react-router-dom";
 import { TeacherFormContext, TeacherFormProvider } from "@/context/TeacherFormContext";
 import Swal from "sweetalert2";
 
-import StepperHeader from "@/components/teacher/StepperHeader";
-import StepNavigation from "@/components/teacher/StepNavigation";
+import StepperHeader from "@/components/division/deo/StepperHeader";
+import StepNavigation from "@/components/division/deo/StepNavigation";
 
-import StepNICVerification from "@/components/teacher/steps/StepNICVerification";
-import StepPersonalDetails from "@/components/teacher/steps/StepPersonalDetails";
-import StepContactDetails from "@/components/teacher/steps/StepContactDetails";
-import StepDivisionCurrentAppointment from "@/components/deo/steps/StepDivisionCurrentAppointment";
+import StepNICVerification from "@/components/division/deo/steps/StepNICVerification";
+import StepPersonalDetails from "@/components/division/deo/steps/StepPersonalDetails";
+import StepContactDetails from "@/components/division/deo/steps/StepContactDetails";
+import StepDivisionCurrentAppointment from "@/components/division/deo/steps/StepDivisionCurrentAppointment";
 
 import {
   checkDivisionDeoContact,

@@ -1086,6 +1086,15 @@ class RolePermissionSeeder extends Seeder
         'provincial.deo.wop.edit',
         'provincial.deo.family.add',
         'menu.moe',
+        'menu.moe.admin',
+        'moe.admin.create',
+        'moe.admin.bulk.upload',
+        'moe.admin.profile.view',
+        'moe.admin.profile.exportpdf',
+        'moe.admin.service.add',
+        'moe.admin.qualification.add',
+        'moe.admin.wop.edit',
+        'moe.admin.family.add',
 
 
         'user.create',

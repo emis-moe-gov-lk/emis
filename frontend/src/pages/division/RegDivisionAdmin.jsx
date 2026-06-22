@@ -1,42 +1,42 @@
 "use client";
 import { useState, useContext, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { TeacherFormContext, TeacherFormProvider } from "@/context/TeacherFormContext";
+import { DivisionAdminFormContext, DivisionAdminFormProvider } from "@/context/DivisionAdminFormContext";
 import Swal from "sweetalert2";
 
-import StepperHeader from "@/components/teacher/StepperHeader";
-import StepNavigation from "@/components/teacher/StepNavigation";
+import StepperHeader from "@/components/division/head/StepperHeader";
+import StepNavigation from "@/components/division/head/StepNavigation";
 
-import StepNICVerification from "@/components/dos/steps/StepNICVerification";
-import StepPersonalDetails from "@/components/dos/steps/StepPersonalDetails";
-import StepContactDetails from "@/components/dos/steps/StepContactDetails";
-import StepFirstAppointment from "@/components/dosAdmin/steps/StepFirstAppointment";
-import StepDivisionAdminCurrentAppointment from "@/components/dosAdmin/steps/StepDivisionAdminCurrentAppointment";
+import StepNICVerification from "@/components/division/head/steps/StepNICVerification";
+import StepPersonalDetails from "@/components/division/head/steps/StepPersonalDetails";
+import StepContactDetails from "@/components/division/head/steps/StepContactDetails";
+import StepCurrentAppointment from "@/components/division/head/steps/StepCurrentAppointment";
+import StepFinishing from "@/components/division/head/steps/StepFinishing";
 
-import api from "@/api/axios";
+import {
+  downloadDivisionAdminProfileDocument,
+  registerDivisionAdmin,
+} from "@/api/divisionAdminService";
 import toast from "react-hot-toast";
-import { HiCheckCircle } from "react-icons/hi";
 import { useAuthUser } from "@/context/useAuthUser";
 import BackToListButton from "@/components/UiComponents/BackToListButton";
 import Button from "@/components/UiComponents/Button";
-import { downloadDivisionAdminProfileDocument } from "@/api/divisionAdminService";
 
 const REG_DIVISION_ADMIN_HISTORY_OWNER = "regDivisionAdminCreate";
 const REG_DIVISION_ADMIN_HISTORY_STEP_KEY = "regDivisionAdminStep";
-const REG_DIVISION_ADMIN_TOTAL_STEPS = 6;
+const REG_DIVISION_ADMIN_TOTAL_STEPS = 5;
 
 const STEPS = [
   { id: 1, label: "Verification" },
   { id: 2, label: "Personal" },
   { id: 3, label: "Contact" },
-  { id: 4, label: "First Appt" },
-  { id: 5, label: "Current Appt" },
-  { id: 6, label: "Finishing" },
+  { id: 4, label: "Current Appt" },
+  { id: 5, label: "Finishing" },
 ];
 
 function RegDivisionAdminInner() {
   const navigate = useNavigate();
-  const { state, dispatch } = useContext(TeacherFormContext);
+  const { state, dispatch } = useContext(DivisionAdminFormContext);
   const { identity, hasRole, isAuthenticated, isLoading: isAuthLoading } = useAuthUser();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -55,7 +55,6 @@ function RegDivisionAdminInner() {
     isNicVerified,
     isPersonalValid,
     isContactValid,
-    isFirstApptValid,
     isCurrentApptValid,
     error,
     isRestored,
@@ -65,7 +64,7 @@ function RegDivisionAdminInner() {
     !isRegistrationComplete &&
     (currentStep > 1 || Object.keys(formData || {}).length > 0);
 
-  const canCreateDivisionAdmin = hasRole("super admin") || hasRole("Divisional DEO HEAD") || hasRole("Divisional DEO") || hasRole("zonal deo");
+  const canCreateDivisionAdmin = hasRole("super admin"); 
   const isAuthLoadingFinal = isAuthLoading || (isAuthenticated && !identity);
 
   const clampStep = (value) => {
@@ -202,13 +201,13 @@ function RegDivisionAdminInner() {
 
   const setFormData = (updateOrValue) => dispatch({ type: "UPDATE_FORM_DATA", payload: updateOrValue });
   const handleStepClick = (stepId) => {
-    if (stepId < currentStep || (currentStep === 1 && isNicVerified) || (currentStep === 2 && isPersonalValid) || (currentStep === 3 && isContactValid) || (currentStep === 4 && isFirstApptValid)) {
+    if (stepId < currentStep || (currentStep === 1 && isNicVerified) || (currentStep === 2 && isPersonalValid) || (currentStep === 3 && isContactValid) || (currentStep === 4 && isCurrentApptValid)) {
         dispatch({ type: "SET_STEP", payload: stepId });
     }
   };
 
   const handleNext = async () => {
-    if (currentStep === 5) {
+    if (currentStep === 4) {
       try {
         setIsSubmitting(true);
         const payload = {
@@ -216,8 +215,7 @@ function RegDivisionAdminInner() {
             is_new_registration: formData.currentAppointmentRegType === "new",
             currentAppointmentWorkplace: formData.currentAppointmentZone,
         };
-        const res = await api.post("/division-admins", payload);
-        const result = res.data;
+        const result = await registerDivisionAdmin(payload);
 
         if (result.status === "success") {
           toast.success("Division Administrator registered successfully");
@@ -230,7 +228,7 @@ function RegDivisionAdminInner() {
               people_id: result.people_id,
           });
           setIsRegistrationComplete(true);
-          dispatch({ type: "SET_STEP", payload: 6 });
+          dispatch({ type: "SET_STEP", payload: 5 });
         } else {
           toast.error(result.message || "Registration failed");
         }
@@ -257,16 +255,8 @@ function RegDivisionAdminInner() {
           {currentStep === 1 && <StepNICVerification formData={formData} setFormData={setFormData} onVerified={() => dispatch({ type: "SET_NIC_VERIFIED", payload: true })} />}
           {currentStep === 2 && <StepPersonalDetails formData={formData} setFormData={setFormData} onValid={(v) => dispatch({ type: "SET_PERSONAL_VALID", payload: v })} />}
           {currentStep === 3 && <StepContactDetails formData={formData} setFormData={setFormData} onValid={(v) => dispatch({ type: "SET_CONTACT_VALID", payload: v })} />}
-          {currentStep === 4 && <StepFirstAppointment formData={formData} setFormData={setFormData} onValid={(v) => dispatch({ type: "SET_FIRST_APPT_VALID", payload: v })} />}
-          {currentStep === 5 && <StepDivisionAdminCurrentAppointment formData={formData} setFormData={setFormData} onValid={(v) => dispatch({ type: "SET_CURRENT_APPT_VALID", payload: v })} />}
-          {currentStep === 6 && (
-            <div className="space-y-4">
-              <h3 className="font-semibold text-green-700">Division Administrator Registered Successfully!</h3>
-              <p>Name: {registrationSummary?.fullName}</p>
-              <Button variant="primary" onClick={() => downloadDivisionAdminProfileDocument(registrationSummary?.people_id)}>Download Profile</Button>
-              <Button variant="secondary" onClick={() => { dispatch({ type: "CLEAR" }); setIsRegistrationComplete(false); dispatch({ type: "SET_STEP", payload: 1 }); }}>New Registration</Button>
-            </div>
-          )}
+          {currentStep === 4 && <StepCurrentAppointment formData={formData} setFormData={setFormData} onValid={(v) => dispatch({ type: "SET_CURRENT_APPT_VALID", payload: v })} />}
+          {currentStep === 5 && <StepFinishing formData={registrationSummary || formData} />}
         </div>
         {currentStep < STEPS.length && (
             <div className="border-t">
@@ -274,8 +264,7 @@ function RegDivisionAdminInner() {
                     currentStep === 1 ? isNicVerified :
                     currentStep === 2 ? isPersonalValid :
                     currentStep === 3 ? isContactValid :
-                    currentStep === 4 ? isFirstApptValid :
-                    currentStep === 5 ? isCurrentApptValid : true
+                    currentStep === 4 ? isCurrentApptValid : true
                 } />
             </div>
         )}
@@ -285,5 +274,5 @@ function RegDivisionAdminInner() {
 }
 
 export default function RegDivisionAdmin() {
-  return <TeacherFormProvider><RegDivisionAdminInner /></TeacherFormProvider>;
+  return <DivisionAdminFormProvider><RegDivisionAdminInner /></DivisionAdminFormProvider>;
 }

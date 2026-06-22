@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+﻿import { Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 
 import App from "@/App";
@@ -72,7 +72,7 @@ import RegDos from "../pages/dos/RegDos.jsx";
 import DosAdminForm from "../pages/dos/DosAdminForm.jsx";
 import RegDeoOfficer from "../pages/dos/RegDeoOfficer.jsx";
 import RegDivisionDeoOfficer from "../pages/division/RegDivisionDeoOfficer.jsx";
-import RegDivisionAdmin from "../pages/division/RegDivisionAdmin.jsx";
+import RegAdmin from "../pages/division/RegDivisionAdmin";
 import DivisionDeoProfile from "../pages/division/DivisionDeoProfile.jsx";
 import DivisionAdminProfile from "../pages/division/DivisionAdminProfile.jsx";
 import DosList from "../components/dos/DosList.jsx";
@@ -84,6 +84,9 @@ import RegProvincialAdmin from "@/pages/provincial/RegProvincialAdmin";
 import RegProvincialDeoOfficer from "@/pages/provincial/RegProvincialDeoOfficer";
 import ProvincialAdminProfile from "@/pages/provincial/ProvincialAdminProfile";
 import ProvincialDeoProfile from "@/pages/provincial/ProvincialDeoProfile";
+import MoeAdminDirectory from "../pages/moe/MoeAdminDirectory.jsx";
+import RegMoeAdmin from "../pages/moe/RegMoeAdmin.jsx";
+import MoeAdminProfile from "../pages/moe/MoeAdminProfile.jsx";
 
 import AlertsOverview from "../components/Alert/AlertsOverview.jsx";
 
@@ -285,7 +288,7 @@ export default function AppRoutes() {
             </Route>
             <Route path="employees/division/admin">
               <Route index element={<DivisionAdminDirectory />} />
-              <Route path="create" element={<RegDivisionAdmin />} />
+              <Route path="create" element={<RegAdmin />} />
               <Route path=":id" element={<DivisionAdminProfile />} />
             </Route>
             <Route path="employees/provincial/admin">

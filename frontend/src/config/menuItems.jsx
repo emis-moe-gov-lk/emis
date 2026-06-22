@@ -1,4 +1,4 @@
-import { PermissionGroups } from "@/data/permissionGroups";
+﻿import { PermissionGroups } from "@/data/permissionGroups";
 import {
   HiCalendar,
   HiChartPie,
@@ -244,9 +244,9 @@ export const menuItems = [
         permission: "menu.moe",
         children: [
           {
-            id: "moedirector",
-            label: "MOE Director",
-            to: "/employees/moedirector",
+            id: "moeadmin",
+            label: "MOE Administrators",
+            to: "/employees/moe/admin",
             permission: "menu.moe.admin",
           },
           
