@@ -78,6 +78,12 @@ import DivisionAdminProfile from "../pages/division/DivisionAdminProfile.jsx";
 import DosList from "../components/dos/DosList.jsx";
 import DosAdminProfile from "../pages/dos/DosAdminProfile.jsx";
 
+import ProvincialAdminDirectory from "@/pages/provincial/ProvincialAdminDirectory";
+import ProvincialDeoDirectory from "@/pages/provincial/ProvincialDeoDirectory";
+import RegProvincialAdmin from "@/pages/provincial/RegProvincialAdmin";
+import RegProvincialDeoOfficer from "@/pages/provincial/RegProvincialDeoOfficer";
+import ProvincialAdminProfile from "@/pages/provincial/ProvincialAdminProfile";
+import ProvincialDeoProfile from "@/pages/provincial/ProvincialDeoProfile";
 import MoeAdminDirectory from "../pages/moe/MoeAdminDirectory.jsx";
 import RegMoeAdmin from "../pages/moe/RegMoeAdmin.jsx";
 import MoeAdminProfile from "../pages/moe/MoeAdminProfile.jsx";
@@ -285,10 +291,15 @@ export default function AppRoutes() {
               <Route path="create" element={<RegAdmin />} />
               <Route path=":id" element={<DivisionAdminProfile />} />
             </Route>
-            <Route path="employees/moe/admin">
-              <Route index element={<MoeAdminDirectory />} />
-              <Route path="create" element={<RegMoeAdmin />} />
-              <Route path=":id" element={<MoeAdminProfile />} />
+            <Route path="employees/provincial/admin">
+              <Route index element={<ProvincialAdminDirectory />} />
+              <Route path="create" element={<RegProvincialAdmin />} />
+              <Route path=":id" element={<ProvincialAdminProfile />} />
+            </Route>
+            <Route path="employees/provincial/deo">
+              <Route index element={<ProvincialDeoDirectory />} />
+              <Route path="create" element={<RegProvincialDeoOfficer />} />
+              <Route path=":id" element={<ProvincialDeoProfile />} />
             </Route>
             <Route path="employees/edu-directors">
               <Route index element={<ZonalDirectory />} />
