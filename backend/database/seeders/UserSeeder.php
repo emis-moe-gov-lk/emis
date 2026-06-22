@@ -66,7 +66,13 @@ class UserSeeder extends Seeder
             $role = Role::firstOrCreate(['name' => $staticUser['role']]);
             $user->syncRoles([$role->name]);
 
-            $wso2Is->provisionUser($user, $staticUser['password'], $staticUser['role']);
+            $result = $wso2Is->provisionUser($user, $staticUser['password'], $staticUser['role']);
+            if ($result['provisioned'] ?? false) {
+                $this->command->info("  WSO2: provisioned {$staticUser['email']}");
+            } else {
+                $reason = $result['error'] ?? ($result['skipped'] ?? false ? 'WSO2 disabled' : 'unknown');
+                $this->command->warn("  WSO2 provisioning failed for {$staticUser['email']}: {$reason}");
+            }
 
             if (! $existingPeopleId) {
                 continue;

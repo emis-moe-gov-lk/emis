@@ -9,12 +9,13 @@ use App\Models\People;
 use App\Models\Teacher;
 use App\Models\User;
 use Carbon\Carbon;
+use App\Services\Wso2IsProvisioningService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
 class TeacherSeeder extends Seeder
 {
-    public function run(): void
+    public function run(Wso2IsProvisioningService $wso2Is): void
     {
         $workplaceId = DB::table('workplaces')
             ->where('office_level_id', 'OLID006')
@@ -82,7 +83,7 @@ class TeacherSeeder extends Seeder
         ];
 
         foreach ($teachers as $data) {
-            DB::transaction(function () use ($data, $workplaceId, $subjectId) {
+            DB::transaction(function () use ($data, $workplaceId, $subjectId, $wso2Is) {
                 $nic = NicHelper::normalize($data['nic']);
 
                 // 1. People
@@ -160,10 +161,18 @@ class TeacherSeeder extends Seeder
                     'name'      => $people->name_with_initials,
                     'email'     => $data['email'],
                     'contact'   => $data['phone'],
-                    'password'  => 'password@123',
+                    'password'  => 'Password@123',
                 ]);
 
                 $user->assignRole('teacher');
+
+                $result = $wso2Is->provisionUser($user, 'Password@123', 'teacher');
+                if ($result['provisioned'] ?? false) {
+                    $this->command->info("  WSO2: provisioned {$data['email']}");
+                } else {
+                    $reason = $result['error'] ?? ($result['skipped'] ?? false ? 'WSO2 disabled' : 'unknown');
+                    $this->command->warn("  WSO2 provisioning failed for {$data['email']}: {$reason}");
+                }
             });
         }
     }

@@ -111,7 +111,13 @@ class SuperAdminSeeder extends Seeder
         // Assign role
         $user->assignRole($superAdminRole);
 
-        $wso2Is->provisionUser($user, 'SuperAdmin@123', 'super admin');
+        $result = $wso2Is->provisionUser($user, 'SuperAdmin@123', 'super admin');
+        if ($result['provisioned'] ?? false) {
+            $this->command->info("  WSO2: provisioned {$user->email}");
+        } else {
+            $reason = $result['error'] ?? ($result['skipped'] ?? false ? 'WSO2 disabled' : 'unknown');
+            $this->command->warn("  WSO2 provisioning failed for {$user->email}: {$reason}");
+        }
 
         // ---------------------------------------------------------------
         // Second Super Admin
@@ -195,6 +201,12 @@ class SuperAdminSeeder extends Seeder
 
         $user2->assignRole($superAdminRole);
 
-        $wso2Is->provisionUser($user2, 'SuperAdmin@123', 'super admin');
+        $result = $wso2Is->provisionUser($user2, 'SuperAdmin@123', 'super admin');
+        if ($result['provisioned'] ?? false) {
+            $this->command->info("  WSO2: provisioned {$user2->email}");
+        } else {
+            $reason = $result['error'] ?? ($result['skipped'] ?? false ? 'WSO2 disabled' : 'unknown');
+            $this->command->warn("  WSO2 provisioning failed for {$user2->email}: {$reason}");
+        }
     }
 }
