@@ -1,0 +1,1069 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{parskip}
+
+\usepackage{tcolorbox}
+\usepackage{array}
+\usepackage{multirow}
+\setmainfont{Latin Modern Roman}
+
+\definecolor{accent}{HTML}{1B4F72}
+\definecolor{lightgray}{HTML}{F4F6F7}
+\definecolor{warnyellow}{HTML}{FEF3CD}
+\definecolor{warnyellowborder}{HTML}{D4A017}
+\definecolor{successgreen}{HTML}{D4EDDA}
+\definecolor{successborder}{HTML}{28A745}
+\definecolor{dangerred}{HTML}{F8D7DA}
+\definecolor{dangerborder}{HTML}{DC3545}
+\definecolor{infoblue}{HTML}{D1ECF1}
+\definecolor{infoborder}{HTML}{0C5460}
+
+\tcbuselibrary{skins, breakable}
+
+\newtcolorbox{notebox}[1][]{
+  colback=infoblue, colframe=infoborder,
+  fonttitle=\bfseries\small, title=#1,
+  left=6pt, right=6pt, top=4pt, bottom=4pt,
+  boxrule=0.6pt, arc=3pt
+}
+
+\newtcolorbox{warnbox}[1][]{
+  colback=warnyellow, colframe=warnyellowborder,
+  fonttitle=\bfseries\small, title=#1,
+  left=6pt, right=6pt, top=4pt, bottom=4pt,
+  boxrule=0.6pt, arc=3pt
+}
+
+\newtcolorbox{keybox}[1][]{
+  colback=successgreen, colframe=successborder,
+  fonttitle=\bfseries\small, title=#1,
+  left=6pt, right=6pt, top=4pt, bottom=4pt,
+  boxrule=0.6pt, arc=3pt
+}
+
+\titleformat{\section}{\large\bfseries\color{accent}}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\normalsize\bfseries\color{accent}}{\thesubsection}{0.6em}{}
+\titleformat{\subsubsection}{\normalsize\itshape\color{accent}}{\thesubsubsection}{0.6em}{}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=accent,
+  urlcolor=accent,
+  citecolor=accent
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small Alert \& Notification Microservice --- Proposal}
+\fancyhead[R]{\small EMIS Development Team}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\setlist[itemize]{leftmargin=1.4em, itemsep=2pt}
+\setlist[enumerate]{leftmargin=1.6em, itemsep=2pt}
+
+\title{%
+  \color{accent}\textbf{Alert \& Notification Microservice}\\[6pt]
+  \large\normalfont\color{black}
+  Proposal for a Standalone Alert Service in the EMIS Ecosystem
+}
+\author{EMIS Development Team}
+\date{19 June 2026 \\ Branch: \texttt{be/feat/alert-service} \\ Status: Proposed}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}
+\vspace{0.4cm}
+
+%---------------------------------------------------------------------------
+\section*{Executive Summary}
+%---------------------------------------------------------------------------
+
+The Alert page (the officer ``Inbox'') is currently fetched directly from the Laravel backend,
+mixing alert data with the rest of the HRM domain and giving future services no clean way to
+raise notifications to officers. This proposal recommends building a dedicated, standalone
+\textbf{Alert and Notification Microservice} in Node.js + Express with its own MySQL database.
+
+The service is designed from day one to evolve from a polling-based data source (Phase~1)
+into a fully event-driven publish model (Phase~2) without any change to the frontend contract.
+It incorporates a hardened, layered security architecture covering JWT validation, rate limiting,
+security headers, input sanitization, and database access controls.
+
+The upstream dependency (currently the Laravel backend directly; WSO2 APIM in approximately
+one month) is abstracted behind a single environment variable so the transition requires no
+code change.
+
+\newpage
+\tableofcontents
+\newpage
+
+%---------------------------------------------------------------------------
+\section{Background}
+%---------------------------------------------------------------------------
+
+The EMIS system manages the appointment and verification workflow for teachers and principals
+across schools in Sri Lanka. When a profile is submitted it passes through a structured
+approval chain involving verification officers, zonal education officers, and employer
+representatives.
+
+The Alert page is currently the only place in the system where officers can see what needs
+their attention. It surfaces four categories of work:
+\begin{itemize}
+  \item Profiles waiting for first-level verification
+  \item Profiles that were rejected and subsequently revised by the applicant
+  \item Profiles waiting for employer confirmation
+  \item Profiles that have been fully rejected
+\end{itemize}
+This page is critical to daily operations. Officers log in and check it to know what actions
+they owe. Without it, the approval workflow has no visibility layer.
+
+%---------------------------------------------------------------------------
+\section{The Problem}
+%---------------------------------------------------------------------------
+
+\subsection{Alert data is coupled to the main Laravel backend}
+
+\begin{itemize}
+  \item \textbf{Alert data lives inside Laravel's database}, mixed with teacher profiles,
+        institutions, timetables, and everything else. There is no domain separation.
+  \item \textbf{Future services cannot contribute to the Alert page.} A future payroll or
+        transfer-request service has no clean way to surface notifications to officers without
+        writing directly into Laravel's database, defeating the purpose of having separate services.
+  \item \textbf{The frontend code is inconsistent.} Alert data is currently fetched in three
+        different ways across five different component files with no single source of truth.
+  \item \textbf{No centralized security.} Each component calls the backend independently with
+        no shared rate limiting, input validation, or audit logging for alert traffic.
+\end{itemize}
+
+\subsection{This does not scale}
+
+As EMIS grows, each new service will generate its own events that officers need to see. Without
+a dedicated alert service, every new service must couple to Laravel or the frontend must call
+multiple backends to assemble a single notification view.
+
+%---------------------------------------------------------------------------
+\section{The Proposal}
+%---------------------------------------------------------------------------
+
+We propose building a \textbf{dedicated Alert and Notification Microservice}: a standalone
+Node.js + Express backend with its own MySQL database and a hardened security stack.
+
+\subsection{What it is}
+\begin{itemize}
+  \item A standalone HTTP service that owns all alert and notification data in its own database
+  \item The service that powers the Alert page (Inbox) in the EMIS frontend
+  \item The common ground for alerts across all current and future EMIS microservices
+  \item A security-hardened service with layered defences (see Section~\ref{sec:security})
+\end{itemize}
+
+\subsection{What it is not}
+\begin{itemize}
+  \item Not a replacement for the main Laravel backend
+  \item Not a messaging system --- no email or SMS in Phase~1
+  \item Not a real-time push system --- no WebSockets in Phase~1
+  \item Not a pass-through proxy --- it owns its own database from day one
+\end{itemize}
+
+%---------------------------------------------------------------------------
+\section{Main Purpose}
+%---------------------------------------------------------------------------
+
+\begin{keybox}[Core purpose]
+The alert service is the single place in the EMIS ecosystem where any service can publish
+an alert, and any authorized user can read what needs their attention.
+\end{keybox}
+
+Today that means teacher and principal appointment workflow alerts for HR officers.
+Tomorrow that means any event from any service --- a payroll discrepancy, a transfer
+request, a document expiry --- flows through the same service and appears in the same
+officer inbox.
+
+The service gives EMIS a \textbf{common notification layer} independent of any single backend
+technology. A Python service, a Go service, or a second Node service can all speak to one place.
+
+%---------------------------------------------------------------------------
+\section{Current Infrastructure Note}
+%---------------------------------------------------------------------------
+
+\begin{warnbox}[Important: APIM not yet in production]
+WSO2 API Manager (APIM) is \textbf{not currently deployed} in the EMIS environment.
+It is expected to be available in approximately one month. This affects the upstream
+URL the alert service calls in Phase~1.
+\end{warnbox}
+
+The upstream dependency is abstracted behind a single environment variable
+\texttt{UPSTREAM\_BASE\_URL}. Today it points directly to the Laravel backend;
+when APIM is deployed, updating this one variable and redeploying is all that is
+required. No code changes are needed.
+
+\begin{table}[h]
+\small
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Period} & \textbf{\texttt{UPSTREAM\_BASE\_URL} value} \\
+\midrule
+Now (no APIM) & \texttt{https://backend.app-uat.emis.moe.gov.lk/api} \\
+In $\sim$1 month (with APIM) & \texttt{https://services.app-uat.emis.moe.gov.lk/hrm/1.0.0} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+%---------------------------------------------------------------------------
+\section{System Architecture}
+%---------------------------------------------------------------------------
+
+\subsection{Why a microservice}
+
+The alert service is standalone --- not a module inside Laravel, not a proxy wrapper ---
+because it \textbf{owns its own database}. That is what makes it independently deployable and
+the common ground for all future EMIS services.
+
+\begin{table}[h]
+\small
+\begin{tabularx}{\textwidth}{X X}
+\toprule
+\textbf{Problem with current setup} & \textbf{What the microservice solves} \\
+\midrule
+Alert data lives in Laravel's DB, coupled to the HRM domain
+  & Alert service owns its own DB, fully decoupled \\
+Future services cannot publish alerts without touching Laravel
+  & Any service can publish to the alert service's API \\
+Frontend fetches alerts from different sources inconsistently
+  & One service, one contract, one URL \\
+Cannot scale alert reads independently
+  & Alert service scales on its own \\
+No centralized security layer for alert traffic
+  & Hardened middleware stack on every request \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{System context --- current state (no APIM)}
+
+\begin{quote}
+\small\ttfamily
+Browser (React SPA) \\
+\hspace*{1em}Alert page $\rightarrow$ alertService.js $\rightarrow$ Alert Microservice URL \\[4pt]
+$\downarrow$ HTTPS\quad Authorization: Bearer \textless token\textgreater \\[4pt]
+Alert Microservice (Node.js + Express) \\
+\hspace*{1em}Security stack: Helmet $\rightarrow$ CORS $\rightarrow$ Rate Limit $\rightarrow$ JWT Validate $\rightarrow$ Input Validate \\
+\hspace*{1em}Owns: Alert MySQL DB (\texttt{alerts}, \texttt{alert\_counts}, \texttt{service\_keys}) \\
+\hspace*{1em}Phase 1: sync middleware reads from Laravel directly \\[4pt]
+$\downarrow$ HTTPS\quad Authorization: Bearer \textless token\textgreater \\[4pt]
+Laravel Backend (FrankenPHP) \\
+\hspace*{1em}JwtGuard validates token $\rightarrow$ returns alert data from its own DB
+\end{quote}
+
+\subsection{System context --- future state (with APIM in $\sim$1 month)}
+
+\begin{quote}
+\small\ttfamily
+Browser (React SPA) \\[4pt]
+$\downarrow$ \\[4pt]
+Alert Microservice (Node.js + Express) \\[4pt]
+$\downarrow$ HTTPS\quad Authorization: Bearer \textless token\textgreater \\[4pt]
+WSO2 API Manager (APIM) \\
+\hspace*{1em}Validates token $\rightarrow$ strips /hrm/1.0.0 $\rightarrow$ forwards to Laravel \\[4pt]
+$\downarrow$ HTTP \\[4pt]
+Laravel Backend (FrankenPHP) \\
+\hspace*{1em}JwtGuard validates token $\rightarrow$ returns alert data from its own DB
+\end{quote}
+
+\begin{notebox}[Transition]
+Switching from the current state to the APIM state requires changing \texttt{UPSTREAM\_BASE\_URL}
+in the environment and redeploying. Zero code changes.
+\end{notebox}
+
+\subsection{Service responsibilities}
+
+\textbf{In scope (Phase 1):}
+\begin{itemize}
+  \item Own and manage the alert MySQL database
+  \item Expose a hardened HTTP API for reading alert data (counts + paginated lists)
+  \item Validate every incoming JWT independently --- not relying solely on the upstream backend
+  \item Rate-limit all endpoints to protect upstream services and the DB
+  \item Validate and sanitize all input before it reaches the DB or upstream calls
+  \item Phase 1: populate the DB by reading from the upstream backend via an internal sync middleware
+  \item Normalize all data into a consistent camelCase shape before storing and serving
+  \item Return consistent, information-safe error responses --- no stack traces, no internal details
+\end{itemize}
+
+\textbf{Out of scope (Phase 1):}
+\begin{itemize}
+  \item Accepting alert events published by producers (Phase~2)
+  \item WebSocket / Server-Sent Events for real-time updates (future)
+  \item Performing workflow actions (verify, confirm, reject) --- these remain direct
+        frontend-to-backend calls
+  \item Email or SMS notifications (future)
+\end{itemize}
+
+%---------------------------------------------------------------------------
+\section{Two-Phase Design}
+%---------------------------------------------------------------------------
+
+The service is designed so that moving from Phase~1 to Phase~2 only replaces the data-source
+layer. The DB schema, controllers, security stack, and the API the frontend calls are identical
+in both phases.
+
+\subsection{Phase 1 --- Foundation (current scope)}
+
+\textbf{Goal:} get the Alert page reading from the microservice's own database instead
+of the backend directly.
+
+\begin{table}[h]
+\small
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Component} & \textbf{Description} \\
+\midrule
+Node.js + Express service & Standalone HTTP server at its own URL \\
+Alert MySQL database & Own database: \texttt{alerts}, \texttt{alert\_counts}, \texttt{service\_keys} \\
+Sync middleware & Fetches from \texttt{UPSTREAM\_BASE\_URL}/Laravel, upserts into alert DB \\
+Security stack & Helmet, CORS, rate limiter, JWT validation, input validation \\
+REST API & 5 endpoints: counts + 4 paginated lists \\
+Frontend service file & \texttt{alertService.js} --- the only frontend file that knows the microservice URL \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{What the frontend Alert page gains:}
+\begin{itemize}
+  \item One clean URL for all alert data
+  \item Consistent camelCase response shapes
+  \item Rejection reasons included directly in the rejected list --- no secondary API calls
+  \item A security-hardened access layer for alert traffic
+  \item A foundation ready for Phase~2 with no frontend changes required
+\end{itemize}
+
+\subsection{Phase 2 --- Event-driven (future scope)}
+
+\textbf{Goal:} remove the polling dependency on the upstream backend; producers publish
+alert events directly to the service.
+
+\begin{table}[h]
+\small
+\begin{tabularx}{\textwidth}{l X X}
+\toprule
+\textbf{What} & \textbf{Phase 1} & \textbf{Phase 2} \\
+\midrule
+Data source & Sync middleware polls upstream & Producers POST events here \\
+Laravel role & Source of data & Publisher of events \\
+New services & Cannot contribute alerts & Publish with a service API key \\
+DB schema & Designed for Phase~2 & Unchanged \\
+Frontend API & --- & Unchanged \\
+Security & User JWT + CORS + rate limit & Same + API key auth for producers \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The DB schema is designed for Phase~2 from day one so no migration is needed at the switch.
+
+%---------------------------------------------------------------------------
+\section{Security Architecture}
+\label{sec:security}
+%---------------------------------------------------------------------------
+
+\begin{keybox}[Defense in depth]
+Every request passes through a layered security stack. A request that fails any layer is
+rejected immediately and never reaches the next layer.
+\end{keybox}
+
+\subsection{Middleware execution order}
+
+\begin{enumerate}
+  \item \textbf{Helmet} --- set security headers on every response (before anything else)
+  \item \textbf{CORS} --- reject requests from unknown origins
+  \item \textbf{Rate Limiter} --- reject if request rate exceeds threshold
+  \item \textbf{Auth / Service Auth} --- validate JWT (user routes) or API key (producer routes)
+  \item \textbf{Input Validation} --- reject malformed or out-of-range parameters
+  \item \textbf{Controller} --- business logic, calls service layer
+  \item \textbf{Error Handler} --- catch all thrown errors, return safe response
+\end{enumerate}
+
+\subsection{Transport security}
+
+All traffic in production goes over \textbf{HTTPS only}. TLS termination is handled at the
+infrastructure layer (nginx-proxy or load balancer), consistent with the existing EMIS stack.
+The Express app runs HTTP behind the TLS terminator.
+
+\subsection{Security headers (Helmet)}
+
+\texttt{helmet} is applied as the \textbf{first middleware} --- before CORS, auth, or anything
+else. It sets protective HTTP response headers on every response.
+
+\begin{table}[h]
+\small
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+\textbf{Header} & \textbf{Value} & \textbf{Purpose} \\
+\midrule
+\texttt{X-Content-Type-Options} & \texttt{nosniff} & Prevent MIME-type sniffing \\
+\texttt{X-Frame-Options} & \texttt{DENY} & Prevent clickjacking \\
+\texttt{Strict-Transport-Security} & \texttt{max-age=31536000} & Enforce HTTPS for 1 year \\
+\texttt{Content-Security-Policy} & \texttt{default-src 'none'} & Block all content embedding \\
+\texttt{X-Powered-By} & (removed) & Do not expose the framework name \\
+\texttt{Referrer-Policy} & \texttt{no-referrer} & Do not leak URL in Referer header \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{CORS}
+
+Strict, explicit policy --- no wildcard.
+
+\begin{table}[h]
+\small
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Setting} & \textbf{Value} \\
+\midrule
+\texttt{origin} & \texttt{CORS\_ORIGIN} env var only (exact frontend URL) \\
+\texttt{methods} & \texttt{GET, OPTIONS} (user routes only --- no POST/DELETE from browser) \\
+\texttt{allowedHeaders} & \texttt{Authorization, Content-Type} only \\
+\texttt{credentials} & \texttt{true} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Rate limiting}
+
+Three tiers of rate limiting using \texttt{express-rate-limit}, applied per IP address.
+Rate limit headers are returned in every response so clients can self-throttle.
+
+\begin{table}[h]
+\small
+\begin{tabularx}{\textwidth}{l l l l X}
+\toprule
+\textbf{Tier} & \textbf{Applied to} & \textbf{Window} & \textbf{Max requests} & \textbf{On breach} \\
+\midrule
+Global & All routes & 15 min & 500 & \texttt{429 TOO\_MANY\_REQUESTS} \\
+Alert reads & \texttt{GET /api/alerts/*} & 1 min & 60 & \texttt{429 TOO\_MANY\_REQUESTS} \\
+Health check & \texttt{GET /health} & 1 min & 120 & \texttt{429 TOO\_MANY\_REQUESTS} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{JWT validation (user auth)}
+
+\begin{warnbox}[Key change from original design]
+The alert service \textbf{validates JWTs itself} using the WSO2 IS JWKS endpoint. It does not
+rely solely on the upstream backend to be the gatekeeper. A request with a fake, expired, or
+malformed token is rejected before any DB or upstream sync call is made.
+\end{warnbox}
+
+Token validation now occurs at \textbf{three points}:
+\begin{enumerate}
+  \item \textbf{Alert Service} (new) --- signature + claims verified before anything else happens
+  \item \textbf{APIM} (when deployed) --- full OAuth token introspection
+  \item \textbf{Laravel backend} --- JwtGuard JWKS validation
+\end{enumerate}
+
+The \texttt{auth} middleware:
+\begin{enumerate}
+  \item Extracts the Bearer token. Missing or malformed $\Rightarrow$ \texttt{401} immediately.
+  \item Fetches the JWKS from \texttt{WSO2\_JWKS\_URI} (cached in memory for \texttt{JWKS\_CACHE\_TTL}
+        seconds, default 3600 --- matching Laravel's behaviour).
+  \item Verifies the token signature using the matching public key.
+  \item Verifies \texttt{exp} (not expired), \texttt{iss} (matches \texttt{WSO2\_ISSUER}),
+        and \texttt{aud} (if \texttt{WSO2\_AUDIENCE} is set).
+  \item If any check fails $\Rightarrow$ \texttt{401} immediately. No sync call is made.
+        No DB is touched.
+  \item If all checks pass $\Rightarrow$ decoded payload attached to \texttt{req.jwtPayload}.
+\end{enumerate}
+
+\textbf{Libraries:} \texttt{jsonwebtoken} for verification; \texttt{jwks-rsa} for JWKS
+fetching and automatic key rotation handling.
+
+\subsection{Service-to-service auth (Phase 2)}
+
+When producers publish alert events they use a dedicated \textbf{API key}, not a user JWT.
+
+\begin{itemize}
+  \item Header: \texttt{X-Service-Key: \textless api-key\textgreater}
+  \item Keys are generated as 64-character cryptographically random hex strings
+  \item Only the \textbf{SHA-256 hash} of the key is stored in the \texttt{service\_keys} DB table ---
+        the plain-text key is never stored anywhere
+  \item A compromised key is revoked by setting \texttt{active = 0} in the table --- no redeploy needed
+  \item This middleware is applied \textbf{only} to producer routes (\texttt{POST /api/events/*});
+        user-facing read routes never see it
+\end{itemize}
+
+\subsection{Input validation}
+
+All query parameters are validated and sanitized using \texttt{express-validator} before the
+controller is reached. A request with invalid parameters is rejected with \texttt{400 BAD\_REQUEST}.
+
+\begin{table}[h]
+\small
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+\textbf{Parameter} & \textbf{Rule} & \textbf{On failure} \\
+\midrule
+\texttt{page} & Integer, min 1, max 10000 & \texttt{400 BAD\_REQUEST} \\
+\texttt{per\_page} & Integer, min 1, max 100 & \texttt{400 BAD\_REQUEST} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Extra query parameters not in the allowed list are stripped silently before the request
+reaches the controller.
+
+\subsection{Database security}
+
+\begin{itemize}
+  \item \textbf{Restricted DB user:} \texttt{DB\_USER} is granted only \texttt{SELECT},
+        \texttt{INSERT}, \texttt{UPDATE} on the alert tables. No \texttt{DROP}, no \texttt{GRANT}.
+        A separate \texttt{DB\_MIGRATE\_USER} with broader privileges is used only at startup
+        for migrations.
+  \item \textbf{Parameterized queries only:} all DB queries use \texttt{mysql2} parameterized
+        syntax. String concatenation into SQL is never used. This fully prevents SQL injection.
+  \item \textbf{Sensitive data:} the \texttt{payload} JSON column stores only display data
+        (names, school, appointment dates). No NIC numbers, addresses, or credentials.
+\end{itemize}
+
+\subsection{Error handling --- no information leakage}
+
+\begin{itemize}
+  \item In \texttt{production}, all errors return a generic message to the client. No stack
+        traces, no DB query text, no internal details.
+  \item Full error detail (message + stack + request ID) is written to server logs only.
+  \item Upstream errors (backend, future APIM) are translated --- the client sees
+        \texttt{UPSTREAM\_ERROR}, not the raw upstream response body.
+  \item Error responses never include the values of request headers or query parameters.
+\end{itemize}
+
+\textbf{Consistent error response shape:}
+\begin{quote}
+\small\ttfamily
+\{ "success": false, "error": \{ "code": "UNAUTHORIZED", "message": "Token validation failed." \} \}
+\end{quote}
+
+\subsection{Request logging}
+
+The \texttt{requestLogger} middleware logs request ID, method, path, status code, response
+time, and client IP. It \textbf{never} logs the value of the \texttt{Authorization} header,
+the \texttt{X-Service-Key} header, any part of the JWT payload, or any request/response body.
+
+\subsection{Dependency security}
+
+\begin{itemize}
+  \item \texttt{package-lock.json} is committed --- exact versions are pinned
+  \item \texttt{npm audit} runs in CI/CD on every push; builds fail on high-severity findings
+  \item No new dependency is added without reviewing its CVE history
+\end{itemize}
+
+\subsection{Container security}
+
+\begin{itemize}
+  \item Runs as a \textbf{non-root user} (UID 1000) inside the container
+  \item \textbf{Multi-stage Docker build} --- only production dependencies in the final image,
+        no dev tools, no build artifacts
+  \item Uses the official \texttt{node:20-alpine} base image --- minimal attack surface
+  \item \texttt{.dockerignore} excludes \texttt{.env}, \texttt{node\_modules}, test files,
+        and documentation
+\end{itemize}
+
+%---------------------------------------------------------------------------
+\section{Project Structure}
+%---------------------------------------------------------------------------
+
+The service lives at the repo root as a peer of \texttt{backend/} and \texttt{frontend/}:
+
+\begin{quote}
+\small\ttfamily
+emis/ \\
+\hspace*{1em}backend/\hspace{2.5cm} Laravel + FrankenPHP (existing) \\
+\hspace*{1em}frontend/\hspace{2.4cm} React + Vite (existing) \\
+\hspace*{1em}alert-service/\hspace{1.6cm} Node.js + Express + MySQL (\textbf{NEW}) \\
+\hspace*{1em}infrastructure/ \\
+\hspace*{1em}docs/
+\end{quote}
+
+Inside \texttt{alert-service/src/}:
+
+\begin{quote}
+\small\ttfamily
+src/ \\
+\hspace*{1em}app.js\hspace{3.7cm} Express app setup, middleware registration in order \\
+\hspace*{1em}server.js\hspace{3.3cm} HTTP server bootstrap \\
+\hspace*{1em}config/index.js\hspace{2cm} Validate env vars at startup; crash on missing required vars \\
+\hspace*{1em}routes/ \\
+\hspace*{2em}alertRoutes.js\hspace{1.8cm} GET /api/alerts/* (user-facing) \\
+\hspace*{2em}eventRoutes.js\hspace{1.8cm} POST /api/events/* (Phase 2 producer routes, stubbed) \\
+\hspace*{1em}controllers/ \\
+\hspace*{2em}alertController.js\hspace{1.1cm} Extract validated params $\rightarrow$ call service $\rightarrow$ respond \\
+\hspace*{1em}services/ \\
+\hspace*{2em}alertService.js\hspace{1.5cm} Query alert DB, return shaped data \\
+\hspace*{2em}syncService.js\hspace{1.5cm} Fetch from upstream, upsert into alert DB \\
+\hspace*{1em}db/ \\
+\hspace*{2em}connection.js\hspace{1.9cm} mysql2 connection pool \\
+\hspace*{2em}migrations/ \\
+\hspace*{3em}001\_create\_alerts.sql \\
+\hspace*{3em}002\_create\_alert\_counts.sql \\
+\hspace*{3em}003\_create\_service\_keys.sql \\
+\hspace*{1em}middleware/ \\
+\hspace*{2em}helmet.js\hspace{2.5cm} Security headers (first middleware registered) \\
+\hspace*{2em}cors.js\hspace{2.7cm} CORS --- locked to CORS\_ORIGIN \\
+\hspace*{2em}rateLimiter.js\hspace{1.7cm} Three-tier rate limiting \\
+\hspace*{2em}auth.js\hspace{2.7cm} Full JWT validation (signature + claims) \\
+\hspace*{2em}serviceAuth.js\hspace{1.8cm} Phase 2 API key validation for producers \\
+\hspace*{2em}validate.js\hspace{2.2cm} Input sanitization (express-validator) \\
+\hspace*{2em}errorHandler.js\hspace{1.5cm} Centralised safe error responses \\
+\hspace*{2em}requestLogger.js\hspace{1.2cm} Structured logging, never logs tokens or keys
+\end{quote}
+
+\begin{table}[h]
+\small
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+\textbf{Layer} & \textbf{File} & \textbf{Responsibility} \\
+\midrule
+Security & \texttt{helmet.js} & Set HTTP security headers on every response \\
+Security & \texttt{cors.js} & Reject requests from unknown origins \\
+Security & \texttt{rateLimiter.js} & Three-tier rate limiting per IP \\
+Auth & \texttt{auth.js} & Validate JWT signature + claims (JWKS-based) \\
+Auth & \texttt{serviceAuth.js} & Validate producer API key (Phase 2) \\
+Validation & \texttt{validate.js} & Sanitize and validate all query parameters \\
+Route & \texttt{alertRoutes.js} & Map HTTP method + path to controller \\
+Controller & \texttt{alertController.js} & Extract params, trigger sync, call service, respond \\
+Service & \texttt{alertService.js} & Query the alert DB, return shaped data \\
+Sync & \texttt{syncService.js} & Fetch from upstream, normalize, upsert into DB \\
+DB & \texttt{db/connection.js} & Manage mysql2 connection pool \\
+Error & \texttt{errorHandler.js} & Catch all errors; safe response; full detail in logs \\
+Logging & \texttt{requestLogger.js} & Structured request logging (no secrets) \\
+Config & \texttt{config/index.js} & Validate env vars at startup; fail fast on missing \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+%---------------------------------------------------------------------------
+\section{Technology Stack}
+%---------------------------------------------------------------------------
+
+\begin{table}[h]
+\small
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+\textbf{Concern} & \textbf{Technology} & \textbf{Reason} \\
+\midrule
+Runtime & Node.js 20 LTS & Lightweight, fast non-blocking I/O \\
+Framework & Express 4 & Minimal, well-understood, no magic \\
+Document store & MongoDB Community & Self-hosted; flexible document model for variable alert payloads; no overseas dependency \\
+DB ODM & \texttt{mongoose} & Schema definition, validation, and query abstraction for MongoDB \\
+Event queue (Phase 2) & Redis & Self-hosted; Redis Streams for durable async event delivery from producers \\
+HTTP client & \texttt{axios} & Same library used in the frontend \\
+JWT validation & \texttt{jsonwebtoken} + \texttt{jwks-rsa} & Industry standard; same approach as Laravel's \texttt{firebase/php-jwt} \\
+Security headers & \texttt{helmet} & One dependency, covers all OWASP header recommendations \\
+Rate limiting & \texttt{express-rate-limit} & Lightweight, no external dependency \\
+Input validation & \texttt{express-validator} & Declarative, well-maintained \\
+Environment & \texttt{dotenv} & Standard; \texttt{.env.example} pattern already used across this repo \\
+Logging & \texttt{morgan} + structured \texttt{console} & No external log service dependency in Phase 1 \\
+Containerisation & Docker (multi-stage, non-root) & Consistent with \texttt{backend/} and \texttt{frontend/} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+%---------------------------------------------------------------------------
+\section{R\&D: Database Technology Selection}
+%---------------------------------------------------------------------------
+
+Before committing to a database engine, an evaluation was conducted to determine whether
+a relational (SQL) or non-relational (NoSQL) database better fits the alert service.
+This section documents the constraints, findings, and recommendation from that evaluation.
+
+\subsection{Evaluation constraints}
+
+Two hard constraints were identified for any database used in this service:
+
+\begin{itemize}
+  \item \textbf{Free and open source.} The service must not introduce a paid database licence.
+  \item \textbf{Self-hosted only --- no overseas location.} As part of the EMIS system operated
+        by the Ministry of Education, Sri Lanka, all data must remain on infrastructure inside
+        the country. This is a data sovereignty requirement. It rules out all managed cloud
+        database services (MongoDB Atlas, AWS DynamoDB, AWS DocumentDB, Azure Cosmos DB,
+        Google Firestore, etc.) regardless of their technical merits --- they host data
+        on overseas servers.
+\end{itemize}
+
+\subsection{Why NoSQL is a strong candidate}
+
+Alert and notification data has characteristics that favour a document-oriented store:
+
+\begin{itemize}
+  \item \textbf{Variable payload per producer.} Each producer service may include different
+        fields in its alert payload. A document model stores these naturally without requiring
+        schema migrations when a new producer is added.
+  \item \textbf{Messaging and task handling patterns.} The intended use of this service ---
+        collecting events from multiple producers and delivering them to role-based inboxes ---
+        is a pattern where NoSQL document and key-value stores are widely used in production.
+  \item \textbf{No complex joins required.} Alert queries are simple: filter by type, status,
+        and role. There are no multi-table joins. A relational schema gives no structural advantage.
+  \item \textbf{Future event volume.} As more producer services come online in Phase~2,
+        the volume of alert writes will grow. Document stores generally scale write throughput
+        more cheaply than relational engines.
+\end{itemize}
+
+\subsection{Candidate evaluation}
+
+Only free, self-hostable engines were considered.
+
+\begin{table}[h]
+\small
+\begin{tabularx}{\textwidth}{l l l X l}
+\toprule
+\textbf{Engine} & \textbf{Type} & \textbf{Free} & \textbf{Strengths for this use case} & \textbf{Complexity} \\
+\midrule
+\textbf{MongoDB Community} & Document & Yes &
+  Flexible document model; native JSON queries; well-known driver ecosystem;
+  runs easily in Docker; straightforward for alert storage with variable payloads &
+  Low \\[4pt]
+\textbf{Redis} & Key-value + Streams & Yes &
+  Industry standard for queuing, pub/sub, and task queues; Redis Streams maps
+  directly to Phase~2 event publishing; very low latency &
+  Low \\[4pt]
+\textbf{Apache Cassandra} & Column-family & Yes &
+  Excellent for high-throughput time-series events; linear horizontal scale &
+  High (requires cluster) \\[4pt]
+\textbf{Apache CouchDB} & Document & Yes &
+  Document model; HTTP-native API &
+  Low \\[4pt]
+\textbf{MySQL 8} & Relational & Yes &
+  Already running in EMIS; native JSON column covers flexible payload;
+  ACID transactions; familiar to the ops team &
+  Low \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Recommendation}
+
+\begin{keybox}[Selected engines]
+\textbf{MongoDB Community} for persistent alert document storage. \\
+\textbf{Redis} for Phase~2 async event queuing and pub/sub (when producers publish directly).
+\end{keybox}
+
+\textbf{MongoDB Community} is recommended for the alert document store because:
+\begin{itemize}
+  \item The alert record is naturally a document --- envelope fields (\texttt{alertType},
+        \texttt{status}, \texttt{peopleId}) are fixed; payload content varies per producer.
+        MongoDB stores both without a JSON-column workaround.
+  \item Self-hosted in Docker alongside the other EMIS services --- no overseas dependency,
+        no licence cost. Replaces the \texttt{alerts} and \texttt{alert\_counts} MySQL tables
+        with a single \texttt{alerts} collection.
+  \item Simple to operate at EMIS's current scale. A single replica-set node is sufficient
+        for Phase~1 and can be expanded without application changes when needed.
+\end{itemize}
+
+\textbf{Redis} is recommended as a \textbf{Phase~2 addition} for the event queue when producers
+begin publishing alert events asynchronously. Redis Streams provides durable, ordered event
+delivery with consumer groups --- suited to the producer/consumer model in Phase~2. Redis does
+not replace MongoDB; it sits in front of it as the intake queue.
+
+\subsection{Why not MySQL for this service}
+
+MySQL is already proven in EMIS and is not a wrong choice. The deciding factors for moving to
+MongoDB here are:
+\begin{itemize}
+  \item The \texttt{payload JSON} workaround in MySQL is functional but turns the DB into a
+        hybrid that is neither fully relational nor fully document-oriented.
+  \item Adding new producer alert types in Phase~2 requires no schema changes in MongoDB ---
+        a new producer simply adds new fields to its payload document.
+  \item Keeping the alert service on its own NoSQL engine reinforces its independence from the
+        main EMIS MySQL instance and makes the service easier to relocate or replicate separately.
+\end{itemize}
+
+%---------------------------------------------------------------------------
+\section{Database Design}
+%---------------------------------------------------------------------------
+
+The MongoDB database uses three collections. The schema is designed generically so any
+future producer can contribute alerts without a migration.
+
+\textbf{Driver:} \texttt{mongoose} (ODM for Node.js + MongoDB). Replaces \texttt{mysql2}
+in the technology stack.
+
+\subsection{\texttt{alerts} collection}
+
+One document per alert record. All producer-specific display data lives inside the
+\texttt{payload} sub-document --- its shape varies per producer and requires no schema change
+when a new producer type is added.
+
+\begin{table}[h]
+\small
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Field} & \textbf{Description} \\
+\midrule
+\texttt{\_id} & MongoDB ObjectId (auto-generated) \\
+\texttt{alertType} & Category: \texttt{pending\_verification}, \texttt{revised}, \texttt{pending\_confirmation}, \texttt{rejected} \\
+\texttt{producer} & Which system created this alert. Phase~1: \texttt{emis-hrm}. Future: any service name \\
+\texttt{peopleId} & The teacher or principal this alert relates to \\
+\texttt{recipientRole} & Which role should see this alert; \texttt{null} = all authorized roles \\
+\texttt{status} & \texttt{active} = needs attention, \texttt{resolved} = actioned, \texttt{archived} = hidden \\
+\texttt{payload} & Sub-document --- all display data (name, school, appointment date, rejection reason). Shape varies per producer; no schema constraint. \\
+\texttt{externalRef} & ID in the producer's system; used for upsert deduplication during Phase~1 sync \\
+\texttt{syncedAt} & Last time this record was refreshed from upstream (Phase~1 only) \\
+\texttt{createdAt} & Document creation timestamp (auto-managed by Mongoose timestamps) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Indexes: \texttt{alertType}, \texttt{peopleId}, \texttt{status}, \texttt{syncedAt}.
+Unique compound index: \texttt{\{ alertType, externalRef \}} for safe upsert deduplication.
+
+\subsection{\texttt{alertcounts} collection}
+
+One document per alert category, updated on every sync cycle. Powers the overview tab cards
+and tab badge numbers. The \texttt{alertType} field is the unique key --- at most four documents
+in this collection.
+
+\subsection{\texttt{servicekeys} collection}
+
+Stores hashed API keys for Phase~2 producers. Only the SHA-256 hash is stored; the
+plain-text key is never written to the database.
+
+\begin{table}[h]
+\small
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Field} & \textbf{Description} \\
+\midrule
+\texttt{\_id} & MongoDB ObjectId \\
+\texttt{serviceName} & Human-readable producer service name (e.g.\ \texttt{emis-hrm}) \\
+\texttt{keyHash} & SHA-256 hash (hex, 64 chars) of the API key --- never the plain-text key \\
+\texttt{active} & \texttt{true} = valid, \texttt{false} = revoked. Revoke without deleting for audit trail \\
+\texttt{createdAt} & Key creation timestamp \\
+\texttt{lastUsedAt} & Last successful authentication timestamp \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+%---------------------------------------------------------------------------
+\section{API Surface (Frontend Contract)}
+%---------------------------------------------------------------------------
+
+The frontend API contract is \textbf{identical between Phase 1 and Phase 2} --- only
+the internal data source changes.
+
+\begin{table}[h]
+\small
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+\textbf{Endpoint} & \textbf{Purpose} \\
+\midrule
+\texttt{GET /health} & Public health check --- no auth; used by Docker health checks \\
+\texttt{GET /api/alerts/counts} & Count per alert category; powers overview cards and tab badges \\
+\texttt{GET /api/alerts/pending-verification} & Paginated list of profiles awaiting first-level verification \\
+\texttt{GET /api/alerts/revised} & Paginated list of profiles revised and resubmitted after rejection \\
+\texttt{GET /api/alerts/pending-confirmation} & Paginated list of profiles awaiting employer confirmation \\
+\texttt{GET /api/alerts/rejected} & Paginated list of rejected profiles, including rejection reason \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{Request convention:} all protected endpoints require \texttt{Authorization: Bearer \textless token\textgreater}.
+Missing or invalid token $\Rightarrow$ \texttt{401} immediately.
+
+\textbf{Response conventions:}
+\begin{itemize}
+  \item Success: \texttt{\{ "success": true, "data": \textless payload\textgreater \}}
+  \item Error: \texttt{\{ "success": false, "error": \{ "code": "...", "message": "..." \} \}}
+  \item All property names are \textbf{camelCase} --- upstream snake\_case is normalized before storage
+  \item Pagination via \texttt{page} and \texttt{per\_page} query parameters (max \texttt{per\_page}: 100)
+\end{itemize}
+
+%---------------------------------------------------------------------------
+\section{Data Flow}
+%---------------------------------------------------------------------------
+
+\subsection{Counts request (Primary tab)}
+
+\begin{enumerate}
+  \item React \texttt{Alert.jsx} mounts; \texttt{alertService.getAlertCounts()} is called
+  \item \texttt{GET /api/alerts/counts} with \texttt{Authorization: Bearer \textless token\textgreater}
+  \item Helmet applies security headers
+  \item CORS check passes (frontend origin is allowed)
+  \item Rate limiter: within limit, continue
+  \item \texttt{auth} middleware: extract Bearer token $\rightarrow$ fetch JWKS (from cache) $\rightarrow$
+        verify signature, \texttt{exp}, \texttt{iss} $\rightarrow$ valid; attach payload to request
+  \item \texttt{alertController.getCounts()} called
+  \item \texttt{syncService.syncCounts(token)}: calls \texttt{UPSTREAM\_BASE\_URL/alerts/counts}
+        with Bearer token $\rightarrow$ upstream validates and returns counts $\rightarrow$ upserted
+        into \texttt{alert\_counts} table
+  \item \texttt{alertService.getCounts()}: \texttt{SELECT} from \texttt{alert\_counts}
+  \item Controller sends \texttt{200} with normalized \texttt{\{ pendingVerification, revised, ... \}}
+  \item React renders count cards
+\end{enumerate}
+
+\subsection{List request (any tab)}
+
+\begin{enumerate}
+  \item User clicks a tab; the list component calls, e.g.,
+        \texttt{alertService.getPendingVerification(\{ page: 1, perPage: 20 \})}
+  \item \texttt{GET /api/alerts/pending-verification?page=1\&per\_page=20} + Bearer token
+  \item Helmet $\rightarrow$ CORS $\rightarrow$ rate limiter $\rightarrow$ JWT validation (all pass)
+  \item \texttt{validate} middleware: \texttt{page=1} valid; \texttt{per\_page=20} valid
+  \item \texttt{syncService.syncList(type, token, page, perPage)}: fetches paginated list from
+        upstream $\rightarrow$ normalizes $\rightarrow$ upserts into \texttt{alerts} table
+  \item \texttt{alertService.getList(type, page, perPage)}: parameterized \texttt{SELECT}
+        from \texttt{alerts} with \texttt{LIMIT}/\texttt{OFFSET}
+  \item Controller sends \texttt{200} with \texttt{\{ items: [...], pagination: \{...\} \}}
+  \item Component sets state; passes data as props to \texttt{AlertTeacherList}
+\end{enumerate}
+
+%---------------------------------------------------------------------------
+\section{Environment Configuration}
+%---------------------------------------------------------------------------
+
+\begin{table}[h]
+\small
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+\textbf{Variable} & \textbf{Required} & \textbf{Description} \\
+\midrule
+\texttt{PORT} & No (3001) & Port the Express server listens on \\
+\texttt{NODE\_ENV} & No (development) & Controls error detail in responses \\
+\texttt{UPSTREAM\_BASE\_URL} & Yes & Backend URL (Laravel direct now; APIM in $\sim$1 month) \\
+\texttt{CORS\_ORIGIN} & Yes & Exact frontend origin; never a wildcard \\
+\texttt{WSO2\_JWKS\_URI} & Yes & JWKS endpoint on WSO2 IS / Asgardeo \\
+\texttt{WSO2\_ISSUER} & Yes & Expected \texttt{iss} claim in JWT \\
+\texttt{WSO2\_AUDIENCE} & No & Expected \texttt{aud} claim; if set, tokens without it are rejected \\
+\texttt{JWKS\_CACHE\_TTL} & No (3600) & Seconds to cache JWKS public keys in memory \\
+\texttt{DB\_HOST} & Yes & MySQL host \\
+\texttt{DB\_PORT} & No (3306) & MySQL port \\
+\texttt{DB\_NAME} & Yes & Alert service database name (e.g.\ \texttt{emis\_alerts}) \\
+\texttt{DB\_USER} & Yes & Restricted MySQL user: SELECT, INSERT, UPDATE only \\
+\texttt{DB\_PASSWORD} & Yes & MySQL password \\
+\texttt{DB\_MIGRATE\_USER} & Yes & Migration user with broader privileges; used at startup only \\
+\texttt{DB\_MIGRATE\_PASSWORD} & Yes & Migration user password \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+%---------------------------------------------------------------------------
+\section{Impact on the Frontend Alert Page}
+%---------------------------------------------------------------------------
+
+The Alert page (Inbox) continues to look and work exactly the same for users. Under the hood:
+
+\begin{itemize}
+  \item Each component now owns its data fetching and passes data down as props ---
+        clean separation of data and display
+  \item All alert API calls go through a new \texttt{alertService.js} file --- changing
+        the data source in the future requires editing one file only
+  \item \texttt{AlertTeacherList} becomes a pure display component --- no fetch logic,
+        easier to test and reuse
+  \item Rejection reason data is included directly in the list response from the microservice
+        --- the existing secondary API call to fetch rejection comments is eliminated
+\end{itemize}
+
+\textbf{No visible change to users. Cleaner, safer code for developers.}
+
+%---------------------------------------------------------------------------
+\section{What This Enables in the Future}
+%---------------------------------------------------------------------------
+
+\begin{table}[h]
+\small
+\begin{tabularx}{\textwidth}{X X}
+\toprule
+\textbf{Future capability} & \textbf{What it requires} \\
+\midrule
+Any new EMIS service sends alerts & Add \texttt{POST /api/events/alert} with service API key auth \\
+Real-time count updates & Add WebSocket / Server-Sent Events layer on top of existing DB \\
+Email or SMS notifications & Alert service triggers on new alert records \\
+Notification history / audit trail & Already in the DB from day one --- expose a history endpoint \\
+Mobile app inbox & Same REST API, same contract, same auth \\
+APIM integration & Change one env var (\texttt{UPSTREAM\_BASE\_URL}), redeploy \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+None of these require touching the main Laravel backend or the frontend Alert page structure.
+
+%---------------------------------------------------------------------------
+\section{Deployment}
+%---------------------------------------------------------------------------
+
+\subsection{Local development}
+
+\begin{quote}
+\small\ttfamily
+cd alert-service \\
+cp .env.example .env \quad\textit{\# fill in DB\_* and UPSTREAM\_BASE\_URL} \\
+npm install \\
+npm run dev \quad\quad\quad\quad\textit{\# nodemon, restarts on file changes}
+\end{quote}
+
+Service available at \texttt{http://localhost:3001}. Requires a local MySQL instance with
+the \texttt{emis\_alerts} database created. Migrations run automatically on startup using
+\texttt{DB\_MIGRATE\_USER}.
+
+\subsection{Docker (local stack)}
+
+Added to \texttt{infrastructure/docker-swarm/docker-compose.local.yml}:
+\begin{itemize}
+  \item \texttt{alert-service} container (Node.js app, non-root user)
+  \item \texttt{alert-mysql} container (dedicated MySQL 8 instance)
+\end{itemize}
+Both join the existing Docker overlay network.
+
+\subsection{Production}
+
+Added to \texttt{infrastructure/docker-swarm/docker-stack.yml}. The production MySQL for
+the alert service is a \textbf{separate instance} from the main EMIS MySQL --- enforcing
+DB-level isolation between services. The \texttt{alert-service} container runs as UID 1000
+(non-root).
+
+\subsection{Pre-production security checklist}
+
+\begin{itemize}
+  \item[$\square$] \texttt{NODE\_ENV=production} is set
+  \item[$\square$] \texttt{DB\_USER} is a restricted MySQL user (no \texttt{DROP}, no \texttt{GRANT})
+  \item[$\square$] \texttt{CORS\_ORIGIN} is the exact production frontend URL --- no wildcard
+  \item[$\square$] \texttt{WSO2\_JWKS\_URI} and \texttt{WSO2\_ISSUER} point to the production IS instance
+  \item[$\square$] TLS termination is in place at the nginx-proxy or load balancer layer
+  \item[$\square$] \texttt{npm audit} returns no high or critical vulnerabilities
+  \item[$\square$] Docker image built with multi-stage Dockerfile (not dev mode)
+  \item[$\square$] \texttt{.env} file is not committed and not baked into the Docker image
+  \item[$\square$] \texttt{DB\_MIGRATE\_USER} credentials are rotated after initial migration
+\end{itemize}
+
+%---------------------------------------------------------------------------
+\section{Summary}
+%---------------------------------------------------------------------------
+
+\begin{table}[h]
+\small
+\begin{tabularx}{\textwidth}{l X X}
+\toprule
+ & \textbf{Before} & \textbf{After} \\
+\midrule
+Alert data lives in & Laravel's shared database & Dedicated MongoDB alert service \\
+Database engine & MySQL (shared) & MongoDB Community (self-hosted, no overseas) \\
+Phase 2 event queue & N/A & Redis Streams (self-hosted) \\
+Frontend talks to & Laravel backend directly & Alert microservice \\
+JWT validation & Upstream only & Alert service + upstream (defense in depth) \\
+Rate limiting & None for alert traffic & Three-tier per-IP limiting \\
+Future services publish alerts & No --- must write to Laravel DB & Yes --- API key to alert service \\
+Alert API consistency & 3 patterns across 5 files & One file, one contract \\
+Notification foundation & Not present & In place from day one \\
+APIM readiness & N/A & One env var change \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\vspace{0.8cm}
+\noindent\textit{End of proposal. \quad Branch: \texttt{be/feat/alert-service}}
+
+\end{document}
