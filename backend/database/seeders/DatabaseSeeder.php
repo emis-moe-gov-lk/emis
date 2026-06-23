@@ -59,7 +59,7 @@ class DatabaseSeeder extends Seeder
     //    $this->call(InstitutionSeeder::class);
 
        $this->call(InstitutionTableSeederPart1::class);
-//        $this->call(InstitutionTableSeederPart2::class);
+        $this->call(InstitutionTableSeederPart2::class);
         $this->call(WorkplacesFromMinistrySeeder::class);
 
         $this->call(ServiceSeeder::class);
