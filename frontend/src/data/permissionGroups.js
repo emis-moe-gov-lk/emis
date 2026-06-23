@@ -223,6 +223,8 @@ export const PermissionGroups = {
 
   PROVINCIAL: {
     PROVINCIAL_VIEW: "menu.provincial",
+    ADMIN: "menu.provincial.admin",
+    DEO: "menu.provincial.deo",
   },
 
   MOE: {

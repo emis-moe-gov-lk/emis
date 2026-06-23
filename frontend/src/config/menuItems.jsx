@@ -162,19 +162,19 @@ export const menuItems = [
         id: "division",
         label: "Division",
         icon: HiUserGroup,
-        permission: PermissionGroups.DIVISION.DIVISION_VIEW,
+        permission: "menu.division",
         children: [
           {
             id: "divisiondirector",
             label: "Division Administrators",
             to: "/employees/division/admin",
-            // permission: PermissionGroups.DIVISION.ADMIN_VIEW,
+            permission: "menu.division.admin",
           },
           {
             id: "divisiondeo",
             label: "Division DEO",
             to: "/employees/division/deo",
-            // permission: PermissionGroups.DIVISION.DEO_VIEW,
+            permission: "menu.division.deo",
           },
         ],
       },
