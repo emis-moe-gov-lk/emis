@@ -992,6 +992,9 @@ class RolePermissionSeeder extends Seeder
         'my.profile.update',
         'my.profile.verify',
 
+        menu.division.admin
+
+        menu.division.deo
 
         'menu.office',
         'menu.office.overview',
