@@ -5,7 +5,7 @@ offset = 1
 base_path = "https://$ref{server.hostname}"
 
 [transport.https.properties]
-proxyHost = "$env{IS_PROXY_HOST}"
+proxyName= "$env{IS_PROXY_HOST}"
 proxyPort = "$env{IS_PROXY_PORT}"
 
 [super_admin]

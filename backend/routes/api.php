@@ -24,10 +24,16 @@ use App\Http\Controllers\API\UserApiController;
 use App\Http\Controllers\API\UserManagementController;
 use App\Http\Controllers\API\RoleController;
 use App\Http\Controllers\API\DeoOfficerController;
+use App\Http\Controllers\API\DivisionDeoController;
+use App\Http\Controllers\API\DivisionAdminController;
 use App\Http\Controllers\API\DosAdminController;
+use App\Http\Controllers\API\MoeAdministratorController;
+use App\Http\Controllers\API\ProvincialAdminController;
+use App\Http\Controllers\API\ProvincialDeoController;
 use App\Http\Controllers\API\MobileTeacherProfileController;
 use App\Http\Controllers\API\EmployerAppointmentConfirmationController;
 use App\Http\Controllers\API\ProfileController;
+use App\Http\Controllers\API\PeopleProfileEditRequestController;
 use App\Http\Controllers\Pdf\TeacherPdf;
 
 
@@ -144,12 +150,19 @@ Route::prefix('')->group(function () {
         Route::post('/principals/{people_id}/past-services', 'addPastService');
     });
 
+    Route::controller(\App\Http\Controllers\API\SchoolDeoApiController::class)->middleware('auth:jwt')->group(function () {
+        Route::get('/schooldeo-list', 'index');
+        Route::post('/schooldeo-create', 'store');
+        Route::get('/schooldeo/{people_id}', 'show');
+    });
+
     Route::controller(\App\Http\Controllers\API\AlertController::class)->middleware('auth:jwt')->group(function () {
         Route::get('/alerts/counts', 'counts');
         Route::get('/alerts/pending-verification', 'pendingVerification');
         Route::get('/alerts/revised', 'revised');
         Route::get('/alerts/pending-confirmation', 'pendingConfirmation');
         Route::get('/alerts/rejected', 'rejected');
+        Route::get('/alerts/edit-requests', 'editRequests');
     });
 
     Route::controller(EmployerAppointmentConfirmationController::class)->middleware('auth:jwt')->group(function () {
@@ -184,6 +197,58 @@ Route::prefix('')->group(function () {
         Route::delete('/{id}', 'destroy');      // DELETE deactivate
     });
 
+    Route::controller(DivisionDeoController::class)->middleware('auth:jwt')->prefix('division-deos')->group(function () {
+        Route::get('/', 'index');
+        Route::get('/form-data', 'formData');
+        Route::get('/current-appointment-form-data', 'currentAppointmentFormData');
+        Route::post('/', 'store');
+        Route::get('/{people_id}', 'show');
+        Route::put('/{people_id}', 'update');
+        Route::delete('/{people_id}', 'destroy');
+        Route::post('/{id}/service-history', 'addServiceHistoryEntry');
+        Route::post('/{id}/past-services', 'addPastService');
+    });
+
+    Route::controller(DivisionAdminController::class)->middleware('auth:jwt')->prefix('division-admins')->group(function () {
+        Route::get('/', 'index');
+        Route::post('/', 'store');
+        Route::get('/{people_id}', 'show');
+        Route::post('/{id}/service-history', 'addServiceHistoryEntry');
+        Route::post('/{id}/past-services', 'addPastService');
+    });
+
+    Route::controller(ProvincialAdminController::class)->middleware('auth:jwt')->prefix('provincial-admins')->group(function () {
+        Route::get('/', 'index');
+        Route::post('/', 'store');
+        Route::get('/{people_id}', 'show');
+        Route::post('/{id}/service-history', 'addServiceHistoryEntry');
+        Route::post('/{id}/past-services', 'addPastService');
+    });
+
+    Route::controller(ProvincialDeoController::class)->middleware('auth:jwt')->prefix('provincial-deos')->group(function () {
+        Route::get('/', 'index');
+        Route::get('/form-data', 'formData');
+        Route::get('/current-appointment-form-data', 'currentAppointmentFormData');
+        Route::post('/', 'store');
+        Route::get('/{people_id}', 'show');
+        Route::put('/{people_id}', 'update');
+        Route::delete('/{people_id}', 'destroy');
+        Route::post('/{id}/service-history', 'addServiceHistoryEntry');
+        Route::post('/{id}/past-services', 'addPastService');
+    });
+
+    Route::controller(MoeAdministratorController::class)->middleware('auth:jwt')->prefix('moe-admins')->group(function () {
+        Route::get('/', 'index');
+        Route::get('/form-data', 'formData');
+        Route::get('/current-appointment-form-data', 'currentAppointmentFormData');
+        Route::post('/', 'store');
+        Route::get('/{people_id}', 'show');
+        Route::put('/{people_id}', 'update');
+        Route::delete('/{people_id}', 'destroy');
+        Route::post('/{id}/service-history', 'addServiceHistoryEntry');
+        Route::post('/{id}/past-services', 'addPastService');
+    });
+
     Route::get('/identity', AuthIdentityController::class)->middleware('auth:jwt');
     Route::get('/mobile/identity', MobileTeacherProfileController::class)->middleware('auth:jwt');
     Route::get('/profile', [ProfileController::class, 'show'])->middleware('auth:jwt');
@@ -194,6 +259,9 @@ Route::prefix('')->group(function () {
     Route::patch('/profile/password', [ProfileController::class, 'changePassword'])->middleware('auth:jwt');
     Route::post('/profile/password/complete-external', [ProfileController::class, 'completeExternalPasswordChange'])->middleware('auth:jwt');
     Route::get('/user/{people_id}', UserApiController::class)->middleware('auth:jwt');
+    Route::get('/user/{people_id}/edit-requests', [PeopleProfileEditRequestController::class, 'indexByPerson'])->middleware('auth:jwt');
+    Route::post('/profile/edit-requests', [PeopleProfileEditRequestController::class, 'store'])->middleware('auth:jwt');
+    Route::patch('/profile/edit-requests/{id}', [PeopleProfileEditRequestController::class, 'review'])->middleware('auth:jwt');
     Route::get('/dashboard/{people_id}', DashboardController::class)->middleware('auth:jwt');
     Route::get('/pdf/teacher/{people_id}', [TeacherPdf::class, 'generateSimplePdf'])->middleware('auth:jwt');
 

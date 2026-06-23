@@ -4,7 +4,6 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\People;
-use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -13,7 +12,6 @@ class MobileTeacherProfileController extends Controller
     public function __invoke(Request $request)
     {
         try {
-            $email    = $request->attributes->get('jwt_email');
             $peopleId = $request->attributes->get('jwt_people_id');
             $roles    = $request->attributes->get('jwt_roles', []);
 
@@ -24,7 +22,7 @@ class MobileTeacherProfileController extends Controller
                 ], 403);
             }
 
-            $user = User::where('email', $email)->first();
+            $user = $request->user();
 
             $permissions = $user
                 ? $user->getAllPermissions()->pluck('name')->values()->all()

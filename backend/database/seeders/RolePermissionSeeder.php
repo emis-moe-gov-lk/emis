@@ -1067,7 +1067,34 @@ class RolePermissionSeeder extends Seeder
 
 
         'menu.provincial',
+        'menu.provincial.admin',
+        'menu.provincial.deo',
+        'provincial.admin.create',
+        'provincial.admin.bulk.upload',
+        'provincial.admin.profile.view',
+        'provincial.admin.profile.exportpdf',
+        'provincial.admin.service.add',
+        'provincial.admin.qualification.add',
+        'provincial.admin.wop.edit',
+        'provincial.admin.family.add',
+        'provincial.deo.create',
+        'provincial.deo.bulk.upload',
+        'provincial.deo.profile.view',
+        'provincial.deo.profile.exportpdf',
+        'provincial.deo.qualification.add',
+        'provincial.deo.service.add',
+        'provincial.deo.wop.edit',
+        'provincial.deo.family.add',
         'menu.moe',
+        'menu.moe.admin',
+        'moe.admin.create',
+        'moe.admin.bulk.upload',
+        'moe.admin.profile.view',
+        'moe.admin.profile.exportpdf',
+        'moe.admin.service.add',
+        'moe.admin.qualification.add',
+        'moe.admin.wop.edit',
+        'moe.admin.family.add',
 
 
         'user.create',
@@ -1081,6 +1108,12 @@ class RolePermissionSeeder extends Seeder
         'menu.admin',
         'menu.timetable',
 
+        'my.profile.document.pdf',
+        'my.profile.general.edit',
+        'my.profile.qualification.add',
+        'my.profile.employment.edit',
+        'my.profile.w&op.edit',
+
 
         'menu.settings.system.settings',
         'menu.settings.version',
@@ -1089,12 +1122,6 @@ class RolePermissionSeeder extends Seeder
         'settings.version.add',
         'settings.version.delete',
         'settings.version.edit',
-
-
-
-
-
-
         ];
 
 
@@ -1108,39 +1135,11 @@ class RolePermissionSeeder extends Seeder
         $superAdminRole->save();
         $superAdminRole->syncPermissions(Permission::all());
 
-        // Create Teacher role — Individual: view own profile/personnel details
-        $teacherRole = Role::firstOrCreate(['name' => 'teacher']);
-        $teacherRole->level = 7;
-        $teacherRole->save();
-        $teacherRole->syncPermissions([
-            'menu.dashboard',
-            'dashboard.myprofile',
-            'my.profile.view',
-        ]);
 
-        // Create principal role — School: view teacher details, generate reports
-        $principalRole = Role::firstOrCreate(['name' => 'principal']);
-        $principalRole->level = 8;
-        $principalRole->save();
-        $principalRole->syncPermissions([
-            'menu.dashboard',
-            'dashboard.analytics',
-            'menu.schools',
-            'menu.schools.teachers',
-            'teacher.profile.view',
-            'teacher.profile.exportpdf',
-            'teacher.profile.qualification.view',
-            'teacher.profile.employment.view',
-            'institution.profile.view',
-            'institution.profile.report.module.pdf',
-        ]);
+        // Create Admin , MOE Director& MOE Administrator role and give similar permission to SA with minor restrictions
 
-        // // Remove old/unused roles from the DB
-        // Role::whereIn('name', ['Vice Principal / Dep Principal', 'development officer'])->delete();
-
-        // SSA & MOE Administrator — full access
-        foreach (['SSA' => 1, 'MOE Administrator' => 2] as $roleName => $level) {
-            $role        = Role::firstOrCreate(['name' => $roleName]);
+        foreach (['admin' => 2, 'MOE Administrator' => 2, 'MOE Director' => 2] as $roleName => $level) {
+            $role  = Role::firstOrCreate(['name' => $roleName]);
             $role->level = $level;
             $role->save();
             $role->syncPermissions(Permission::all());
@@ -1173,28 +1172,34 @@ class RolePermissionSeeder extends Seeder
             'menu.zonal.deo',
         ];
 
-        foreach (['Zonal Director' => 3, 'Zonal Deputy Director' => 4] as $roleName => $level) {
+        // provincial director same permissions as zonal director + provincial permissions
+        $provincialApproveViewPermissions = array_merge($zonalApproveViewPermissions, [
+            'menu.provincial',
+            'menu.provincial.admin',
+            'menu.provincial.deo',
+            'provincial.admin.profile.view',
+            'provincial.deo.profile.view',
+        ]);
+
+        foreach (['Provincial Director' => 3, 'Provincial Deputy Director' => 3, 'Provincial Subject Head' => 3] as $roleName => $level) {
+            $role = Role::firstOrCreate(['name' => $roleName]);
+            $role->level = $level;
+            $role->save();
+            $role->syncPermissions($provincialApproveViewPermissions);
+        }
+        
+
+       
+        
+        
+
+        foreach (['Zonal Director' => 5, 'Zonal Deputy Director' => 6] as $roleName => $level) {
             $role        = Role::firstOrCreate(['name' => $roleName]);
             $role->level = $level;
             $role->save();
             $role->syncPermissions($zonalApproveViewPermissions);
         }
 
-        // Zonal Subject Head — Verify personnel details
-        $zonalSubjectHeadRole = Role::firstOrCreate(['name' => 'Zonal Subject Head']);
-        $zonalSubjectHeadRole->level = 5;
-        $zonalSubjectHeadRole->save();
-        $zonalSubjectHeadRole->syncPermissions([
-            'menu.dashboard',
-            'menu.schools',
-            'menu.schools.teachers',
-            'teacher.profile.view',
-            'teacher.profile.qualification.view',
-            'teacher.profile.employment.view',
-            'menu.alerts',
-            'alerts.profile.view',
-            'alerts.profile.verify',
-        ]);
 
         // Zonal DEO HEAD & Zonal DEO — Full CRUD access to personnel details
         $zonalDeoPermissions = [
@@ -1263,11 +1268,85 @@ class RolePermissionSeeder extends Seeder
             'zonal.deo.family.add',
         ];
 
-        foreach (['Zonal DEO HEAD' => 6, 'Zonal DEO' => 7] as $roleName => $level) {
-            $role        = Role::firstOrCreate(['name' => $roleName]);
+
+         // provincial DEO same permissions as zonal DEO + provincial permissions
+        $provincialDeoPermissionsList = array_merge($zonalDeoPermissions, [
+            'menu.provincial',
+            'menu.provincial.admin',
+            'menu.provincial.deo',
+            'provincial.admin.create',
+            'provincial.admin.profile.view',
+            'provincial.admin.service.add',
+            'provincial.admin.qualification.add',
+            'provincial.admin.wop.edit',
+            'provincial.admin.family.add',
+            'provincial.deo.create',
+            'provincial.deo.profile.view',
+            'provincial.deo.qualification.add',
+            'provincial.deo.service.add',
+            'provincial.deo.wop.edit',
+            'provincial.deo.family.add',
+        ]);
+
+        foreach (['Provincial DEO' => 4, 'Provincial Clerk (DEO)' => 4] as $roleName => $level) {
+            $role = Role::firstOrCreate(['name' => $roleName]);
             $role->level = $level;
             $role->save();
-            $role->syncPermissions($zonalDeoPermissions);
+            $role->syncPermissions($provincialDeoPermissionsList);
         }
+        
+            $role        = Role::firstOrCreate(['name' => 'Zonal DEO']);
+            $role->level = 7;
+            $role->save();
+            $role->syncPermissions($zonalDeoPermissions);
+
+            $role        = Role::firstOrCreate(['name' => 'Divisional Head']);
+            $role->level = 8;
+            $role->save();
+            $role->syncPermissions($zonalApproveViewPermissions);
+
+            $role        = Role::firstOrCreate(['name' => 'Divisional DEO']);
+            $role->level = 9;
+            $role->save();
+            $role->syncPermissions($zonalDeoPermissions);
+
+            
+        // Create Teacher role — Individual: view own profile/personnel details
+        $teacherRole = Role::firstOrCreate(['name' => 'teacher']);
+        $teacherRole->level = 10;
+        $teacherRole->save();
+        $teacherRole->syncPermissions([
+            'menu.dashboard',
+            'dashboard.myprofile',
+            'my.profile.view',
+        ]);
+
+        // Create principal role — School: view teacher details, generate reports
+        $principalRole = Role::firstOrCreate(['name' => 'principal']);
+        $principalRole->level = 11;
+        $principalRole->save();
+        $principalRole->syncPermissions([
+            'menu.dashboard',
+            'dashboard.analytics',
+            'menu.schools',
+            'menu.schools.teachers',
+            'teacher.profile.view',
+            'teacher.profile.exportpdf',
+            'teacher.profile.qualification.view',
+            'teacher.profile.employment.view',
+            'institution.profile.view',
+            'institution.profile.report.module.pdf',
+        ]);
+
+        // Create school deo role — Individual: view own profile/personnel details
+        $teacherRole = Role::firstOrCreate(['name' => 'School DEO']);
+        $teacherRole->level = 12;
+        $teacherRole->save();
+        $teacherRole->syncPermissions([
+            'menu.dashboard',
+            'dashboard.myprofile',
+            'my.profile.view',
+        ]);
+
     }
 }

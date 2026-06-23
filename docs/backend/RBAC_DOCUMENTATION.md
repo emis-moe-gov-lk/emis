@@ -1,741 +1,533 @@
 # RBAC Technical Documentation — EMIS-LK
 
-> Generated from static analysis of source files. No assumptions beyond actual code found.
-> References: `database/seeders/RolePermissionSeeder.php`, `database/seeders/SuperAdminSeeder.php`,
-> `app/Models/User.php`, `app/Policies/ViewRestrictPolicy.php`, `app/Providers/AuthServiceProvider.php`,
-> `routes/web.php`, `routes/teacher.php`, `routes/myprofile.php`, `routes/alerts.php`,
-> `app/Livewire/Users/UserIndex.php`, `app/Livewire/Alerts/`, `bootstrap/app.php`, `config/permission.php`
+> Generated from static analysis of the current pure-JSON API backend.
+> The previous version of this document described an older Livewire/Blade
+> application (`routes/web.php`, `routes/teacher.php`, `routes/myprofile.php`,
+> `routes/alerts.php`, `routes/mainTable.php`). That application is now dead
+> code — `routes/web.php` is entirely commented out, and the other route
+> files no longer exist. This document describes how authorization actually
+> works in the current `routes/api.php` + `app/Http/Controllers/API/*` stack.
+>
+> References: `routes/api.php`, `bootstrap/app.php`, `app/Auth/JwtGuard.php`,
+> `app/Traits/ResolvesZonalScope.php`, `app/Models/User.php`,
+> `app/Http/Controllers/API/*.php`, `app/Policies/ViewRestrictPolicy.php`,
+> `app/Providers/AuthServiceProvider.php`,
+> `database/seeders/RolePermissionSeeder.php`, `database/seeders/SuperAdminSeeder.php`,
+> `database/migrations/2026_04_27_000001_add_level_to_roles_table.php`,
+> `config/permission.php`
+>
+> See also [`ARCHITECTURE.md`](ARCHITECTURE.md) for the broader request flow
+> (JWT issuance, IS provisioning, etc.).
 
 ---
 
 ## Table of Contents
 
 1. [RBAC Architecture Overview](#1-rbac-architecture-overview)
-2. [Permission Naming Convention](#2-permission-naming-convention)
-3. [Module-Based Permission Breakdown](#3-module-based-permission-breakdown)
-4. [Roles & Their Access Scope](#4-roles--their-access-scope)
-5. [Authorization Flow](#5-authorization-flow)
-6. [Database Structure](#6-database-structure)
-7. [Security Observations](#7-security-observations)
-8. [Complete Authorization Coverage Summary](#8-complete-authorization-coverage-summary)
+2. [Authentication: How a Request Gets Roles](#2-authentication-how-a-request-gets-roles)
+3. [Roles & the `roles.level` Hierarchy](#3-roles--the-roleslevel-hierarchy)
+4. [Authorization Patterns Used in Controllers](#4-authorization-patterns-used-in-controllers)
+5. [Per-Endpoint Authorization Reference](#5-per-endpoint-authorization-reference)
+6. [Zonal Scoping](#6-zonal-scoping)
+7. [Spatie Permissions: Status & Catalogue](#7-spatie-permissions-status--catalogue)
+8. [`ViewRestrictPolicy` — Dead Code](#8-viewrestrictpolicy--dead-code)
+9. [Database Structure](#9-database-structure)
+10. [Known Gaps / Observations](#10-known-gaps--observations)
 
 ---
 
 ## 1. RBAC Architecture Overview
 
-### Implementation
-
-This project implements Role-Based Access Control using **Spatie Laravel Permission v6.21** (`spatie/laravel-permission: ^6.21`). RBAC is not custom-built — it is entirely powered by this package's first-class Laravel integration.
-
-### How Roles, Permissions & Users Are Connected
+The current API does **not** use Spatie's `permission:` / `role:` route
+middleware, policies, or Blade directives. Authorization is implemented as
+**explicit, in-controller role-name checks** against a list of roles resolved
+from the JWT and the local database.
 
 ```
-User (users table)
-  └── assigned to one or more → Role (roles table)
-                                    └── has many → Permission (permissions table)
-                                                         [via role_has_permissions pivot]
-  └── (optionally) directly assigned → Permission
-                                         [via model_has_permissions pivot]
+HTTP Request (Bearer JWT)
+    │
+    ▼
+auth:jwt middleware (app/Auth/JwtGuard.php)
+    │  - validates JWT against WSO2 IS JWKS
+    │  - resolves People.uuid == JWT 'sub' claim → User
+    │  - stores JWT 'roles' claim on request as 'jwt_roles'
+    │  - on failure → 401 Unauthenticated
+    ▼
+Controller method
+    │  - $roles = $this->resolvedRoles($request)   (merges jwt_roles + DB Spatie roles)
+    │  - if (! $this->hasAnyRole($roles, [...allowed...])) → 403 Unauthorized
+    │  - optionally: zonal scoping via ResolvesZonalScope
+    │  - optionally: roles.level hierarchy comparison (UserApiController only)
+    ▼
+Response
 ```
 
-The `User` model (`app/Models/User.php`, line 20) uses the `HasRoles` trait:
+There is **no route-level `permission:`/`role:` middleware** anywhere in
+`routes/api.php`. Spatie's `roles`/`permissions` tables still exist and are
+seeded (see [§7](#7-spatie-permissions-status--catalogue)), and `roles.level`
+is used for one specific hierarchy check, but Spatie's `hasPermissionTo()` /
+`can()` / `Gate::` are **not used for authorization decisions** anywhere in
+`app/Http/Controllers/API`.
+
+---
+
+## 2. Authentication: How a Request Gets Roles
+
+### `auth:jwt` middleware
+
+Almost every route in `routes/api.php` is protected with `->middleware('auth:jwt')`,
+which resolves to `App\Auth\JwtGuard` (registered as guard driver `jwt` in
+`config/auth.php`).
+
+`JwtGuard::user()`:
+1. Reads the `Authorization: Bearer <token>` header.
+2. Validates the JWT signature against WSO2 IS's JWKS (`config('auth.jwks_uri')`, cached 1 hour).
+3. Reads the `roles` claim from the JWT payload and stores it on the request as `jwt_roles` (`$request->attributes->set('jwt_roles', $roles)`).
+4. Reads the `sub` claim (a UUID), looks up `People::where('uuid', $uuid)`, then `User::where('people_id', $person->people_id)`.
+5. Stores `jwt_uuid` and `jwt_people_id` on the request attributes.
+6. Returns the resolved `User` (or `null` → 401).
+
+A few routes are intentionally public (no `auth:jwt`): `/login`, `/test`,
+lookup/reference-data endpoints (`/apointed-subjects`, `/authorities`,
+`/blood-groups`, `/titles`, `/teacher-types`, `/teacher-categories`,
+`/services`, `/service-ranks`, `/subjects`, `/moe-list`, `/pmoe-list`,
+`/peo-list`, `/office/{type}/{workplace_id}`), and `/permissions*`. This is
+intentional — these are read-only reference/lookup endpoints — but it should
+be confirmed that none of them leak sensitive data (see [§10](#10-known-gaps--observations)).
+
+### Resolving roles for a request — `resolvedRoles()`
+
+Defined in `app/Traits/ResolvesZonalScope.php` (and duplicated locally in
+`PrincipalApiController`):
 
 ```php
-use Spatie\Permission\Traits\HasRoles;
-
-class User extends Authenticatable
+protected function resolvedRoles(Request $request): array
 {
-    use HasFactory, Notifiable, HasRoles, LogsActivity, Blameable;
+    $jwtRoles = (array) $request->attributes->get('jwt_roles', []);
+    $dbRoles  = $request->user()?->getRoleNames()?->all() ?? [];
+
+    return collect(array_merge($jwtRoles, $dbRoles))
+        ->filter(fn ($role) => is_string($role) && trim($role) !== '')
+        ->map(fn (string $role) => strtolower(trim(preg_replace('/\s+/', ' ', $role) ?? $role)))
+        ->unique()
+        ->values()
+        ->all();
 }
 ```
 
-This trait provides all runtime methods: `hasRole()`, `hasPermissionTo()`, `assignRole()`, `syncPermissions()`, `can()`, etc.
+Key points:
+- Roles come from **two sources**: the WSO2 IS JWT `roles` claim, **and** the
+  local Spatie `model_has_roles` assignment (via `User::getRoleNames()`).
+  Either source is sufficient.
+- All role names are **lowercased and whitespace-normalized** before
+  comparison — this avoids the case-sensitivity problems the old
+  Livewire-era seeder had (e.g. `Zonal DEO` vs `zonal deo` both normalize to
+  `zonal deo`).
 
-### Middleware Registration
-
-Registered in `bootstrap/app.php` (Laravel 11 style — no `Kernel.php`):
+### `hasAnyRole()` / `isSuperAdmin()`
 
 ```php
-'role'               => \Spatie\Permission\Middleware\RoleMiddleware::class,
-'permission'         => \Spatie\Permission\Middleware\PermissionMiddleware::class,
-'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
+protected function hasAnyRole(array $roles, array $allowedRoles): bool
+{
+    $allowed = collect($allowedRoles)->map(fn (string $r) => strtolower(trim($r)))->all();
+    return ! empty(array_intersect($roles, $allowed));
+}
+
+protected function isSuperAdmin(array $roles): bool
+{
+    return in_array('super admin', $roles, true);
+}
 ```
 
-> **Note:** `role_or_permission` is registered but **never used** anywhere in the codebase.
+`UserManagementController` uses a different, simpler check:
+`$request->user()?->hasRole('super admin')` — this checks **only** the local
+Spatie DB role (not the JWT `roles` claim).
 
-### Three Layers of Authorization
+---
 
-| Layer | Mechanism | Where Used |
+## 3. Roles & the `roles.level` Hierarchy
+
+`database/migrations/2026_04_27_000001_add_level_to_roles_table.php` adds an
+`unsignedTinyInteger('level')` column to the Spatie `roles` table. **Lower
+number = more senior.** It is seeded in `database/seeders/RolePermissionSeeder.php`:
+
+| Role name | `level` | Notes |
 |---|---|---|
-| Route-level | `permission:xxx` / `role:xxx` middleware | `routes/web.php` and all module route files |
-| Component-level | `$this->authorize('viewRestrict', $people)` | 50+ Livewire profile components |
-| Logic-level | `auth()->user()->can($permission)`, `hasRole()` | Livewire Alerts & UserIndex components |
-| View-level | `@can`, `@canany`, `@role` Blade directives | 45+ Blade view files |
+| `super admin` | 1 | Full Spatie permission set (`Permission::all()`) |
+| `SSA` | 1 | Full Spatie permission set |
+| `MOE Administrator` | 2 | Full Spatie permission set |
+| `Zonal Director` | 3 | "Approve/View" permission set |
+| `Zonal Deputy Director` | 4 | "Approve/View" permission set |
+| `Zonal Subject Head` | 5 | "Verify" permission set |
+| `Zonal DEO HEAD` | 6 | Full CRUD personnel permission set |
+| `Zonal DEO` | 7 | Full CRUD personnel permission set |
+| `teacher` | 7 | Own-profile permissions only |
+| `principal` | 8 | View-teacher / report permissions |
+
+> Note: `teacher` and `Zonal DEO` are both seeded with `level = 7`. This is
+> currently harmless for the one place `level` is used (see below) because
+> teachers never appear as the "acting" user in that check, but it means
+> `level` is **not** a strict total ordering across all roles — treat it as
+> "lower is more senior" only within the office-hierarchy roles (super admin
+> → MOE Administrator → Zonal Director → ... → Zonal DEO).
+
+### Where `level` is actually used
+
+Only in `UserApiController` (`GET /api/user/{people_id}`), when the
+authenticated user requests **someone else's** profile:
+
+```php
+$tokenLevel  = $tokenUserRole?->level;   // first role of the requesting user
+$targetLevel = $targetRole?->level;      // first role of the profile being viewed
+
+if ($tokenLevel === null || $targetLevel === null || $tokenLevel >= $targetLevel) {
+    return response()->json(['status' => 'error', 'message' => 'Forbidden'], 403);
+}
+```
+
+i.e. you may only view another user's profile via this endpoint if your role
+has a **strictly lower (more senior) `level`** than the target's role. Both
+users must have a Spatie role with a non-null `level` — a user with no role,
+or a role that doesn't have `level` set, is always denied here.
+
+This uses `$tokenUser?->roles()->first()` — i.e. only the user's **first**
+assigned Spatie DB role (not the merged JWT+DB role list, and not "any of
+the user's roles").
+
+### Roles referenced by name in API controllers (not all formally seeded with `level`)
+
+Beyond the seeded roles above, controller role checks also reference these
+role-name strings (compared case-insensitively via `resolvedRoles()`):
+
+- `development officer`
+- `development officer head`
+- `zonal deo` *(= `Zonal DEO`, level 7)*
+- `zonal deo head` *(= `Zonal DEO HEAD`, level 6)*
+- `zonal director` *(= `Zonal Director`, level 3)*
+- `teacher`, `principal`, `sleas`
+
+`development officer` / `development officer head` are **not** in
+`RolePermissionSeeder.php`'s current role list — they appear to be
+legacy/alternate names for the `zonal deo` / `zonal deo head` roles, and are
+included in `hasAnyRole()` allow-lists alongside them. If a user is actually
+assigned one of these role names (e.g. via WSO2 IS JWT claims), the checks
+still work because role matching is by string, not by a fixed enum.
 
 ---
 
-## 2. Permission Naming Convention
+## 4. Authorization Patterns Used in Controllers
 
-All permissions follow a consistent **dot-notation** structure:
+Three patterns recur across `app/Http/Controllers/API/*`:
 
+### Pattern A — Role allow-list (`hasAnyRole`)
+
+The most common pattern. Resolve roles, then check membership in a
+hard-coded allow-list:
+
+```php
+$roles = $this->resolvedRoles($request);
+if (! $this->hasAnyRole($roles, ['super admin', 'zonal deo', 'zonal deo head'])) {
+    return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
+}
 ```
-{module}.{sub-module?}.{context?}.{action}
+
+Used throughout `TeacherApiController`, `PrincipalApiController`,
+`EmployerAppointmentConfirmationController`, `AlertController`.
+
+### Pattern B — Super-admin-only gate
+
+```php
+if (! $this->isSuperAdmin($roles)) {
+    return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
+}
+```
+or, in `UserManagementController` (DB role only):
+```php
+if (! $request->user()?->hasRole('super admin')) { ... }
 ```
 
-### Pattern Breakdown
+Used for: user management CRUD (`UserManagementController`), and as the
+"escape hatch" inside several `EmployerAppointmentConfirmationController`
+methods to skip zonal-scope checks.
 
-| Segment | Purpose | Examples |
+### Pattern C — Role-conditional data scoping (no rejection)
+
+Some endpoints don't reject unauthorized roles outright — instead they
+**branch the query** based on role, e.g. `DeoOfficerController::index()`:
+
+```php
+$isSuperAdmin = in_array('super admin', $roles);
+if ($isSuperAdmin) {
+    // return all DEO officers, unscoped
+} else {
+    // scope to the caller's zonal area
+}
+```
+
+Same pattern in `TeacherApiController` (teacher list scoping) and
+`AlertController` (alert counts scoped for `development officer`/`zonal deo`
+unless also `super admin`).
+
+### Pattern D — `roles.level` hierarchy (UserApiController only)
+
+See [§3](#3-roles--the-roleslevel-hierarchy) above. The only place a numeric
+hierarchy comparison is used instead of a name allow-list.
+
+---
+
+## 5. Per-Endpoint Authorization Reference
+
+This table covers routes that have authorization logic **beyond** plain
+`auth:jwt`. Routes not listed here only require a valid JWT (any
+authenticated user), or are public.
+
+### Teachers — `TeacherApiController`
+
+| Route | Allowed roles | Notes |
 |---|---|---|
-| `module` | Top-level feature area | `teacher`, `principal`, `sleas`, `office`, `user`, `institution` |
-| `sub-module` | Functional section within the module | `profile`, `list`, `bulk`, `employment`, `qualification` |
-| `context` | Optional further scoping | `general`, `current-appointment`, `services-history`, `moe`, `deo` |
-| `action` | The operation being authorized | `view`, `create`, `update`, `delete`, `verify`, `confirm`, `pdf`, `upload`, `response` |
+| `GET /teachers-list` | any authenticated | List is **scoped** for `development officer`/`development officer head`/`zonal deo`/`zonal deo head`/`zonal director` to their zonal area; `super admin` sees all |
+| `PATCH /teachers/{people_id}/update` (via confirmation controller) | `development officer`, `development officer head`, `zonal deo`, `zonal deo head` | |
+| `PATCH /teachers/{people_id}` (`updateProfile`) | `super admin`, `zonal deo` | |
+| `DELETE`-style "reject"/promote actions | `development officer`, `development officer head`, `zonal deo`, `zonal deo head`, `zonal director`, `super admin` | |
 
-### Action Types Catalogue
+### Principals — `PrincipalApiController`
 
-| Action | Meaning |
+| Route | Allowed roles |
 |---|---|
-| `view` | Read-only access to a page or data |
-| `create` | Access to creation form / insert operation |
-| `update` | Edit existing data |
-| `delete` | Remove a record |
-| `verify` | Verify (first-level approval) a profile |
-| `confirm` | Confirm (second-level approval) a profile |
-| `response` | Respond to an edit request |
-| `pdf` | Export/generate a PDF document |
-| `upload` | Bulk upload via Excel/CSV |
-| `reset` | Password reset action |
+| `POST /principal-create` | `super admin`, `zonal deo`, `zonal deo head` (`canManagePrincipals()`) |
+| `principals/{people_id}/service-history`, `/past-services` | `super admin`, `zonal deo`, `zonal deo head`, `development officer`, `development officer head` |
 
-### Examples Across Levels
+### Verification / Confirmation — `EmployerAppointmentConfirmationController`
 
-```
-dashboard.main.view                                    # simple: module.sub.action
-teacher.list.view                                      # list view
-teacher.profile.general.view                           # nested profile section
-teacher.profile.employment.current-appointment.update  # deeply nested action
-teacher.bulk.upload                                    # top-level bulk action
-office.moe.profile.overview.view                       # office type scoped
-cadre-dms-approved.index.view                          # hyphenated module name
-```
-
----
-
-## 3. Module-Based Permission Breakdown
-
-### Module 1 — Dashboard & Common
-
-**Purpose:** Core dashboard access and shared classroom resources.
-
-| Permission | Action |
-|---|---|
-| `dashboard.main.view` | Access main dashboard |
-| `student.list.view` | View student list |
-| `attendance.list.view` | View attendance |
-| `attendance.manage.update` | Manage attendance |
-| `exam.result.view` | View exam results |
-| `exam.term_test.manage` | Manage term tests |
-| `resource.list.view` | View resources |
-| `resource.manage.update` | Manage resources |
-| `resource.allocation.create` | Create resource allocation |
-| `resource.allocation.view` | View resource allocation |
-
----
-
-### Module 2 — My Profile
-
-**Purpose:** Each authenticated user's own profile self-management.
-
-**View (6 permissions):**
-
-| Permission |
-|---|
-| `my-profile.general.view` |
-| `my-profile.qualification.view` |
-| `my-profile.employment.view` |
-| `my-profile.family.view` |
-| `my-profile.pension-and-payment.view` |
-| `my-profile.edit-request.view` |
-
-**Management (5 permissions):**
-
-| Permission |
-|---|
-| `my-profile.edit-request.create` |
-| `my-profile.edit-request.response` |
-| `my-profile.verify` |
-| `my-profile.confirm` |
-| `my-profile.pdf.view` |
-
-**Data Update Actions (14 permissions):**
-
-| Permission |
-|---|
-| `my-profile.personal-cultural.update` |
-| `my-profile.health.update` |
-| `my-profile.contact-information.update` |
-| `my-profile.location-information.update` |
-| `my-profile.temporary-location-information.update` |
-| `my-profile.qualification.create` |
-| `my-profile.qualification.delete` |
-| `my-profile.employment.current-appointment.update` |
-| `my-profile.employment.first-appointment.update` |
-| `my-profile.employment.sltes-information.update` |
-| `my-profile.employment.previous-service.create` |
-| `my-profile.employment.previous-service.delete` |
-| `my-profile.employment.services-history.create` |
-| `my-profile.employment.services-history.delete` |
-| `my-profile.pension-and-payment.update` |
-| `my-profile.family.create` |
-| `my-profile.family.delete` |
-
----
-
-### Modules 3–11 — Staff Service Modules
-
-Each of the 9 staff service modules follows an **identical permission template**.
-
-**Module prefixes:**
-
-| Prefix | Full Name |
-|---|---|
-| `teacher` | Teacher |
-| `principal` | Principal |
-| `dos` | Development Officer of Schools |
-| `mso` | Management Service Officer |
-| `sleas` | Sri Lanka Education Administrative Service |
-| `sltas` | Sri Lanka Teacher Advisor Service |
-| `sltes` | Sri Lanka Technical Education Service |
-| `slas` | Sri Lanka Administrative Service |
-| `slacs` | Sri Lanka Accountancy Service |
-
-**Permission template per module (substitute `{module}` with prefix above):**
-
-| Category | Permission Pattern | Count |
+| Route | Allowed roles | Additional check |
 |---|---|---|
-| List management | `{module}.list.view`, `{module}.create`, `{module}.update`, `{module}.delete` | 4 |
-| Profile view | `{module}.profile.general.view`, `.qualification.view`, `.employment.view`, `.family.view`, `.pension-and-payment.view`, `.edit-request.view` | 6 |
-| Profile management | `{module}.profile.edit-request.create`, `.edit-request.response`, `.verify`, `.confirm`, `.id.view`, `.pdf.view` | 6 |
-| Bulk actions | `{module}.bulk.upload` | 1 |
-| Profile updates | `.personal-cultural.update`, `.health.update`, `.contact-information.update`, `.location-information.update`, `.temporary-location-information.update` | 5 |
-| Qualification CRUD | `.profile.qualification.create`, `.profile.qualification.delete` | 2 |
-| Employment CRUD | `.profile.employment.current-appointment.update`, `.first-appointment.update`, `.{module}-information.update`, `.previous-service.create`, `.previous-service.delete`, `.services-history.create`, `.services-history.delete` | 7 |
-| Pension & family | `.profile.pension-and-payment.update`, `.profile.family.create`, `.profile.family.delete` | 3 |
+| `PATCH /teachers/{people_id}/verify` | `development officer`, `development officer head`, `zonal deo`, `zonal deo head`, `super admin` | Non-super-admins must pass `teacherBelongsToUserZonalArea()` (see [§6](#6-zonal-scoping)) |
+| `PATCH /teachers/{people_id}/confirm`, `/principals/{people_id}/confirm` | `development officer`, `development officer head`, `zonal deo`, `zonal deo head`, `zonal director`, `super admin` | Same zonal check for non-super-admins |
+| `PATCH /teachers/{people_id}/promote` | same allow-list pattern as confirm | Same zonal check |
+| `PATCH /teachers/{people_id}/reject` | same allow-list pattern | Same zonal check |
+| `employer-appointment-reject-comments*` | same allow-list pattern | |
 
-**Per module total: ~34 permissions × 9 modules = ~306 permissions**
+### Alerts — `AlertController`
 
----
-
-### Module 12 — User Management
-
-**Purpose:** Manage system user accounts.
-
-| Permission |
-|---|
-| `user.list.view` |
-| `user.create` |
-| `user.update` |
-| `user.password.reset` |
-| `user.status.update` |
-| `user.delete` |
-| `user.edit` |
-
----
-
-### Module 13 — Institution Management
-
-**Purpose:** Manage schools/institutions and their profiles.
-
-| Permission |
-|---|
-| `institution.list.view` |
-| `institution.create` |
-| `institution.update` |
-| `institution.profile.view` |
-| `institution.profile.overview.view` |
-| `institution.profile.staff.view` |
-| `institution.profile.report-module.view` |
-| `institution.profile.report-module.pdf` |
-| `institution.profile.report-module.xls` |
-| `institution.basic_information.update` |
-| `institution.contact_details.update` |
-| `institution.location_administration.update` |
-| `institution.mission_vision.update` |
-
----
-
-### Module 14 — Office Management (MOE / PMOE / PEO / ZEO / DEO)
-
-**Purpose:** Manage the 5-tier educational office hierarchy.
-
-Permissions follow `office.{type}.{action}` where `type` ∈ `{moe, pmoe, peo, zeo, deo, institution}`:
-
-| Category | Permissions |
+| Route | Authorization |
 |---|---|
-| Lists | `office.{type}.list.view` ×6 |
-| Create | `office.{type}.create` ×6 |
-| Profile overview | `office.{type}.profile.overview.view` ×5 |
-| Update | `office.{type}.update` ×6 |
-| Delete | `office.{type}.delete` ×6 |
-| Institution profile tabs | `office.institution.profile.overview.view`, `.profile.view`, `.staff.view`, `.report-module.view`, `.report-module.pdf`, `.report-module.xls` |
+| `GET /alerts/counts` | `super admin` only |
+| `GET /alerts/pending-verification`, `/revised`, `/pending-confirmation`, `/rejected` | Any authenticated user, but results are scoped to the caller's zonal area if role is `development officer`/`zonal deo` and not also `super admin` |
 
----
+### DEO Officers — `DeoOfficerController`
 
-### Module 15 — Subjects
-
-**Purpose:** Manage appointment and teaching subjects.
-
-| Permission |
-|---|
-| `appointment_subject.list.view` |
-| `appointment_subject.create` |
-| `appointment_subject.update` |
-| `appointment_subject.delete` |
-| `appointment_subject.view` |
-| `teaching_subject.list.view` |
-| `teaching_subject.create` |
-| `teaching_subject.update` |
-| `teaching_subject.delete` |
-| `teaching_subject.view` |
-
----
-
-### Module 16 — Cadre DMS Approved
-
-**Purpose:** Manage cadre/DMS approved records per institution.
-
-| Permission |
-|---|
-| `cadre-dms-approved.index.view` |
-| `cadre-dms-approved.add` |
-| `cadre-dms-approved.institution.view` |
-| `cadre-dms-approved.edit` |
-| `institution.profile.cadre-dms-approved.view` |
-| `office.institution.profile.cadre-dms-approved.view` |
-
----
-
-### Module 17 — Alerts
-
-**Purpose:** Access to the alerts overview panel.
-
-| Permission |
-|---|
-| `alerts.overview.view` |
-
----
-
-## 4. Roles & Their Access Scope
-
-### Role Inventory
-
-| Role Name | Guard | Access Level | Case |
-|---|---|---|---|
-| `super admin` | web | Full — all 170+ permissions | lowercase |
-| `teacher` | web | Restricted — 10 common permissions | lowercase |
-| `principal` | web | Restricted — 10 common permissions | lowercase |
-| `development officer` | web | Restricted — 10 common permissions | lowercase |
-| `management assistant` | web | Restricted — 10 common permissions | lowercase |
-| `sleas officer` | web | Restricted — 10 common permissions | lowercase |
-| `Teacher Advisor` | web | Restricted — 10 common permissions | **Title Case** ⚠️ |
-| `Administrative Service` | web | Restricted — 10 common permissions | **Title Case** ⚠️ |
-| `Accountancy Service` | web | Restricted — 10 common permissions | **Title Case** ⚠️ |
-
----
-
-### Role: `super admin`
-
-**Purpose:** System-wide administrator with unrestricted access.
-
-**Defined in:** `database/seeders/RolePermissionSeeder.php` line 680; `database/seeders/SuperAdminSeeder.php` line 21.
-
-**Permission assignment:**
-```php
-$superAdminRole->syncPermissions(Permission::all()); // all 170+ permissions
-```
-
-**Special privileges:**
-- Only role that can access `/roles/*` route group (`role:super admin` middleware)
-- Only role that can access `/main-tables/*` route group (`role:super admin` middleware)
-- `UserIndex` shows all users system-wide for this role; other roles see only their workplace hierarchy
-
-**Super Admin seed credentials:**
-
-| Field | Value |
+| Route | Authorization |
 |---|---|
-| NIC | `999999999999` |
-| Email | `superadmin@example.com` |
-| Password | `password@*` |
-| Workplace | `MOE0000001` (Ministry of Education) |
+| `GET /deo-officers` (`index`) | Any authenticated user; `super admin` sees all, others see zonally-scoped results |
+| `POST /deo-officers`, `PATCH /deo-officers/{id}`, `DELETE /deo-officers/{id}` | not gated by an explicit role allow-list at the top of the method (rely on caller being authenticated; verify before relying on this for sensitive writes) |
+
+### User profile — `UserApiController` (`GET /api/user/{people_id}`)
+
+- Viewing **your own** profile (`people_id` matches `jwt_people_id`): always allowed.
+- Viewing **someone else's** profile: allowed only if your first Spatie role's
+  `level` is strictly lower (more senior) than the target's first role's
+  `level`. See [§3](#3-roles--the-roleslevel-hierarchy).
+
+### User management — `UserManagementController`
+
+All of `index`, `store`, `show`, `update`, `destroy`, `toggleStatus`,
+`resetPassword` require `$request->user()?->hasRole('super admin')` (DB role
+only — not JWT `roles` claim).
+
+### Roles / permissions — `RoleController`
+
+`GET/POST /roles`, `PUT /roles/{id}` require `auth:jwt` (grouped under the
+`Route::middleware('auth:jwt')->group(...)` block in `routes/api.php`), but
+have **no role-based authorization check inside the controller** — any
+authenticated user can call these. `GET /permissions`, `GET
+/permissions/{roleid}`, `DELETE /permissions/{roleid}` are **not even behind
+`auth:jwt`** — they are fully public. See [§10](#10-known-gaps--observations).
 
 ---
 
-### Roles: All 8 Service Roles
+## 6. Zonal Scoping
 
-**Purpose:** Role placeholders for staff members of each service type. Currently all have the **same 10 permissions**:
+Defined in `app/Traits/ResolvesZonalScope.php`, used by controllers that need
+to restrict a "DEO-level" user's view to their own zonal education office.
 
-```
-dashboard.main.view
-student.list.view
-attendance.list.view
-attendance.manage.update
-exam.result.view
-exam.term_test.manage
-resource.list.view
-resource.manage.update
-resource.allocation.create
-resource.allocation.view
-```
+### `resolveUserZonalWorkplaceId(Request $request): ?string`
 
-> **Important:** These permissions cover only the basic classroom/dashboard area. All profile management, staff management, office management, institution, and administrative permissions are **not yet assigned** to any non-admin role — meaning those routes are only accessible to `super admin` at present.
+Finds the zonal education office (ZEO) workplace ID for the **authenticated
+user's** current appointment workplace:
 
----
+1. If the user's `currentAppointment->workplace_id` is itself a
+   `ZonalEducationOffice`, return it directly.
+2. Else, if it's a `DivisionalEducationOffice` (DEO), return that DEO's
+   `zeo_wp_id` (its parent ZEO).
+3. Else, if it's an `Institution`, return that institution's `zeo_wp_id`.
+4. Else `null`.
 
-## 5. Authorization Flow
+### `applyTeacherZonalScope($query, string $zonalWorkplaceId)`
 
-### Full Request Flow
+Adds a `whereHas('currentAppointment.workplace.institution', fn($q) =>
+$q->where('zeo_wp_id', $zonalWorkplaceId))` constraint to a teacher/principal
+query — i.e. restricts results to people whose institution belongs to the
+given ZEO.
 
-```
-HTTP Request
-    │
-    ▼
-Route Definition (routes/web.php or module route file)
-    │
-    ├─── auth middleware → redirects to login if unauthenticated
-    │
-    ├─── permission:{name} middleware (Spatie)
-    │       └── checks: user → roles → permissions
-    │       └── supports pipe OR: permission:perm1|perm2
-    │       └── on failure: 403 Forbidden
-    │
-    ├─── role:{name} middleware (Spatie)
-    │       └── checks: user → role name match
-    │       └── on failure: 403 Forbidden
-    │
-    ▼
-Livewire Component Renders
-    │
-    ├─── $this->authorize('viewRestrict', $people)     [Policy check]
-    │       └── ViewRestrictPolicy::viewRestrict()
-    │       └── verifies user's workplace includes target person's workplace
-    │       └── on failure: AuthorizationException → 403
-    │
-    ├─── auth()->user()->can($permission)              [Per-item filtering]
-    │       └── used in Alerts to filter visible service types
-    │
-    └─── $loggedUser->hasRole('super admin')           [Role-specific logic branch]
-             └── used in UserIndex to change data scope
-```
+### `teacherBelongsToUserZonalArea()` (EmployerAppointmentConfirmationController)
+
+A per-request variant used by `verify`/`confirm`/`promote`/`reject`: resolves
+the **acting user's** zonal workplace ID, then checks whether the **target
+teacher's** institution belongs to that same ZEO. Non-`super admin` actors
+that fail this check get a 403 ("...can only verify/confirm teacher profiles
+within their relevant zonal area").
 
 ---
 
-### Layer 1 — Route Middleware
+## 7. Spatie Permissions: Status & Catalogue
 
-**`permission:{name}`** — used on 124+ individual routes:
+The `spatie/laravel-permission` tables (`roles`, `permissions`,
+`model_has_roles`, `model_has_permissions`, `role_has_permissions`) are still
+present and seeded by `database/seeders/RolePermissionSeeder.php`, and
+`User` still uses `HasRoles`. However:
 
-```php
-// Single permission
-->middleware(['permission:teacher.list.view'])
+- **No controller calls `hasPermissionTo()`, `can()`, or `Gate::`** for
+  authorization decisions. `getAllPermissions()` is called once, in
+  `UserApiController`, purely to **return** the list of permission names in
+  the JSON response payload (for the frontend to use for UI gating) — it is
+  not used to gate the backend response itself.
+- The permission catalogue (dot-notation, e.g. `teacher.profile.view`,
+  `menu.dashboard`, `alerts.profile.verify`) is largely a holdover from the
+  old Livewire UI's permission-driven menu/Blade-directive system. Many
+  permission strings reference UI concepts (`menu.*`, `dashboard.myprofile`)
+  that don't map to current API behavior.
+- Roles are still meaningfully used — but via **role name** (`hasAnyRole`,
+  `hasRole`, `getRoleNames()`) and **`roles.level`**, not via permissions.
 
-// OR-combined permissions (pipe separator — user needs ANY one)
-->middleware(['permission:institution.profile.profile.view|office.institution.profile.profile.view'])
+### Current role → permission assignments (from `RolePermissionSeeder`)
 
-// Multi-permission OR for alerts
-->middleware([
-    'permission:teacher.profile.verify|principal.profile.verify|dos.profile.verify|...'
-])
+| Role | `level` | Permissions |
+|---|---|---|
+| `super admin`, `SSA`, `MOE Administrator` | 1, 1, 2 | All permissions (`Permission::all()`) |
+| `Zonal Director`, `Zonal Deputy Director` | 3, 4 | "Approve/View" set: dashboard, schools (teachers/principals) view, teacher confirm/view/qualification/employment, principal view/qualification/employment, attendance manage, alerts view/verify/confirm, zonal menus |
+| `Zonal Subject Head` | 5 | "Verify" set: dashboard, schools/teachers view, teacher view/qualification/employment, alerts view/verify |
+| `Zonal DEO HEAD`, `Zonal DEO` | 6, 7 | Full CRUD set: teacher/principal create/update/delete/bulk-upload/promote/confirm, attendance, alerts (incl. revise/reject), zonal admin & DEO management |
+| `teacher` | 7 | `menu.dashboard`, `dashboard.myprofile`, `my.profile.view` |
+| `principal` | 8 | `menu.dashboard`, `dashboard.analytics`, schools/teachers menus, `teacher.profile.view`/`exportpdf`/`qualification.view`/`employment.view`, `institution.profile.view`/`report.module.pdf` |
 
-// Group-level middleware
-Route::middleware(['permission:teacher.bulk.upload'])->group(function () { ... });
-```
-
-**`role:{name}`** — used in 2 route groups:
-
-```php
-// routes/web.php line 408 — Role management UI
-Route::middleware(['role:super admin'])->group(function () {
-    Route::get('roles', RoleIndex::class)->name('roles.index');
-    Route::get('roles/create', RoleCreate::class)->name('roles.create');
-    Route::get('roles/{id}/edit', RoleEdit::class)->name('roles.edit');
-});
-
-// routes/mainTable.php line 47 — Reference data management (30+ routes)
-Route::middleware(['role:super admin'])->group(function () {
-    // blood groups, civil status, districts, ethnicities, etc.
-});
-```
+If the frontend relies on the `permissions` array returned by
+`GET /api/user/{people_id}` to show/hide UI, keep this table in sync with
+`RolePermissionSeeder.php` when roles change.
 
 ---
 
-### Layer 2 — Policy Authorization (Workplace Hierarchy)
+## 8. `ViewRestrictPolicy` — Dead Code
 
-**Policy:** `app/Policies/ViewRestrictPolicy.php`
+`app/Policies/ViewRestrictPolicy.php` still exists and is still registered in
+`app/Providers/AuthServiceProvider.php`:
 
-**Registered in:** `app/Providers/AuthServiceProvider.php`
 ```php
 protected $policies = [
     People::class => ViewRestrictPolicy::class,
 ];
 ```
 
-**Policy logic:**
 ```php
 public function viewRestrict(User $user, People $people): bool
 {
-    if (!$user->workplace) {
-        return false;
-    }
+    if (!$user->workplace) return false;
     $allowedWorkplaceIds = $user->workplace->getAllChildWorkplaces();
     return in_array($people->currentAppointment->workplace_id, $allowedWorkplaceIds);
 }
 ```
 
-**Called in:** 50+ Livewire profile components across all 9 service modules. Every profile sub-page calls:
-```php
-$this->authorize('viewRestrict', $people);
-```
-
-This ensures a user can only view profiles of people belonging to their own workplace or its child workplaces in the hierarchy.
-
----
-
-### Layer 3 — Logic-Level Checks
-
-**Alert filtering** (`app/Livewire/Alerts/AlertsOverview.php`, `PendingVerification.php`, `PendingConfirmation.php`):
-```php
-->filter(fn ($service, $permission) => auth()->user()->can($permission))
-```
-
-**User data scope** (`app/Livewire/Users/UserIndex.php` line 31):
-```php
-if ($loggedUser->hasRole('super admin')) {
-    // loads all users system-wide
-} else {
-    // loads only users within user's workplace hierarchy
-}
-```
+However, **no controller in `app/Http/Controllers/API` calls
+`$this->authorize('viewRestrict', ...)` or `Gate::allows('viewRestrict', ...)`**.
+This was the primary authorization mechanism in the old Livewire profile
+pages (50+ components called it), but those components no longer exist. The
+policy registration is harmless dead configuration — workplace-hierarchy
+scoping in the current API is instead done ad-hoc via
+`ResolvesZonalScope` (see [§6](#6-zonal-scoping)), which is narrower in scope
+(zonal-office level, not the full workplace tree).
 
 ---
 
-### Layer 4 — View-Level Checks (Blade)
+## 9. Database Structure
 
-**`@can` / `@canany`** — used in 45 Blade files to conditionally render UI elements (buttons, tabs, action menus):
+### Spatie tables
 
-```php
-// Single permission
-@can('teacher.profile.edit-request.create')
-    <button>Request Edit</button>
-@endcan
+**Migration:** `database/migrations/2025_08_24_025456_create_permission_tables.php`,
+plus `database/migrations/2026_04_27_000001_add_level_to_roles_table.php`.
 
-// Any of multiple permissions (alerts layout)
-@canany(['teacher.profile.confirm', 'principal.profile.confirm', 'dos.profile.confirm', ...])
-    {{-- Show confirmation tab --}}
-@endcanany
-```
-
-**`@role`** — used once in the sidebar:
-```php
-// resources/views/components/layouts/app/sidebar.blade.php line 152
-@role('super admin')
-    {{-- Admin-only sidebar items --}}
-@endrole
-```
-
----
-
-### Dashboard Authorization
-
-`DashboardController.php` performs **no permission or role checks**. Instead it branches on `$workplace->office_level_id` to determine what hierarchy data to show:
-
-| Office Level ID | Office Type | Data Shown |
+| Table | Key columns | Purpose |
 |---|---|---|
-| `OLID001` | MOE | PMOE → ZEO → DEO → Institution counts |
-| `OLID002` | PMOE | PEO → ZEO → DEO → Institution counts |
-| `OLID003` | PEO | ZEO → DEO → Institution counts |
-| `OLID004` | ZEO | DEO → Institution counts |
-| `OLID005` / `OLID006` | DEO / Institution | Institution → Staff counts |
+| `permissions` | `id`, `name`, `guard_name` | Permission catalogue (largely unused for API authorization — see §7) |
+| `roles` | `id`, `name`, `guard_name`, **`level`** (tinyint, nullable) | Role catalogue + hierarchy rank (lower = more senior) |
+| `model_has_roles` | `role_id`, `model_type`, `model_id` | User ↔ Role assignment |
+| `model_has_permissions` | `permission_id`, `model_type`, `model_id` | Direct user ↔ permission (unused in practice) |
+| `role_has_permissions` | `permission_id`, `role_id` | Role ↔ Permission assignment |
 
----
-
-## 6. Database Structure
-
-### Tables Created by Spatie Permission
-
-**Migration:** `database/migrations/2025_08_24_025456_create_permission_tables.php`
-
-| Table | Primary Key | Columns | Purpose |
-|---|---|---|---|
-| `permissions` | `id` (bigint) | `name`, `guard_name`, timestamps | Stores all permission records |
-| `roles` | `id` (bigint) | `name`, `guard_name`, timestamps | Stores all role records |
-| `model_has_roles` | composite | `role_id`, `model_type`, `model_id` | Links User model to roles |
-| `model_has_permissions` | composite | `permission_id`, `model_type`, `model_id` | Direct user-to-permission link |
-| `role_has_permissions` | composite | `permission_id`, `role_id` | Links roles to permissions |
-
-### Entity Relationship
-
-```
-users
-  id ─────────────────────────────────────────────────────────┐
-                                                               │
-model_has_roles                                                │
-  model_type = 'App\Models\User'                               │
-  model_id ────────────────────────────────────────────────► users.id
-  role_id  ────────────────────────────────────────────────► roles.id
-
-role_has_permissions
-  role_id      ────────────────────────────────────────────► roles.id
-  permission_id ───────────────────────────────────────────► permissions.id
-```
-
-### Cache Configuration (`config/permission.php`)
+### Cache configuration (`config/permission.php`)
 
 | Setting | Value |
 |---|---|
 | Cache expiration | 24 hours |
-| Cache key | `spatie.permission.cache` |
 | Cache store | `default` |
 | Teams feature | Disabled |
 | Wildcard permissions | Disabled |
-| Events enabled | Disabled |
-| Display permission in exception | `false` (security) |
-| Display role in exception | `false` (security) |
 
-The seeder manually clears the cache before seeding:
-```php
-app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
-```
+`RolePermissionSeeder` clears the cache before seeding via
+`app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions()`.
 
 ---
 
-## 7. Security Observations
+## 10. Known Gaps / Observations
 
-### 1. Non-Admin Roles Are Effectively Hollow
+1. **`/permissions` and `/permissions/{roleid}` (incl. `DELETE`) are not
+   behind `auth:jwt`.** They're grouped outside the
+   `Route::middleware('auth:jwt')->group(...)` block in `routes/api.php`.
+   `RoleController::destroy` for permissions is reachable by anyone with
+   network access. This should be reviewed — at minimum it should require
+   `auth:jwt` + `super admin`, consistent with `/roles`/`/users`.
 
-All 8 service roles are assigned the same 10 dashboard/classroom permissions. The 160+ staff profile management, office management, institution, and user permissions are defined but **not assigned to any non-admin role**. In practice, only `super admin` can access most of the application's functionality.
+2. **`/roles` (`GET`/`POST`/`PUT`) require `auth:jwt` but no role check.**
+   Any authenticated user (any role) can list, create, or edit roles via
+   `RoleController`. Compare with `UserManagementController`, which
+   explicitly checks `hasRole('super admin')` for equivalent user-management
+   operations.
 
-**Affected file:** `database/seeders/RolePermissionSeeder.php` lines 684–802.
+3. **Inconsistent role-resolution sources.** Most controllers use
+   `resolvedRoles()` (JWT `roles` claim **+** DB Spatie roles, merged), but
+   `UserManagementController::isSuperAdmin()` and `UserApiController`'s
+   level check use **only** the local DB Spatie role
+   (`$user->hasRole(...)` / `$user->roles()->first()`). If a user's role is
+   granted via the WSO2 IS JWT claim but not yet synced to the local
+   `model_has_roles` table, these two controllers will behave differently
+   from the rest of the API for that user.
 
----
+4. **`roles.level` is only used in one endpoint** (`UserApiController`) and
+   only considers the user's *first* role (`roles()->first()`). A user with
+   multiple roles has hierarchy decided by whichever role Spatie returns
+   first (insertion order), which may not be the most senior one.
 
-### 2. API Routes Are Fully Public ⚠️
+5. **`development officer` / `development officer head` role names are used
+   in allow-lists but not present in `RolePermissionSeeder.php`'s current
+   role list** (the seeder only creates `Zonal DEO` / `Zonal DEO HEAD`, etc.
+   for the zonal hierarchy). These names likely originate from WSO2 IS JWT
+   role claims for a different/older role naming scheme. Confirm whether
+   these are still issued by IS, or whether the allow-lists can be
+   simplified.
 
-`routes/api.php` exists (103 lines) and the authentication middleware is **commented out**:
+6. **`ViewRestrictPolicy` is dead code** (registered but never invoked) — see
+   [§8](#8-viewrestrictpolicy--dead-code). Either remove the registration or
+   wire it into the new controllers if workplace-tree-level (not just
+   zonal-level) scoping is still needed somewhere.
 
-```php
-// Route::middleware('auth:sanctum')->group(...)  ← commented out
-```
+7. **Spatie permission catalogue is largely vestigial** for the API (see
+   §7) — it's seeded and returned to the frontend, but not enforced
+   server-side. If the frontend uses these permission strings to gate UI,
+   there's a risk of UI/backend authorization drift (UI hides a button based
+   on a permission the backend doesn't actually check, or vice versa).
 
-All API endpoints are publicly accessible without any authentication or permission check, including endpoints that expose teacher data, institution data, office lists, and CRUD operations.
-
-**Risk:** Any unauthenticated actor can read and potentially modify data via the API.
-
----
-
-### 3. Role Name Case Inconsistency
-
-Three roles use Title Case while the rest use lowercase. Spatie performs **case-sensitive** role name comparisons, making any `hasRole('teacher advisor')` check silently fail for the `Teacher Advisor` role.
-
-| Role Name | Case |
-|---|---|
-| `super admin` | lowercase ✓ |
-| `teacher` | lowercase ✓ |
-| `principal` | lowercase ✓ |
-| `development officer` | lowercase ✓ |
-| `management assistant` | lowercase ✓ |
-| `sleas officer` | lowercase ✓ |
-| `Teacher Advisor` | **Title Case ⚠️** |
-| `Administrative Service` | **Title Case ⚠️** |
-| `Accountancy Service` | **Title Case ⚠️** |
-
-**Affected file:** `database/seeders/RolePermissionSeeder.php` lines 759, 775, 790.
-
----
-
-### 4. Routes Without Permission Middleware
-
-Several routes in the office profile section have **no permission middleware** while their sibling routes do:
-
-```php
-// Has middleware ✓
-Route::get('offices/moe/{id}/profile/overview', MoeOverview::class)
-    ->middleware(['permission:office.moe.profile.overview.view']);
-
-// No middleware ✗ — only 'auth' required
-Route::get('offices/moe/{id}/profile/moefprofile', MoeProfile::class);
-Route::get('offices/moe/{id}/profile/staff', MoeStaff::class);
-Route::get('offices/moe/{id}/profile/dms-cadre-summary', MoeDmsCadreSummary::class);
-```
-
-The same pattern repeats for **PMOE, PEO, ZEO, and DEO** office sub-pages (`profile`, `staff`, `dms-cadre-summary` tabs). Any authenticated user can access them regardless of role or permissions.
-
----
-
-### 5. `alerts.overview` Route Has No Permission Middleware
-
-```php
-// routes/alerts.php line 17
-Route::get('alerts/overview', AlertsOverview::class)->name('alerts.overview');
-// ← only 'auth' middleware, no permission check
-```
-
-The permission `alerts.overview.view` is defined in the seeder but **never enforced at the route level**. Any authenticated user can reach the alerts overview page. The component filters visible items using `can()`, but the page itself is unprotected.
-
----
-
-### 6. No Super Admin Policy Bypass
-
-`ViewRestrictPolicy` does **not** include a `before()` gate to auto-grant super admin access:
-
-```php
-// Missing:
-public function before(User $user, string $ability): bool|null
-{
-    if ($user->hasRole('super admin')) return true;
-    return null;
-}
-```
-
-This means `super admin` users are also subject to workplace hierarchy checks when accessing profile pages. The super admin's workplace `MOE0000001` must cover all child workplaces via `getAllChildWorkplaces()` for full access to work correctly.
-
----
-
-### 7. `$managementAssistantRole` Variable Reused
-
-In `RolePermissionSeeder.php` lines 744–771, the variable `$managementAssistantRole` is reused for three different roles (`sleas officer`, `Teacher Advisor`). While functionally harmless, it reduces code clarity and creates maintenance risk.
-
-```php
-// Line 729
-$managementAssistantRole = Role::firstOrCreate(['name' => 'management assistant']);
-
-// Line 744 — variable reused for a different role
-$managementAssistantRole = Role::firstOrCreate(['name' => 'sleas officer']);
-
-// Line 759 — reused again
-$managementAssistantRole = Role::firstOrCreate(['name' => 'Teacher Advisor']);
-```
-
----
-
-### 8. `role_or_permission` Middleware Registered but Unused
-
-The `role_or_permission` middleware alias is registered in `bootstrap/app.php` but has **zero usages** in any route file. This is dead configuration.
-
----
-
-## 8. Complete Authorization Coverage Summary
-
-| Mechanism | Count | Location |
-|---|---|---|
-| `permission:` route middleware | 124+ routes | All module route files |
-| `role:super admin` middleware | 2 groups | `web.php`, `mainTable.php` |
-| `$this->authorize('viewRestrict')` | 50+ components | All service module Livewire profiles |
-| `auth()->user()->can($permission)` | 6 calls | Alert Livewire components |
-| `hasRole('super admin')` | 1 call | `UserIndex.php` |
-| `@can` / `@canany` | 45 Blade files | All list/profile views |
-| `@role('super admin')` | 1 call | `sidebar.blade.php` |
-| `role_or_permission` middleware | **0 usages** | Registered but never used |
-| Custom `Gate::` definitions | **0** | None exist |
-| PHP 8.1 native enums for permissions | **0** | None exist |
-| API route protection | **0** | All API routes are public ⚠️ |
+8. **`DeoOfficerController` write actions** (`store`/`update`/`destroy`) do
+   not appear to have an explicit role allow-list at the point they execute
+   — verify this is intentional (e.g. zonal-scoping alone is considered
+   sufficient) or add a check consistent with the read-side scoping.
 
 ---
 

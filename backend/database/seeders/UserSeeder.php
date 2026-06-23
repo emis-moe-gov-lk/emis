@@ -12,10 +12,11 @@ use App\Models\People;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
+use App\Services\Wso2IsProvisioningService;
 
 class UserSeeder extends Seeder
 {
-    public function run(): void
+    public function run(Wso2IsProvisioningService $wso2Is): void
     {
         $staticUsers = [
             ['nic' => '900000000001', 'name' => 'SSA', 'email' => 'superadmin@gmail.com', 'contact' => '0700000001', 'password' => 'Password@123', 'role' => 'SSA', 'service_id' => 'SER006', 'rank_id' => 'RANK018', 'position_id' => 'POS019', 'office_level_id' => 'OLID001', 'workplace_kind' => 'national', 'workplace_value' => 'MOE0000001'],
@@ -31,6 +32,7 @@ class UserSeeder extends Seeder
             ['nic' => '900000000011', 'name' => 'Zonal DEO Kelaniya Zonal', 'email' => 'zonaldeo@gmail.com', 'contact' => '0700000011', 'password' => 'Password@123', 'role' => 'Zonal DEO', 'service_id' => 'SER007', 'rank_id' => 'RANK019', 'position_id' => 'POS021', 'office_level_id' => 'OLID004', 'workplace_kind' => 'zonal', 'workplace_value' => 'Kelaniya Zonal Education Office'],
             ['nic' => '900000000012', 'name' => 'Divisional Head', 'email' => 'divisionalhead@gmail.com', 'contact' => '0700000012', 'password' => 'Password@123', 'role' => 'Divisional Head', 'service_id' => 'SER005', 'rank_id' => 'RANK014', 'position_id' => 'POS010', 'office_level_id' => 'OLID005', 'workplace_kind' => 'divisional', 'workplace_value' => 'Wattala Divisional Education Office'],
             ['nic' => '900000000013', 'name' => 'Divisional DEO', 'email' => 'divisionaldeo@gmail.com', 'contact' => '0700000013', 'password' => 'Password@123', 'role' => 'Divisional DEO', 'service_id' => 'SER007', 'rank_id' => 'RANK019', 'position_id' => 'POS021', 'office_level_id' => 'OLID005', 'workplace_kind' => 'divisional', 'workplace_value' => 'Wattala Divisional Education Office'],
+            ['nic' => '900000000018', 'name' => 'Divisional Deputy Director', 'email' => 'divisionaldeputy@gmail.com', 'contact' => '0700000018', 'password' => 'Password@123', 'role' => 'Divisional Deputy Director', 'service_id' => 'SER005', 'rank_id' => 'RANK014', 'position_id' => 'POS025', 'office_level_id' => 'OLID005', 'workplace_kind' => 'divisional', 'workplace_value' => 'Wattala Divisional Education Office'],
             ['nic' => '900000000014', 'name' => 'Principal', 'email' => 'principal@gmail.com', 'contact' => '0700000014', 'password' => 'Password@123', 'role' => 'principal', 'service_id' => 'SER004', 'rank_id' => 'RANK012', 'position_id' => 'POS006', 'office_level_id' => 'OLID006', 'workplace_kind' => 'school', 'workplace_value' => 'KERAWALAPITIYA VIDYALOKA M.V.'],
             ['nic' => '900000000015', 'name' => 'Vice Principal / Dep Principal', 'email' => 'viceprincipal@gmail.com', 'contact' => '0700000015', 'password' => 'Password@123', 'role' => 'Vice Principal / Dep Principal', 'service_id' => 'SER004', 'rank_id' => 'RANK011', 'position_id' => 'POS008', 'office_level_id' => 'OLID006', 'workplace_kind' => 'school', 'workplace_value' => 'KERAWALAPITIYA VIDYALOKA M.V.'],
             ['nic' => '900000000016', 'name' => 'Teacher', 'email' => 'teachertest@gmail.com', 'contact' => '0700000016', 'password' => 'Password@123', 'role' => 'teacher', 'service_id' => 'SER001', 'rank_id' => 'RANK001', 'position_id' => 'POS001', 'office_level_id' => 'OLID006', 'workplace_kind' => 'school', 'workplace_value' => 'KERAWALAPITIYA VIDYALOKA M.V.'],
@@ -63,6 +65,14 @@ class UserSeeder extends Seeder
 
             $role = Role::firstOrCreate(['name' => $staticUser['role']]);
             $user->syncRoles([$role->name]);
+
+            $result = $wso2Is->provisionUser($user, $staticUser['password'], $staticUser['role']);
+            if ($result['provisioned'] ?? false) {
+                $this->command->info("  WSO2: provisioned {$staticUser['email']}");
+            } else {
+                $reason = $result['error'] ?? ($result['skipped'] ?? false ? 'WSO2 disabled' : 'unknown');
+                $this->command->warn("  WSO2 provisioning failed for {$staticUser['email']}: {$reason}");
+            }
 
             if (! $existingPeopleId) {
                 continue;

@@ -1,12 +1,13 @@
 import { Label, Select, TextInput, Radio } from "flowbite-react";
 import { HiInformationCircle } from "react-icons/hi";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import api from "@/api/axios";
 
 export default function StepCurrentAppointment({
   formData,
   setFormData,
   onValid,
+  isDeo = false,
 }) {
   const isSLTSService = (service) =>
     [service?.service_name, service?.name, service?.service_code, service?.code]
@@ -99,15 +100,19 @@ export default function StepCurrentAppointment({
     }
     if (!formData.currentAppointmentLetter)
       e.currentAppointmentLetter = "Required";
-    if (!formData.currentAppointmentService)
-      e.currentAppointmentService = "Required";
-    else if (
-      !isAllowedCurrentAppointmentService(formData.currentAppointmentService)
-    )
-      e.currentAppointmentService = "Only SLTS service can be selected";
-    if (!formData.currentAppointmentRank) e.currentAppointmentRank = "Required";
-    if (!formData.currentAppointmentSubject)
-      e.currentAppointmentSubject = "Required";
+
+    if (!isDeo) {
+      if (!formData.currentAppointmentService)
+        e.currentAppointmentService = "Required";
+      else if (
+        !isAllowedCurrentAppointmentService(formData.currentAppointmentService)
+      )
+        e.currentAppointmentService = "Only SLTS service can be selected";
+      if (!formData.currentAppointmentRank) e.currentAppointmentRank = "Required";
+      if (!formData.currentAppointmentSubject)
+        e.currentAppointmentSubject = "Required";
+    }
+
     if (!formData.currentAppointmentZone) e.currentAppointmentZone = "Required";
     if (!formData.currentAppointmentInstCategory)
       e.currentAppointmentInstCategory = "Required";
@@ -143,13 +148,39 @@ export default function StepCurrentAppointment({
 
   const getFieldColor = (key) => (displayErrors[key] ? "failure" : "gray");
 
-  // Set default registration type
+  // Set default registration type and position for DEO
   useEffect(() => {
-    if (!formData.currentAppointmentRegType) {
-      update("currentAppointmentRegType", "existing");
+    if (isDeo) {
+      setFormData((prev) => ({
+        ...prev,
+        currentAppointmentRegType: prev.currentAppointmentRegType || "existing",
+        currentAppointmentService: prev.currentAppointmentService || "SER007",
+        currentAppointmentPosition: prev.currentAppointmentPosition || "POS021",
+        currentAppointmentRank: prev.currentAppointmentRank || "RANK019",
+      }));
+    } else {
+      if (!formData.currentAppointmentRegType) {
+        update("currentAppointmentRegType", "existing");
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isDeo]);
+
+  // Ensure POS021 is in the positions list if isDeo is true
+  const displayPositions = useMemo(() => {
+    if (!isDeo) return currentAppointmentPositions;
+    
+    const hasDeoPosition = currentAppointmentPositions.some(
+      (p) => String(p.position_id) === "POS021"
+    );
+    
+    if (hasDeoPosition) return currentAppointmentPositions;
+    
+    return [
+      ...currentAppointmentPositions,
+      { id: "DEO_POS_DEFAULT", position_id: "POS021", position_name: "Development Officer" }
+    ];
+  }, [isDeo, currentAppointmentPositions]);
 
   const update = (key, value) => {
     setFormData((prev) => {
@@ -295,73 +326,77 @@ export default function StepCurrentAppointment({
       </div>
 
       {/* Service & Rank */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-4 gap-y-2">
-        <div>
-          <Label htmlFor="currentAppointmentService">
-            Current Service <span className="text-red-600">*</span>
-          </Label>
-          <Select
-            id="currentAppointmentService"
-            value={formData.currentAppointmentService || ""}
-            disabled={loading}
-            color={getFieldColor("currentAppointmentService")}
-            onChange={(e) =>
-              update("currentAppointmentService", e.target.value)
-            }
-          >
-            <option value="">{selectPlaceholder}</option>
-            {availableCurrentAppointmentServices.map((s) => (
-              <option key={s.id || s.service_id} value={getServiceValue(s)}>
-                {getServiceLabel(s)}
-              </option>
-            ))}
-          </Select>
-          {renderError("currentAppointmentService")}
-        </div>
+      {!isDeo && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-4 gap-y-2">
+          <div>
+            <Label htmlFor="currentAppointmentService">
+              Current Service <span className="text-red-600">*</span>
+            </Label>
+            <Select
+              id="currentAppointmentService"
+              value={formData.currentAppointmentService || ""}
+              disabled={loading}
+              color={getFieldColor("currentAppointmentService")}
+              onChange={(e) =>
+                update("currentAppointmentService", e.target.value)
+              }
+            >
+              <option value="">{selectPlaceholder}</option>
+              {availableCurrentAppointmentServices.map((s) => (
+                <option key={s.id || s.service_id} value={getServiceValue(s)}>
+                  {getServiceLabel(s)}
+                </option>
+              ))}
+            </Select>
+            {renderError("currentAppointmentService")}
+          </div>
 
-        <div>
-          <Label htmlFor="currentAppointmentRank">
-            Current Service Rank <span className="text-red-600">*</span>
-          </Label>
-          <Select
-            id="currentAppointmentRank"
-            value={formData.currentAppointmentRank || ""}
-            disabled={loading}
-            color={getFieldColor("currentAppointmentRank")}
-            onChange={(e) => update("currentAppointmentRank", e.target.value)}
-          >
-            <option value="">{selectPlaceholder}</option>
-            {currentAppointmentRanks.map((r) => (
-              <option key={r.id} value={r.rank_id}>
-                {r.name || r.rank_name}
-              </option>
-            ))}
-          </Select>
-          {renderError("currentAppointmentRank")}
+          <div>
+            <Label htmlFor="currentAppointmentRank">
+              Current Service Rank <span className="text-red-600">*</span>
+            </Label>
+            <Select
+              id="currentAppointmentRank"
+              value={formData.currentAppointmentRank || ""}
+              disabled={loading}
+              color={getFieldColor("currentAppointmentRank")}
+              onChange={(e) => update("currentAppointmentRank", e.target.value)}
+            >
+              <option value="">{selectPlaceholder}</option>
+              {currentAppointmentRanks.map((r) => (
+                <option key={r.id} value={r.rank_id}>
+                  {r.name || r.rank_name}
+                </option>
+              ))}
+            </Select>
+            {renderError("currentAppointmentRank")}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Teaching Subject */}
-      <div>
-        <Label htmlFor="currentAppointmentSubject">
-          Current teaching subject <span className="text-red-600">*</span>
-        </Label>
-        <Select
-          id="currentAppointmentSubject"
-          value={formData.currentAppointmentSubject || ""}
-          disabled={loading}
-           color={getFieldColor("currentAppointmentSubject")}
-          onChange={(e) => update("currentAppointmentSubject", e.target.value)}
-        >
-          <option value="">{selectPlaceholder}</option>
-          {currentAppointmentSubjects.map((s) => (
-            <option key={s.id} value={s.subject_id}>
-              {s.name_en}
-            </option>
-          ))}
-        </Select>
-        {renderError("currentAppointmentSubject")}
-      </div>
+      {!isDeo && (
+        <div>
+          <Label htmlFor="currentAppointmentSubject">
+            Current teaching subject <span className="text-red-600">*</span>
+          </Label>
+          <Select
+            id="currentAppointmentSubject"
+            value={formData.currentAppointmentSubject || ""}
+            disabled={loading}
+             color={getFieldColor("currentAppointmentSubject")}
+            onChange={(e) => update("currentAppointmentSubject", e.target.value)}
+          >
+            <option value="">{selectPlaceholder}</option>
+            {currentAppointmentSubjects.map((s) => (
+              <option key={s.id} value={s.subject_id}>
+                {s.name_en}
+              </option>
+            ))}
+          </Select>
+          {renderError("currentAppointmentSubject")}
+        </div>
+      )}
 
       {/* Zone & Institution Category */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-4 gap-y-2">
@@ -439,20 +474,30 @@ export default function StepCurrentAppointment({
         <Label htmlFor="currentAppointmentPosition">
           Current Appointed Position <span className="text-red-600">*</span>
         </Label>
-        <Select
-          id="currentAppointmentPosition"
-          value={formData.currentAppointmentPosition || ""}
-          disabled={loading}
-           color={getFieldColor("currentAppointmentPosition")}
-          onChange={(e) => update("currentAppointmentPosition", e.target.value)}
-        >
-          <option value="">{selectPlaceholder}</option>
-          {currentAppointmentPositions.map((p) => (
-            <option key={p.id} value={p.position_id}>
-              {p.position_name}
-            </option>
-          ))}
-        </Select>
+        {isDeo ? (
+          <TextInput
+            id="currentAppointmentPositionDisplay"
+            value="Development Officer"
+            readOnly
+            shadow
+            color={getFieldColor("currentAppointmentPosition")}
+          />
+        ) : (
+          <Select
+            id="currentAppointmentPosition"
+            value={formData.currentAppointmentPosition || ""}
+            disabled={loading}
+            color={getFieldColor("currentAppointmentPosition")}
+            onChange={(e) => update("currentAppointmentPosition", e.target.value)}
+          >
+            <option value="">{selectPlaceholder}</option>
+            {displayPositions.map((p) => (
+              <option key={p.id} value={p.position_id}>
+                {p.position_name}
+              </option>
+            ))}
+          </Select>
+        )}
         {renderError("currentAppointmentPosition")}
       </div>
     </div>

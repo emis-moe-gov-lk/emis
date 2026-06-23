@@ -6,16 +6,17 @@ import StatCard from "../components/Dashbord/StatCard";
 import AnalyticsHeader from "../components/Dashbord/Analytics/AnalyticsHeader";
 import OfficeGrid from "../components/Dashbord/Analytics/OfficeGrid";
 import { useEffect, useState } from "react";
-import { useAuthContext } from "@asgardeo/auth-react";
 import Spinner from "../components/UiComponents/Spinner";
 import InstitutionCard from "../components/Dashbord/InstitutionCard";
 import FullCalendar from "./timetable/FullCalendar";
+import EditRequestsPanel from "../components/Dashbord/EditRequestsPanel";
 import { useAuthUser } from "@/context/useAuthUser";
+import api from "@/api/axios";
 
 const UpdateDashboard = () => {
-  const { getAccessToken } = useAuthContext();
-  const { peopleId, isLoading: isAuthLoading } = useAuthUser();
+  const { peopleId, isLoading: isAuthLoading, hasRole } = useAuthUser();
   const [userData, setUserData] = useState(null);
+  const [hasError, setHasError] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [weekDays, setWeekDays] = useState(getWeekDays(selectedDate));
@@ -27,32 +28,27 @@ const UpdateDashboard = () => {
         return;
       }
 
-      const token = await getAccessToken();
       try {
-        const res = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL}/dashboard/${peopleId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          },
-        );
-        const data = await res.json();
-        if (data.status === "success") {
-          setUserData(data.data);
-          console.log("Dashboard data:", data.data);
+        const res = await api.get(`/dashboard/${peopleId}`);
+        if (res.data?.status === "success") {
+          setUserData(res.data.data);
         } else {
+          setHasError(true);
           console.error("Failed to fetch dashboard data");
         }
       } catch (err) {
+        setHasError(true);
         console.error("Error fetching dashboard data:", err);
       }
     };
 
     fetchDashboard();
-  }, [getAccessToken, peopleId]);
+  }, [peopleId]);
   // const permissions = user?.permissions;
+
+  if (hasError) {
+    return <div className="p-8 text-red-500">Failed to load dashboard. Please refresh the page.</div>;
+  }
 
   if (isAuthLoading || !peopleId || !userData) {
     return <Spinner />;
@@ -129,6 +125,8 @@ const UpdateDashboard = () => {
       events={todayEvents}
       onClose={() => setShowFullCalendar(false)}
     />
+
+    {hasRole("zonal deo") && <EditRequestsPanel />}
   </div>
 </div>  
 

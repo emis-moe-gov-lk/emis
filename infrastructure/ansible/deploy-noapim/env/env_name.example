@@ -1,0 +1,110 @@
+---
+# ============================================================
+# EMIS Deployment Environment — EXAMPLE
+# ============================================================
+# Use this file as a template for new environments.
+# Copy to <env>.yml, and fill in the required [REQUIRED] values.
+# Credentials marked [VAULT] should be encrypted:
+#   ansible-vault encrypt_string 'value' --name 'key'
+# ============================================================
+
+# ── Stack identity ───────────────────────────────────────────
+stack_name: emis-example
+deploy_env: example
+expected_public_ip: "127.0.0.1" # [REQUIRED] Update to actual reverse proxy IP
+stack_deploy_path: /opt/emis-example
+stack_network_subnet: "172.x.0.0/16"
+
+# -- Host Port Mappings --
+frontend_host_port: 80
+backend_host_port:  9000
+is_host_port:       9444
+
+# ── Docker image tags ────────────────────────────────────────
+frontend_image_repo: ghcr.io/your-org/emis-frontend     # [REQUIRED]
+frontend_image_tag:  "1.0.0"                            # [REQUIRED]
+backend_image_repo:  ghcr.io/your-org/emis-backend      # [REQUIRED]
+backend_image_tag:   "1.0.0"                            # [REQUIRED]
+is_image_repo:       ghcr.io/your-org/emis-is           # [REQUIRED]
+is_image_tag:        "1.0.0"                            # [REQUIRED]
+
+# ── Docker registry auth ─────────────────────────────────────
+registry_host:     ghcr.io
+registry_username: your-org                             # [REQUIRED]
+registry_password: changeme                             # [REQUIRED] [VAULT]
+
+# ── MySQL — EMIS database ────────────────────────────────────
+mysql_root_password: changeme                           # [REQUIRED] [VAULT]
+mysql_emis_db:       emis_db_name
+mysql_emis_user:     emis_db_user
+mysql_emis_password: changeme                           # [REQUIRED] [VAULT]
+mysql_bind_address:  0.0.0.0
+
+# ── MySQL — WSO2 IS databases ────────────────────────────────
+mysql_wso2_user:          wso2_db_user
+mysql_wso2_password:      changeme                      # [REQUIRED] [VAULT]
+mysql_is_db:              wso2_is_db
+mysql_is_shared_db:       wso2_is_shared_db
+
+# ── WSO2 IS ──────────────────────────────────────────────────
+is_hostname:          idp.example.com                   # [REQUIRED]
+is_proxy_host:        idp.example.com
+is_proxy_port:        "443"
+is_admin_user:        admin
+is_admin_password:    changeme                          # [REQUIRED] [VAULT]
+is_db_host:           "{{ hostvars[groups['db_host'][0]].ansible_host }}"
+is_db_port:           "3306"
+
+# ── Backend (Laravel) ────────────────────────────────────────
+app_name:    EMIS
+app_env:     production
+app_key:     base64:example_key==                       # [REQUIRED] [VAULT]
+app_debug:   "false"
+app_url:     https://api.example.com                    # [REQUIRED]
+
+db_host:     "{{ hostvars[groups['db_host'][0]].ansible_host }}"
+db_port:     "3306"
+db_database: "{{ mysql_emis_db }}"
+db_username: "{{ mysql_emis_user }}"
+db_password: "{{ mysql_emis_password }}"
+
+wso2_enabled:    "True"
+wso2_base_url:   "https://{{ is_hostname }}"
+wso2_verify_ssl: "False"
+# Populated after configure-is-only.yml runs:
+wso2_m2m_client_id:     ""
+wso2_m2m_client_secret: ""
+wso2_teacher_role_id:   ""
+
+memcached_host: memcached
+
+# ── Frontend (Vite — baked at image build time) ──────────────
+vite_asgardeo_base_url:  "https://{{ is_hostname }}"
+vite_asgardeo_client_id: ""
+vite_signin_redirect_url:  https://app.example.com/authentication/callback
+vite_signout_redirect_url: https://app.example.com/logout
+# Direct backend URL — no APIM gateway in this topology
+vite_api_base_url:         https://api.example.com/api
+
+# ── EMIS application resources (used by configure-is-only) ──
+nemis_roles:
+  - RoleName
+
+nemis_users:
+  - username:    sampleuser
+    password:    SamplePassword123!                      # [VAULT]
+    first_name:  Sample
+    last_name:   User
+    email:       sampleuser@example.com
+    roles:       [RoleName]
+
+# OIDC apps created directly in IS (no APIM devportal)
+nemis_apps:
+  - name:          "EMIS Web App"
+    grant_types:   [authorization_code, refresh_token]
+    callback_url:  "https://app.example.com/authentication/callback"
+    public_client: true
+  - name:          "EMIS-HRM M2M"
+    grant_types:   [client_credentials]
+    callback_url:  ""
+    public_client: false

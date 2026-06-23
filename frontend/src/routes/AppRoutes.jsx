@@ -27,6 +27,10 @@ import PrincipalList from "@/pages/principal/PrincipalList";
 import PrincipalProfile from "@/pages/principal/PrincipalProfile";
 import RegPrincipal from "@/pages/principal/RegPrincipal";
 
+import SchoolDeo from "@/pages/schooldeo/SchoolDeo";
+import DeoProfile from "@/pages/schooldeo/DeoProfile";
+import RegDeo from "@/pages/schooldeo/RegDeo";
+
 import OfficesOverview from "@/pages/offices/OfficesOverview";
 import MoeOfficeList from "@/pages/offices/MoeOfficeList";
 import PmoeOfficeList from "@/pages/offices/PmoeOfficeList";
@@ -59,13 +63,29 @@ import UserCreate from "@/pages/users/UserCreate";
 import UserEdit from "@/pages/users/UserEdit";
 import { TimetableProvider } from "../context/TimeTableContext.jsx";
 import { TeacherFormProvider } from "../context/TeacherFormContext.jsx";
-import DosDirectory from "../pages/DosDirectory.jsx";
+import ZonalDirectory from "../pages/zonal/ZonalDirectory.jsx";
+import DivisionDeoDirectory from "../pages/division/DivisionDeoDirectory.jsx";
+import DivisionAdminDirectory from "../pages/division/DivisionAdminDirectory.jsx";
 import DosBulkUpload from "../pages/dos/DosBulkUpload.jsx";
 import RegDos from "../pages/dos/RegDos.jsx";
 import DosAdminForm from "../pages/dos/DosAdminForm.jsx";
 import RegDeoOfficer from "../pages/dos/RegDeoOfficer.jsx";
+import RegDivisionDeoOfficer from "../pages/division/RegDivisionDeoOfficer.jsx";
+import RegAdmin from "../pages/division/RegDivisionAdmin";
+import DivisionDeoProfile from "../pages/division/DivisionDeoProfile.jsx";
+import DivisionAdminProfile from "../pages/division/DivisionAdminProfile.jsx";
 import DosList from "../components/dos/DosList.jsx";
 import DosAdminProfile from "../pages/dos/DosAdminProfile.jsx";
+
+import ProvincialAdminDirectory from "@/pages/provincial/ProvincialAdminDirectory";
+import ProvincialDeoDirectory from "@/pages/provincial/ProvincialDeoDirectory";
+import RegProvincialAdmin from "@/pages/provincial/RegProvincialAdmin";
+import RegProvincialDeoOfficer from "@/pages/provincial/RegProvincialDeoOfficer";
+import ProvincialAdminProfile from "@/pages/provincial/ProvincialAdminProfile";
+import ProvincialDeoProfile from "@/pages/provincial/ProvincialDeoProfile";
+import MoeAdminDirectory from "../pages/moe/MoeAdminDirectory.jsx";
+import RegMoeAdmin from "../pages/moe/RegMoeAdmin.jsx";
+import MoeAdminProfile from "../pages/moe/MoeAdminProfile.jsx";
 
 import AlertsOverview from "../components/Alert/AlertsOverview.jsx";
 
@@ -73,6 +93,7 @@ import PendingConfirmationList from "../components/Alert/PendingConfirmationList
 import PendingVerificationList from "../components/Alert/PendingVerificationList.jsx";
 import RejectedList from "../components/Alert/RejectedList.jsx";
 import RevisedList from "../components/Alert/RevisedList.jsx";
+import Inbox from "../pages/inbox/inbox.jsx";
 
 export default function AppRoutes() {
   return (
@@ -127,6 +148,8 @@ export default function AppRoutes() {
                 <Route path="report" element={<TeacherReport />} />
               </Route>
             </Route>
+
+            <Route path="inbox" element={<Inbox />} />
 
             <Route path="/dashboard" element={<UpdateDashbord />} />
 
@@ -241,21 +264,59 @@ export default function AppRoutes() {
               <Route path=":id" element={<TeacherProfile />} />
             </Route>
 
+            <Route path="employees/schooldeo">
+              <Route index element={<SchoolDeo />} />
+              <Route path="create" element={<RegDeo />} />
+              <Route
+                path=":id"
+                element={
+                  <TeacherFormProvider>
+                    <DeoProfile />
+                  </TeacherFormProvider>
+                }
+              />
+            </Route>
+
             <Route path="employees/development-officers">
-              <Route index element={<DosDirectory />} />
+              <Route index element={<ZonalDirectory />} />
               <Route path="bulk-upload" element={<DosBulkUpload />} />
               <Route path="create" element={<RegDeoOfficer />} />
               <Route path=":id" element={<DosAdminProfile />} />
             </Route>
+            <Route path="employees/division/deo">
+              <Route index element={<DivisionDeoDirectory />} />
+              <Route path="create" element={<RegDivisionDeoOfficer />} />
+              <Route path=":id" element={<DivisionDeoProfile />} />
+            </Route>
+            <Route path="employees/division/admin">
+              <Route index element={<DivisionAdminDirectory />} />
+              <Route path="create" element={<RegAdmin />} />
+              <Route path=":id" element={<DivisionAdminProfile />} />
+            </Route>
+            <Route path="employees/moe/admin">
+              <Route index element={<MoeAdminDirectory />} />
+              <Route path="create" element={<RegMoeAdmin />} />
+              <Route path=":id" element={<MoeAdminProfile />} />
+            </Route>
+            <Route path="employees/provincial/admin">
+              <Route index element={<ProvincialAdminDirectory />} />
+              <Route path="create" element={<RegProvincialAdmin />} />
+              <Route path=":id" element={<ProvincialAdminProfile />} />
+            </Route>
+            <Route path="employees/provincial/deo">
+              <Route index element={<ProvincialDeoDirectory />} />
+              <Route path="create" element={<RegProvincialDeoOfficer />} />
+              <Route path=":id" element={<ProvincialDeoProfile />} />
+            </Route>
             <Route path="employees/edu-directors">
-              <Route index element={<DosDirectory />} />
+              <Route index element={<ZonalDirectory />} />
               <Route path="bulk-upload" element={<DosBulkUpload />} />
               <Route path="create" element={<DosAdminForm />} />
               <Route path=":id" element={<DosAdminProfile />} />
             </Route>
 
             <Route path="employees/zonaldirector">
-              <Route index element={<DosDirectory />} />
+              <Route index element={<ZonalDirectory />} />
               <Route path="bulk-upload" element={<DosBulkUpload />} />
               <Route path="create" element={<RegDos />} />
               <Route path=":id" element={<DosAdminProfile />} />

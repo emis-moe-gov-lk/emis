@@ -12,10 +12,11 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 use App\Helpers\NicHelper;
+use App\Services\Wso2IsProvisioningService;
 
 class SuperAdminSeeder extends Seeder
 {
-    public function run(): void
+    public function run(Wso2IsProvisioningService $wso2Is): void
     {
         // Ensure the role exists
         $superAdminRole = Role::firstOrCreate(['name' => 'super admin']);
@@ -67,7 +68,7 @@ class SuperAdminSeeder extends Seeder
                 'name'          => $person->name_with_initials,
                 'email'         => 'superadmin@example.com',
                 'contact'       => '0712345678',
-                'password'      => 'password@*',
+                'password'      => 'Password@*',
                 'active_status' => '1',
             ]
         );
@@ -109,6 +110,14 @@ class SuperAdminSeeder extends Seeder
 
         // Assign role
         $user->assignRole($superAdminRole);
+
+        $result = $wso2Is->provisionUser($user, 'SuperAdmin@123', 'super admin');
+        if ($result['provisioned'] ?? false) {
+            $this->command->info("  WSO2: provisioned {$user->email}");
+        } else {
+            $reason = $result['error'] ?? ($result['skipped'] ?? false ? 'WSO2 disabled' : 'unknown');
+            $this->command->warn("  WSO2 provisioning failed for {$user->email}: {$reason}");
+        }
 
         // ---------------------------------------------------------------
         // Second Super Admin
@@ -155,7 +164,7 @@ class SuperAdminSeeder extends Seeder
                 'name'          => $person2->name_with_initials,
                 'email'         => 'mohammedshadhir5@gmail.com',
                 'contact'       => '0712345679',
-                'password'      => 'password@*',
+                'password'      => 'Password@*',
                 'active_status' => '1',
             ]
         );
@@ -191,5 +200,13 @@ class SuperAdminSeeder extends Seeder
         );
 
         $user2->assignRole($superAdminRole);
+
+        $result = $wso2Is->provisionUser($user2, 'SuperAdmin@123', 'super admin');
+        if ($result['provisioned'] ?? false) {
+            $this->command->info("  WSO2: provisioned {$user2->email}");
+        } else {
+            $reason = $result['error'] ?? ($result['skipped'] ?? false ? 'WSO2 disabled' : 'unknown');
+            $this->command->warn("  WSO2 provisioning failed for {$user2->email}: {$reason}");
+        }
     }
 }

@@ -10,9 +10,6 @@
     - community.mysql
   vars:
     mysql_socket: /var/run/mysqld/mysqld.sock
-    known_users:
-      - emis-user
-      - wso2-user
 
   tasks:
     # ── Check MySQL is reachable ──────────────────────────────────────────────
@@ -28,30 +25,20 @@
         msg: "MySQL is not running or socket not found — skipping database teardown."
       when: mysql_check.rc != 0
 
-    # ── Discover databases to drop ────────────────────────────────────────────
+    # ── Set databases and users to clean up ───────────────────────────────────
 
-    - name: Get list of databases matching WSO2 or EMIS patterns
-      community.mysql.mysql_query:
-        login_unix_socket: "{{ mysql_socket }}"
-        query: >
-          SELECT schema_name FROM information_schema.schemata
-          WHERE schema_name LIKE 'wso2%'
-             OR schema_name LIKE 'emis%';
-      register: db_list
-      when: mysql_check.rc == 0
-
-    - name: Set list of databases to drop
+    - name: Set databases and users to clean up
       ansible.builtin.set_fact:
-        databases_to_drop: "{{ db_list.query_result[0] | default([]) | map(attribute='SCHEMA_NAME') | list }}"
-      when:
-        - mysql_check.rc == 0
-        - db_list.query_result is defined
-        - db_list.query_result | length > 0
+        databases_to_drop: "{{ [mysql_emis_db | default(''), mysql_is_db | default(''), mysql_is_shared_db | default('')] | reject('equalto', '') | list }}"
+        users_to_remove: "{{ [mysql_emis_user | default(''), mysql_wso2_user | default('')] | reject('equalto', '') | list }}"
+      when: mysql_check.rc == 0
 
     - name: Show databases to drop
       ansible.builtin.debug:
         msg: "Databases to drop: {{ databases_to_drop | default([]) }}"
-      when: mysql_check.rc == 0
+      when:
+        - mysql_check.rc == 0
+        - databases_to_drop | length > 0
 
     # ── Drop discovered databases ─────────────────────────────────────────────
 
@@ -63,19 +50,20 @@
       loop: "{{ databases_to_drop | default([]) }}"
       when:
         - mysql_check.rc == 0
-        - databases_to_drop is defined
         - databases_to_drop | length > 0
 
     # ── Remove known MySQL users ──────────────────────────────────────────────
 
-    - name: Remove known EMIS MySQL users
+    - name: Remove EMIS and WSO2 MySQL users
       community.mysql.mysql_user:
         name: "{{ item }}"
         host_all: true
         state: absent
         login_unix_socket: "{{ mysql_socket }}"
-      loop: "{{ known_users }}"
-      when: mysql_check.rc == 0
+      loop: "{{ users_to_remove | default([]) }}"
+      when:
+        - mysql_check.rc == 0
+        - users_to_remove | length > 0
       ignore_errors: true
 
     # ── Flush privileges ──────────────────────────────────────────────────────
@@ -88,5 +76,5 @@
 
     - name: Database teardown complete
       ansible.builtin.debug:
-        msg: "Dropped: {{ databases_to_drop | default([]) }}. Users removed: {{ known_users }}."
+        msg: "Dropped: {{ databases_to_drop | default([]) }}. Users removed: {{ users_to_remove | default([]) }}."
       when: mysql_check.rc == 0

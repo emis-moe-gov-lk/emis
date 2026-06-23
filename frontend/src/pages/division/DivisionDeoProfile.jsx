@@ -1,0 +1,873 @@
+import { useEffect, useState } from "react";
+import { getEditRequests, reviewEditRequest } from "@/api/userService";
+import { useParams, useNavigate } from "react-router-dom";
+import { HiDocumentText, HiPlus } from "react-icons/hi";
+import { Badge, Spinner } from "flowbite-react";
+import StatusBadge from "@/components/common/StatusBadge";
+import { getDivisionDeoById, addDivisionDeoServiceHistoryEntry, addDivisionDeoPastService } from "@/api/divisionDeoService";
+import ProfileDataTable from "@/components/common/ProfileDataTable";
+import BackToListButton from "@/components/UiComponents/BackToListButton";
+import toast from "react-hot-toast";
+import {
+  DEFAULT_SERVICE_HISTORY_FORM,
+  DEFAULT_PAST_SERVICE_FORM,
+  ServiceHistoryTab,
+  ServiceHistoryModal,
+  PastServiceModal,
+  isSchoolBasedService,
+} from "@/components/common/ServiceHistory";
+
+import Can from "@/components/common/Can";
+import { PermissionGroups } from "@/data/permissionGroups";
+
+const formatDate = (value) => {
+  if (!value) return null;
+  return String(value).slice(0, 10);
+};
+
+const tablePrimaryCellClass =
+  "px-5 py-4 font-semibold text-gray-900 dark:text-gray-100";
+const tableCellClass = "px-5 py-4 text-gray-700 dark:text-gray-300";
+const tableActionButtonClass =
+  "rounded-full border border-gray-300 dark:border-gray-700 px-4 py-2 text-xs font-extrabold hover:bg-gray-50 dark:hover:bg-gray-800";
+
+export default function DivisionDeoProfile() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+
+  const [deo, setDeo] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("general");
+  const [editRequests, setEditRequests] = useState([]);
+  const [editRequestRefreshKey, setEditRequestRefreshKey] = useState(0);
+
+  const [serviceHistory, setServiceHistory] = useState({ appointments: [], historyEntries: [], currentAppointment: null });
+  const [isServiceHistoryModalOpen, setIsServiceHistoryModalOpen] = useState(false);
+  const [serviceHistoryForm, setServiceHistoryForm] = useState(DEFAULT_SERVICE_HISTORY_FORM);
+  const [isSavingServiceHistory, setIsSavingServiceHistory] = useState(false);
+  const [isPastServiceModalOpen, setIsPastServiceModalOpen] = useState(false);
+  const [pastServiceForm, setPastServiceForm] = useState(DEFAULT_PAST_SERVICE_FORM);
+  const [isSavingPastService, setIsSavingPastService] = useState(false);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await getDivisionDeoById(id);
+        if (res.status === "success") {
+          const d = res.data;
+          setDeo(d);
+          setServiceHistory({
+            appointments: d.my_appointments ?? [],
+            historyEntries: d.appointment_history ?? [],
+            currentAppointment: d.current_appointment ?? null,
+          });
+        }
+      } catch (err) {
+        console.error("Failed to load DEO profile", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [id]);
+
+  useEffect(() => {
+    if (!deo?.people_id) return;
+    getEditRequests(deo.people_id)
+      .then((res) => setEditRequests(res.data?.data ?? []))
+      .catch(() => setEditRequests([]));
+  }, [deo?.people_id, editRequestRefreshKey]);
+
+  const openServiceHistoryModal = () => {
+    const firstApptId = serviceHistory.appointments[0]?.appointment_id ?? "";
+    setServiceHistoryForm({ ...DEFAULT_SERVICE_HISTORY_FORM, appointment_id: firstApptId });
+    setIsServiceHistoryModalOpen(true);
+  };
+
+  const closeServiceHistoryModal = () => {
+    setIsServiceHistoryModalOpen(false);
+    setServiceHistoryForm(DEFAULT_SERVICE_HISTORY_FORM);
+  };
+
+  const openPastServiceModal = () => {
+    setPastServiceForm(DEFAULT_PAST_SERVICE_FORM);
+    setIsPastServiceModalOpen(true);
+  };
+
+  const closePastServiceModal = () => {
+    setIsPastServiceModalOpen(false);
+    setPastServiceForm(DEFAULT_PAST_SERVICE_FORM);
+  };
+
+  const handlePastServiceFieldChange = (key, value) => {
+    setPastServiceForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handlePastServiceSave = async () => {
+    const { service_id, rank_id, position_id, workplace_id, first_appointment_date } = pastServiceForm;
+    if (!service_id || !rank_id || !position_id || !workplace_id || !first_appointment_date) {
+      toast.error("Please fill in all required fields.");
+      return;
+    }
+    setIsSavingPastService(true);
+    try {
+      const serviceName = pastServiceForm._service_name ?? "";
+      const officeLevelId = isSchoolBasedService(serviceName) ? "OLID006" : "OLID005";
+      const res = await addDivisionDeoPastService(id, { ...pastServiceForm, office_level_id: officeLevelId });
+      if (res?.status === "success") {
+        toast.success("Past service block added.");
+        closePastServiceModal();
+        setServiceHistory((prev) => ({
+          ...prev,
+          appointments: [res.data, ...prev.appointments],
+        }));
+      } else {
+        toast.error(res?.message ?? "Failed to save.");
+      }
+    } catch (err) {
+      const errors = err?.response?.data?.errors;
+      if (errors) {
+        Object.values(errors).flat().forEach((msg) => toast.error(msg));
+      } else {
+        toast.error(err?.response?.data?.message ?? "Failed to save.");
+      }
+    } finally {
+      setIsSavingPastService(false);
+    }
+  };
+
+  const handleServiceHistoryFieldChange = (field, value) => {
+    setServiceHistoryForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleServiceHistorySave = async () => {
+    setIsSavingServiceHistory(true);
+    try {
+      const selectedAppt = serviceHistory.appointments.find(
+        (a) => a.appointment_id === serviceHistoryForm.appointment_id,
+      ) ?? serviceHistory.appointments[0];
+
+      const serviceName = selectedAppt?.service?.service_name ?? "";
+      const isOfficeBased = !/teachers\s+service|principals\s+service|slts|slps/i.test(serviceName);
+
+      const payload = {
+        ...serviceHistoryForm,
+        service_id: selectedAppt?.service_id ?? serviceHistoryForm.service_id,
+        office_level_id: isOfficeBased ? "OLID005" : "OLID006",
+      };
+
+      const res = await addDivisionDeoServiceHistoryEntry(id, payload);
+      if (res.status === "success") {
+        toast.success("Service history entry added");
+        setServiceHistory((prev) => ({
+          ...prev,
+          historyEntries: [res.data, ...prev.historyEntries],
+        }));
+        closeServiceHistoryModal();
+      } else {
+        toast.error(res.message ?? "Failed to save entry");
+      }
+    } catch (err) {
+      const errors = err?.response?.data?.errors;
+      if (errors) {
+        Object.values(errors).flat().forEach((msg) => toast.error(msg));
+      } else {
+        toast.error(err?.response?.data?.message ?? "Failed to save entry");
+      }
+    } finally {
+      setIsSavingServiceHistory(false);
+    }
+  };
+
+  const tabs = [
+    { id: "general", label: "General" },
+    { id: "qualification", label: "Qualification" },
+    { id: "employment", label: "Employment" },
+    { id: "service_history", label: "Service History" },
+    { id: "service", label: "Service" },
+    { id: "wop", label: "W&OP and Payment" },
+    { id: "family", label: "Family" },
+    { id: "edit", label: "Edit Request" },
+  ];
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 m-6">
+        <Spinner size="xl" color="info" />
+        <p className="mt-4 text-gray-500 dark:text-gray-400 animate-pulse">
+          Loading profile...
+        </p>
+      </div>
+    );
+  }
+
+  if (!deo) {
+    return (
+      <div className="p-8 text-center text-red-500">Profile not found.</div>
+    );
+  }
+
+  const ca = deo.current_appointment;
+  const fa = deo.appointment;
+
+  const profile = {
+    fullName: deo.full_name,
+    initialsName: deo.name_with_initials,
+    nic: deo.nic,
+    employeeId: deo.people_id,
+    position: ca?.position?.position_name ?? "—",
+    service: ca?.service?.service_name ?? fa?.service?.service_name ?? "—",
+    dob: formatDate(deo.date_of_birth),
+    gender: deo.gender?.gender_name,
+    religion: deo.religion?.religion_name,
+    ethnicity: deo.ethnicity?.ethnicity_name,
+    civilStatus: deo.civil_status?.civil_status_name,
+    bloodGroup: deo.blood_group?.blood_group,
+    healthCondition: deo.health_condition ? "Yes" : "No",
+    healthProblem: deo.health_problem,
+    email: deo.email,
+    phone: deo.phone,
+    district: deo.district?.district_name,
+    gnDivision: deo.gn_division?.gn_division_name,
+    dsOffice: deo.ds_office?.dso_name,
+    address: [deo.address_line1, deo.address_line2, deo.address_line3]
+      .filter(Boolean)
+      .join("\n"),
+    postalCode: deo.postal_code,
+    caDate: formatDate(ca?.appoint_date),
+    caLetter: ca?.appointment_letter_no,
+    caService: ca?.service?.service_name,
+    caRank: ca?.rank?.rank_name,
+    caPosition: ca?.position?.position_name,
+    caWorkplace: ca?.workplace?.name,
+    faDate: formatDate(fa?.first_appointment_date),
+    faLetter: fa?.appointment_letter_no,
+    faRetirement: formatDate(fa?.retirement_date),
+    recruitmentCategory: fa?.recruitment_category?.category_name,
+    recruitmentSubject: fa?.recruitment_subject?.a_subject_name,
+  };
+
+  return (
+    <div className="space-y-5">
+      {/* Back link */}
+      <div className="pt-1">
+        <BackToListButton onClick={() => navigate(-1)} label="Back to List" />
+      </div>
+
+      {/* Header strip */}
+      <HeaderStrip profile={profile} />
+
+      {/* Layout: Left menu + Right content */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left menu */}
+        <aside className="lg:col-span-3">
+          <div className="rounded-2xl surface overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/70">
+              <div className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                Division DEO
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">
+                Division DEO profile
+              </div>
+            </div>
+
+            <div className="p-2">
+              {tabs.map((t) => {
+                const active = activeTab === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => setActiveTab(t.id)}
+                    className={[
+                      "w-full text-left px-4 py-3 rounded-xl text-sm transition flex items-center justify-between group",
+                      active
+                        ? "bg-blue-600 dark:bg-blue-700 text-white shadow-md shadow-blue-200 dark:shadow-none"
+                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50",
+                    ].join(" ")}
+                  >
+                    <span className={active ? "font-semibold" : "font-medium"}>
+                      {t.label}
+                    </span>
+                    <span
+                      className={[
+                        "h-2 w-2 rounded-full",
+                        active ? "bg-white/90" : "bg-transparent",
+                      ].join(" ")}
+                    />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </aside>
+
+        {/* Right content */}
+        <section className="lg:col-span-9 space-y-5">
+          {activeTab === "general" && <GeneralTab profile={profile} />}
+          {activeTab === "qualification" && <QualificationTab />}
+          {activeTab === "employment" && <EmploymentTab profile={profile} />}
+          {activeTab === "service_history" && (
+            <ServiceHistoryTab
+              serviceHistory={serviceHistory}
+              onAddPosting={openServiceHistoryModal}
+              onAddPastService={openPastServiceModal}
+            />
+          )}
+          {activeTab === "service" && <ServiceTab />}
+          {activeTab === "wop" && <WopTab />}
+          {activeTab === "family" && <FamilyTab />}
+          {activeTab === "edit" && <EditRequestTab editRequests={editRequests} onReviewed={() => setEditRequestRefreshKey((k) => k + 1)} />}
+        </section>
+      </div>
+
+      <ServiceHistoryModal
+        isOpen={isServiceHistoryModalOpen}
+        form={serviceHistoryForm}
+        appointments={serviceHistory.appointments}
+        onChange={handleServiceHistoryFieldChange}
+        onClose={closeServiceHistoryModal}
+        onSubmit={handleServiceHistorySave}
+        isSubmitting={isSavingServiceHistory}
+      />
+
+      <PastServiceModal
+        isOpen={isPastServiceModalOpen}
+        form={pastServiceForm}
+        onChange={handlePastServiceFieldChange}
+        onClose={closePastServiceModal}
+        onSubmit={handlePastServiceSave}
+        isSubmitting={isSavingPastService}
+      />
+    </div>
+  );
+}
+
+/* =========================================================
+   Header Strip
+========================================================= */
+
+function HeaderStrip({ profile }) {
+  return (
+    <div className="rounded-2xl overflow-hidden border border-blue-100 dark:border-blue-900/30 shadow-sm bg-white dark:bg-gray-800">
+      <div className="bg-linear-to-r from-blue-50 to-indigo-50/30 dark:from-blue-900/10 dark:to-indigo-900/5">
+        <div className="p-6 flex flex-col xl:flex-row xl:items-center gap-6">
+          {/* LEFT: Name + meta */}
+          <div className="flex items-start gap-4 min-w-0 max-w-2xl">
+            <div className="w-1.5 rounded-full bg-blue-600 self-stretch shadow-[0_0_10px_rgba(37,99,235,0.3)]" />
+            <div className="min-w-0">
+              <div className="flex flex-col gap-2">
+                <h1 className="text-3xl font-black text-gray-900 dark:text-white leading-tight">
+                  {profile.fullName}
+                </h1>
+                <div className="flex flex-wrap items-center gap-3">
+                  <StatusBadge className="px-4 py-1 font-bold rounded-full text-xs">
+                    {profile.position}
+                  </StatusBadge>
+                  <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                    <span className="font-bold text-blue-700 dark:text-blue-400 tracking-tight">
+                      {profile.service}
+                    </span>
+                    <span className="text-gray-300 dark:text-gray-600">|</span>
+                    <span>NIC</span>
+                    <span className="font-mono font-black text-gray-900 dark:text-white">
+                      {profile.nic}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* MIDDLE: Key values */}
+          <div className="flex-1 grid grid-cols-2 lg:grid-cols-3 gap-4">
+            <MiniKey label="Employee ID" value={profile.employeeId} />
+            <MiniKey label="Initials" value={profile.initialsName} />
+          </div>
+
+          {/* RIGHT: Actions */}
+          <div className="flex flex-col sm:flex-row xl:flex-col gap-3 min-w-[200px]">
+            <Can permission={PermissionGroups.DIVISION.DEO_PROFILE_VIEW}>
+              <button className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-md shadow-blue-200 dark:shadow-none">
+                <HiDocumentText className="h-4 w-4" />
+                Get Document
+              </button>
+            </Can>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MiniKey({ label, value }) {
+  return (
+    <div className="rounded-2xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900/40 px-4 py-3 shadow-sm hover:border-blue-200 dark:hover:border-blue-900/40 transition-colors group/key">
+      <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 group-hover/key:text-blue-500 dark:text-gray-500 transition-colors">
+        {label}
+      </div>
+      <div className="mt-0.5 text-sm font-black text-gray-900 dark:text-white whitespace-nowrap">
+        {value || "—"}
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   Shared: ColorSection + FieldCell + RoundedActionButton
+========================================================= */
+
+function ColorSection({ title, color = "blue", children }) {
+  const headerClass =
+    {
+      slate: "bg-slate-700",
+      teal: "bg-teal-700",
+      indigo: "bg-indigo-700",
+      emerald: "bg-emerald-700",
+      rose: "bg-rose-700",
+      amber: "bg-amber-700",
+      blue: "bg-blue-700",
+    }[color] || "bg-blue-700";
+
+  return (
+    <div className="rounded-3xl overflow-hidden border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+      <div
+        className={`px-6 py-4 text-white ${headerClass} bg-linear-to-r from-[rgba(255,255,255,0.05)] to-transparent`}
+      >
+        <h3 className="text-base font-black tracking-tight">{title}</h3>
+      </div>
+      <div className="p-6">{children}</div>
+    </div>
+  );
+}
+
+function FieldCell({ label, value, span = 1 }) {
+  return (
+    <div className={span > 1 ? `md:col-span-${span}` : ""}>
+      <div className="rounded-2xl border border-gray-50 dark:border-gray-700 px-4 py-3 bg-gray-50/30 dark:bg-gray-900/20 hover:border-blue-100 dark:hover:border-blue-900 transition-colors group/field">
+        <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 group-hover/field:text-blue-500 transition-colors">
+          {label}
+        </div>
+        <div className="mt-1 text-sm font-bold text-gray-900 dark:text-white whitespace-pre-line leading-relaxed">
+          {value || "—"}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RoundedActionButton({ icon: Icon, children, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-black transition-all duration-200 shadow-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-blue-200 dark:hover:border-blue-800"
+    >
+      {Icon && <Icon className="h-4 w-4 text-blue-500" />}
+      {children}
+    </button>
+  );
+}
+
+/* =========================================================
+   TAB: General
+========================================================= */
+
+function GeneralTab({ profile }) {
+  return (
+    <div className="space-y-5">
+      <ColorSection title="Personal & Cultural" color="slate">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <FieldCell label="Full Name" value={profile.fullName} />
+          <FieldCell label="Initials" value={profile.initialsName} />
+          <FieldCell label="Date of Birth" value={profile.dob} />
+          <FieldCell label="Gender" value={profile.gender} />
+          <FieldCell label="Religion" value={profile.religion} />
+          <FieldCell label="Ethnicity" value={profile.ethnicity} />
+          <FieldCell label="Civil Status" value={profile.civilStatus} />
+        </div>
+      </ColorSection>
+
+      <ColorSection title="Health Information" color="teal">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <FieldCell label="Blood Group" value={profile.bloodGroup} />
+          <FieldCell label="Health Condition" value={profile.healthCondition} />
+          <FieldCell label="Known Problems" value={profile.healthProblem} />
+        </div>
+      </ColorSection>
+
+      <ColorSection title="Contact & Location" color="indigo">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <FieldCell label="Email" value={profile.email} />
+          <FieldCell label="Phone" value={profile.phone} />
+          <FieldCell label="District" value={profile.district} />
+          <FieldCell label="GN Division" value={profile.gnDivision} />
+          <FieldCell label="DS Office" value={profile.dsOffice} />
+          <FieldCell label="Postal Code" value={profile.postalCode} />
+          <div className="md:col-span-2">
+            <FieldCell label="Permanent Address" value={profile.address} />
+          </div>
+        </div>
+      </ColorSection>
+    </div>
+  );
+}
+
+/* =========================================================
+   TAB: Qualification
+========================================================= */
+
+function QualificationTab() {
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
+          Educational Qualification
+        </h2>
+        <Can permission={PermissionGroups.ZONAL.ADMIN_QUALIFICATIONS}>
+          <RoundedActionButton icon={HiPlus} onClick={() => {}}>
+            Add qualification
+          </RoundedActionButton>
+        </Can>
+      </div>
+
+      <ProfileDataTable
+        columns={[
+          { key: "degree", label: "Degree / Certificate" },
+          { key: "institution", label: "Institution" },
+          { key: "completionDate", label: "Date of Completion" },
+          { key: "grade", label: "Grade" },
+          { key: "action", label: "Action" },
+        ]}
+        rows={[]}
+        emptyMessage="No qualification records found."
+        renderRow={(q) => (
+          <tr key={q.id}>
+            <td className={tablePrimaryCellClass}>{q.degree}</td>
+            <td className={tableCellClass}>{q.institution}</td>
+            <td className={tableCellClass}>{q.completionDate}</td>
+            <td className={tableCellClass}>{q.grade}</td>
+            <td className="px-5 py-4">
+              <button className={tableActionButtonClass}>Edit</button>
+            </td>
+          </tr>
+        )}
+      />
+    </div>
+  );
+}
+
+/* =========================================================
+   TAB: Employment
+========================================================= */
+
+function EmploymentTab({ profile }) {
+  return (
+    <div className="space-y-5">
+      <ColorSection title="Current Appointment" color="slate">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <FieldCell label="Service" value={profile.caService} />
+          <FieldCell label="Rank" value={profile.caRank} />
+          <FieldCell label="Appointment Date" value={profile.caDate} />
+          <FieldCell label="Appointment Letter No." value={profile.caLetter} />
+          <FieldCell
+            label="Position / Designation"
+            value={profile.caPosition}
+          />
+          <FieldCell label="Workplace" value={profile.caWorkplace} />
+        </div>
+      </ColorSection>
+
+      <ColorSection title="First Appointment" color="indigo">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <FieldCell label="Appointment Date" value={profile.faDate} />
+          <FieldCell label="Appointment Letter No." value={profile.faLetter} />
+          <FieldCell label="Retirement Date" value={profile.faRetirement} />
+        </div>
+      </ColorSection>
+
+      <ColorSection title="Recruitment Details" color="teal">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <FieldCell
+            label="Recruitment Category"
+            value={profile.recruitmentCategory}
+          />
+          <FieldCell
+            label="Recruitment Subject"
+            value={profile.recruitmentSubject}
+          />
+        </div>
+      </ColorSection>
+
+      {/* Previous Service */}
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
+          Previous Service
+        </h2>
+        <RoundedActionButton icon={HiPlus} onClick={() => {}}>
+          Add previous service
+        </RoundedActionButton>
+      </div>
+
+      <ProfileDataTable
+        columns={[
+          { key: "service", label: "Service" },
+          { key: "gradeRank", label: "Grade / Rank" },
+          { key: "appointmentDate", label: "Appointment Date" },
+          { key: "retainmentDate", label: "Retainment Date" },
+          { key: "status", label: "Status" },
+          { key: "action", label: "Action" },
+        ]}
+        rows={[]}
+        emptyMessage="No previous service records found."
+        renderRow={(row) => (
+          <tr key={row.id}>
+            <td className={tablePrimaryCellClass}>{row.service}</td>
+            <td className={tableCellClass}>{row.gradeRank}</td>
+            <td className={tableCellClass}>{row.appointmentDate}</td>
+            <td className={tableCellClass}>{row.retainmentDate}</td>
+            <td className="px-5 py-4">
+              <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-extrabold text-green-800">
+                {row.status}
+              </span>
+            </td>
+            <td className="px-5 py-4">
+              <button className={tableActionButtonClass}>Edit</button>
+            </td>
+          </tr>
+        )}
+      />
+
+      {/* Previous Working Place */}
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
+          Previous Working Place
+        </h2>
+      </div>
+
+      <ProfileDataTable
+        columns={[
+          { key: "workingPlaceAddress", label: "Working Place & Address" },
+          { key: "appointedDate", label: "Appointed Date" },
+          { key: "releaseDate", label: "Release Date" },
+          { key: "servicePeriod", label: "Service Period" },
+          { key: "action", label: "Action" },
+        ]}
+        rows={[]}
+        emptyMessage="No previous working place records found."
+        renderRow={(row) => (
+          <tr key={row.id}>
+            <td className={`${tablePrimaryCellClass} whitespace-pre-line`}>
+              {row.workingPlaceAddress}
+            </td>
+            <td className={tableCellClass}>{row.appointedDate}</td>
+            <td className={tableCellClass}>{row.releaseDate}</td>
+            <td className={tableCellClass}>{row.servicePeriod}</td>
+            <td className="px-5 py-4">
+              <button className={tableActionButtonClass}>Edit</button>
+            </td>
+          </tr>
+        )}
+      />
+    </div>
+  );
+}
+
+/* =========================================================
+   TAB: Service
+========================================================= */
+
+function ServiceTab() {
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
+          Service Records
+        </h2>
+        <Can permission={PermissionGroups.ZONAL.ADMIN_SERVICES}>
+          <RoundedActionButton icon={HiPlus} onClick={() => {}}>
+            Add record
+          </RoundedActionButton>
+        </Can>
+      </div>
+
+      <ProfileDataTable
+        columns={[
+          { key: "service", label: "Service" },
+          { key: "grade", label: "Grade / Rank" },
+          { key: "effectiveDate", label: "Effective Date" },
+          { key: "letterNo", label: "Letter No." },
+          { key: "action", label: "Action" },
+        ]}
+        rows={[]}
+        emptyMessage="No service records found."
+        renderRow={(row) => (
+          <tr key={row.id}>
+            <td className={tablePrimaryCellClass}>{row.service}</td>
+            <td className={tableCellClass}>{row.grade}</td>
+            <td className={tableCellClass}>{row.effectiveDate}</td>
+            <td className={tableCellClass}>{row.letterNo}</td>
+            <td className="px-5 py-4">
+              <button className={tableActionButtonClass}>Edit</button>
+            </td>
+          </tr>
+        )}
+      />
+    </div>
+  );
+}
+
+/* =========================================================
+   TAB: W&OP and Payment
+========================================================= */
+
+function WopTab() {
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
+          W&OP & Payment Details
+        </h2>
+        <Can permission={PermissionGroups.ZONAL.ADMIN_WOP}>
+          <RoundedActionButton onClick={() => {}}>Edit</RoundedActionButton>
+        </Can>
+      </div>
+
+      <div className="rounded-2xl overflow-hidden border surface">
+        <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-3">
+          <FieldCell label="W&OP No" value={null} />
+          <FieldCell label="Pay Sheet No" value={null} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   TAB: Family
+========================================================= */
+
+function FamilyTab() {
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">
+          Spouse List
+        </h2>
+        <Can permission={PermissionGroups.ZONAL.ADMIN_FAMILY}>
+          <RoundedActionButton icon={HiPlus} onClick={() => {}}>
+            Add spouse
+          </RoundedActionButton>
+        </Can>
+      </div>
+
+      <ProfileDataTable
+        columns={[
+          { key: "spouseName", label: "Spouse Name" },
+          { key: "dob", label: "Date of Birth" },
+          { key: "marriedDate", label: "Married Date" },
+          { key: "marriedCfNo", label: "Married CF No." },
+          { key: "status", label: "Status" },
+          { key: "action", label: "Action" },
+        ]}
+        rows={[]}
+        emptyMessage="No spouses have been added yet."
+        emptyCellClassName="px-5 py-10 text-center text-gray-600 dark:text-gray-400"
+        renderRow={(s) => (
+          <tr key={s.id}>
+            <td className={tablePrimaryCellClass}>{s.spouseName}</td>
+            <td className={tableCellClass}>{s.dob}</td>
+            <td className={tableCellClass}>{s.marriedDate}</td>
+            <td className={tableCellClass}>{s.marriedCfNo}</td>
+            <td className="px-5 py-4">
+              <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-extrabold text-green-800">
+                {s.status || "—"}
+              </span>
+            </td>
+            <td className="px-5 py-4">
+              <button className={tableActionButtonClass}>Edit</button>
+            </td>
+          </tr>
+        )}
+      />
+    </div>
+  );
+}
+
+/* =========================================================
+   TAB: Edit Request
+========================================================= */
+
+function EditRequestTab({ editRequests, onReviewed }) {
+  const [reviewing, setReviewing] = useState(null);
+  const [comment, setComment] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const openReview = (id, action) => { setReviewing({ id, action }); setComment(""); };
+
+  const handleSubmitReview = async () => {
+    if (!comment.trim()) { toast.error("Please add a review comment."); return; }
+    setSubmitting(true);
+    try {
+      await reviewEditRequest(reviewing.id, { status: reviewing.action === "approve" ? "2" : "3", review_comments: comment });
+      toast.success(reviewing.action === "approve" ? "Request approved." : "Request rejected.");
+      setReviewing(null);
+      onReviewed?.();
+    } catch { toast.error("Failed to submit review."); }
+    finally { setSubmitting(false); }
+  };
+
+  if (!editRequests?.length) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-3xl text-center">
+        <p className="text-sm font-bold dark:text-white">No edit requests found.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100">Edit Requests</h2>
+      <div className="space-y-4">
+        {editRequests.map((r) => {
+          const isPending = r.status_text?.toLowerCase() === "pending";
+          return (
+            <div key={r.id} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden shadow-sm">
+              <div className="bg-gray-50 dark:bg-gray-800/50 px-4 py-2 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                <span className="text-xs font-bold text-gray-600 dark:text-gray-400 tracking-wider">{r.complaint_request_ref}</span>
+                <span className={`text-xs font-bold px-2 py-0.5 rounded text-white ${isPending ? "bg-amber-500" : r.status_text?.toLowerCase() === "approved" ? "bg-emerald-500" : "bg-red-500"}`}>{r.status_text}</span>
+              </div>
+              <div className="p-4 space-y-1">
+                {r.requested_changes?.subject && <p className="text-sm font-bold text-gray-900 dark:text-white">{r.requested_changes.subject}</p>}
+                {r.requested_changes?.complaint && <p className="text-sm text-gray-600 dark:text-gray-400">{r.requested_changes.complaint}</p>}
+                <p className="text-[10px] text-gray-400 italic">{r.created_ago}</p>
+              </div>
+              {r.review_comments && (
+                <div className="px-4 pb-4">
+                  <p className="text-xs italic text-gray-500 dark:text-gray-400 border-l-2 border-gray-300 dark:border-gray-600 pl-3">"{r.review_comments}"</p>
+                  {r.reviewer && <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-wider">— {r.reviewer.title?.title_name} {r.reviewer.name_with_initials}</p>}
+                </div>
+              )}
+              {isPending && (
+                <div className="border-t border-gray-100 dark:border-gray-800 px-4 py-3">
+                  {reviewing?.id === r.id ? (
+                    <div className="space-y-2">
+                      <textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder={reviewing.action === "approve" ? "Add an approval comment…" : "Reason for rejection…"} rows={3} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none" />
+                      <div className="flex gap-2">
+                        <button onClick={handleSubmitReview} disabled={submitting} className={`flex-1 py-1.5 rounded-xl text-sm font-bold text-white transition-colors disabled:opacity-60 ${reviewing.action === "approve" ? "bg-emerald-500 hover:bg-emerald-600" : "bg-red-500 hover:bg-red-600"}`}>{submitting ? "Submitting…" : reviewing.action === "approve" ? "Confirm Approve" : "Confirm Reject"}</button>
+                        <button onClick={() => setReviewing(null)} className="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <button onClick={() => openReview(r.id, "approve")} className="flex-1 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors">Approve</button>
+                      <button onClick={() => openReview(r.id, "reject")} className="flex-1 py-1.5 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-xs font-bold text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors">Reject</button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

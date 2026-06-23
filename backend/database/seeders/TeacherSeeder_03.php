@@ -318,7 +318,7 @@ class TeacherSeeder_03 extends Seeder
                     'name'      => $people->name_with_initials,
                     'email'     => $email,
                     'contact'   => $phone,
-                    'password'  => 'password@123',
+                    'password'  => 'Password@123',
                 ]);
 
                 $user->assignRole('teacher');

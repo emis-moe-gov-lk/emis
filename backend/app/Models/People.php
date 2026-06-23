@@ -20,6 +20,7 @@ class People extends Model
 
     protected $fillable = [
         'people_id',
+        'uuid',
         'nic',
         'nic_hash',
         'title_id',

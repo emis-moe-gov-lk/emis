@@ -1,13 +1,25 @@
 ---
 # playbooks/pre-check.yml
-- hosts: "{{ target_hosts | default('all') }}"
-  gather_facts: no
-  pre_tasks:
+#
+# A multi-play pre-flight checklist. Each play targets only the hosts
+# that are relevant to its checks, allowing selective execution via:
+#   --tags <tag>                 e.g. --tags docker,swarm
+#   -l <pattern>                 e.g. -l swarm_managers
+#   --start-at-task <task name>  to resume from a specific task
 
+# ---------------------------------------------------------------------------
+# Play 1 – Baseline: SSH, user, Ansible runtime, Python, sudo (all hosts)
+# ---------------------------------------------------------------------------
+- name: "Pre-check | Baseline connectivity and environment"
+  hosts: all
+  gather_facts: no
+  tags: [baseline]
+
+  tasks:
     - name: Verify SSH connection to {{ inventory_hostname }}
       ansible.builtin.wait_for_connection:
-        timeout: 10          # seconds to wait before giving up
-        sleep: 2             # seconds between retries
+        timeout: 10
+        sleep: 2
       register: ssh_check
 
     - name: Assert SSH connection succeeded
@@ -31,12 +43,12 @@
       ansible.builtin.command: ansible --version
       register: ansible_version_check
       changed_when: false
-      delegate_to: localhost   # runs on the runner, not remote host
+      delegate_to: localhost   # runs on the controller, not the remote host
 
     - name: Assert ansible is installed
       ansible.builtin.assert:
         that: ansible_version_check.rc == 0
-        fail_msg: "Ansible is not installed or not in PATH"
+        fail_msg: "Ansible is not installed or not in PATH on the controller"
         success_msg: "Ansible is installed"
 
     - name: Check python3 on remote host
@@ -61,3 +73,95 @@
         that: become_check.stdout == "root"
         fail_msg: "User {{ ansible_user }} cannot become root on {{ inventory_hostname }}"
         success_msg: "User {{ ansible_user }} can become root"
+
+# ---------------------------------------------------------------------------
+# Play 2 – Docker installation (swarm managers and workers only)
+# ---------------------------------------------------------------------------
+- name: "Pre-check | Docker installation"
+  hosts: swarm_managers,swarm_workers
+  gather_facts: no
+  tags: [docker]
+
+  tasks:
+    - name: Check Docker is installed
+      ansible.builtin.command: docker --version
+      register: docker_check
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Assert Docker is installed
+      ansible.builtin.assert:
+        that: docker_check.rc == 0
+        fail_msg: "Docker is not installed on {{ inventory_hostname }}"
+        success_msg: "Docker is installed on {{ inventory_hostname }}"
+
+# ---------------------------------------------------------------------------
+# Play 3 – Docker Swarm mode (swarm managers only)
+# ---------------------------------------------------------------------------
+- name: "Pre-check | Docker Swarm mode"
+  hosts: swarm_managers
+  gather_facts: no
+  tags: [swarm]
+
+  tasks:
+    - name: Check Docker Swarm mode
+      ansible.builtin.command: docker info --format '{{ '{{' }}.Swarm.LocalNodeState{{ '}}' }}'
+      register: swarm_check
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Assert Docker Swarm mode is active
+      ansible.builtin.assert:
+        that: swarm_check.stdout == "active"
+        fail_msg: "Docker is not in active Swarm mode on {{ inventory_hostname }}"
+        success_msg: "Docker is in active Swarm mode on {{ inventory_hostname }}"
+
+# ---------------------------------------------------------------------------
+# Play 4 – DNS resolution (swarm managers and workers only)
+# ---------------------------------------------------------------------------
+- name: "Pre-check | DNS resolution"
+  hosts: swarm_managers,swarm_workers
+  gather_facts: no
+  tags: [dns]
+
+  tasks:
+    - name: Get DNS resolution for required URLs
+      ansible.builtin.command: "getent ahosts {{ item }}"
+      loop:
+        - "{{ is_hostname }}"
+        - "{{ app_url | regex_replace('^https?://', '') | regex_replace('[:/].*$', '') }}"
+      register: dns_checks
+      changed_when: false
+      when: expected_public_ip is defined
+
+    - name: Assert URLs point to the predetermined public IP
+      ansible.builtin.assert:
+        that: "expected_public_ip in item.stdout"
+        fail_msg: "The URL does not resolve to the expected public IP {{ expected_public_ip }}. Got: {{ item.stdout }}"
+        success_msg: "The URL resolves to the expected public IP."
+      loop: "{{ dns_checks.results }}"
+      when: expected_public_ip is defined
+
+# ---------------------------------------------------------------------------
+# Play 5 – Public IP reachability (swarm managers and workers only)
+# ---------------------------------------------------------------------------
+- name: "Pre-check | Public IP reachability"
+  hosts: swarm_managers,swarm_workers
+  gather_facts: no
+  tags: [reachability]
+
+  tasks:
+    - name: Verify reachability to the public IP using the URLs
+      ansible.builtin.uri:
+        url: "https://{{ expected_public_ip }}"
+        headers:
+          Host: "{{ item }}"
+        validate_certs: no
+        return_content: no
+        status_code: [200, 301, 302, 307, 308, 400, 401, 403, 404, 500, 502, 503, 504]
+        timeout: 10
+      loop:
+        - "{{ is_hostname }}"
+        - "{{ app_url | regex_replace('^https?://', '') | regex_replace('[:/].*$', '') }}"
+      register: reachability_checks
+      when: expected_public_ip is defined

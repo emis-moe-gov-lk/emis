@@ -163,7 +163,6 @@ export const PermissionGroups = {
     TEACHER: "menu.schools.teachers",
     PRINCIPAL: "menu.schools.principals",
     DEO: "menu.schools.deo",
-    CLERK: "menu.schools.clerk",
     BULK_UPLOAD: "teacher.bulk.upload",
     CREATE: "teacher.create",
     DELETE: "teacher.delete",
@@ -187,6 +186,12 @@ export const PermissionGroups = {
 
   DIVISION: {
     DIVISION_VIEW: "menu.division",
+    ADMIN_VIEW: "menu.division.admin",
+    DEO_VIEW: "menu.division.deo",
+    ADMIN_CREATE: "division.admin.create",
+    ADMIN_PROFILE_VIEW: "division.admin.profile.view",
+    DEO_CREATE: "division.deo.create",
+    DEO_PROFILE_VIEW: "division.deo.profile.view",
   },
 
   ZONAL: {
@@ -222,6 +227,15 @@ export const PermissionGroups = {
 
   MOE: {
     MOE_VIEW: "menu.moe",
+    ADMIN: "menu.moe.admin",
+    ADMIN_CREATE: "moe.admin.create",
+    ADMIN_BULK_UPLOAD: "moe.admin.bulk.upload",
+    ADMIN_PROFILE_VIEW: "moe.admin.profile.view",
+    ADMIN_DOCUMENTS: "moe.admin.profile.exportpdf",
+    ADMIN_SERVICES: "moe.admin.service.add",
+    ADMIN_QUALIFICATIONS: "moe.admin.qualification.add",
+    ADMIN_WOP: "moe.admin.wop.edit",
+    ADMIN_FAMILY: "moe.admin.family.add",
   },
 
 
@@ -238,9 +252,9 @@ export const PermissionGroups = {
     INBOX_VIEW: "menu.inbox",
   },
 
-  ADMIN: {
-    ADMIN_VIEW: "menu.admin",
-  },
+  // ADMIN: {
+  //   ADMIN_VIEW: "menu.admin",
+  // },
 
   TIMETABLE: {
     TIMETABLE_VIEW: "menu.timetable",

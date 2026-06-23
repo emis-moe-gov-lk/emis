@@ -12,10 +12,11 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 use App\Helpers\NicHelper;
+use App\Services\Wso2IsProvisioningService;
 
 class DeoOfficerSeeder extends Seeder
 {
-    public function run(): void
+    public function run(Wso2IsProvisioningService $wso2Is): void
     {
         // Role must already exist (created by RolePermissionSeeder)
         $deoRole = Role::firstOrCreate(['name' => 'development officer']);
@@ -98,5 +99,7 @@ class DeoOfficerSeeder extends Seeder
         );
 
         $user->assignRole($deoRole);
+
+        $wso2Is->provisionUser($user, 'Password@123*', 'development officer');
     }
 }
