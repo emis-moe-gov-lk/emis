@@ -8,9 +8,10 @@
 # [   > .\add-hosts.ps1
 
 $hosts = @(
-    "124.43.177.235 services.app-uat.emis.moe.gov.lk",
-    "124.43.177.235 idp.app-uat.emis.moe.gov.lk",
-    "124.43.177.235 apim.app-uat.emis.moe.gov.lk"
+    "124.43.177.235 idp-uat.emis.moe.gov.lk",
+    "124.43.177.235 idp-dev.emis.moe.gov.lk",
+    "124.43.177.235 app-dev.emis.moe.gov.lk",
+    "124.43.177.235 api-dev.emis.moe.gov.lk"
 )
 
 $hostsFile = "C:\Windows\System32\drivers\etc\hosts"
