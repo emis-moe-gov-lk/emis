@@ -1,0 +1,49 @@
+\contentsline {section}{Overview}{2}{Doc-Start}%
+\contentsline {section}{\numberline {1}Health Check}{3}{section.1}%
+\contentsline {section}{\numberline {2}Authentication}{3}{section.2}%
+\contentsline {section}{\numberline {3}Reference / Lookup Data}{3}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Appointed Subjects}{3}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Authorities}{3}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}Blood Groups}{4}{subsection.3.3}%
+\contentsline {subsection}{\numberline {3.4}Titles}{4}{subsection.3.4}%
+\contentsline {subsection}{\numberline {3.5}Teacher Types}{4}{subsection.3.5}%
+\contentsline {subsection}{\numberline {3.6}Teacher Categories}{4}{subsection.3.6}%
+\contentsline {subsection}{\numberline {3.7}Services}{5}{subsection.3.7}%
+\contentsline {subsection}{\numberline {3.8}Service Ranks}{5}{subsection.3.8}%
+\contentsline {subsection}{\numberline {3.9}Subjects (HRM reference)}{5}{subsection.3.9}%
+\contentsline {section}{\numberline {4}Offices}{6}{section.4}%
+\contentsline {section}{\numberline {5}Institutions}{6}{section.5}%
+\contentsline {section}{\numberline {6}Teachers}{7}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Listing \& Search}{7}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}Form Data}{7}{subsection.6.2}%
+\contentsline {subsection}{\numberline {6.3}Create \& Update}{8}{subsection.6.3}%
+\contentsline {subsection}{\numberline {6.4}Sub-resources}{8}{subsection.6.4}%
+\contentsline {section}{\numberline {7}Principals}{8}{section.7}%
+\contentsline {section}{\numberline {8}Alerts}{9}{section.8}%
+\contentsline {section}{\numberline {9}Employer Appointment Confirmation}{10}{section.9}%
+\contentsline {subsection}{\numberline {9.1}Reject Comments}{10}{subsection.9.1}%
+\contentsline {subsection}{\numberline {9.2}Workflow Actions}{10}{subsection.9.2}%
+\contentsline {section}{\numberline {10}DOS Admins}{11}{section.10}%
+\contentsline {section}{\numberline {11}DEO Officers}{12}{section.11}%
+\contentsline {section}{\numberline {12}Profile \& Identity}{12}{section.12}%
+\contentsline {subsection}{\numberline {12.1}Identity}{12}{subsection.12.1}%
+\contentsline {subsection}{\numberline {12.2}Profile}{13}{subsection.12.2}%
+\contentsline {subsection}{\numberline {12.3}Avatar}{13}{subsection.12.3}%
+\contentsline {subsection}{\numberline {12.4}Password}{14}{subsection.12.4}%
+\contentsline {section}{\numberline {13}User Management}{14}{section.13}%
+\contentsline {section}{\numberline {14}Roles \& Permissions}{15}{section.14}%
+\contentsline {subsection}{\numberline {14.1}Roles}{15}{subsection.14.1}%
+\contentsline {subsection}{\numberline {14.2}Permissions}{15}{subsection.14.2}%
+\contentsline {section}{\numberline {15}Versions \& Change Logs}{15}{section.15}%
+\contentsline {section}{\numberline {16}Timetable}{16}{section.16}%
+\contentsline {subsection}{\numberline {16.1}Subjects}{16}{subsection.16.1}%
+\contentsline {subsection}{\numberline {16.2}Core}{16}{subsection.16.2}%
+\contentsline {subsection}{\numberline {16.3}Setup}{16}{subsection.16.3}%
+\contentsline {subsection}{\numberline {16.4}Slots}{17}{subsection.16.4}%
+\contentsline {subsection}{\numberline {16.5}Periods}{17}{subsection.16.5}%
+\contentsline {subsection}{\numberline {16.6}Intervals}{17}{subsection.16.6}%
+\contentsline {subsection}{\numberline {16.7}Subject Colours}{18}{subsection.16.7}%
+\contentsline {subsection}{\numberline {16.8}Holidays}{18}{subsection.16.8}%
+\contentsline {subsection}{\numberline {16.9}Lesson Records}{18}{subsection.16.9}%
+\contentsline {subsection}{\numberline {16.10}Report}{19}{subsection.16.10}%
+\contentsline {section}{Endpoint Summary}{20}{subsection.16.10}%
