@@ -93,7 +93,7 @@ import PendingConfirmationList from "../components/Alert/PendingConfirmationList
 import PendingVerificationList from "../components/Alert/PendingVerificationList.jsx";
 import RejectedList from "../components/Alert/RejectedList.jsx";
 import RevisedList from "../components/Alert/RevisedList.jsx";
-import Inbox from "../pages/inbox/inbox.jsx";
+import Inbox from "../pages/inbox/Inbox.jsx";
 
 export default function AppRoutes() {
   return (
