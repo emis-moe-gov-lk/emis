@@ -20,6 +20,7 @@ import Spinner from "../UiComponents/Spinner";
 import { useAuthContext } from "@asgardeo/auth-react";
 import { useParams } from "react-router-dom";
 import { getEditRequests } from "@/api/userService";
+import { getEnv } from "../../utils/env";
 
 const MyProfileLayout = () => {
   const [activeTab, setActiveTab] = useState("General");
@@ -39,7 +40,7 @@ const MyProfileLayout = () => {
         const token = await getAccessToken();
 
         const response = await axios.get(
-          `${import.meta.env.VITE_API_BASE_URL}/user/${peopleId}`,
+          `${getEnv("VITE_API_BASE_URL")}/user/${peopleId}`,
           {
             headers: {
               Accept: "application/json",
