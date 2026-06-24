@@ -7,6 +7,7 @@ const errorHandler = require('./middleware/errorHandler');
 const alertRoutes = require('./routes/alertRoutes');
 const eventRoutes = require('./routes/eventRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const messageRoutes = require('./routes/messageRoutes');
 
 const app = express();
 
@@ -31,7 +32,7 @@ app.get('/health', healthLimiter, (req, res) => {
     success: true,
     data: {
       status: 'ok',
-      service: 'alert-service',
+      service: 'message-service',
       timestamp: new Date().toISOString(),
     },
   });
@@ -41,6 +42,7 @@ app.get('/health', healthLimiter, (req, res) => {
 app.use('/api/alerts', alertRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/messages', messageRoutes);
 
 // 8. 404 handler
 app.use((req, res) => {
