@@ -15,6 +15,11 @@ expected_public_ip: "127.0.0.1" # [REQUIRED] Update to actual reverse proxy IP
 stack_deploy_path: /opt/emis-example
 stack_network_subnet: "172.x.0.0/16"
 
+# Base Endpoints (Centralized)
+frontend_url: "https://app.example.com"
+backend_url:  "https://api.example.com"
+idp_hostname: "idp.example.com"
+
 # -- Host Port Mappings --
 frontend_host_port: 80
 backend_host_port:  9000
@@ -47,8 +52,8 @@ mysql_is_db:              wso2_is_db
 mysql_is_shared_db:       wso2_is_shared_db
 
 # ── WSO2 IS ──────────────────────────────────────────────────
-is_hostname:          idp.example.com                   # [REQUIRED]
-is_proxy_host:        idp.example.com
+is_hostname:          "{{ idp_hostname }}"                   # [REQUIRED]
+is_proxy_host:        "{{ idp_hostname }}"
 is_proxy_port:        "443"
 is_admin_user:        admin
 is_admin_password:    changeme                          # [REQUIRED] [VAULT]
@@ -60,7 +65,7 @@ app_name:    EMIS
 app_env:     production
 app_key:     base64:example_key==                       # [REQUIRED] [VAULT]
 app_debug:   "false"
-app_url:     https://api.example.com                    # [REQUIRED]
+app_url:     "{{ backend_url }}"                    # [REQUIRED]
 
 db_host:     "{{ hostvars[groups['db_host'][0]].ansible_host }}"
 db_port:     "3306"
@@ -81,10 +86,10 @@ memcached_host: memcached
 # ── Frontend (Vite — baked at image build time) ──────────────
 vite_asgardeo_base_url:  "https://{{ is_hostname }}"
 vite_asgardeo_client_id: ""
-vite_signin_redirect_url:  https://app.example.com/authentication/callback
-vite_signout_redirect_url: https://app.example.com/logout
+vite_signin_redirect_url:  "{{ frontend_url }}/authentication/callback"
+vite_signout_redirect_url: "{{ frontend_url }}/logout"
 # Direct backend URL — no APIM gateway in this topology
-vite_api_base_url:         https://api.example.com/api
+vite_api_base_url:         "{{ backend_url }}/api"
 
 # ── EMIS application resources (used by configure-is-only) ──
 nemis_roles:
@@ -102,7 +107,7 @@ nemis_users:
 nemis_apps:
   - name:          "EMIS Web App"
     grant_types:   [authorization_code, refresh_token]
-    callback_url:  "https://app.example.com/authentication/callback"
+    callback_url:  "{{ frontend_url }}/authentication/callback"
     public_client: true
   - name:          "EMIS-HRM M2M"
     grant_types:   [client_credentials]
