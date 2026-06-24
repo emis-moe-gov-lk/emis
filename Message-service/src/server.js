@@ -15,7 +15,7 @@ async function start() {
   }
 
   app.listen(config.port, () => {
-    console.log(`[server] alert-service running on port ${config.port} (${config.nodeEnv})`);
+    console.log(`[server] message-service running on port ${config.port} (${config.nodeEnv})`);
   });
 }
 

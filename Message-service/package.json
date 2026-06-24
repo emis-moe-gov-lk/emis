@@ -1,7 +1,7 @@
 {
-  "name": "emis-alert-service",
+  "name": "emis-message-service",
   "version": "1.0.0",
-  "description": "EMIS Alert & Notification Microservice",
+  "description": "EMIS Message Service",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",

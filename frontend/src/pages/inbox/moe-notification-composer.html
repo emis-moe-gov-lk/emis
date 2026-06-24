@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Notification composer — Ministry of Education</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.1.0/iconfont/tabler-icons.min.css" />
+<style>
+  :root{
+    --bg-page:#F3F4F6;
+    --bg-card:#FFFFFF;
+    --bg-secondary:#F1F2F4;
+    --border:#E2E4E8;
+    --border-strong:#C8CCD2;
+    --text-primary:#1A1D23;
+    --text-secondary:#666B73;
+    --text-tertiary:#8A8F98;
+    --accent:#185FA5;
+    --accent-bg:#E6F1FB;
+    --accent-border:#85B7EB;
+    --radius-md:8px;
+    --radius-lg:12px;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:var(--font-sans);
+    background:var(--bg-page);
+    color:var(--text-primary);
+    padding:32px 16px;
+    line-height:1.5;
+  }
+  .wrap{max-width:980px;margin:0 auto;}
+  h1{font-size:20px;font-weight:600;margin:0;}
+  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+  .btn{
+    font-size:13px;padding:8px 14px;border-radius:var(--radius-md);
+    border:1px solid var(--border-strong);background:#fff;color:var(--text-primary);
+    cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+  }
+  .btn:hover{background:var(--bg-secondary);}
+  .btn:active{transform:scale(0.98);}
+  .btn-primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .btn-primary:hover{background:#144d87;}
+  .grid{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;}
+  @media (max-width:760px){.grid{grid-template-columns:1fr;}}
+  .card{
+    background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);
+    padding:18px 20px;margin-bottom:16px;
+  }
+  .card-title{font-weight:600;font-size:13px;color:var(--text-secondary);margin:0 0 12px;text-transform:uppercase;letter-spacing:0.02em;}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
+  .tab{
+    font-size:12px;padding:7px 12px;border-radius:var(--radius-md);border:1px solid var(--border-strong);
+    background:#fff;cursor:pointer;display:flex;align-items:center;gap:5px;color:var(--text-primary);
+  }
+  .tab.active{background:var(--accent-bg);color:var(--accent);border-color:var(--accent-border);}
+  .field{display:flex;flex-direction:column;gap:5px;margin-bottom:10px;}
+  .field label{font-size:12px;color:var(--text-secondary);}
+  select, input[type=text], textarea{
+    width:100%;padding:8px 10px;border-radius:var(--radius-md);border:1px solid var(--border-strong);
+    background:#fff;color:var(--text-primary);font-family:var(--font-sans);font-size:14px;
+  }
+  textarea{min-height:90px;resize:vertical;}
+  .hint{font-size:12px;color:var(--text-tertiary);margin:0;}
+  .checklist{display:flex;flex-direction:column;gap:4px;max-height:140px;overflow:auto;}
+  .checklist label{display:flex;align-items:center;gap:8px;font-size:13px;padding:3px 0;}
+  .audmode-row{display:flex;gap:6px;margin-bottom:10px;}
+  .audmode{font-size:12px;padding:6px 11px;border-radius:var(--radius-md);border:1px solid var(--border-strong);background:#fff;cursor:pointer;}
+  .audmode.active{background:var(--accent-bg);color:var(--accent);border-color:var(--accent-border);}
+  .role-row{display:flex;align-items:center;justify-content:space-between;font-size:13px;padding:5px 0;}
+  .role-left{display:flex;align-items:center;gap:8px;}
+  .role-count{color:var(--text-tertiary);font-size:12px;}
+  .metric{background:var(--bg-secondary);border-radius:var(--radius-md);padding:16px;margin-bottom:16px;}
+  .metric-label{font-size:13px;color:var(--text-secondary);margin:0 0 4px;}
+  .metric-value{font-size:26px;font-weight:600;margin:0;}
+  .metric-sub{font-size:12px;color:var(--text-tertiary);margin:6px 0 0;}
+  .summary-row{display:flex;align-items:center;gap:6px;font-size:13px;padding:3px 0;}
+  .summary-aud{border-top:1px solid var(--border);margin-top:8px;padding-top:8px;color:var(--text-secondary);font-size:13px;}
+  .channel-row{display:flex;align-items:center;gap:8px;font-size:13px;padding:5px 0;}
+  .checkbox-options{display:flex;gap:14px;margin-top:10px;font-size:13px;color:var(--text-secondary);flex-wrap:wrap;}
+  .checkbox-options label{display:flex;align-items:center;gap:6px;}
+  input[type=checkbox]{width:15px;height:15px;cursor:pointer;}
+  ::placeholder{color:var(--text-tertiary);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <h1>New notification</h1>
+    <div style="display:flex;gap:8px;">
+      <button class="btn" id="draftBtn"><i class="ti ti-file-text"></i>Save draft</button>
+      <button class="btn btn-primary" id="sendBtn"><i class="ti ti-send"></i>Send</button>
+    </div>
+  </div>
+
+  <div class="grid">
+
+    <div>
+      <div class="card">
+        <p class="card-title">1. Scope</p>
+        <div class="tabs" id="levelTabs"></div>
+        <div id="cascade"></div>
+      </div>
+
+      <div class="card">
+        <p class="card-title">2. Audience within scope</p>
+        <div class="audmode-row">
+          <button class="audmode active" data-mode="roles">By role</button>
+          <button class="audmode" data-mode="all">Everyone</button>
+          <button class="audmode" data-mode="individual">Specific users</button>
+        </div>
+        <div id="rolesPanel"></div>
+        <div id="allPanel" style="display:none;color:var(--text-secondary);font-size:13px;">
+          All users at the selected institution(s) will receive this notification, regardless of role.
+        </div>
+        <div id="individualPanel" style="display:none;">
+          <input type="text" placeholder="Search user by name or ID..." style="margin-bottom:8px;" />
+          <p class="hint">Searches within the selected scope only.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="card-title">3. Message</p>
+        <div class="field">
+          <input type="text" id="subject" placeholder="Subject" />
+        </div>
+        <div class="field">
+          <textarea id="body" placeholder="Write your notification..."></textarea>
+        </div>
+        <div class="checkbox-options">
+          <label><input type="checkbox" id="reqAck" /> Require acknowledgement</label>
+          <label><input type="checkbox" id="urgent" /> Mark urgent</label>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="metric">
+        <p class="metric-label">Estimated reach</p>
+        <p class="metric-value" id="reachCount">0 users</p>
+        <p class="metric-sub" id="reachBreakdown"></p>
+      </div>
+
+      <div class="card">
+        <p class="card-title">Scope summary</p>
+        <div id="scopeSummary"></div>
+      </div>
+
+      <div class="card">
+        <p class="card-title">Delivery channels</p>
+        <label class="channel-row"><input type="checkbox" checked /> In-app notification</label>
+        <label class="channel-row"><input type="checkbox" checked /> Email</label>
+        <label class="channel-row"><input type="checkbox" /> SMS</label>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const LEVELS = [
+  {id:'ministry', label:'Ministry', icon:'ti-building-bank'},
+  {id:'province', label:'Province', icon:'ti-map'},
+  {id:'zonal', label:'Zonal', icon:'ti-map-pin'},
+  {id:'division', label:'Division', icon:'ti-map-pins'},
+  {id:'school', label:'School', icon:'ti-school'}
+];
+
+const PROVINCES = ['Western','Central','Southern','Northern','Eastern','North Western','North Central','Uva','Sabaragamuwa'];
+const ZONES = {'Western':['Colombo','Gampaha','Kalutara']};
+const DIVISIONS = {'Colombo':['Colombo Division 1','Colombo Division 2','Colombo Division 3']};
+const SCHOOLS = {'Colombo Division 1':['Royal College','Visakha Vidyalaya','Ananda College','Devi Balika Vidyalaya']};
+
+const ROLES_BY_LEVEL = {
+  ministry: [{id:'sec', label:'Secretary'},{id:'dir', label:'Director'},{id:'officer', label:'Ministry officer'}],
+  province: [{id:'pd', label:'Provincial director'},{id:'padmin', label:'Provincial admin staff'}],
+  zonal: [{id:'zd', label:'Zonal director'},{id:'zadmin', label:'Zonal admin staff'}],
+  division: [{id:'divd', label:'Divisional director'},{id:'divadmin', label:'Divisional admin staff'}],
+  school: [{id:'principal', label:'Principal'},{id:'vp', label:'Vice principal'},{id:'teacher', label:'Teacher'},{id:'student', label:'Student'},{id:'parent', label:'Parent'}]
+};
+
+const BASE_COUNTS = {
+  ministry: {sec:2,dir:15,officer:120},
+  province: {pd:9,padmin:54},
+  zonal: {zd:14,zadmin:80},
+  division: {divd:42,divadmin:160},
+  school: {principal:1,vp:3,teacher:45,student:900,parent:1400}
+};
+
+let state = { level: 'school', path: {}, roleMode: 'roles', selectedRoles: new Set() };
+
+function el(tag, attrs={}, children=[]) {
+  const e = document.createElement(tag);
+  for (const k in attrs) {
+    if (k === 'text') e.textContent = attrs[k];
+    else if (k === 'html') e.innerHTML = attrs[k];
+    else e.setAttribute(k, attrs[k]);
+  }
+  children.forEach(c => e.appendChild(c));
+  return e;
+}
+
+function renderLevelTabs() {
+  const wrap = document.getElementById('levelTabs');
+  wrap.innerHTML = '';
+  LEVELS.forEach(lv => {
+    const btn = el('button', {class:'tab' + (state.level===lv.id ? ' active' : '')});
+    btn.innerHTML = `<i class="ti ${lv.icon}" style="font-size:14px;" aria-hidden="true"></i>${lv.label}`;
+    btn.onclick = () => { state.level = lv.id; state.path = {}; state.selectedRoles = new Set(); renderAll(); };
+    wrap.appendChild(btn);
+  });
+}
+
+function renderCascade() {
+  const wrap = document.getElementById('cascade');
+  wrap.innerHTML = '';
+
+  function row(label, options, key, onChange) {
+    const r = el('div', {class:'field'});
+    r.appendChild(el('label', {text: label}));
+    const sel = el('select');
+    sel.appendChild(el('option', {value:'', text:`All ${label.toLowerCase()}s`}));
+    options.forEach(o => sel.appendChild(el('option', {value:o, text:o})));
+    if (state.path[key]) sel.value = state.path[key];
+    sel.onchange = (e) => onChange(e.target.value);
+    r.appendChild(sel);
+    return r;
+  }
+
+  if (state.level === 'ministry') {
+    wrap.appendChild(el('p', {class:'hint', text:'National scope — applies to the whole ministry.'}));
+    return;
+  }
+
+  wrap.appendChild(row('Province', PROVINCES, 'province', v => {
+    state.path = {province: v || undefined}; renderAll();
+  }));
+
+  if (state.level === 'province') return;
+  if (!state.path.province) {
+    wrap.appendChild(el('p', {class:'hint', text:'Select a province to drill down further, or leave blank to target all zones nationally.'}));
+    return;
+  }
+
+  const zones = ZONES[state.path.province] || ['Zone A','Zone B'];
+  wrap.appendChild(row('Zonal office', zones, 'zonal', v => {
+    state.path = {province: state.path.province, zonal: v || undefined}; renderAll();
+  }));
+
+  if (state.level === 'zonal') return;
+  if (!state.path.zonal) {
+    wrap.appendChild(el('p', {class:'hint', text:'Select a zone to drill down further.'}));
+    return;
+  }
+
+  const divisions = DIVISIONS[state.path.zonal] || ['Division A','Division B'];
+  wrap.appendChild(row('Division', divisions, 'division', v => {
+    state.path = {...state.path, division: v || undefined}; renderAll();
+  }));
+
+  if (state.level === 'division') return;
+  if (!state.path.division) {
+    wrap.appendChild(el('p', {class:'hint', text:'Select a division to choose specific schools.'}));
+    return;
+  }
+
+  const schools = SCHOOLS[state.path.division] || ['School A','School B'];
+  const schoolWrap = el('div', {class:'field'});
+  schoolWrap.appendChild(el('label', {text:'Schools'}));
+  const checks = el('div', {class:'checklist'});
+  schools.forEach(s => {
+    const lab = el('label', {});
+    const cb = el('input', {type:'checkbox'});
+    cb.checked = state.path.schools ? state.path.schools.includes(s) : false;
+    cb.onchange = () => {
+      state.path.schools = state.path.schools || [];
+      if (cb.checked) state.path.schools.push(s);
+      else state.path.schools = state.path.schools.filter(x => x !== s);
+      renderAll();
+    };
+    lab.appendChild(cb);
+    lab.appendChild(document.createTextNode(s));
+    checks.appendChild(lab);
+  });
+  schoolWrap.appendChild(checks);
+  wrap.appendChild(schoolWrap);
+}
+
+function renderRolesPanel() {
+  const wrap = document.getElementById('rolesPanel');
+  wrap.innerHTML = '';
+  const roles = ROLES_BY_LEVEL[state.level] || [];
+  roles.forEach(r => {
+    const count = BASE_COUNTS[state.level][r.id];
+    const row = el('label', {class:'role-row'});
+    const left = el('span', {class:'role-left'});
+    const cb = el('input', {type:'checkbox'});
+    cb.checked = state.selectedRoles.has(r.id);
+    cb.onchange = () => {
+      if (cb.checked) state.selectedRoles.add(r.id); else state.selectedRoles.delete(r.id);
+      renderAll();
+    };
+    left.appendChild(cb);
+    left.appendChild(document.createTextNode(r.label));
+    row.appendChild(left);
+    row.appendChild(el('span', {class:'role-count', text:`~${count}`}));
+    wrap.appendChild(row);
+  });
+}
+
+function scopeMultiplier() {
+  if (state.level === 'ministry') return 1;
+  if (state.level === 'province') return state.path.province ? 1 : PROVINCES.length;
+  if (state.level === 'zonal') return state.path.zonal ? 1 : (state.path.province ? (ZONES[state.path.province]||['a','b']).length : 30);
+  if (state.level === 'division') return state.path.division ? 1 : (state.path.zonal ? (DIVISIONS[state.path.zonal]||['a','b']).length : 100);
+  if (state.level === 'school') {
+    if (state.path.schools && state.path.schools.length) return state.path.schools.length;
+    if (state.path.division) return (SCHOOLS[state.path.division]||['a','b']).length;
+    return 9790;
+  }
+  return 1;
+}
+
+function computeReach() {
+  const mult = scopeMultiplier();
+  let count = 0;
+  let breakdown = '';
+  if (state.roleMode === 'individual') {
+    document.getElementById('reachCount').textContent = '— users';
+    document.getElementById('reachBreakdown').textContent = 'Add specific users to see count';
+    return;
+  }
+  const counts = BASE_COUNTS[state.level];
+  if (state.roleMode === 'all') {
+    count = Object.values(counts).reduce((a,b) => a+b, 0) * mult;
+    breakdown = `All roles × ${mult} institution(s)`;
+  } else {
+    const roles = [...state.selectedRoles];
+    if (roles.length === 0) { count = 0; breakdown = 'No roles selected yet'; }
+    else {
+      count = roles.reduce((sum, r) => sum + (counts[r]||0), 0) * mult;
+      breakdown = `${roles.length} role(s) × ${mult} institution(s)`;
+    }
+  }
+  document.getElementById('reachCount').textContent = `${count.toLocaleString()} users`;
+  document.getElementById('reachBreakdown').textContent = breakdown;
+}
+
+function renderScopeSummary() {
+  const wrap = document.getElementById('scopeSummary');
+  wrap.innerHTML = '';
+  const lvLabel = LEVELS.find(l => l.id === state.level).label;
+  const chips = [lvLabel];
+  if (state.path.province) chips.push(state.path.province);
+  if (state.path.zonal) chips.push(state.path.zonal);
+  if (state.path.division) chips.push(state.path.division);
+  if (state.path.schools && state.path.schools.length) chips.push(`${state.path.schools.length} school(s)`);
+
+  chips.forEach((c,i) => {
+    const row = el('div', {class:'summary-row'});
+    if (i>0) row.appendChild(el('i', {class:'ti ti-corner-down-right', style:'font-size:13px;color:var(--text-tertiary);'}));
+    row.appendChild(el('span', {text:c}));
+    wrap.appendChild(row);
+  });
+
+  const audRow = el('div', {class:'summary-aud'});
+  if (state.roleMode === 'roles') {
+    const roles = [...state.selectedRoles].map(id => (ROLES_BY_LEVEL[state.level].find(r=>r.id===id)||{}).label).filter(Boolean);
+    audRow.textContent = roles.length ? `Roles: ${roles.join(', ')}` : 'No roles selected';
+  } else if (state.roleMode === 'all') {
+    audRow.textContent = 'All roles at this scope';
+  } else {
+    audRow.textContent = 'Specific individuals';
+  }
+  wrap.appendChild(audRow);
+}
+
+function renderAll() {
+  renderLevelTabs();
+  renderCascade();
+  renderRolesPanel();
+  renderScopeSummary();
+  computeReach();
+}
+
+document.querySelectorAll('.audmode').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.audmode').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.roleMode = btn.dataset.mode;
+    document.getElementById('rolesPanel').style.display = state.roleMode === 'roles' ? 'block' : 'none';
+    document.getElementById('allPanel').style.display = state.roleMode === 'all' ? 'block' : 'none';
+    document.getElementById('individualPanel').style.display = state.roleMode === 'individual' ? 'block' : 'none';
+    renderScopeSummary();
+    computeReach();
+  };
+});
+
+document.getElementById('sendBtn').onclick = () => {
+  const subject = document.getElementById('subject').value.trim();
+  if (!subject) { alert('Please add a subject before sending.'); return; }
+  alert('This is a UI demo — wire this button up to your backend send endpoint.');
+};
+document.getElementById('draftBtn').onclick = () => {
+  alert('This is a UI demo — wire this button up to your backend draft-save endpoint.');
+};
+
+renderAll();
+</script>
+</body>
+</html>

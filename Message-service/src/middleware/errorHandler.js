@@ -21,6 +21,13 @@ module.exports = function errorHandler(err, req, res, next) {
     });
   }
 
+  if (err.status && err.code) {
+    return res.status(err.status).json({
+      success: false,
+      error: { code: err.code, message: err.message },
+    });
+  }
+
   res.status(500).json({
     success: false,
     error: {

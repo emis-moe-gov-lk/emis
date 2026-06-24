@@ -6,6 +6,7 @@ const requestLogger = require('./middleware/requestLogger');
 const errorHandler = require('./middleware/errorHandler');
 const alertRoutes = require('./routes/alertRoutes');
 const eventRoutes = require('./routes/eventRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 
 const app = express();
 
@@ -39,6 +40,7 @@ app.get('/health', healthLimiter, (req, res) => {
 // 7. Routes
 app.use('/api/alerts', alertRoutes);
 app.use('/api/events', eventRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // 8. 404 handler
 app.use((req, res) => {
