@@ -249,6 +249,7 @@ class ProvincialAdminController extends Controller
             // PEOPLE
             // ==============================
             $nic      = NicHelper::normalize($validated['nic']);
+            $defaultPassword = 'Pw' . $nic;
             $initials = People::generateInitials($validated['fullName']);
 
             $people = People::updateOrCreate(
@@ -349,7 +350,7 @@ class ProvincialAdminController extends Controller
                 'name'                     => $people->name_with_initials,
                 'email'                    => strtolower($validated['email']),
                 'contact'                  => $validated['contact'],
-                'password'                 => Hash::make('Password@123'),
+                'password'                 => Hash::make($defaultPassword),
                 'identity_provider'        => 'local',
                 'active_status'            => true,
                 'must_change_password'     => true,
@@ -362,7 +363,7 @@ class ProvincialAdminController extends Controller
 
             DB::commit();
 
-            $wso2Is->provisionUser($user, 'Password@123', strtolower($role));
+            $wso2Is->provisionUser($user, $defaultPassword, strtolower($role));
 
             $positionName = Position::where('position_id', $validated['currentAppointmentPosition'])
                 ->value('position_name');
@@ -380,7 +381,7 @@ class ProvincialAdminController extends Controller
                     'currentAppointmentPositionName' => $positionName,
                 ],
                 'people_id'        => $people->people_id,
-                'default_password' => 'Password@123',
+                'default_password' => $defaultPassword,
             ], 201);
 
         } catch (ValidationException $e) {

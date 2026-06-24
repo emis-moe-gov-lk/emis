@@ -25,7 +25,7 @@ const FormGroup = ({ label, error, required = false, children }) => (
   </div>
 );
 
-export default function StepContactDetails({ formData, setFormData, onValid }) {
+export default function StepContactDetails({ formData, setFormData, onValid, apiErrors = {} }) {
   const [errors, setErrors] = useState({});
 
   const update = useCallback(
@@ -134,17 +134,17 @@ export default function StepContactDetails({ formData, setFormData, onValid }) {
 
         {/* Email & Phone */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormGroup label="Email" required error={errors.email}>
+          <FormGroup label="Email" required error={errors.email || apiErrors.email}>
             <TextInput
               type="email"
               placeholder="example@email.com"
               value={formData.email || ""}
               onChange={(e) => update("email", e.target.value)}
-              color={errors.email ? "failure" : "gray"}
+              color={errors.email || apiErrors.email ? "failure" : "gray"}
             />
           </FormGroup>
 
-          <FormGroup label="Phone Number" required error={errors.contact}>
+          <FormGroup label="Phone Number" required error={errors.contact || apiErrors.contact}>
             <TextInput
               type="tel"
               placeholder="07XXXXXXXX"
@@ -157,7 +157,7 @@ export default function StepContactDetails({ formData, setFormData, onValid }) {
                   e.target.value.replace(/\D/g, "").slice(0, 10),
                 )
               }
-              color={errors.contact ? "failure" : "gray"}
+              color={errors.contact || apiErrors.contact ? "failure" : "gray"}
             />
           </FormGroup>
         </div>
