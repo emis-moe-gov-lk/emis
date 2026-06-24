@@ -73,6 +73,10 @@ return [
         ],
     ],
 
+    'message_service' => [
+        'secret' => env('MESSAGE_SERVICE_SECRET'),
+    ],
+
     'asgardeo' => [
         'enabled' => env('WSO2_ENABLED', true),
         'client_id' => env('ASGARDEO_MGMT_CLIENT_ID'),

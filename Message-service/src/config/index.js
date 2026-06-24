@@ -8,6 +8,8 @@ const required = [
   'DB_HOST',
   'DB_NAME',
   'DB_USER',
+  'LARAVEL_BASE_URL',
+  'LARAVEL_SERVICE_SECRET',
 ];
 
 const missing = required.filter((key) => !process.env[key]);
@@ -44,6 +46,11 @@ const config = Object.freeze({
     password: process.env.DB_PASSWORD,
     migrateUser: process.env.DB_MIGRATE_USER || process.env.DB_USER,
     migratePassword: process.env.DB_MIGRATE_PASSWORD || process.env.DB_PASSWORD,
+  },
+
+  laravel: {
+    baseUrl: process.env.LARAVEL_BASE_URL,
+    serviceSecret: process.env.LARAVEL_SERVICE_SECRET,
   },
 });
 
