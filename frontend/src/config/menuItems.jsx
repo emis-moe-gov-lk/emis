@@ -1,4 +1,4 @@
-import { PermissionGroups } from "@/data/permissionGroups";
+﻿import { PermissionGroups } from "@/data/permissionGroups";
 import {
   HiCalendar,
   HiChartPie,
@@ -63,7 +63,7 @@ export const menuItems = [
         label: "Users",
         icon: HiUserGroup,
         to: "/users",
-        permission: "menu.users",
+        permission: "menu.user",
       },
       {
         id: "DMSApprovedCader",
@@ -147,8 +147,8 @@ export const menuItems = [
           {
             id: "principal",
             label: "Principals",
-              to: "/employees/principal",
-              permission: "menu.schools.principals",
+            to: "/employees/principal",
+            permission: "menu.schools.principals",
           },
           {
             id: "schooldeo",
@@ -156,33 +156,25 @@ export const menuItems = [
             to: "/employees/schooldeo",
             permission: "menu.schools.deo",
           },
-          {
-            id: "schoolclerks",
-            label: "School Clerks",
-            to: "/schools/schoolclerks",
-            permission: "menu.schools.clerk",
-          },
-
         ],
-
       },
       {
         id: "division",
         label: "Division",
         icon: HiUserGroup,
-        permission: PermissionGroups.DIVISION.DIVISION_VIEW,
+        permission: "menu.division",
         children: [
           {
             id: "divisiondirector",
             label: "Division Administrators",
             to: "/employees/division/admin",
-            // permission: PermissionGroups.DIVISION.ADMIN_VIEW,
+            permission: "menu.division.admin",
           },
           {
             id: "divisiondeo",
             label: "Division DEO",
             to: "/employees/division/deo",
-            // permission: PermissionGroups.DIVISION.DEO_VIEW,
+            permission: "menu.division.deo",
           },
         ],
       },
@@ -212,7 +204,6 @@ export const menuItems = [
           //   to: "/employees/zonalclerk",
           //   permission: "zonalclerk.list.view",
           // },
-          
         ],
       },
 
@@ -224,8 +215,8 @@ export const menuItems = [
         children: [
           {
             id: "provincialdirector",
-            label: "Provincial Director",
-            to: "/employees/provincialdirector",
+            label: "Provincial Administrators",
+            to: "/employees/provincial/admin",
             permission: "menu.provincial.admin",
           },
           // {
@@ -240,7 +231,12 @@ export const menuItems = [
           //   to: "/employees/provincialclerk",
           //   permission: "provincialclerk.list.view",
           // },
-          
+          {
+            id: "provincialdeo",
+            label: "Provincial DEO",
+            to: "/employees/provincial/deo",
+            permission: "menu.provincial.deo",
+          },
         ],
       },
 
@@ -251,15 +247,13 @@ export const menuItems = [
         permission: "menu.moe",
         children: [
           {
-            id: "moedirector",
-            label: "MOE Director",
-            to: "/employees/moedirector",
+            id: "moeadmin",
+            label: "MOE Administrators",
+            to: "/employees/moe/admin",
             permission: "menu.moe.admin",
           },
-          
         ],
       },
-
     ],
   },
 
@@ -270,16 +264,16 @@ export const menuItems = [
         id: "inbox",
         label: "Inbox",
         icon: HiInbox,
-        to: "/message",
+        to: "/inbox",
         permission: "menu.inbox",
       },
-      {
-        id: "admin",
-        label: "Admin",
-        icon: HiShieldCheck,
-        to: "/admin",
-        permission: "menu.admin",
-      },
+      // {
+      //   id: "admin",
+      //   label: "Admin",
+      //   icon: HiShieldCheck,
+      //   to: "/admin",
+      //   permission: "menu.admin",
+      // },
 
       {
         id: "time_table",
@@ -297,7 +291,7 @@ export const menuItems = [
             id: "system-settings",
             label: "System Settings",
             to: "/dashboard/settings",
-            permission: "menu.settings.system-settings",
+            permission: "menu.settings.system.settings",
           },
           {
             id: "version",
@@ -357,7 +351,9 @@ export const filterMenuItemsByPermissions = (sections, canAccess) =>
           }
 
           if (item.children) {
-            return hasAccess(item, canAccess) ? { ...item, children: [] } : null;
+            return hasAccess(item, canAccess)
+              ? { ...item, children: [] }
+              : null;
           }
 
           return hasAccess(item, canAccess) ? item : null;

@@ -59,7 +59,7 @@ class DatabaseSeeder extends Seeder
     //    $this->call(InstitutionSeeder::class);
 
        $this->call(InstitutionTableSeederPart1::class);
-//        $this->call(InstitutionTableSeederPart2::class);
+        $this->call(InstitutionTableSeederPart2::class);
         $this->call(WorkplacesFromMinistrySeeder::class);
 
         $this->call(ServiceSeeder::class);
@@ -80,6 +80,7 @@ class DatabaseSeeder extends Seeder
         $this->call(TeacherSeeder_02::class);
         $this->call(TeacherSeeder::class);
         $this->call(TeacherSeeder_03::class);
+        $this->call(TeacherSeeder_04::class);
         $this->call(RecruitmentCategorySeeder::class);
 
 

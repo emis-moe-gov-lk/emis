@@ -12,9 +12,9 @@ const UseCaseCard = ({ icon: Icon, title, description, bgGradient }) => {
         <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight transition-colors group-hover:text-blue-600">
           {title}
         </h3>
-        {/* <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
+        <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
           {description}
-        </p> */}
+        </p>
       </div>
     </div>
   );

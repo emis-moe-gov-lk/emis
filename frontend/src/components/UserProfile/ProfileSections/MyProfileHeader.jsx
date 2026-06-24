@@ -15,7 +15,7 @@ const tabs = [
   "Edit Request",
 ];
 
-const MyProfileHeader = ({ myprofile, permissions, onTabChange }) => {
+const MyProfileHeader = ({ myprofile, permissions, onTabChange, onSendEditRequest }) => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [activeTab, setActiveTab] = useState("General"); // default tab
   const [isDownloadingDocument, setIsDownloadingDocument] = useState(false);
@@ -96,14 +96,14 @@ const MyProfileHeader = ({ myprofile, permissions, onTabChange }) => {
 
             {/* Actions */}
             <div className="flex gap-2">
-              {/* {permissions?.canEdit && (
+              <Can permission={PermissionGroups.MY_PROFILE.UPDATE}>
                 <button
-                  onClick={() => setShowEditModal(true)}
-                  className="px-4 py-2 bg-white dark:bg-gray-800 border rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200"
+                  onClick={onSendEditRequest}
+                  className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-bold hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 transition-colors"
                 >
                   Send Edit Request
                 </button>
-              )} */}
+              </Can>
 
               {permissions?.canDownload && (
                 <Can permission={PermissionGroups.MY_PROFILE.DOCUMENT}>

@@ -9,11 +9,12 @@ import { useEffect, useState } from "react";
 import Spinner from "../components/UiComponents/Spinner";
 import InstitutionCard from "../components/Dashbord/InstitutionCard";
 import FullCalendar from "./timetable/FullCalendar";
+import EditRequestsPanel from "../components/Dashbord/EditRequestsPanel";
 import { useAuthUser } from "@/context/useAuthUser";
 import api from "@/api/axios";
 
 const UpdateDashboard = () => {
-  const { peopleId, isLoading: isAuthLoading } = useAuthUser();
+  const { peopleId, isLoading: isAuthLoading, hasRole } = useAuthUser();
   const [userData, setUserData] = useState(null);
   const [hasError, setHasError] = useState(false);
   const [search, setSearch] = useState("");
@@ -124,6 +125,8 @@ const UpdateDashboard = () => {
       events={todayEvents}
       onClose={() => setShowFullCalendar(false)}
     />
+
+    {hasRole("zonal deo") && <EditRequestsPanel />}
   </div>
 </div>  
 

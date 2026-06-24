@@ -1,17 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router";
 import { Badge, Button, Spinner, TextInput } from "flowbite-react";
 import StatusBadge from "@/components/common/StatusBadge";
 import {
   HiOfficeBuilding,
   HiLocationMarker,
   HiSearch,
-  HiPlus,
   HiEye,
-  HiTrash,
+  HiChevronLeft,
+  HiChevronRight,
 } from "react-icons/hi";
 import api from "@/api/axios";
-import { NavLink } from "react-router-dom";
 
 /**
  * A reusable, professional list page for office datasets.
@@ -19,15 +17,22 @@ import { NavLink } from "react-router-dom";
  * Styled to match InstitutionIndex aesthetic.
  */
 const OfficeListTemplate = ({ title, subtitle, endpoint, createLabel }) => {
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState([]);
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
+  const [total, setTotal] = useState(0);
+
+  useEffect(() => {
+    setPage(1);
+    setSearch("");
+  }, [endpoint]);
 
   useEffect(() => {
     setLoading(true);
     api
-      .get(endpoint)
+      .get(endpoint, { params: { page, per_page: 20 } })
       .then((res) => {
         const data = res.data;
         const list = Array.isArray(data)
@@ -40,13 +45,15 @@ const OfficeListTemplate = ({ title, subtitle, endpoint, createLabel }) => {
                 ? data.result
                 : [];
         setRows(list);
+        setTotal(data?.total ?? list.length);
+        setLastPage(data?.last_page ?? 1);
       })
       .catch((err) => {
         console.error(err);
         setRows([]);
       })
       .finally(() => setLoading(false));
-  }, [endpoint]);
+  }, [endpoint, page]);
 
   // pick helper: first existing key value
   const pick = (obj, keys) => {
@@ -163,7 +170,7 @@ const OfficeListTemplate = ({ title, subtitle, endpoint, createLabel }) => {
         </div>
           <div className="flex items-center gap-2">
           <StatusBadge className="px-3 py-1 font-bold text-sm">
-            {`Total: ${filtered.length}`}
+            {`Total: ${total}`}
           </StatusBadge>
         </div>
       </div>
@@ -180,15 +187,6 @@ const OfficeListTemplate = ({ title, subtitle, endpoint, createLabel }) => {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-
-        {/* <Button
-          color="gray"
-          className="inline-flex items-center gap-2 rounded-lg border shadow-sm enabled:hover:text-blue-600"
-          onClick={() => alert("Create functionality will be connected next.")}
-        >
-          <HiPlus className="w-5 h-5 mr-1" />
-          {createLabel}
-        </Button> */}
       </div>
 
       {/* Content */}
@@ -221,7 +219,7 @@ const OfficeListTemplate = ({ title, subtitle, endpoint, createLabel }) => {
               {/* Icon & Index */}
               <div className="flex items-center gap-4 min-w-[60px]">
                 <span className="text-xs font-mono text-gray-400 w-6">
-                  #{(idx + 1).toString().padStart(2, "0")}
+                  #{((page - 1) * 20 + idx + 1).toString().padStart(2, "0")}
                 </span>
                 <div className="p-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
                   <HiOfficeBuilding className="w-6 h-6" />
@@ -278,6 +276,43 @@ const OfficeListTemplate = ({ title, subtitle, endpoint, createLabel }) => {
               </div>
             </div>
           ))}
+
+          {/* Pagination Controls */}
+          {lastPage > 1 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+              <span className="text-sm text-gray-500 dark:text-gray-400 order-2 sm:order-1">
+                Showing page{" "}
+                <span className="font-semibold text-gray-900 dark:text-white">
+                  {page}
+                </span>{" "}
+                of{" "}
+                <span className="font-semibold text-gray-900 dark:text-white">
+                  {lastPage}
+                </span>
+              </span>
+
+              <div className="flex gap-2 order-1 sm:order-2 w-full sm:w-auto">
+                <Button
+                  color="gray"
+                  disabled={page === 1}
+                  onClick={() => setPage(page - 1)}
+                  className="flex-1 sm:flex-none inline-flex items-center gap-1"
+                >
+                  <HiChevronLeft className="w-5 h-5" />
+                  Previous
+                </Button>
+                <Button
+                  color="gray"
+                  disabled={page === lastPage}
+                  onClick={() => setPage(page + 1)}
+                  className="flex-1 sm:flex-none inline-flex items-center gap-1"
+                >
+                  Next
+                  <HiChevronRight className="w-5 h-5" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

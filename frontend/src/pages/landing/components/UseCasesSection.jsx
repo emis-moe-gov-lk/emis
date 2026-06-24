@@ -7,28 +7,28 @@ const UseCasesSection = () => {
       icon: UserCheck,
       title: "Teacher Portal",
       description:
-        "Manage your classes, assign homework, enter grades, and stay connected with students and parents.",
+        "Empowers teachers with digital tools for teaching, assessment, attendance, and student engagement.",
       bgGradient: "bg-gradient-to-br from-green-500 to-green-600",
     },
     {
       icon: Building2,
       title: "School Management",
       description:
-        "Handle student admissions, daily attendance, and school records all in one place.",
+        "Simplifies school administration, planning, reporting, and daily operations.",
       bgGradient: "bg-gradient-to-br from-blue-500 to-blue-600",
     },
     {
       icon: GraduationCap,
       title: "Student Records",
       description:
-        "Track every student's journey from admission to graduation with complete academic history and achievements.",
+        "Provides secure access to comprehensive student information and academic history.",
       bgGradient: "bg-gradient-to-br from-purple-500 to-purple-600",
     },
     {
       icon: Settings,
       title: "Resource Management",
       description:
-        "Monitor multiple schools, manage resources, and create reports for education departments and zones.",
+        "Ensures efficient management and utilization of educational resources and assets.",
       bgGradient: "bg-gradient-to-br from-orange-500 to-orange-600",
     },
   ];

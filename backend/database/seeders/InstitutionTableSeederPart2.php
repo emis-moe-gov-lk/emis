@@ -5114,9 +5114,18 @@ class InstitutionTableSeederPart2 extends Seeder
             array("id"=>"10096", "workplace_id"=>"INS0042024", "census_no"=>"42024", "institution_category_id"=>"ICID001", "authority_id"=>"AUID01", "language_id"=>"SLID04", "ethnicity_id"=>"SETH02", "gender_id"=>"IGID03", "facilities_id" => "FAC003", "institution_types_id"=>"ITID01", "grade_span_id"=>"GSID06", "sport_s"=>"0", "district_id"=>"DIS009", "zeo_wp_id"=>"ZEO0000071", "deo_wp_id"=>"DEO0000213", "police_station_id"=>"PSID01", "moh_area_id"=>"MOH01", "name"=>"BOYAGANE VISHVODA AUID01 SCHOOL", "established_year"=>"2000", "phone"=>null, "address"=>"BOYAGANE, KURUNEGALA", "latitude"=>"80.326101", "longitude"=>"7.469042", "created_at" => $now, "updated_at" => $now),      
         ];
 
-        foreach (array_chunk($data, 1000) as $batch) {
-            DB::table('institutions')->insert($batch);
+        $chunks = array_chunk($data, 1000);
+        $bar = $this->command?->getOutput()->createProgressBar(count($data));
+        $bar?->setFormat(' %current%/%max% [%bar%] %percent:3s%% -- seeding institutions (part 2/2)');
+        $bar?->start();
+
+        foreach ($chunks as $chunk) {
+            DB::table('institutions')->insert($chunk);
+            $bar?->advance(count($chunk));
         }
+
+        $bar?->finish();
+        $this->command?->newLine();
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
         DB::table('institutions')
