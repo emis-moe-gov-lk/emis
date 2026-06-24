@@ -92,7 +92,7 @@ export default function StepProvincialAdminCurrentAppointment({ formData, setFor
         <div className="flex h-8 w-8 items-center justify-center rounded-md bg-blue-600 text-xs font-bold text-white">
           05
         </div>
-        <h2 className="text-xl font-semibold text-gray-900">Current Appointment Details</h2>
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Current Appointment Details</h2>
       </div>
 
       {/* Registration type */}
