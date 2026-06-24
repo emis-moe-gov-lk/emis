@@ -12,6 +12,7 @@ import StepPersonalDetails from "@/components/moe/steps/StepPersonalDetails";
 import StepContactDetails from "@/components/moe/steps/StepContactDetails";
 import StepFirstAppointment from "@/components/moe/steps/StepFirstAppointment";
 import StepMoeAdminCurrentAppointment from "@/components/moe/steps/StepMoeAdminCurrentAppointment";
+import { checkTeacherContact } from "@/api/teacherService";
 
 import api from "@/api/axios";
 import toast from "react-hot-toast";
@@ -41,6 +42,7 @@ function RegMoeAdminInner() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRegistrationComplete, setIsRegistrationComplete] = useState(false);
   const [registrationSummary, setRegistrationSummary] = useState(null);
+  const [contactApiErrors, setContactApiErrors] = useState({});
   const isPopNavigationRef = useRef(false);
   const lastHistoryStepRef = useRef(null);
   const currentStepRef = useRef(1);
@@ -199,13 +201,83 @@ function RegMoeAdminInner() {
   }
 
   const setFormData = (updateOrValue) => dispatch({ type: "UPDATE_FORM_DATA", payload: updateOrValue });
+  const handleDownloadProfile = async () => {
+    const peopleId =
+      registrationSummary?.people_id ||
+      formData?.people_id ||
+      formData?.peopleId;
+
+    if (!peopleId) {
+      toast.error("Missing people id for PDF download.");
+      return;
+    }
+
+    try {
+      const response = await downloadTeacherProfileDocument(peopleId);
+      const contentType = response.headers?.["content-type"] || "application/pdf";
+      const disposition = response.headers?.["content-disposition"] || "";
+      const filenameMatch = disposition.match(/filename="?([^";]+)"?/i);
+      const filename = filenameMatch?.[1] || `moe-admin-profile-${peopleId}.pdf`;
+
+      const blob = new Blob([response.data], { type: contentType });
+      const url = window.URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+
+      anchor.href = url;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+
+      window.setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+        anchor.remove();
+      }, 3000);
+    } catch (_error) {
+      toast.error("Unable to download profile PDF.");
+    }
+  };
+
   const handleStepClick = (stepId) => {
     if (stepId < currentStep || (currentStep === 1 && isNicVerified) || (currentStep === 2 && isPersonalValid) || (currentStep === 3 && isContactValid) || (currentStep === 4 && isFirstApptValid)) {
         dispatch({ type: "SET_STEP", payload: stepId });
     }
   };
-
   const handleNext = async () => {
+    if (currentStep === 3) {
+      const email = formData?.email?.trim();
+      const phone = formData?.contact?.trim();
+      const payload = {};
+
+      if (email) payload.email = email;
+      if (phone) payload.phone = phone;
+
+      if (Object.keys(payload).length > 0) {
+        try {
+          setIsSubmitting(true);
+          setContactApiErrors({});
+
+          const result = await checkTeacherContact(payload);
+          const emailExists = Boolean(result?.email?.exists);
+          const phoneExists = Boolean(result?.phone?.exists);
+
+          if (emailExists || phoneExists) {
+            const nextErrors = {};
+            if (emailExists) nextErrors.email = "This email already exists.";
+            if (phoneExists) nextErrors.contact = "This phone number already exists.";
+            
+            setContactApiErrors(nextErrors);
+            toast.error("Email or phone number already exists.");
+            return;
+          }
+        } catch (err) {
+          toast.error("Unable to verify contact details. Please try again.");
+          return;
+        } finally {
+          setIsSubmitting(false);
+        }
+      }
+    }
+
     if (currentStep === 5) {
       try {
         setIsSubmitting(true);
@@ -280,6 +352,7 @@ function RegMoeAdminInner() {
               formData={formData}
               setFormData={setFormData}
               onValid={(valid) => dispatch({ type: "SET_CONTACT_VALID", payload: valid })}
+              apiErrors={contactApiErrors}
             />
           )}
 
@@ -299,42 +372,58 @@ function RegMoeAdminInner() {
             />
           )}
 
+          {/* ================= STEP 06 – FINISHING ================= */}
           {currentStep === 6 && (
-            <div className="space-y-6 text-center max-w-xl mx-auto py-6">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 mx-auto">
-                <HiCheckCircle className="w-10 h-10" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Registration Complete!</h3>
-                <p className="text-gray-500">MOE Administrator credentials successfully initialized.</p>
-              </div>
-
-              <div className="border border-gray-200 dark:border-gray-800 rounded-2xl p-6 bg-slate-50 dark:bg-gray-800/40 text-left space-y-3 font-medium text-gray-700 dark:text-gray-300">
-                <p><span className="text-gray-400 dark:text-gray-500 font-normal">Full Name:</span> {registrationSummary?.fullName}</p>
-                <p><span className="text-gray-400 dark:text-gray-500 font-normal">NIC Number:</span> {registrationSummary?.nic}</p>
-                <p><span className="text-gray-400 dark:text-gray-500 font-normal">Registered Email:</span> {registrationSummary?.email}</p>
-                <p><span className="text-gray-400 dark:text-gray-500 font-normal">Contact Number:</span> {registrationSummary?.contact}</p>
-                <p><span className="text-gray-400 dark:text-gray-500 font-normal">Designation:</span> {registrationSummary?.currentPosition}</p>
-                <div className="border-t border-gray-200 dark:border-gray-800 pt-3 text-sm">
-                  <p className="text-amber-600 dark:text-amber-400 flex items-center gap-1.5 font-semibold">
-                    🔑 Temporary password: {registrationSummary?.defaultPassword}
+            <div className="space-y-8">
+              <div className="flex items-start gap-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900/40 rounded-2xl p-6">
+                <HiCheckCircle className="text-green-600 dark:text-green-500 w-8 h-8 mt-1" />
+                <div>
+                  <h3 className="font-semibold text-green-800 dark:text-green-300">
+                    MOE Administrator Registered Successfully
+                  </h3>
+                  <p className="text-sm text-green-700 dark:text-green-400 mt-1">
+                    Registration has been completed successfully.
                   </p>
                 </div>
               </div>
 
-              <div className="flex gap-4 justify-center">
-                <Button variant="primary" onClick={() => {
-                  dispatch({ type: "CLEAR" });
-                  navigate("/employees/moe/admin");
-                }}>
-                  Return to Directory
+              <div className="surface rounded-2xl p-6 space-y-2 text-sm">
+                <p className="text-gray-900 dark:text-gray-100">
+                  <strong>Name:</strong> {registrationSummary?.fullName || "-"}
+                </p>
+                <p className="text-gray-900 dark:text-gray-100">
+                  <strong>NIC:</strong> {registrationSummary?.nic || "-"}
+                </p>
+                <p className="text-gray-900 dark:text-gray-100">
+                  <strong>Email:</strong> {registrationSummary?.email || "-"}
+                </p>
+                <p className="text-gray-900 dark:text-gray-100">
+                  <strong>Contact Number:</strong> {registrationSummary?.contact || "-"}
+                </p>
+                <p className="text-gray-900 dark:text-gray-100">
+                  <strong>Current Appointed Position:</strong> {registrationSummary?.currentPosition || "-"}
+                </p>
+                <p className="text-gray-900 dark:text-gray-100 pt-2 border-t border-gray-100 dark:border-gray-800 mt-2">
+                  <strong>Temporary Password:</strong> <span className="font-mono font-bold bg-amber-50 dark:bg-amber-950/20 px-2 py-0.5 rounded text-amber-600 dark:text-amber-400">{registrationSummary?.defaultPassword || "-"}</span>
+                </p>
+              </div>
+
+              <div className="flex justify-center gap-4 pt-4">
+                <Button 
+                  variant="secondary" 
+                  onClick={() => {
+                    dispatch({ type: "CLEAR" });
+                    setIsRegistrationComplete(false);
+                    dispatch({ type: "SET_STEP", payload: 1 });
+                  }}
+                >
+                  New Registration
                 </Button>
-                <Button variant="secondary" onClick={() => {
-                  dispatch({ type: "CLEAR" });
-                  setIsRegistrationComplete(false);
-                  dispatch({ type: "SET_STEP", payload: 1 });
-                }}>
-                  Register Another
+                <Button 
+                  variant="primary" 
+                  onClick={handleDownloadProfile}
+                >
+                  Download Profile
                 </Button>
               </div>
             </div>
