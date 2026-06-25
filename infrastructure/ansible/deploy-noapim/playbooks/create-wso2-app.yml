@@ -1,0 +1,343 @@
+---
+- name: Test Modular App Creation in WSO2 IS
+  hosts: swarm_managers
+  gather_facts: false
+  vars:
+    # Connection details (falling back to env/uat.yml values when included/run with it)
+    is_mgmt: "https://{{ is_hostname | default('idp-dev.emis.moe.gov.lk') }}"
+    is_admin_name: "{{ is_admin_user | default('admin') }}"
+    is_admin_pass: "{{ is_admin_password | default('ADMIN111') }}"
+
+    # Test values for callback urls and origins (normally loaded from env configuration)
+    vite_signin_redirect_url: "https://app-dev.emis.moe.gov.lk/authentication/callback"
+    vite_signout_redirect_url: "https://app-dev.emis.moe.gov.lk/logout"
+
+    # The externalized/modularized application definitions
+    apps_to_create:
+      - name: "Web App - TEST"
+        description: "SPA APP TEST - TEST"
+        template_id: ""  # Empty for standard OIDC applications
+        public_client: true
+        grant_types:
+          - "authorization_code"
+          - "refresh_token"
+        callback_urls:
+          - "https://app-dev.emis.moe.gov.lk/authentication/callback"
+          - "https://app-dev.emis.moe.gov.lk/logout"
+          - "https://web-test/url"
+        allowed_origins:
+          - "https://app-dev.emis.moe.gov.lk"
+          - "https://localhost:5173"
+        #claims:
+        #  dialect: "LOCAL"
+        #  requested_claims:
+        #    - claim:
+        #        uri: "http://wso2.org/claims/emailaddress"
+        #      mandatory: false
+        #    - claim:
+        #        uri: "http://wso2.org/claims/roles"
+        #      mandatory: false
+        #  subject:
+        #    uri: "http://wso2.org/claims/userid"
+        #    include_user_domain: false
+        #    include_tenant_domain: false
+        #    use_mapped_local_subject: false
+        associated_roles:
+          allowed_audience: "ORGANIZATION"
+        oidc_custom_config:
+          pkce:
+            mandatory: false
+            support_plain: false
+          access_token:
+            type: "JWT"
+            user_expiry: 3600
+            app_expiry: 3600
+            attributes:
+              - "email"
+              - "given_name"
+              - "roles"
+          refresh_token:
+            expiry: 86400
+          id_token:
+            expiry: 3600
+
+      - name: "M2M APP TEST - TEST"
+        description: "Test M2M Application"
+        template_id: "m2m-application"
+        public_client: false
+        grant_types:
+          - "client_credentials"
+        callback_urls: []
+        allowed_origins: []
+        authorized_apis:
+          - identifier: "/scim2/Users"
+            policy: "RBAC"
+            scopes:
+              - "internal_user_mgt_create"
+              - "internal_user_mgt_update"
+          - identifier: "/scim2/Roles"
+            policy: "RBAC"
+            scopes:
+              - "internal_role_mgt_update"
+              - "internal_role_mgt_users_update"
+
+  tasks:
+    - name: Wait for IS management API to be ready
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/api/server/v1/configs"
+        method: GET
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pass }}"
+        force_basic_auth: yes
+        status_code: [200, 401]
+      register: is_ready
+      until: is_ready.status in [200, 401]
+      retries: 10
+      delay: 5
+
+    # =========================================================================
+    # Step 1: Check existing applications in IS
+    # =========================================================================
+    - name: Check if applications already exist in IS
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/api/server/v1/applications?filter=name+eq+{{ item.name | urlencode }}"
+        method: GET
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+      loop: "{{ apps_to_create }}"
+      register: app_checks
+
+    - name: Set facts for existing apps
+      ansible.builtin.set_fact:
+        existing_apps: "{{ existing_apps | default({}) | combine({ item.item.name: (item.json.applications[0].id if item.json.totalResults | default(0) | int > 0 else '') }) }}"
+      loop: "{{ app_checks.results }}"
+
+    # =========================================================================
+    # Step 2: Create applications that do not exist
+    # =========================================================================
+    - name: Create application in IS
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/api/server/v1/applications"
+        method: POST
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          name: "{{ item.name }}"
+          description: "{{ item.description | default('') }}"
+          # Only pass templateId if it's explicitly set and not empty
+          templateId: "{{ item.template_id if (item.template_id | length > 0) else omit }}"
+          inboundProtocolConfiguration:
+            oidc:
+              grantTypes: "{{ item.grant_types }}"
+              publicClient: "{{ item.public_client | default(false) }}"
+              callbackURLs: "{{ ['regexp=(' + item.callback_urls | join('|') + ')'] if (item.callback_urls | length > 1) else (item.callback_urls if (item.callback_urls | length > 0) else omit) }}"
+              allowedOrigins: "{{ item.allowed_origins if (item.allowed_origins | length > 0) else omit }}"
+        status_code: [201, 409]
+      loop: "{{ apps_to_create }}"
+      when: existing_apps[item.name] == ''
+
+    # =========================================================================
+    # Step 3: Re-query and establish all final application IDs
+    # =========================================================================
+    - name: Re-query all application IDs to ensure we have them
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/api/server/v1/applications?filter=name+eq+{{ item.name | urlencode }}"
+        method: GET
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+      loop: "{{ apps_to_create }}"
+      register: final_app_lookups
+
+    - name: Map final application IDs
+      ansible.builtin.set_fact:
+        app_ids: "{{ app_ids | default({}) | combine({ item.item.name: item.json.applications[0].id }) }}"
+      loop: "{{ final_app_lookups.results }}"
+      when: item.json.totalResults | default(0) | int > 0
+
+    # =========================================================================
+    # Step 4: Configure Claims (Optional)
+    # =========================================================================
+    - name: Configure claims for applications
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/api/server/v1/applications/{{ app_ids[item.name] }}"
+        method: PATCH
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          claimConfiguration:
+            dialect: "{{ item.claims.dialect | default('LOCAL') }}"
+            requestedClaims: "{{ item.claims.requested_claims | default([]) }}"
+            subject:
+              claim:
+                uri: "{{ item.claims.subject.uri }}"
+              includeUserDomain: "{{ item.claims.subject.include_user_domain | default(false) }}"
+              includeTenantDomain: "{{ item.claims.subject.include_tenant_domain | default(false) }}"
+              useMappedLocalSubject: "{{ item.claims.subject.use_mapped_local_subject | default(false) }}"
+        status_code: [200]
+      loop: "{{ apps_to_create }}"
+      when:
+        - item.claims is defined
+        - app_ids[item.name] is defined
+
+    # =========================================================================
+    # Step 5: Configure Associated Roles (Optional)
+    # =========================================================================
+    - name: Configure organization roles for applications
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/api/server/v1/applications/{{ app_ids[item.name] }}"
+        method: PATCH
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          associatedRoles:
+            allowedAudience: "{{ item.associated_roles.allowed_audience }}"
+        status_code: [200]
+      loop: "{{ apps_to_create }}"
+      when:
+        - item.associated_roles is defined
+        - app_ids[item.name] is defined
+
+    # =========================================================================
+    # Step 6: Get OIDC configurations for custom configurations & PUT updates
+    # =========================================================================
+    - name: Get existing OIDC protocol config for custom configurations
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/api/server/v1/applications/{{ app_ids[item.name] }}/inbound-protocols/oidc"
+        method: GET
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+        status_code: [200]
+      loop: "{{ apps_to_create }}"
+      when:
+        - item.oidc_custom_config is defined
+        - app_ids[item.name] is defined
+      register: custom_oidc_existing
+
+    - name: Configure OIDC custom protocols
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/api/server/v1/applications/{{ app_ids[item.item.name] }}/inbound-protocols/oidc"
+        method: PUT
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          clientId: "{{ item.json.clientId }}"
+          grantTypes: "{{ item.item.grant_types }}"
+          callbackURLs: "{{ ['regexp=(' + item.item.callback_urls | join('|') + ')'] if (item.item.callback_urls | length > 1) else (item.item.callback_urls if (item.item.callback_urls is defined and item.item.callback_urls | length > 0) else omit) }}"
+          allowedOrigins: "{{ item.item.allowed_origins if (item.item.allowed_origins is defined and item.item.allowed_origins | length > 0) else omit }}"
+          publicClient: "{{ item.item.public_client | default(false) }}"
+          pkce:
+            mandatory: "{{ item.item.oidc_custom_config.pkce.mandatory | default(false) }}"
+            supportPlainTransformAlgorithm: "{{ item.item.oidc_custom_config.pkce.support_plain | default(false) }}"
+          hybridFlow:
+            enable: false
+            responseType: "null"
+          accessToken:
+            type: "{{ item.item.oidc_custom_config.access_token.type | default('JWT') }}"
+            userAccessTokenExpiryInSeconds: "{{ item.item.oidc_custom_config.access_token.user_expiry | default(3600) }}"
+            applicationAccessTokenExpiryInSeconds: "{{ item.item.oidc_custom_config.access_token.app_expiry | default(3600) }}"
+            revokeTokensWhenIDPSessionTerminated: false
+            validateTokenBinding: false
+            accessTokenAttributes: "{{ item.item.oidc_custom_config.access_token.attributes | default([]) }}"
+          refreshToken:
+            expiryInSeconds: "{{ item.item.oidc_custom_config.refresh_token.expiry | default(86400) }}"
+            renewRefreshToken: false
+          idToken:
+            expiryInSeconds: "{{ item.item.oidc_custom_config.id_token.expiry | default(3600) }}"
+        status_code: [200]
+      loop: "{{ custom_oidc_existing.results }}"
+      when:
+        - not item.skipped | default(false)
+        - item.json is defined
+
+    # =========================================================================
+    # Step 7: Authorize M2M APIs
+    # =========================================================================
+    - name: Gather all M2M API resource identifiers to lookup
+      ansible.builtin.set_fact:
+        api_identifiers: >-
+          {%- set idents = [] -%}
+          {%- for app in apps_to_create -%}
+            {%- if app.authorized_apis is defined -%}
+              {%- for api in app.authorized_apis -%}
+                {%- set _ = idents.append(api.identifier) -%}
+              {%- endfor -%}
+            {%- endif -%}
+          {%- endfor -%}
+          {{ idents | unique }}
+
+    - name: Lookup API Resource IDs from IS
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/api/server/v1/api-resources?filter=identifier+eq+{{ item | urlencode }}"
+        method: GET
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+      loop: "{{ api_identifiers }}"
+      register: api_resource_lookups
+      when: api_identifiers | length > 0
+
+    - name: Map API Resource identifiers to IDs
+      ansible.builtin.set_fact:
+        api_resource_ids: "{{ api_resource_ids | default({}) | combine({ item.item: item.json.apiResources[0].id }) }}"
+      loop: "{{ api_resource_lookups.results | default([]) }}"
+      when:
+        - api_identifiers | length > 0
+        - item.json is defined
+        - item.json.totalResults | default(0) | int > 0
+
+    - name: Authorize APIs for M2M applications
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/api/server/v1/applications/{{ app_ids[item.0.name] }}/authorized-apis"
+        method: POST
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          id: "{{ api_resource_ids[item.1.identifier] }}"
+          policyIdentifier: "{{ item.1.policy | default('RBAC') }}"
+          scopes: "{{ item.1.scopes }}"
+        status_code: [200, 201, 409]
+      loop: "{{ apps_to_create | subelements('authorized_apis', skip_missing=True) }}"
+      when:
+        - app_ids[item.0.name] is defined
+        - api_resource_ids[item.1.identifier] is defined
