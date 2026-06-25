@@ -14,6 +14,7 @@
 |------|---------|
 | `fe` | Frontend |
 | `be` | Backend |
+| `ms` | Message Service |
 | `fs` | Fullstack (Frontend + Backend changes) |
 | `infra` | Infrastructure |
 | `config` | Configuration |
