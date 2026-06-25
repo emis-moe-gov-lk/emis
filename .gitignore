@@ -1,5 +1,4 @@
 # Environment
-.env
 *.env
 
 # Node
@@ -57,3 +56,4 @@ infrastructure/ansible/deploy-noapim/inventory/*.yml
 # Backup Files
 *.bck
 serviceminutes
+config.bat
