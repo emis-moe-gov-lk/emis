@@ -172,12 +172,16 @@
         - role_id_mapping[user_role.1] is defined
 
     # =========================================================================
-    # PART 4: Create OIDC Applications Directly in IS (no APIM devportal)
+    # PART 4 & 5: Create & Configure OIDC Applications (Modular)
+    # All application definitions are sourced from emis_apps in the env file.
+    # To add, remove, or reconfigure an app, edit the emis_apps list in
+    # env/<environment>.yml — no changes to this playbook are needed.
     # =========================================================================
 
-    - name: Check if EMIS Web App exists in IS
+    # ── Step 1: Idempotency check ─────────────────────────────────────────────
+    - name: Check if applications already exist in IS
       ansible.builtin.uri:
-        url: "{{ is_mgmt }}/api/server/v1/applications?filter=name+eq+EMIS+Web+App"
+        url: "{{ is_mgmt }}/api/server/v1/applications?filter=name+eq+{{ item.name | urlencode }}"
         method: GET
         validate_certs: no
         user: "{{ is_admin_name }}"
@@ -185,9 +189,16 @@
         force_basic_auth: yes
         headers:
           Content-Type: "application/json"
-      register: webapp_check
+      loop: "{{ apps_to_create }}"
+      register: app_checks
 
-    - name: Create EMIS Web App OIDC application in IS
+    - name: Set facts for existing apps
+      ansible.builtin.set_fact:
+        existing_apps: "{{ existing_apps | default({}) | combine({ item.item.name: (item.json.applications[0].id if item.json.totalResults | default(0) | int > 0 else '') }) }}"
+      loop: "{{ app_checks.results }}"
+
+    # ── Step 2: Create new apps ───────────────────────────────────────────────
+    - name: Create application in IS
       ansible.builtin.uri:
         url: "{{ is_mgmt }}/api/server/v1/applications"
         method: POST
@@ -199,26 +210,23 @@
           Content-Type: "application/json"
         body_format: json
         body:
-          name: "EMIS Web App"
-          description: "EMIS Frontend SPA"
+          name: "{{ item.name }}"
+          description: "{{ item.description | default('') }}"
+          templateId: "{{ item.template_id if (item.template_id | default('') | length > 0) else omit }}"
           inboundProtocolConfiguration:
             oidc:
-              grantTypes:
-                - "authorization_code"
-                - "refresh_token"
-              callbackURLs:
-                - "regexp=({{ vite_signin_redirect_url }}|{{ vite_signout_redirect_url }})"
-              allowedOrigins:
-                - "{{ vite_signin_redirect_url | regex_replace('(https?://[^/]+).*', '\\1') }}"
-              publicClient: true
+              grantTypes: "{{ item.grant_types }}"
+              publicClient: "{{ item.public_client | default(false) }}"
+              callbackURLs: "{{ ['regexp=(' + item.callback_urls | join('|') + ')'] if (item.callback_urls | length > 1) else (item.callback_urls if (item.callback_urls | length > 0) else omit) }}"
+              allowedOrigins: "{{ item.allowed_origins if (item.allowed_origins | length > 0) else omit }}"
         status_code: [201, 409]
-      register: webapp_created
-      when: webapp_check.json.totalResults | default(0) | int == 0
+      loop: "{{ apps_to_create }}"
+      when: existing_apps[item.name] == ''
 
-
-    - name: Get EMIS Web App ID
+    # ── Step 3: Re-query and map all final application IDs ───────────────────
+    - name: Re-query all application IDs to ensure we have them
       ansible.builtin.uri:
-        url: "{{ is_mgmt }}/api/server/v1/applications?filter=name+eq+EMIS+Web+App"
+        url: "{{ is_mgmt }}/api/server/v1/applications?filter=name+eq+{{ item.name | urlencode }}"
         method: GET
         validate_certs: no
         user: "{{ is_admin_name }}"
@@ -226,31 +234,19 @@
         force_basic_auth: yes
         headers:
           Content-Type: "application/json"
-      register: webapp_lookup
+      loop: "{{ apps_to_create }}"
+      register: final_app_lookups
 
-    - name: Set EMIS Web App ID fact
-      set_fact:
-        webapp_id: "{{ webapp_lookup.json.applications[0].id }}"
-      when: webapp_lookup.json.totalResults | default(0) | int > 0
+    - name: Map final application IDs
+      ansible.builtin.set_fact:
+        app_ids: "{{ app_ids | default({}) | combine({ item.item.name: item.json.applications[0].id }) }}"
+      loop: "{{ final_app_lookups.results }}"
+      when: item.json.totalResults | default(0) | int > 0
 
-    - name: Get EMIS Web App OIDC config (consumer key)
+    # ── Step 4: Configure Claims (optional, per-app) ──────────────────────────
+    - name: Configure claims for applications
       ansible.builtin.uri:
-        url: "{{ is_mgmt }}/api/server/v1/applications/{{ webapp_id }}/inbound-protocols/oidc"
-        method: GET
-        validate_certs: no
-        user: "{{ is_admin_name }}"
-        password: "{{ is_admin_pass }}"
-        force_basic_auth: yes
-        headers:
-          Content-Type: "application/json"
-      register: webapp_oidc
-      when:
-        - webapp_id is defined
-        - webapp_id | length > 0
-
-    - name: Configure email and roles claims for EMIS Web App
-      ansible.builtin.uri:
-        url: "{{ is_mgmt }}/api/server/v1/applications/{{ webapp_id }}"
+        url: "{{ is_mgmt }}/api/server/v1/applications/{{ app_ids[item.name] }}"
         method: PATCH
         validate_certs: no
         user: "{{ is_admin_name }}"
@@ -261,28 +257,24 @@
         body_format: json
         body:
           claimConfiguration:
-            dialect: "LOCAL"
-            requestedClaims:
-              - claim:
-                  uri: "http://wso2.org/claims/emailaddress"
-                mandatory: false
-              - claim:
-                  uri: "http://wso2.org/claims/roles"
-                mandatory: false
+            dialect: "{{ item.claims.dialect | default('LOCAL') }}"
+            requestedClaims: "{{ item.claims.requested_claims | default([]) }}"
             subject:
               claim:
-                uri: "http://wso2.org/claims/userid"
-              includeUserDomain: false
-              includeTenantDomain: false
-              useMappedLocalSubject: false
+                uri: "{{ item.claims.subject.uri }}"
+              includeUserDomain: "{{ item.claims.subject.include_user_domain | default(false) }}"
+              includeTenantDomain: "{{ item.claims.subject.include_tenant_domain | default(false) }}"
+              useMappedLocalSubject: "{{ item.claims.subject.use_mapped_local_subject | default(false) }}"
         status_code: [200]
+      loop: "{{ apps_to_create }}"
       when:
-        - webapp_id is defined
-        - webapp_id | length > 0
+        - item.claims is defined
+        - app_ids[item.name] is defined
 
-    - name: Configure organization roles for EMIS Web App
+    # ── Step 5: Configure Associated Roles (optional, per-app) ───────────────
+    - name: Configure organization roles for applications
       ansible.builtin.uri:
-        url: "{{ is_mgmt }}/api/server/v1/applications/{{ webapp_id }}"
+        url: "{{ is_mgmt }}/api/server/v1/applications/{{ app_ids[item.name] }}"
         method: PATCH
         validate_certs: no
         user: "{{ is_admin_name }}"
@@ -293,15 +285,17 @@
         body_format: json
         body:
           associatedRoles:
-            allowedAudience: "ORGANIZATION"
+            allowedAudience: "{{ item.associated_roles.allowed_audience }}"
         status_code: [200]
+      loop: "{{ apps_to_create }}"
       when:
-        - webapp_id is defined
-        - webapp_id | length > 0
+        - item.associated_roles is defined
+        - app_ids[item.name] is defined
 
-    - name: Get existing OIDC protocol config
+    # ── Step 6: Apply custom OIDC config via PUT (optional, per-app) ──────────
+    - name: Get existing OIDC protocol config for custom configurations
       ansible.builtin.uri:
-        url: "{{ is_mgmt }}/api/server/v1/applications/{{ webapp_id }}/inbound-protocols/oidc"
+        url: "{{ is_mgmt }}/api/server/v1/applications/{{ app_ids[item.name] }}/inbound-protocols/oidc"
         method: GET
         validate_certs: no
         user: "{{ is_admin_name }}"
@@ -310,14 +304,15 @@
         headers:
           Content-Type: "application/json"
         status_code: [200]
-      register: oidc_existing
+      loop: "{{ apps_to_create }}"
       when:
-        - webapp_id is defined
-        - webapp_id | length > 0
+        - item.oidc_custom_config is defined
+        - app_ids[item.name] is defined
+      register: custom_oidc_existing
 
-    - name: Configure OIDC protocol to include claims in access token and ID token
+    - name: Configure OIDC custom protocols
       ansible.builtin.uri:
-        url: "{{ is_mgmt }}/api/server/v1/applications/{{ webapp_id }}/inbound-protocols/oidc"
+        url: "{{ is_mgmt }}/api/server/v1/applications/{{ app_ids[item.item.name] }}/inbound-protocols/oidc"
         method: PUT
         validate_certs: no
         user: "{{ is_admin_name }}"
@@ -327,71 +322,52 @@
           Content-Type: "application/json"
         body_format: json
         body:
-          clientId: "{{ oidc_existing.json.clientId }}"
-          grantTypes:
-            - "authorization_code"
-            - "refresh_token"
-          callbackURLs:
-            - "regexp=({{ vite_signin_redirect_url }}|{{ vite_signout_redirect_url }})"
-          allowedOrigins:
-            - "{{ vite_signin_redirect_url | regex_replace('(https?://[^/]+).*', '\\1') }}"
-          publicClient: true
+          clientId: "{{ item.json.clientId }}"
+          grantTypes: "{{ item.item.grant_types }}"
+          callbackURLs: "{{ ['regexp=(' + item.item.callback_urls | join('|') + ')'] if (item.item.callback_urls | length > 1) else (item.item.callback_urls if (item.item.callback_urls is defined and item.item.callback_urls | length > 0) else omit) }}"
+          allowedOrigins: "{{ item.item.allowed_origins if (item.item.allowed_origins is defined and item.item.allowed_origins | length > 0) else omit }}"
+          publicClient: "{{ item.item.public_client | default(false) }}"
           pkce:
-            mandatory: false
-            supportPlainTransformAlgorithm: false
+            mandatory: "{{ item.item.oidc_custom_config.pkce.mandatory | default(false) }}"
+            supportPlainTransformAlgorithm: "{{ item.item.oidc_custom_config.pkce.support_plain | default(false) }}"
           hybridFlow:
             enable: false
             responseType: "null"
           accessToken:
-            type: "JWT"
-            userAccessTokenExpiryInSeconds: 3600
-            applicationAccessTokenExpiryInSeconds: 3600
+            type: "{{ item.item.oidc_custom_config.access_token.type | default('JWT') }}"
+            userAccessTokenExpiryInSeconds: "{{ item.item.oidc_custom_config.access_token.user_expiry | default(3600) }}"
+            applicationAccessTokenExpiryInSeconds: "{{ item.item.oidc_custom_config.access_token.app_expiry | default(3600) }}"
             revokeTokensWhenIDPSessionTerminated: false
             validateTokenBinding: false
-            accessTokenAttributes:
-                - "email"
-                - "given_name"
-                - "roles"
+            accessTokenAttributes: "{{ item.item.oidc_custom_config.access_token.attributes | default([]) }}"
           refreshToken:
-            expiryInSeconds: 86400
+            expiryInSeconds: "{{ item.item.oidc_custom_config.refresh_token.expiry | default(86400) }}"
             renewRefreshToken: false
-          subjectToken:
-            enable: false
-            applicationSubjectTokenExpiryInSeconds: 180
           idToken:
-            expiryInSeconds: 3600
-            audience: []
-            idTokenSignedResponseAlg: ""
-            encryption:
-              enabled: false
-              algorithm: ""
-              method: ""
-          logout: {}
-          validateRequestObjectSignature: false
-          scopeValidators: []
-          clientAuthentication: {}
-          requestObject:
-            requestObjectSigningAlg: ""
-            encryption:
-              algorithm: ""
-              method: ""
-          pushAuthorizationRequest:
-            requirePushAuthorizationRequest: false
-          subject:
-            subjectType: "public"
-          isFAPIApplication: false
+            expiryInSeconds: "{{ item.item.oidc_custom_config.id_token.expiry | default(3600) }}"
         status_code: [200]
+      loop: "{{ custom_oidc_existing.results }}"
       when:
-        - webapp_id is defined
-        - webapp_id | length > 0
+        - not item.skipped | default(false)
+        - item.json is defined
 
-    # =========================================================================
-    # PART 5: Create M2M Application in IS for SCIM2 API Access
-    # =========================================================================
+    # ── Step 7: Authorize APIs for M2M applications ───────────────────────────
+    - name: Gather all M2M API resource identifiers to lookup
+      ansible.builtin.set_fact:
+        api_identifiers: >-
+          {%- set idents = [] -%}
+          {%- for app in apps_to_create -%}
+            {%- if app.authorized_apis is defined -%}
+              {%- for api in app.authorized_apis -%}
+                {%- set _ = idents.append(api.identifier) -%}
+              {%- endfor -%}
+            {%- endif -%}
+          {%- endfor -%}
+          {{ idents | unique }}
 
-    - name: Check if M2M application already exists in IS
+    - name: Lookup API Resource IDs from IS
       ansible.builtin.uri:
-        url: "{{ is_mgmt }}/api/server/v1/applications?filter=name+eq+EMIS-HRM+M2M"
+        url: "{{ is_mgmt }}/api/server/v1/api-resources?filter=identifier+eq+{{ item | urlencode }}"
         method: GET
         validate_certs: no
         user: "{{ is_admin_name }}"
@@ -399,20 +375,22 @@
         force_basic_auth: yes
         headers:
           Content-Type: "application/json"
-      register: m2m_app_check
+      loop: "{{ api_identifiers }}"
+      register: api_resource_lookups
+      when: api_identifiers | length > 0
 
-    - name: Set fact for M2M application existence
-      set_fact:
-        m2m_app_exists: "{{ m2m_app_check.json.totalResults | default(0) | int > 0 }}"
+    - name: Map API Resource identifiers to IDs
+      ansible.builtin.set_fact:
+        api_resource_ids: "{{ api_resource_ids | default({}) | combine({ item.item: item.json.apiResources[0].id }) }}"
+      loop: "{{ api_resource_lookups.results | default([]) }}"
+      when:
+        - api_identifiers | length > 0
+        - item.json is defined
+        - item.json.totalResults | default(0) | int > 0
 
-    - name: Set M2M app ID from existing app
-      set_fact:
-        m2m_app_id: "{{ m2m_app_check.json.applications[0].id }}"
-      when: m2m_app_exists | bool
-
-    - name: Create M2M application in IS
+    - name: Authorize APIs for M2M applications
       ansible.builtin.uri:
-        url: "{{ is_mgmt }}/api/server/v1/applications"
+        url: "{{ is_mgmt }}/api/server/v1/applications/{{ app_ids[item.0.name] }}/authorized-apis"
         method: POST
         validate_certs: no
         user: "{{ is_admin_name }}"
@@ -422,123 +400,19 @@
           Content-Type: "application/json"
         body_format: json
         body:
-          name: "EMIS-HRM M2M"
-          description: "Machine-to-Machine application for SCIM2 API access"
-          templateId: "m2m-application"
-          inboundProtocolConfiguration:
-            oidc:
-              grantTypes:
-                - "client_credentials"
-              publicClient: false
-              accessToken:
-                type: "JWT"
-                userAccessTokenExpiryInSeconds: 3600
-                applicationAccessTokenExpiryInSeconds: 3600
-        status_code: [201]
-      register: m2m_app_created
-      when: not (m2m_app_exists | bool)
-
-    - name: Set M2M app ID from creation response
-      set_fact:
-        m2m_app_id: "{{ m2m_app_created.json.id }}"
-      when:
-        - not (m2m_app_exists | bool)
-        - m2m_app_created is not skipped
-        - m2m_app_created.json.id is defined
-
-    - name: Re-fetch M2M app ID if not set
-      ansible.builtin.uri:
-        url: "{{ is_mgmt }}/api/server/v1/applications?filter=name+eq+EMIS-HRM+M2M"
-        method: GET
-        validate_certs: no
-        user: "{{ is_admin_name }}"
-        password: "{{ is_admin_pass }}"
-        force_basic_auth: yes
-        headers:
-          Content-Type: "application/json"
-      register: m2m_refetch
-      when: m2m_app_id is not defined or m2m_app_id | length == 0
-
-    - name: Set M2M app ID from re-fetch
-      set_fact:
-        m2m_app_id: "{{ m2m_refetch.json.applications[0].id }}"
-      when:
-        - m2m_refetch is not skipped
-        - m2m_refetch.json.totalResults | default(0) | int > 0
-
-    - name: Get SCIM2 Users API resource ID
-      ansible.builtin.uri:
-        url: "{{ is_mgmt }}/api/server/v1/api-resources?filter=identifier+eq+/scim2/Users"
-        method: GET
-        validate_certs: no
-        user: "{{ is_admin_name }}"
-        password: "{{ is_admin_pass }}"
-        force_basic_auth: yes
-        headers:
-          Content-Type: "application/json"
-      register: scim2_users_api
-
-    - name: Get SCIM2 Roles API resource ID
-      ansible.builtin.uri:
-        url: "{{ is_mgmt }}/api/server/v1/api-resources?filter=identifier+eq+/scim2/Roles"
-        method: GET
-        validate_certs: no
-        user: "{{ is_admin_name }}"
-        password: "{{ is_admin_pass }}"
-        force_basic_auth: yes
-        headers:
-          Content-Type: "application/json"
-      register: scim2_roles_api
-
-    - name: Authorize M2M app for SCIM2 Users API
-      ansible.builtin.uri:
-        url: "{{ is_mgmt }}/api/server/v1/applications/{{ m2m_app_id }}/authorized-apis"
-        method: POST
-        validate_certs: no
-        user: "{{ is_admin_name }}"
-        password: "{{ is_admin_pass }}"
-        force_basic_auth: yes
-        headers:
-          Content-Type: "application/json"
-        body_format: json
-        body:
-          id: "{{ scim2_users_api.json.apiResources[0].id }}"
-          policyIdentifier: "RBAC"
-          scopes:
-            - "internal_user_mgt_create"
-            - "internal_user_mgt_update"
+          id: "{{ api_resource_ids[item.1.identifier] }}"
+          policyIdentifier: "{{ item.1.policy | default('RBAC') }}"
+          scopes: "{{ item.1.scopes }}"
         status_code: [200, 201, 409]
+      loop: "{{ apps_to_create | subelements('authorized_apis', skip_missing=True) }}"
       when:
-        - m2m_app_id is defined
-        - m2m_app_id | length > 0
-        - scim2_users_api.json.totalResults | default(0) | int > 0
+        - app_ids[item.0.name] is defined
+        - api_resource_ids[item.1.identifier] is defined
 
-    - name: Authorize M2M app for SCIM2 Roles API
+    # ── Step 8: Harvest credentials from all created apps ────────────────────
+    - name: Fetch OIDC credentials for all apps
       ansible.builtin.uri:
-        url: "{{ is_mgmt }}/api/server/v1/applications/{{ m2m_app_id }}/authorized-apis"
-        method: POST
-        validate_certs: no
-        user: "{{ is_admin_name }}"
-        password: "{{ is_admin_pass }}"
-        force_basic_auth: yes
-        headers:
-          Content-Type: "application/json"
-        body_format: json
-        body:
-          id: "{{ scim2_roles_api.json.apiResources[0].id }}"
-          policyIdentifier: "RBAC"
-          scopes:
-            - "internal_role_mgt_update"
-            - "internal_role_mgt_users_update"
-        status_code: [200, 201, 409]
-      when:
-        - m2m_app_id is defined
-        - m2m_app_id | length > 0
-        - scim2_roles_api.json.totalResults | default(0) | int > 0
-
-    - name: Get M2M application OIDC configuration
-      ansible.builtin.uri:
-        url: "{{ is_mgmt }}/api/server/v1/applications/{{ m2m_app_id }}/inbound-protocols/oidc"
+        url: "{{ is_mgmt }}/api/server/v1/applications/{{ app_ids[item.name] }}/inbound-protocols/oidc"
         method: GET
         validate_certs: no
         user: "{{ is_admin_name }}"
@@ -546,10 +420,18 @@
         force_basic_auth: yes
         headers:
           Content-Type: "application/json"
-      register: m2m_oidc_config
+        status_code: [200]
+      loop: "{{ apps_to_create }}"
+      when: app_ids[item.name] is defined
+      register: all_app_oidc_configs
+
+    - name: Map app names to OIDC credentials
+      ansible.builtin.set_fact:
+        app_credentials: "{{ app_credentials | default({}) | combine({ item.item.name: item.json }) }}"
+      loop: "{{ all_app_oidc_configs.results | default([]) }}"
       when:
-        - m2m_app_id is defined
-        - m2m_app_id | length > 0
+        - not item.skipped | default(false)
+        - item.json is defined
 
     - name: Get Teacher role ID from IS
       ansible.builtin.uri:
@@ -569,50 +451,47 @@
       when: teacher_role_lookup.json.totalResults | default(0) | int > 0
 
     # =========================================================================
-    # Summary: display all credentials and update env/uat.yml
+    # Summary: display all credentials and update env/<deploy_env>.yml
     # =========================================================================
 
-    - name: Display EMIS Web App client_id
-      debug:
+    - name: Display credentials for all created apps
+      ansible.builtin.debug:
         msg:
           - "============================================"
-          - "EMIS Web App (SPA)"
+          - "App: {{ item.key }}"
+          - "  client_id:     {{ item.value.clientId | default('N/A') }}"
+          - "  client_secret: {{ item.value.clientSecret | default('N/A (SPA — no secret)') }}"
           - "============================================"
-          - "Status: {{ 'Already existed' if (webapp_check.json.totalResults | default(0) | int > 0) else 'Created' }}"
-          - "vite_asgardeo_client_id={{ webapp_oidc.json.clientId | default('N/A — re-run or check IS console') }}"
-          - "============================================"
-      when: webapp_oidc is defined and webapp_oidc is not skipped
+      loop: "{{ app_credentials | default({}) | dict2items }}"
 
-    - name: Display M2M application credentials
-      debug:
+    - name: Display Teacher role ID
+      ansible.builtin.debug:
         msg:
           - "============================================"
-          - "M2M Application: EMIS-HRM M2M"
+          - "wso2_teacher_role_id={{ teacher_role_id | default('NOT_FOUND — create Teacher role first') }}"
           - "============================================"
-          - "Status: {{ 'Already existed' if m2m_app_exists else 'Created successfully' }}"
-          - ""
-          - "wso2_m2m_client_id={{ m2m_oidc_config.json.clientId | default('N/A') }}"
-          - "wso2_m2m_client_secret={{ m2m_oidc_config.json.clientSecret | default('N/A') }}"
-          - "wso2_teacher_role_id={{ teacher_role_id | default('NOT_FOUND - create Teacher role first') }}"
-          - "============================================"
-      when:
-        - m2m_oidc_config is defined
-        - m2m_oidc_config is not skipped
-        - m2m_oidc_config.json is defined
+      when: teacher_role_id is defined
 
-    - name: Update env/uat.yml with generated credentials
+    - name: Update env/{{ deploy_env }}.yml with generated credentials
       ansible.builtin.lineinfile:
         path: "{{ playbook_dir }}/../env/{{ deploy_env }}.yml"
         regexp: "{{ item.regexp }}"
         line: "{{ item.line }}"
       loop:
-        - { regexp: '^vite_asgardeo_client_id:', line: 'vite_asgardeo_client_id: "{{ webapp_oidc.json.clientId }}"' }
-        - { regexp: '^wso2_m2m_client_id:', line: 'wso2_m2m_client_id:     "{{ m2m_oidc_config.json.clientId }}"' }
-        - { regexp: '^wso2_m2m_client_secret:', line: 'wso2_m2m_client_secret: "{{ m2m_oidc_config.json.clientSecret }}"' }
-        - { regexp: '^wso2_teacher_role_id:', line: 'wso2_teacher_role_id:   "{{ teacher_role_id }}"' }
+        - regexp: '^vite_asgardeo_client_id:'
+          line: "vite_asgardeo_client_id: \"{{ app_credentials['EMIS Web App'].clientId | default('') }}\""
+        - regexp: '^wso2_m2m_client_id:'
+          line: "wso2_m2m_client_id:     \"{{ app_credentials['EMIS-HRM M2M'].clientId | default('') }}\""
+        - regexp: '^wso2_m2m_client_secret:'
+          line: "wso2_m2m_client_secret: \"{{ app_credentials['EMIS-HRM M2M'].clientSecret | default('') }}\""
+        - regexp: '^wso2_teacher_role_id:'
+          line: "wso2_teacher_role_id:   \"{{ teacher_role_id }}\""
       delegate_to: localhost
       run_once: true
       when:
-        - webapp_oidc is defined and webapp_oidc is not skipped
-        - m2m_oidc_config is defined and m2m_oidc_config is not skipped
-        - teacher_role_id is defined and teacher_role_id != 'NOT_FOUND'
+        - app_credentials is defined
+        - app_credentials['EMIS Web App'] is defined
+        - app_credentials['EMIS-HRM M2M'] is defined
+        - teacher_role_id is defined
+        - teacher_role_id != 'NOT_FOUND'
+
