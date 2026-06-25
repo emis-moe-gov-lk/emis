@@ -14,8 +14,8 @@
 
     # The externalized/modularized application definitions
     apps_to_create:
-      - name: "EMIS Web App - TEST"
-        description: "EMIS Frontend SPA - TEST"
+      - name: "Web App - TEST"
+        description: "SPA APP TEST - TEST"
         template_id: ""  # Empty for standard OIDC applications
         public_client: true
         grant_types:
@@ -61,7 +61,7 @@
           id_token:
             expiry: 3600
 
-      - name: "EMIS-HRM M2M - TEST"
+      - name: "M2M APP TEST - TEST"
         description: "Test M2M Application"
         template_id: "m2m-application"
         public_client: false
@@ -133,22 +133,18 @@
         body_format: json
         body:
           name: "{{ item.name }}"
-          description: "{{ item.description | default(omit) }}"
-          templateId: "{{ item.template_id if (item.template_id is defined and item.template_id | length > 0) else omit }}"
+          description: "{{ item.description | default('') }}"
+          # Only pass templateId if it's explicitly set and not empty
+          templateId: "{{ item.template_id if (item.template_id | length > 0) else omit }}"
           inboundProtocolConfiguration:
             oidc:
               grantTypes: "{{ item.grant_types }}"
               publicClient: "{{ item.public_client | default(false) }}"
-              callbackURLs: "{{ item.callback_urls if (item.callback_urls is defined and item.callback_urls | length > 0) else omit }}"
-              allowedOrigins: "{{ item.allowed_origins if (item.allowed_origins is defined and item.allowed_origins | length > 0) else omit }}"
-              accessToken:
-                type: "JWT"
-                userAccessTokenExpiryInSeconds: 3600
-                applicationAccessTokenExpiryInSeconds: 3600
-        status_code: [201]
+              callbackURLs: "{{ ['regexp=(' + item.callback_urls | join('|') + ')'] if (item.callback_urls | length > 1) else (item.callback_urls if (item.callback_urls | length > 0) else omit) }}"
+              allowedOrigins: "{{ item.allowed_origins if (item.allowed_origins | length > 0) else omit }}"
+        status_code: [201, 409]
       loop: "{{ apps_to_create }}"
-      when: not existing_apps[item.name]
-      register: apps_created
+      when: existing_apps[item.name] == ''
 
     # =========================================================================
     # Step 3: Re-query and establish all final application IDs
@@ -259,7 +255,7 @@
         body:
           clientId: "{{ item.json.clientId }}"
           grantTypes: "{{ item.item.grant_types }}"
-          callbackURLs: "{{ item.item.callback_urls if (item.item.callback_urls is defined and item.item.callback_urls | length > 0) else omit }}"
+          callbackURLs: "{{ ['regexp=(' + item.item.callback_urls | join('|') + ')'] if (item.item.callback_urls | length > 1) else (item.item.callback_urls if (item.item.callback_urls is defined and item.item.callback_urls | length > 0) else omit) }}"
           allowedOrigins: "{{ item.item.allowed_origins if (item.item.allowed_origins is defined and item.item.allowed_origins | length > 0) else omit }}"
           publicClient: "{{ item.item.public_client | default(false) }}"
           pkce:
