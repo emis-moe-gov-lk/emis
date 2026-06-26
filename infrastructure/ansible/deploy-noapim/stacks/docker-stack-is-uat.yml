@@ -1,0 +1,29 @@
+# ── NETWORKS ──────────────────────────────────────────────────────────────────
+networks:
+  noapim-uat-swm-network:
+    driver: overlay
+    name: "${STACK_NAME}-network"
+    attachable: true
+    ipam:
+      driver: default
+      config:
+        - subnet: "${STACK_NETWORK_SUBNET}"
+
+# ── SERVICES ──────────────────────────────────────────────────────────────────
+services:
+
+  # ── WSO2 Identity Server ───────────────────────────────────────────────────
+  wso2-is:
+    image: "${WSO2_IS_DOCKERIMG_REPO}:${WSO2_IS_DOCKERIMG_TAG}"
+    ports:
+      - "${IS_HOST_PORT}:9444"
+    env_file:
+      - is.env
+    networks:
+      - noapim-uat-swm-network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3

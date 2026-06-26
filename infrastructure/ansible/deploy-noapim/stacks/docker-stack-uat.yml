@@ -1,0 +1,80 @@
+# ── NETWORKS ──────────────────────────────────────────────────────────────────
+networks:
+  noapim-uat-swm-network:
+    driver: overlay
+    name: "${STACK_NAME}-network"
+    attachable: true
+    ipam:
+      driver: default
+      config:
+        - subnet: "${STACK_NETWORK_SUBNET}"
+
+# ── SERVICES ──────────────────────────────────────────────────────────────────
+services:
+
+  # ── WSO2 Identity Server ───────────────────────────────────────────────────
+  wso2-is:
+    image: "${WSO2_IS_DOCKERIMG_REPO}:${WSO2_IS_DOCKERIMG_TAG}"
+    ports:
+      - "${IS_HOST_PORT}:9444"
+    env_file:
+      - is.env
+    networks:
+      - noapim-uat-swm-network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+
+  # ── Frontend ───────────────────────────────────────────────────────────────
+  frontend:
+    image: "${FRONTEND_DOCKERIMG_REPO}:${FRONTEND_DOCKERIMG_TAG}"
+    ports:
+      - "${FRONTEND_HOST_PORT}:80"
+    env_file:
+      - frontend.env
+    networks:
+      - noapim-uat-swm-network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+  # ── Backend ────────────────────────────────────────────────────────────────
+  backend:
+    image: "${BACKEND_DOCKERIMG_REPO}:${BACKEND_DOCKERIMG_TAG}"
+    ports:
+      - "${BACKEND_HOST_PORT}:80"
+    env_file:
+      - backend.env
+    command: >
+      sh -c "
+      composer install --no-interaction &&
+      cp .env.example .env &&
+      php artisan key:generate --force &&
+      php artisan migrate:fresh --force &&
+      php artisan wso2:cache-roles &&
+      php -d memory_limit=1G artisan db:seed --force &&
+      frankenphp run --config /etc/caddy/Caddyfile
+      "
+    extra_hosts:
+      - "idp.app-uat.emis.moe.gov.lk:192.168.200.1"
+      - "idp-dev.emis.moe.gov.lk:192.168.200.1"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:2019/metrics || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 120s
+    networks:
+      - noapim-uat-swm-network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
