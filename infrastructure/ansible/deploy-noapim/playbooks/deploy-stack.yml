@@ -54,7 +54,7 @@
 
     - name: Copy docker-stack.yml to deploy path
       ansible.builtin.copy:
-        src:  ../docker-stack.yml
+        src:  "../stacks/docker-stack-{{ deploy_env }}.yml"
         dest: "{{ stack_file }}"
         mode: '0644'
 
