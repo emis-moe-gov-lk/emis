@@ -20,7 +20,7 @@ class PeopleProfileEditRequestController extends Controller
     public function store(Request $request)
     {
         try {
-            $peopleId = $request->attributes->get('jwt_people_id') ?? auth()->user()?->people_id;
+                        $peopleId = $request->attributes->get('jwt_people_id') ?? $request->user()?->people_id;
 
             if (! $peopleId) {
                 return response()->json(['status' => 'error', 'message' => 'Unauthenticated'], 401);
@@ -58,7 +58,7 @@ class PeopleProfileEditRequestController extends Controller
     public function indexByPerson(Request $request, string $people_id)
     {
         try {
-            $authPeopleId = $request->attributes->get('jwt_people_id') ?? auth()->user()?->people_id;
+                        $authPeopleId = $request->attributes->get('jwt_people_id') ?? $request->user()?->people_id;
 
             if (! $authPeopleId) {
                 return response()->json(['status' => 'error', 'message' => 'Unauthenticated'], 401);
@@ -99,7 +99,7 @@ class PeopleProfileEditRequestController extends Controller
     public function review(Request $request, int $id)
     {
         try {
-            $authPeopleId = $request->attributes->get('jwt_people_id') ?? auth()->user()?->people_id;
+                        $authPeopleId = $request->attributes->get('jwt_people_id') ?? $request->user()?->people_id;
 
             if (! $authPeopleId) {
                 return response()->json(['status' => 'error', 'message' => 'Unauthenticated'], 401);
