@@ -21,9 +21,15 @@ services:
             DB_DATABASE: ${DB_DATABASE:-emis}
             DB_USERNAME: ${DB_USERNAME:-root}
             DB_PASSWORD: ${DB_PASSWORD:-}
+            REDIS_HOST: redis
+            REDIS_PORT: 6379
+            REDIS_CLIENT: predis
+            CACHE_STORE: redis
         depends_on:
             mysql:
                 condition: service_healthy
+            redis:
+                condition: service_started
         networks:
             - emis
 
@@ -61,6 +67,24 @@ services:
             retries: 12
         networks:
             - emis
+
+    redis:
+        image: redis:7-alpine
+        container_name: emis-redis-backend
+        restart: unless-stopped
+        ports:
+            - "6379:6379"
+        networks:
+            - emis
+
+    composer:
+        image: composer:2
+        container_name: emis-composer
+        working_dir: /app
+        volumes:
+            - .:/app
+        entrypoint: ["composer"]
+        profiles: ["tools"]
 
 volumes:
     mysql_data:

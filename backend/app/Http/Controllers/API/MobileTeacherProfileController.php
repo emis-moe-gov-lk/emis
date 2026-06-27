@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\People;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class MobileTeacherProfileController extends Controller
@@ -22,53 +23,61 @@ class MobileTeacherProfileController extends Controller
                 ], 403);
             }
 
-            $user = $request->user();
+            $user  = $request->user();
+            $email = $user?->email;
 
             $permissions = $user
                 ? $user->getAllPermissions()->pluck('name')->values()->all()
                 : [];
 
-            $teacher = People::with([
-                'title',
-                'gender',
-                'religion',
-                'ethnicity',
-                'civilStatus',
-                'bloodGroup',
-                'district',
-                'gnDivision',
+            $cacheKey = "mobile_teacher_profile_{$peopleId}";
+            Log::debug('[Cache] ' . (Cache::has($cacheKey) ? 'HIT' : 'MISS') . " key={$cacheKey}");
 
-                'myAppointments',
-                'appointment',
-                'currentAppointment',
-                'appointmentHistory',
+            $teacher = Cache::remember(
+                $cacheKey,
+                now()->addMinutes(15),
+                fn () => People::with([
+                    'title',
+                    'gender',
+                    'religion',
+                    'ethnicity',
+                    'civilStatus',
+                    'bloodGroup',
+                    'district',
+                    'gnDivision',
 
-                'currentAppointment.workplace',
-                'currentAppointment.workplace.ministry',
-                'currentAppointment.workplace.provincial',
-                'currentAppointment.workplace.zonal',
-                'currentAppointment.workplace.divisional',
-                'currentAppointment.workplace.institution',
+                    'myAppointments',
+                    'appointment',
+                    'currentAppointment',
+                    'appointmentHistory',
 
-                'teacher',
-                'teacher.appointmentSubject',
-                'teacher.mainSubject',
-                'teacher.secondarySubject',
-                'teacher.currentTeachingSubject',
+                    'currentAppointment.workplace',
+                    'currentAppointment.workplace.ministry',
+                    'currentAppointment.workplace.provincial',
+                    'currentAppointment.workplace.zonal',
+                    'currentAppointment.workplace.divisional',
+                    'currentAppointment.workplace.institution',
 
-                'educationQualifications',
-                'educationQualifications.qualification',
-                'educationQualifications.qualificationGrade',
+                    'teacher',
+                    'teacher.appointmentSubject',
+                    'teacher.mainSubject',
+                    'teacher.secondarySubject',
+                    'teacher.currentTeachingSubject',
 
-                'familiesAsHusband',
-                'familiesAsHusband.memberB',
-                'familiesAsHusband.children',
-                'familiesAsWife',
-                'familiesAsWife.memberA',
-                'familiesAsWife.children',
-            ])
-                ->where('people_id', $peopleId)
-                ->first();
+                    'educationQualifications',
+                    'educationQualifications.qualification',
+                    'educationQualifications.qualificationGrade',
+
+                    'familiesAsHusband',
+                    'familiesAsHusband.memberB',
+                    'familiesAsHusband.children',
+                    'familiesAsWife',
+                    'familiesAsWife.memberA',
+                    'familiesAsWife.children',
+                ])
+                    ->where('people_id', $peopleId)
+                    ->first()
+            );
 
             if (! $teacher) {
                 return response()->json([

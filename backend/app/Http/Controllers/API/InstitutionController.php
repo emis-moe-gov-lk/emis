@@ -9,6 +9,8 @@ use App\Models\InstitutionAuthority;
 use App\Models\ProvincialEducationOffice;
 use App\Models\ZonalEducationOffice;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class InstitutionController extends Controller
 {
@@ -20,10 +22,10 @@ class InstitutionController extends Controller
      */
     public function index(Request $request)
     {
-        $authed = auth()->user();
+        $authed = $request->user();
         $roles  = $request->attributes->get('jwt_roles', []);
 
-        \Log::debug('Institution index auth', [
+        Log::debug('Institution index auth', [
             'roles'        => $roles,
             'workplace_id' => $authed?->currentAppointment?->workplace_id,
         ]);
@@ -90,16 +92,25 @@ class InstitutionController extends Controller
         if (! $isAdmin) {
             $workplaceId = $authed?->currentAppointment?->workplace_id;
 
-            $query = Institution::with($with)
-                ->withCount('teachers');
-
-            if ($workplaceId) {
-                $query->where('workplace_id', $workplaceId);
-            } else {
-                $query->whereRaw('0 = 1'); // no assignment → empty result
+            if (! $workplaceId) {
+                return response()->json([
+                    'status' => 'success',
+                    'data'   => Institution::with($with)->whereRaw('0 = 1')->paginate(20)->withQueryString(),
+                ]);
             }
 
-            $institutions = $query->paginate(20)->withQueryString();
+            $cacheKey = "institution_by_workplace_{$workplaceId}";
+            Log::debug('[Cache] ' . (Cache::has($cacheKey) ? 'HIT' : 'MISS') . " key={$cacheKey}");
+
+            $institutions = Cache::remember(
+                $cacheKey,
+                now()->addMinutes(30),
+                fn () => Institution::with($with)
+                    ->withCount('teachers')
+                    ->where('workplace_id', $workplaceId)
+                    ->paginate(20)
+                    ->withQueryString()
+            );
 
             return response()->json([
                 'status' => 'success',
@@ -181,7 +192,7 @@ class InstitutionController extends Controller
      */
     public function filters(Request $request)
     {
-        $authed = auth()->user();
+        $authed = $request->user();
         $roles  = $request->attributes->get('jwt_roles', []);
 
         $isAdmin    = in_array('super admin', $roles) || in_array('admin', $roles);
