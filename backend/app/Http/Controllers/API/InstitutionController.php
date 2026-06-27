@@ -22,6 +22,7 @@ class InstitutionController extends Controller
      */
     public function index(Request $request)
     {
+        try {
         $authed = $request->user();
         $roles  = $request->attributes->get('jwt_roles', []);
 
@@ -102,15 +103,18 @@ class InstitutionController extends Controller
             $cacheKey = "institution_by_workplace_{$workplaceId}";
             Log::debug('[Cache] ' . (Cache::has($cacheKey) ? 'HIT' : 'MISS') . " key={$cacheKey}");
 
-            $institutions = Cache::remember(
-                $cacheKey,
-                now()->addMinutes(30),
-                fn () => Institution::with($with)
-                    ->withCount('teachers')
-                    ->where('workplace_id', $workplaceId)
-                    ->paginate(20)
-                    ->withQueryString()
-            );
+            $dbQuery = fn () => Institution::with($with)
+                ->withCount('teachers')
+                ->where('workplace_id', $workplaceId)
+                ->paginate(20)
+                ->withQueryString();
+
+            try {
+                $institutions = Cache::remember($cacheKey, now()->addMinutes(30), $dbQuery);
+            } catch (\Throwable $e) {
+                Log::warning('[Cache] Redis unavailable, falling back to DB', ['key' => $cacheKey, 'error' => $e->getMessage()]);
+                $institutions = $dbQuery();
+            }
 
             return response()->json([
                 'status' => 'success',
@@ -183,6 +187,18 @@ class InstitutionController extends Controller
             'status' => 'success',
             'data'   => $institutions,
         ]);
+        } catch (\Throwable $e) {
+            Log::error('Institution index error', [
+                'message' => $e->getMessage(),
+                'file'    => $e->getFile(),
+                'line'    => $e->getLine(),
+            ]);
+
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Failed to fetch institutions',
+            ], 500);
+        }
     }
 
 
