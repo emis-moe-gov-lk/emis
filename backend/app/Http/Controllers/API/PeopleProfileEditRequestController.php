@@ -7,6 +7,7 @@ use App\Models\People;
 use App\Models\PeopleProfileEditRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class PeopleProfileEditRequestController extends Controller
@@ -76,7 +77,10 @@ class PeopleProfileEditRequestController extends Controller
                 }
             }
 
-            $requests = PeopleProfileEditRequest::with(['reviewer', 'reviewer.title'])
+            $cacheKey = "people_edit_requests_{$people_id}";
+            Log::debug('[Cache] ' . (Cache::has($cacheKey) ? 'HIT' : 'MISS') . " key={$cacheKey}");
+
+            $dbQuery = fn () => PeopleProfileEditRequest::with(['reviewer', 'reviewer.title'])
                 ->where('people_id', $people_id)
                 ->orderBy('created_at', 'desc')
                 ->get()
@@ -87,6 +91,13 @@ class PeopleProfileEditRequestController extends Controller
                         'updated_ago' => $item->updated_ago,
                     ]);
                 });
+
+            try {
+                $requests = Cache::remember($cacheKey, now()->addMinutes(5), $dbQuery);
+            } catch (\Throwable $e) {
+                Log::warning('[Cache] Redis unavailable, falling back to DB', ['key' => $cacheKey, 'error' => $e->getMessage()]);
+                $requests = $dbQuery();
+            }
 
             return response()->json(['status' => 'success', 'data' => $requests]);
         } catch (\Throwable $e) {
@@ -118,6 +129,16 @@ class PeopleProfileEditRequestController extends Controller
 
                 if (! empty($toApply)) {
                     People::where('people_id', $editRequest->people_id)->update($toApply);
+
+                    try {
+                        Cache::forget("mobile_teacher_profile_{$editRequest->people_id}");
+                        Log::debug('[Cache] Forgot mobile_teacher_profile_' . $editRequest->people_id);
+                    } catch (\Throwable $e) {
+                        Log::warning('[Cache] Failed to forget teacher profile cache', [
+                            'key'   => "mobile_teacher_profile_{$editRequest->people_id}",
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
                 }
             }
 
@@ -125,6 +146,16 @@ class PeopleProfileEditRequestController extends Controller
                 'status'          => $validated['status'],
                 'review_comments' => $validated['review_comments'],
             ]);
+
+            try {
+                Cache::forget("people_edit_requests_{$editRequest->people_id}");
+                Log::debug('[Cache] Forgot people_edit_requests_' . $editRequest->people_id);
+            } catch (\Throwable $e) {
+                Log::warning('[Cache] Failed to forget edit requests cache', [
+                    'key'   => "people_edit_requests_{$editRequest->people_id}",
+                    'error' => $e->getMessage(),
+                ]);
+            }
 
             return response()->json([
                 'status'  => 'success',
