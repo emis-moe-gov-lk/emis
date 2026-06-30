@@ -184,7 +184,7 @@ export default function StepPersonalDetails({
           <div className="flex h-8 w-8 items-center justify-center rounded-md bg-blue-600 text-xs font-bold text-white">
             02
           </div>
-          <h2 className="text-xl font-semibold text-gray-900">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
             Personal Details
           </h2>
         </div>
