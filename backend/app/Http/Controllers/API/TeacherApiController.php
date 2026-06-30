@@ -1124,6 +1124,7 @@ class TeacherApiController extends Controller
             'OLID003' => ProvincialEducationOffice::active()->get(),
             'OLID004' => ZonalEducationOffice::active()->get(),
             'OLID005' => DivisionalEducationOffice::active()->get(),
+            'OLID006' => Institution::active()->get(),
             default   => [],
         };
 
