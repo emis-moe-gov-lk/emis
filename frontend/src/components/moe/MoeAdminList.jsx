@@ -44,8 +44,8 @@ export default function MoeAdminList({ employees }) {
           address={emp.address_line1}
           phone={emp.phone}
           email={emp.email}
-          status={emp.confirmed ? "Confirmed" : "Pending"}
-          statusColor={emp.confirmed ? "success" : "warning"}
+          status={emp.appointment?.is_confirmed === 1 ? "Confirmed" : "Pending"}
+          statusColor={emp.appointment?.is_confirmed === 1 ? "success" : "warning"}
           showProfilePicture={true}
           maleProfileImage={profileMale}
           femaleProfileImage={profileFemale}

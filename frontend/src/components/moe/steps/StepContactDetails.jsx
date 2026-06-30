@@ -25,12 +25,12 @@ const FormGroup = ({ label, error, required = false, children }) => (
   </div>
 );
 
-export default function StepContactDetails({ formData, setFormData, onValid }) {
+export default function StepContactDetails({ formData, setFormData, onValid, apiErrors = {} }) {
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
 
-  const getFieldError = (key) => (touched[key] ? errors[key] : undefined);
-  const getFieldColor = (key) => (touched[key] && errors[key] ? "failure" : "gray");
+  const getFieldError = (key) => (touched[key] ? errors[key] || apiErrors[key] : apiErrors[key]);
+  const getFieldColor = (key) => ((touched[key] && errors[key]) || apiErrors[key] ? "failure" : "gray");
 
   // Mark existing fields as touched on mount so pre-loaded data behaves correctly
   useEffect(() => {
