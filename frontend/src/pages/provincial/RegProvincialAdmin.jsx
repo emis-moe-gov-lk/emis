@@ -279,7 +279,7 @@ function RegProvincialAdminInner() {
           toast.error(result.message || "Registration failed");
         }
       } catch (err) {
-        toast.error("Unable to complete registration.");
+        toast.error(err.response?.data?.message || "Unable to complete registration.");
       } finally {
         setIsSubmitting(false);
       }
