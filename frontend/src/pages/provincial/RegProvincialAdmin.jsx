@@ -66,7 +66,13 @@ function RegProvincialAdminInner() {
     !isRegistrationComplete &&
     (currentStep > 1 || Object.keys(formData || {}).length > 0);
 
-  const canCreateProvincialAdmin = hasRole("super admin") || hasRole("Provincial Director") || hasRole("Provincial Deputy Director");
+  const canCreateProvincialAdmin =
+    hasRole("super admin") ||
+    hasRole("Provincial Director") ||
+    hasRole("Provincial Deputy Director") ||
+    hasRole("MOE Administrator") ||
+    hasRole("MOE Director");
+
   const isAuthLoadingFinal = isAuthLoading || (isAuthenticated && !identity);
 
   const clampStep = (value) => {
