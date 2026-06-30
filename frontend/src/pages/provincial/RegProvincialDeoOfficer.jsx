@@ -64,7 +64,14 @@ function RegProvincialDeoOfficerInner() {
     !isRegistrationComplete &&
     (currentStep > 1 || Object.keys(formData || {}).length > 0);
 
-  const canCreateProvincialDeo = hasRole("super admin") || hasRole("Provincial Director") || hasRole("Provincial Deputy Director") || hasRole("Provincial DEO");
+  const canCreateProvincialDeo =
+    hasRole("super admin") ||
+    hasRole("Provincial Director") ||
+    hasRole("Provincial Deputy Director") ||
+    hasRole("Provincial DEO") ||
+    hasRole("MOE Administrator") ||
+    hasRole("MOE Director");
+
   const isDeoOfficerCreateAuthLoading =
     isAuthLoading || (isAuthenticated && !identity);
 
