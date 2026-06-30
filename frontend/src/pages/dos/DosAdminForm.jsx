@@ -124,8 +124,12 @@ function DosAdminFormInner() {
     !isRegistrationComplete &&
     (currentStep > 1 || Object.keys(formData || {}).length > 0);
 
-  // Access control: Only Super Admin and Zonal DEO can create DOS Admin profiles
-  const canCreateDosAdmin = hasRole("super admin") || hasRole("zonal deo");
+  // Access control: Super Admin, Zonal DEO, and Provincial DEO tier can create DOS Admin profiles
+  const canCreateDosAdmin =
+    hasRole("super admin") ||
+    hasRole("zonal deo") ||
+    hasRole("Provincial DEO") ||
+    hasRole("Provincial Clerk (DEO)");
   const isDosAdminCreateAuthLoading =
     isAuthLoading || (isAuthenticated && !identity);
 
@@ -187,7 +191,7 @@ function DosAdminFormInner() {
     if (isDosAdminCreateAuthLoading || canCreateDosAdmin) return;
 
     dispatch({ type: "CLEAR" });
-    toast.error("Only Super Admin and Zonal DEO can create DOS Admin profiles.", {
+    toast.error("You are not authorized to create DOS Admin profiles.", {
       id: "dos-admin-create-unauthorized",
     });
     navigate("/employees/dos-admins", { replace: true });
