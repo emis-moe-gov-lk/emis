@@ -15,7 +15,7 @@ const FormGroup = ({ label, error, required = false, children }) => (
   </div>
 );
 
-export default function StepMoeAdminCurrentAppointment({ formData, setFormData, onValid }) {
+export default function StepCurrentAppointment({ formData, setFormData, onValid }) {
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
@@ -93,7 +93,7 @@ export default function StepMoeAdminCurrentAppointment({ formData, setFormData, 
     <div className="space-y-6 px-4 py-2">
       <div className="flex items-center gap-3 mb-6">
         <div className="flex h-8 w-8 items-center justify-center rounded-md bg-blue-600 text-xs font-bold text-white">
-          05
+          04
         </div>
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Current Appointment Details</h2>
       </div>

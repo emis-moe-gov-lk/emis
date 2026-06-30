@@ -1,7 +1,7 @@
 "use client";
 import { useState, useContext, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { TeacherFormContext, TeacherFormProvider } from "@/context/TeacherFormContext";
+import { MoeAdminFormContext, MoeAdminFormProvider } from "@/context/MoeAdminFormContext";
 import Swal from "sweetalert2";
 
 import StepperHeader from "@/components/teacher/StepperHeader";
@@ -10,8 +10,7 @@ import StepNavigation from "@/components/teacher/StepNavigation";
 import StepNICVerification from "@/components/moe/steps/StepNICVerification";
 import StepPersonalDetails from "@/components/moe/steps/StepPersonalDetails";
 import StepContactDetails from "@/components/moe/steps/StepContactDetails";
-import StepFirstAppointment from "@/components/moe/steps/StepFirstAppointment";
-import StepMoeAdminCurrentAppointment from "@/components/moe/steps/StepMoeAdminCurrentAppointment";
+import StepCurrentAppointment from "@/components/moe/steps/StepCurrentAppointment";
 import { checkTeacherContact } from "@/api/teacherService";
 
 import api from "@/api/axios";
@@ -23,20 +22,19 @@ import Button from "@/components/UiComponents/Button";
 
 const REG_MOE_ADMIN_HISTORY_OWNER = "regMoeAdminCreate";
 const REG_MOE_ADMIN_HISTORY_STEP_KEY = "regMoeAdminStep";
-const REG_MOE_ADMIN_TOTAL_STEPS = 6;
+const REG_MOE_ADMIN_TOTAL_STEPS = 5;
 
 const STEPS = [
   { id: 1, label: "Verification" },
   { id: 2, label: "Personal" },
   { id: 3, label: "Contact" },
-  { id: 4, label: "First Appt" },
-  { id: 5, label: "Current Appt" },
-  { id: 6, label: "Finishing" },
+  { id: 4, label: "Current Appt" },
+  { id: 5, label: "Finishing" },
 ];
 
 function RegMoeAdminInner() {
   const navigate = useNavigate();
-  const { state, dispatch } = useContext(TeacherFormContext);
+  const { state, dispatch } = useContext(MoeAdminFormContext);
   const { identity, hasRole, isAuthenticated, isLoading: isAuthLoading } = useAuthUser();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -56,7 +54,6 @@ function RegMoeAdminInner() {
     isNicVerified,
     isPersonalValid,
     isContactValid,
-    isFirstApptValid,
     isCurrentApptValid,
     isRestored,
   } = state;
@@ -238,7 +235,7 @@ function RegMoeAdminInner() {
   };
 
   const handleStepClick = (stepId) => {
-    if (stepId < currentStep || (currentStep === 1 && isNicVerified) || (currentStep === 2 && isPersonalValid) || (currentStep === 3 && isContactValid) || (currentStep === 4 && isFirstApptValid)) {
+    if (stepId < currentStep || (currentStep === 1 && isNicVerified) || (currentStep === 2 && isPersonalValid) || (currentStep === 3 && isContactValid) || (currentStep === 4 && isCurrentApptValid)) {
         dispatch({ type: "SET_STEP", payload: stepId });
     }
   };
@@ -278,7 +275,7 @@ function RegMoeAdminInner() {
       }
     }
 
-    if (currentStep === 5) {
+    if (currentStep === 4) {
       try {
         setIsSubmitting(true);
         const payload = {
@@ -301,7 +298,7 @@ function RegMoeAdminInner() {
               defaultPassword: result.default_password || "Pw" + formData.nic,
           });
           setIsRegistrationComplete(true);
-          dispatch({ type: "SET_STEP", payload: 6 });
+          dispatch({ type: "SET_STEP", payload: 5 });
         } else {
           toast.error(result.message || "Registration failed");
         }
@@ -357,23 +354,15 @@ function RegMoeAdminInner() {
           )}
 
           {currentStep === 4 && (
-            <StepFirstAppointment
-              formData={formData}
-              setFormData={setFormData}
-              onValid={(valid) => dispatch({ type: "SET_FIRST_APPT_VALID", payload: valid })}
-            />
-          )}
-
-          {currentStep === 5 && (
-            <StepMoeAdminCurrentAppointment
+            <StepCurrentAppointment
               formData={formData}
               setFormData={setFormData}
               onValid={(valid) => dispatch({ type: "SET_CURRENT_APPT_VALID", payload: valid })}
             />
           )}
 
-          {/* ================= STEP 06 – FINISHING ================= */}
-          {currentStep === 6 && (
+          {/* ================= STEP 05 – FINISHING ================= */}
+          {currentStep === 5 && (
             <div className="space-y-8">
               <div className="flex items-start gap-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900/40 rounded-2xl p-6">
                 <HiCheckCircle className="text-green-600 dark:text-green-500 w-8 h-8 mt-1" />
@@ -446,8 +435,6 @@ function RegMoeAdminInner() {
                   : currentStep === 3
                   ? isContactValid
                   : currentStep === 4
-                  ? isFirstApptValid
-                  : currentStep === 5
                   ? isCurrentApptValid
                   : true
               }
@@ -461,8 +448,8 @@ function RegMoeAdminInner() {
 
 export default function RegMoeAdmin() {
   return (
-    <TeacherFormProvider>
+    <MoeAdminFormProvider>
       <RegMoeAdminInner />
-    </TeacherFormProvider>
+    </MoeAdminFormProvider>
   );
 }
