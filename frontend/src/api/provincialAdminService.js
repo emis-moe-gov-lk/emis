@@ -26,7 +26,7 @@ export const addProvincialAdminPastService = async (peopleId, data) => {
 };
 
 export const downloadProvincialAdminProfileDocument = async (id, format = "pdf") => {
-  const response = await api.get(`/pdf/provincial-admin/${id}?format=${format}`, {
+  const response = await api.get(`/pdf/teacher/${id}?format=${format}`, {
     responseType: "arraybuffer",
   });
   return response.data;

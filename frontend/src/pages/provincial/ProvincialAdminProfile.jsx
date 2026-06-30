@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { HiDocumentText, HiPlus } from "react-icons/hi";
 import { Spinner } from "flowbite-react";
 import StatusBadge from "@/components/common/StatusBadge";
-import { getProvincialAdminById, addProvincialAdminServiceHistoryEntry, addProvincialAdminPastService } from "@/api/provincialAdminService";
+import { getProvincialAdminById, addProvincialAdminServiceHistoryEntry, addProvincialAdminPastService, downloadProvincialAdminProfileDocument } from "@/api/provincialAdminService";
 import ProfileDataTable from "@/components/common/ProfileDataTable";
 import BackToListButton from "@/components/UiComponents/BackToListButton";
 import toast from "react-hot-toast";
@@ -45,6 +45,7 @@ export default function ProvincialAdminProfile() {
   const [isPastServiceModalOpen, setIsPastServiceModalOpen] = useState(false);
   const [pastServiceForm, setPastServiceForm] = useState(DEFAULT_PAST_SERVICE_FORM);
   const [isSavingPastService, setIsSavingPastService] = useState(false);
+  const [isDownloadingDocument, setIsDownloadingDocument] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -237,6 +238,30 @@ export default function ProvincialAdminProfile() {
     recruitmentSubject: fa?.recruitment_subject?.a_subject_name,
   };
 
+  const handleDownloadDocument = async () => {
+    const peopleId = admin?.people_id ?? id;
+    if (!peopleId) return;
+
+    setIsDownloadingDocument(true);
+    try {
+      const data = await downloadProvincialAdminProfileDocument(peopleId);
+      const blob = new Blob([data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `provincial-admin-profile-${admin?.nic || peopleId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      console.error("Failed to download provincial admin document:", error);
+      toast.error("Unable to download the provincial admin document.");
+    } finally {
+      setIsDownloadingDocument(false);
+    }
+  };
+
   return (
     <div className="space-y-5">
       {/* Back link */}
@@ -245,7 +270,7 @@ export default function ProvincialAdminProfile() {
       </div>
 
       {/* Header strip */}
-      <HeaderStrip profile={profile} />
+      <HeaderStrip profile={profile} onDownloadDocument={handleDownloadDocument} isDownloading={isDownloadingDocument} />
 
       {/* Layout: Left menu + Right content */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -336,7 +361,7 @@ export default function ProvincialAdminProfile() {
    Header Strip
 ========================================================= */
 
-function HeaderStrip({ profile }) {
+function HeaderStrip({ profile, onDownloadDocument, isDownloading }) {
   return (
     <div className="rounded-2xl overflow-hidden border border-blue-100 dark:border-blue-900/30 shadow-sm bg-white dark:bg-gray-800">
       <div className="bg-linear-to-r from-blue-50 to-indigo-50/30 dark:from-blue-900/10 dark:to-indigo-900/5">
@@ -373,10 +398,23 @@ function HeaderStrip({ profile }) {
           </div>
 
           <div className="flex flex-col sm:flex-row xl:flex-col gap-3 min-w-[200px]">
-            <Can permission={PermissionGroups.ZONAL.ADMIN_PROFILE_VIEW}>
-              <button className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-md shadow-blue-200 dark:shadow-none">
-                <HiDocumentText className="h-4 w-4" />
-                Get Document
+            <Can permission={PermissionGroups.PROVINCIAL.ADMIN_PROFILE_VIEW}>
+              <button
+                onClick={onDownloadDocument}
+                disabled={isDownloading}
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-md shadow-blue-200 dark:shadow-none disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isDownloading ? (
+                  <>
+                    <Spinner size="sm" />
+                    Downloading...
+                  </>
+                ) : (
+                  <>
+                    <HiDocumentText className="h-4 w-4" />
+                    Get Document
+                  </>
+                )}
               </button>
             </Can>
           </div>
