@@ -72,11 +72,27 @@ services:
         VITE_SIGNIN_REDIRECT_URL: ${VITE_SIGNIN_REDIRECT_URL:-}
         VITE_SIGNOUT_REDIRECT_URL: ${VITE_SIGNOUT_REDIRECT_URL:-}
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
+        VITE_MESSAGE_SERVICE_URL: ${VITE_MESSAGE_SERVICE_URL:-http://localhost:3001}
     restart: on-failure
     # Frontend is fronted by nginx-proxy; remove its host port mapping to
     # free up host port 80 for the proxy. (!override replaces the base
     # file's "80:80" instead of appending.)
     ports: !override []
+
+  message-service:
+    build:
+      context: ../../Message-service
+    restart: on-failure
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: emis
+      DB_USER: root
+      DB_PASSWORD: root
+      LARAVEL_BASE_URL: http://backend
+    depends_on:
+      mysql:
+        condition: service_healthy
 
   backend:
     build:
