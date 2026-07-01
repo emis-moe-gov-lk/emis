@@ -18,9 +18,8 @@ import toast from "react-hot-toast";
 import { useAuthUser } from "@/context/useAuthUser";
 import BackToListButton from "@/components/UiComponents/BackToListButton";
 import Button from "@/components/UiComponents/Button";
-import { downloadProvincialAdminProfileDocument } from "@/api/provincialAdminService";
 import { checkTeacherContact } from "@/api/teacherService";
-import { HiCheckCircle } from "react-icons/hi";
+import StepFinishing from "@/components/dosAdmin/steps/StepFinishing";
 
 const REG_PROVINCIAL_ADMIN_HISTORY_OWNER = "regProvincialAdminCreate";
 const REG_PROVINCIAL_ADMIN_HISTORY_STEP_KEY = "regProvincialAdminStep";
@@ -269,7 +268,7 @@ function RegProvincialAdminInner() {
               nic: result.data.nic,
               email: result.data.email,
               contact: result.data.contact,
-              currentPosition: result.data.currentAppointmentPositionName,
+              currentAppointmentPositionName: result.data.currentAppointmentPositionName,
               people_id: result.people_id,
               defaultPassword: result.default_password || "Password@123",
           });
@@ -288,37 +287,6 @@ function RegProvincialAdminInner() {
     dispatch({ type: "SET_STEP", payload: Math.min(currentStep + 1, STEPS.length) });
   };
 
-  const handleDownloadProfile = async () => {
-    const peopleId =
-      registrationSummary?.people_id ||
-      registrationSummary?.peopleId ||
-      formData?.peopleId;
-
-    if (!peopleId) {
-      toast.error("Missing people id for PDF download.");
-      return;
-    }
-
-    try {
-      const data = await downloadProvincialAdminProfileDocument(peopleId);
-      const blob = new Blob([data], { type: "application/pdf" });
-      const url = window.URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-
-      anchor.href = url;
-      anchor.download = `provincial-admin-profile-${peopleId}.pdf`;
-      document.body.appendChild(anchor);
-      anchor.click();
-
-      window.setTimeout(() => {
-        window.URL.revokeObjectURL(url);
-        anchor.remove();
-      }, 3000);
-    } catch (_error) {
-      toast.error("Unable to download profile PDF.");
-    }
-  };
-
   const handleBack = () => {
     if (currentStep > 1) dispatch({ type: "SET_STEP", payload: currentStep - 1 });
   };
@@ -335,59 +303,7 @@ function RegProvincialAdminInner() {
           {currentStep === 4 && <StepFirstAppointment formData={formData} setFormData={setFormData} onValid={(v) => dispatch({ type: "SET_FIRST_APPT_VALID", payload: v })} />}
           {currentStep === 5 && <StepProvincialAdminCurrentAppointment formData={formData} setFormData={setFormData} onValid={(v) => dispatch({ type: "SET_CURRENT_APPT_VALID", payload: v })} />}
           {currentStep === 6 && (
-            <div className="space-y-8">
-              <div className="flex items-start gap-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900/40 rounded-2xl p-6">
-                <HiCheckCircle className="text-green-600 dark:text-green-500 w-8 h-8 mt-1" />
-                <div>
-                  <h3 className="font-semibold text-green-800 dark:text-green-300">
-                    Provincial Administrator Registered Successfully
-                  </h3>
-                  <p className="text-sm text-green-700 dark:text-green-400 mt-1">
-                    Registration has been completed successfully.
-                  </p>
-                </div>
-              </div>
-
-              <div className="surface rounded-2xl p-6 space-y-2 text-sm">
-                <p className="text-gray-900 dark:text-gray-100">
-                  <strong>Name:</strong> {registrationSummary?.fullName || "-"}
-                </p>
-                <p className="text-gray-900 dark:text-gray-100">
-                  <strong>NIC:</strong> {registrationSummary?.nic || "-"}
-                </p>
-                <p className="text-gray-900 dark:text-gray-100">
-                  <strong>Email:</strong> {registrationSummary?.email || "-"}
-                </p>
-                <p className="text-gray-900 dark:text-gray-100">
-                  <strong>Contact Number:</strong> {registrationSummary?.contact || "-"}
-                </p>
-                <p className="text-gray-900 dark:text-gray-100">
-                  <strong>Current Appointed Position:</strong> {registrationSummary?.currentPosition || "-"}
-                </p>
-                <p className="text-gray-900 dark:text-gray-100 pt-2 border-t border-gray-100 dark:border-gray-800 mt-2">
-                  <strong>Temporary Password:</strong> <span className="font-mono font-bold bg-amber-50 dark:bg-amber-950/20 px-2 py-0.5 rounded text-amber-600 dark:text-amber-400">{registrationSummary?.defaultPassword || "-"}</span>
-                </p>
-              </div>
-
-              <div className="flex justify-center gap-4 pt-4">
-                <Button 
-                  variant="secondary" 
-                  onClick={() => {
-                    dispatch({ type: "CLEAR" });
-                    setIsRegistrationComplete(false);
-                    dispatch({ type: "SET_STEP", payload: 1 });
-                  }}
-                >
-                  New Registration
-                </Button>
-                <Button 
-                  variant="primary" 
-                  onClick={handleDownloadProfile}
-                >
-                  Download Profile
-                </Button>
-              </div>
-            </div>
+            <StepFinishing formData={registrationSummary || formData} />
           )}
         </div>
         {currentStep < STEPS.length && (
