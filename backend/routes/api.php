@@ -219,6 +219,7 @@ Route::prefix('')->group(function () {
 
     Route::controller(ProvincialAdminController::class)->middleware('auth:jwt')->prefix('provincial-admins')->group(function () {
         Route::get('/', 'index');
+        Route::get('/current-appointment-form-data', 'currentAppointmentFormData');
         Route::post('/', 'store');
         Route::get('/{people_id}', 'show');
         Route::post('/{id}/service-history', 'addServiceHistoryEntry');

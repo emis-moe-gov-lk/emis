@@ -1,16 +1,16 @@
 "use client";
 import { useState, useContext, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { TeacherFormContext, TeacherFormProvider } from "@/context/TeacherFormContext";
+import { ProvincialDeoFormContext, ProvincialDeoFormProvider } from "@/context/ProvincialDeoFormContext";
 import Swal from "sweetalert2";
 
 import StepperHeader from "@/components/teacher/StepperHeader";
 import StepNavigation from "@/components/teacher/StepNavigation";
 
-import StepNICVerification from "@/components/teacher/steps/StepNICVerification";
-import StepPersonalDetails from "@/components/teacher/steps/StepPersonalDetails";
-import StepContactDetails from "@/components/teacher/steps/StepContactDetails";
-import StepProvincialDeoCurrentAppointment from "@/components/deo/steps/StepProvincialDeoCurrentAppointment";
+import StepNICVerification from "@/components/provincialDeo/steps/StepNICVerification";
+import StepPersonalDetails from "@/components/provincialDeo/steps/StepPersonalDetails";
+import StepContactDetails from "@/components/provincialDeo/steps/StepContactDetails";
+import StepProvincialDeoCurrentAppointment from "@/components/provincialDeo/steps/StepProvincialDeoCurrentAppointment";
 
 import {
   checkProvincialDeoContact,
@@ -36,7 +36,7 @@ const STEPS = [
 
 function RegProvincialDeoOfficerInner() {
   const navigate = useNavigate();
-  const { state, dispatch } = useContext(TeacherFormContext);
+  const { state, dispatch } = useContext(ProvincialDeoFormContext);
   const { identity, hasRole, isAuthenticated, isLoading: isAuthLoading } = useAuthUser();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -385,11 +385,7 @@ function RegProvincialDeoOfficerInner() {
       try {
         setIsSubmitting(true);
 
-        const currentWp = formData.currentAppointmentZone;
-        const currentPos = formData.currentAppointmentPosition;
-
         const payload = {
-          // Personal details
           nic: formData.nic,
           titleId: formData.titleId,
           fullName: formData.fullName,
@@ -405,7 +401,6 @@ function RegProvincialDeoOfficerInner() {
           gnDivisionId: formData.gnDivisionId,
           dsOfficeId: formData.dsOfficeId,
 
-          // Contact details
           email: formData.email,
           contact: formData.contact,
           addressLine1: formData.addressLine1,
@@ -413,12 +408,11 @@ function RegProvincialDeoOfficerInner() {
           addressLine3: formData.addressLine3,
           postalCode: formData.postalCode,
 
-          // Current appointment details mapped to expected controller fields
-          appointmentDate: formData.currentAppointmentDate,
-          appointmentLetter: formData.currentAppointmentLetter,
-          rankId: formData.currentAppointmentRank,
-          positionId: currentPos,
-          provincialOfficeId: currentWp,
+          currentAppointmentDate: formData.currentAppointmentDate,
+          currentAppointmentLetter: formData.currentAppointmentLetter,
+          currentAppointmentRank: formData.currentAppointmentRank,
+          currentAppointmentPosition: formData.currentAppointmentPosition,
+          currentAppointmentWorkplace: formData.currentAppointmentZone,
         };
 
         const result = await registerProvincialDeo(payload);
@@ -434,13 +428,20 @@ function RegProvincialDeoOfficerInner() {
             defaultPassword: result?.default_password || "",
           });
           setIsRegistrationComplete(true);
+          dispatch({ type: "COMPLETE_REGISTRATION" });
           dispatch({ type: "SET_STEP", payload: 5 });
         } else {
           showErrorToast(result?.message || "Registration failed. Please try again.", "deo-create-api-error");
         }
       } catch (error) {
         console.error("Failed to submit Development Officer details", error);
-        showErrorToast("Something went wrong during registration.", "deo-create-failure");
+        if (error.response?.data?.status === "validation_error") {
+          const apiValErrors = error.response.data.errors;
+          const displayMsg = Object.values(apiValErrors).flat().join(" ") || "Validation failed";
+          showErrorToast(displayMsg, "deo-create-val-failure");
+        } else {
+          showErrorToast("Something went wrong during registration.", "deo-create-failure");
+        }
       } finally {
         setIsSubmitting(false);
       }
@@ -471,7 +472,7 @@ function RegProvincialDeoOfficerInner() {
             <StepNICVerification
               formData={formData}
               setFormData={setFormData}
-              onVerified={() => dispatch({ type: "SET_NIC_VERIFIED", payload: true })}
+              onVerified={(verified) => dispatch({ type: "SET_NIC_VERIFIED", payload: verified })}
             />
           )}
 
@@ -501,29 +502,51 @@ function RegProvincialDeoOfficerInner() {
           )}
 
           {currentStep === 5 && (
-            <div className="space-y-6 text-center max-w-xl mx-auto py-6">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 mx-auto">
-                <HiCheckCircle className="w-10 h-10" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Registration Complete!</h3>
-                <p className="text-gray-500">Provincial Development Officer credentials successfully initialized.</p>
-              </div>
-
-              <div className="border border-gray-200 dark:border-gray-800 rounded-2xl p-6 bg-slate-50 dark:bg-gray-800/40 text-left space-y-3 font-medium text-gray-700 dark:text-gray-300">
-                <p><span className="text-gray-400 dark:text-gray-500 font-normal">Full Name:</span> {registrationSummary?.fullName}</p>
-                <p><span className="text-gray-400 dark:text-gray-500 font-normal">NIC Number:</span> {registrationSummary?.nic}</p>
-                <p><span className="text-gray-400 dark:text-gray-500 font-normal">Registered Email:</span> {registrationSummary?.email}</p>
-                <p><span className="text-gray-400 dark:text-gray-500 font-normal">Contact Number:</span> {registrationSummary?.contact}</p>
-                <p><span className="text-gray-400 dark:text-gray-500 font-normal">Designation:</span> {registrationSummary?.currentPosition}</p>
-                <div className="border-t border-gray-200 dark:border-gray-800 pt-3 text-sm">
-                  <p className="text-amber-600 dark:text-amber-400 flex items-center gap-1.5 font-semibold">
-                    🔑 Temporary password: {registrationSummary?.defaultPassword}
+            <div className="space-y-8">
+              <div className="flex items-start gap-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900/40 rounded-2xl p-6">
+                <HiCheckCircle className="text-green-600 dark:text-green-500 w-8 h-8 mt-1" />
+                <div>
+                  <h3 className="font-semibold text-green-800 dark:text-green-300">
+                    Provincial Development Officer Registered Successfully
+                  </h3>
+                  <p className="text-sm text-green-700 dark:text-green-400 mt-1">
+                    Registration has been completed successfully.
                   </p>
                 </div>
               </div>
 
-              <div className="flex gap-4 justify-center">
+              <div className="surface rounded-2xl p-6 space-y-2 text-sm">
+                <p className="text-gray-900 dark:text-gray-100">
+                  <strong>Name:</strong> {registrationSummary?.fullName || "-"}
+                </p>
+                <p className="text-gray-900 dark:text-gray-100">
+                  <strong>NIC:</strong> {registrationSummary?.nic || "-"}
+                </p>
+                <p className="text-gray-900 dark:text-gray-100">
+                  <strong>Email:</strong> {registrationSummary?.email || "-"}
+                </p>
+                <p className="text-gray-900 dark:text-gray-100">
+                  <strong>Contact Number:</strong> {registrationSummary?.contact || "-"}
+                </p>
+                <p className="text-gray-900 dark:text-gray-100">
+                  <strong>Current Appointed Position:</strong> {registrationSummary?.currentPosition || "-"}
+                </p>
+                <p className="text-gray-900 dark:text-gray-100 pt-2 border-t border-gray-100 dark:border-gray-800 mt-2">
+                  <strong>Temporary Password:</strong> <span className="font-mono font-bold bg-amber-50 dark:bg-amber-950/20 px-2 py-0.5 rounded text-amber-600 dark:text-amber-400">{registrationSummary?.defaultPassword || "-"}</span>
+                </p>
+              </div>
+
+              <div className="flex justify-center gap-4 pt-4">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    resetRegistration();
+                    setIsRegistrationComplete(false);
+                    dispatch({ type: "SET_STEP", payload: 1 });
+                  }}
+                >
+                  Register Another
+                </Button>
                 <Button
                   variant="primary"
                   onClick={() =>
@@ -534,16 +557,6 @@ function RegProvincialDeoOfficerInner() {
                   }
                 >
                   Return to Directory
-                </Button>
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    resetRegistration();
-                    setIsRegistrationComplete(false);
-                    dispatch({ type: "SET_STEP", payload: 1 });
-                  }}
-                >
-                  Register Another
                 </Button>
               </div>
             </div>
@@ -579,8 +592,8 @@ function RegProvincialDeoOfficerInner() {
 
 export default function RegProvincialDeoOfficer() {
   return (
-    <TeacherFormProvider>
+    <ProvincialDeoFormProvider>
       <RegProvincialDeoOfficerInner />
-    </TeacherFormProvider>
+    </ProvincialDeoFormProvider>
   );
 }
