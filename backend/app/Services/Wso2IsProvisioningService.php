@@ -164,6 +164,8 @@ class Wso2IsProvisioningService
                 return $cached[$key];
             }
         } catch (\Throwable) {
+
+        Log::error('Failed to fetch role IDs from IS.');
             // fall through to config fallback
         }
 
