@@ -154,6 +154,19 @@ class Wso2IsProvisioningService
             return $cached[$key];
         }
 
+        Log::info('wso2_role_ids cache miss for role, fetching from IS.', ['role' => $key]);
+
+        try {
+            $this->warmRoleIdCache();
+            $cached = (array) Cache::get('wso2_role_ids', []);
+
+            if (isset($cached[$key])) {
+                return $cached[$key];
+            }
+        } catch (\Throwable) {
+            // fall through to config fallback
+        }
+
         $roleIds = (array) config('services.wso2_is.role_ids', []);
 
         return $roleIds[$key] ?? null;
