@@ -113,6 +113,7 @@ class DosAdminController extends Controller
             $query = $query->with([
                 'title',
                 'gender',
+                'myAppointments',
                 'appointment',
                 'currentAppointment.service',
                 'currentAppointment.rank',
@@ -122,9 +123,16 @@ class DosAdminController extends Controller
 
             $admins = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
+            $data = collect($admins->items())->map(function (People $person) {
+                $arr = $person->toArray();
+                $arr['confirmed'] = $person->myAppointments->contains(fn ($a) => (int) $a->is_confirmed === 1);
+
+                return $arr;
+            })->values();
+
             return response()->json([
                 'status'       => 'success',
-                'data'         => $admins->items(),
+                'data'         => $data,
                 'total'        => $admins->total(),
                 'per_page'     => $admins->perPage(),
                 'current_page' => $admins->currentPage(),
@@ -186,7 +194,10 @@ class DosAdminController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                'data'   => $admin,
+                'data'   => [
+                    ...$admin->toArray(),
+                    'confirmed' => $admin->myAppointments->contains(fn ($a) => (int) $a->is_confirmed === 1),
+                ],
             ], 200);
         } catch (\Throwable $e) {
             Log::error('DOS Admin Show Error', [
@@ -319,6 +330,13 @@ class DosAdminController extends Controller
                 'appointment_letter'      => 'none.pdf',
                 'recruitment_category_id' => $validated['recruitmentCategory'],
                 'recruitment_subject_id'  => $validated['recruitmentSubject'],
+                'active_status'           => 1,
+                'is_verified'             => 1,
+                'verified_by'             => auth()->user()?->people_id,
+                'verified_date'           => now()->toDateTimeString(),
+                'is_confirmed'            => 1,
+                'confirmed_by'            => auth()->user()?->people_id,
+                'confirmed_date'          => now()->toDateTimeString(),
             ]);
 
             // ==============================
@@ -349,6 +367,7 @@ class DosAdminController extends Controller
                 'email'    => strtolower($validated['email']),
                 'contact'  => $validated['contact'],
                 'password' => Hash::make('Password@123'),
+                'active_status' => true,
             ]);
 
             $user->assignRole($role);

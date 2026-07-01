@@ -62,34 +62,39 @@ export default function DosList({ employees }) {
 
   return (
     <div className="space-y-4">
-      {employees.map((emp) => (
-        <DirectoryCard
-          key={emp.id}
-          employee={emp}
-          name={emp.name_with_initials || emp.name}
-          nic={emp.nic}
-          position={emp.current_appointment?.position?.position_name}
-          service={emp.service}
-          workplace={emp.office}
-          address={emp.address_line1}
-          phone={emp.phone}
-          email={emp.email}
-          status={emp.confirmed ? "Confirmed" : "Pending"}
-          statusColor={emp.confirmed ? "success" : "warning"}
-          showProfilePicture={true}
-          maleProfileImage={profileMale}
-          femaleProfileImage={profileFemale}
-          genderId={emp.gender_id}
-          permissions={{ view: profileViewPermission }}
-          onView={(employee) => navigate(getProfileRoute(employee.people_id))}
-          onPrintId={(employee) => {
-            window.open(`/print-id/${employee.id}`, "_blank");
-          }}
-          onExportPdf={(employee) => {
-            window.open(`/export-pdf/${employee.id}`, "_blank");
-          }}
-        />
-      ))}
+      {employees.map((emp) => {
+        const isConfirmed = Number(emp.appointment?.is_confirmed ?? emp.confirmed) === 1;
+        const isVerified = Number(emp.appointment?.is_verified) === 1;
+
+        return (
+          <DirectoryCard
+            key={emp.id}
+            employee={emp}
+            name={emp.name_with_initials || emp.name}
+            nic={emp.nic}
+            position={emp.current_appointment?.position?.position_name}
+            service={emp.service}
+            workplace={emp.office}
+            address={emp.address_line1}
+            phone={emp.phone}
+            email={emp.email}
+            status={isConfirmed ? "Confirmed" : isVerified ? "Verified" : "Pending"}
+            statusColor={isConfirmed ? "success" : isVerified ? "info" : "warning"}
+            showProfilePicture={true}
+            maleProfileImage={profileMale}
+            femaleProfileImage={profileFemale}
+            genderId={emp.gender_id}
+            permissions={{ view: profileViewPermission }}
+            onView={(employee) => navigate(getProfileRoute(employee.people_id))}
+            onPrintId={(employee) => {
+              window.open(`/print-id/${employee.id}`, "_blank");
+            }}
+            onExportPdf={(employee) => {
+              window.open(`/export-pdf/${employee.id}`, "_blank");
+            }}
+          />
+        );
+      })}
     </div>
   );
 }

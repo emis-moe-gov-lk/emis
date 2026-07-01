@@ -264,6 +264,7 @@ Route::prefix('')->group(function () {
     Route::patch('/profile/edit-requests/{id}', [PeopleProfileEditRequestController::class, 'review'])->middleware('auth:jwt');
     Route::get('/dashboard/{people_id}', DashboardController::class)->middleware('auth:jwt');
     Route::get('/pdf/teacher/{people_id}', [TeacherPdf::class, 'generateSimplePdf'])->middleware('auth:jwt');
+    Route::get('/pdf/dos-admin/{people_id}', [TeacherPdf::class, 'generateSimplePdf'])->middleware('auth:jwt');
 
 
     Route::middleware('auth:jwt')->group(function () {

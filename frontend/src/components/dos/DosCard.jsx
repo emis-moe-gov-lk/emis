@@ -11,6 +11,7 @@ export default function DosCard({ employee }) {
   const navigate = useNavigate();
   const location = useLocation();
   const basePath = location.pathname.replace(/\/$/, "");
+  const isConfirmed = Number(employee.appointment?.is_confirmed ?? employee.confirmed) === 1;
 
   return (
     <div className="group relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 flex flex-col lg:flex-row lg:items-center gap-6 hover:shadow-lg transition-all">
@@ -26,7 +27,7 @@ export default function DosCard({ employee }) {
             alt={employee.name}
           />
           <span
-            className={`absolute -bottom-1 -right-1 h-4 w-4 rounded-full ring-2 ring-white dark:ring-slate-900 ${employee.confirmed ? "bg-emerald-500" : "bg-amber-500"}`}
+            className={`absolute -bottom-1 -right-1 h-4 w-4 rounded-full ring-2 ring-white dark:ring-slate-900 ${isConfirmed ? "bg-emerald-500" : "bg-amber-500"}`}
           ></span>
         </div>
         <div>

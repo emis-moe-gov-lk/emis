@@ -536,6 +536,13 @@ function DosAdminFormInner() {
           toast.success("Zonal Administrator registered successfully");
 
           const responseData = result.data || {};
+          const peopleId =
+            result.people_id ||
+            responseData.people_id ||
+            responseData.id ||
+            formData.people_id ||
+            formData.id ||
+            null;
           const summary = {
             fullName: responseData.fullName || responseData.full_name || formData.fullName,
             nic: responseData.nic || responseData.nic_no || formData.nic,
@@ -546,7 +553,7 @@ function DosAdminFormInner() {
               responseData.currentAppointmentPosition ||
               formData.currentAppointmentPositionLabel ||
               formData.currentAppointmentPosition,
-            people_id: responseData.people_id || responseData.id || null,
+            people_id: peopleId,
           };
 
           setIsRegistrationComplete(true);
