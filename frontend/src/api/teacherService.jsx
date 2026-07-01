@@ -32,6 +32,7 @@ export const printTeacherId = async (id) => {
 
 /**
  * Download the full teacher profile document as PDF
+ */
 export const downloadTeacherProfileDocument = async (id) => {
   const response = await api.get(`/pdf/teacher/${id}`, {
     responseType: "arraybuffer",
