@@ -16,7 +16,7 @@ import {
   checkSchoolDeoContact,
   registerSchoolDeo,
 } from "@/api/schoolDeoService";
-import { downloadTeacherProfileDocument } from "@/api/teacherService";
+import { downloadDeoOfficerProfileDocument } from "@/api/deoOfficerService";
 import toast from "react-hot-toast";
 import { HiCheckCircle } from "react-icons/hi";
 import { useAuthUser } from "@/context/useAuthUser";
@@ -340,7 +340,7 @@ function RegDeoInner() {
     }
 
     try {
-      const response = await downloadTeacherProfileDocument(peopleId);
+      const response = await downloadDeoOfficerProfileDocument(peopleId);
       const contentType = response.headers?.["content-type"] || "application/pdf";
       const disposition = response.headers?.["content-disposition"] || "";
       const filenameMatch = disposition.match(/filename="?([^";]+)"?/i);

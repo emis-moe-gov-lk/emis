@@ -35,6 +35,8 @@ use App\Http\Controllers\API\EmployerAppointmentConfirmationController;
 use App\Http\Controllers\API\ProfileController;
 use App\Http\Controllers\API\PeopleProfileEditRequestController;
 use App\Http\Controllers\Pdf\TeacherPdf;
+use App\Http\Controllers\Pdf\DosAdminPdfController;
+use App\Http\Controllers\Pdf\DeoOfficerPdfController;
 
 
 // Route::get('/user', function (Request $request) {
@@ -264,7 +266,8 @@ Route::prefix('')->group(function () {
     Route::patch('/profile/edit-requests/{id}', [PeopleProfileEditRequestController::class, 'review'])->middleware('auth:jwt');
     Route::get('/dashboard/{people_id}', DashboardController::class)->middleware('auth:jwt');
     Route::get('/pdf/teacher/{people_id}', [TeacherPdf::class, 'generateSimplePdf'])->middleware('auth:jwt');
-    Route::get('/pdf/dos-admin/{people_id}', [TeacherPdf::class, 'generateSimplePdf'])->middleware('auth:jwt');
+    Route::get('/pdf/dos-admin/{people_id}', [DosAdminPdfController::class, 'generateSimplePdf'])->middleware('auth:jwt');
+    Route::get('/pdf/deo/{people_id}', [DeoOfficerPdfController::class, 'generateSimplePdf'])->middleware('auth:jwt');
 
 
     Route::middleware('auth:jwt')->group(function () {

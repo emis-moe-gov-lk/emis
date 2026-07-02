@@ -4,7 +4,7 @@ import { HiDocumentText, HiPlus } from "react-icons/hi";
 import { Spinner } from "flowbite-react";
 import StatusBadge from "@/components/common/StatusBadge";
 import { getProvincialDeoById, addProvincialDeoServiceHistoryEntry, addProvincialDeoPastService } from "@/api/provincialDeoService";
-import { downloadTeacherProfileDocument } from "@/api/teacherService";
+import { downloadDeoOfficerProfileDocument } from "@/api/deoOfficerService";
 import ProfileDataTable from "@/components/common/ProfileDataTable";
 import BackToListButton from "@/components/UiComponents/BackToListButton";
 import toast from "react-hot-toast";
@@ -245,7 +245,7 @@ export default function ProvincialDeoProfile() {
 
     setIsDownloadingDocument(true);
     try {
-      const response = await downloadTeacherProfileDocument(peopleId);
+      const response = await downloadDeoOfficerProfileDocument(peopleId);
       const blob = new Blob([response.data], {
         type: response.headers?.["content-type"] || "application/pdf",
       });

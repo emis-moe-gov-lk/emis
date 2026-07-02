@@ -13,13 +13,13 @@ import {
 } from "react-icons/hi";
 import api from "@/api/axios";
 import {
-  downloadTeacherProfileDocument,
   promoteTeacher,
   saveEducationQualification,
   getEducationQualifications,
   getEducationQualificationGrades,
   addServiceHistoryEntry,
 } from "@/api/teacherService";
+import { downloadDeoOfficerProfileDocument } from "@/api/deoOfficerService";
 import { getEditRequests, reviewEditRequest } from "@/api/userService";
 import toast from "react-hot-toast";
 import {
@@ -301,7 +301,7 @@ const DeoProfile = () => {
 
     if (payload?.appointment?.is_verified === 1) {
       return {
-        status: "Verified",
+        status: "Confirmed",
         revised: false,
       };
     }
@@ -749,7 +749,7 @@ const DeoProfile = () => {
     if (!teacher?.id) return;
     setIsDownloadingDocument(true);
     try {
-      const response = await downloadTeacherProfileDocument(teacher.id);
+      const response = await downloadDeoOfficerProfileDocument(teacher.id);
       const blob = new Blob([response.data], { type: response.headers?.["content-type"] || "application/pdf" });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -802,7 +802,7 @@ const DeoProfile = () => {
   const isDevelopmentOfficer = userRoles.includes("development officer") || userRoles.includes("zonal deo");
   const isZonalDirector = userRoles.includes("zonal director");
   const isPendingStatus = !teacher?.confirmed && !teacher?.verified && !teacher?.rejected && !teacher?.revised;
-  const isVerifiedStatus = !!teacher?.verified || String(teacher?.status ?? "").trim().toLowerCase() === "verified";
+  const isVerifiedStatus = !!teacher?.verified || ["verified", "confirmed"].includes(String(teacher?.status ?? "").trim().toLowerCase());
   const shouldShowVerificationStrip = isDevelopmentOfficer ? !!teacher?.rejected || !!teacher?.revised : isZonalDirector ? (isVerifiedStatus && !teacher?.confirmed && !teacher?.rejected && !teacher?.revised) : !teacher?.confirmed;
 
   const handleVerify = async () => {
@@ -906,17 +906,17 @@ const DeoProfile = () => {
       <HeaderStrip teacher={teacher} onDownloadDocument={handleDownloadDocument} isDownloadingDocument={isDownloadingDocument} />
 
       {shouldShowVerificationStrip && (
-        <VerifyStrip
-          onVerify={handleVerify}
-          onReject={() => setIsRejectModalOpen(true)}
-          isVerifying={isVerifying}
-          isRejecting={isRejecting}
-          isVerified={teacher.verified && !teacher.rejected}
-          isRejected={teacher.rejected}
-          isRevised={teacher.revised}
-          rejectReason={teacher.rejectReason}
-          showUpdateAction={!!teacher?.rejected && !teacher?.revised}
-          confirmOnly={isZonalDirector}
+      <VerifyStrip
+        onVerify={handleVerify}
+        onReject={() => setIsRejectModalOpen(true)}
+        isVerifying={isVerifying}
+        isRejecting={isRejecting}
+        isVerified={(teacher.verified || String(teacher?.status ?? "").trim().toLowerCase() === "confirmed") && !teacher.rejected}
+        isRejected={teacher.rejected}
+        isRevised={teacher.revised}
+        rejectReason={teacher.rejectReason}
+        showUpdateAction={!!teacher?.rejected && !teacher?.revised}
+        confirmOnly={isZonalDirector}
         />
       )}
 
@@ -1068,7 +1068,7 @@ function MiniKey({ label, value }) {
 
 function VerifyStrip({ onVerify, onReject, isVerifying = false, isRejecting = false, isVerified = false, isRejected = false, isRevised = false, rejectReason = "", showUpdateAction = false, confirmOnly = false, hideRejectAction = false, hideVerifyAction = false }) {
   const title = isRevised ? "Profile Revised" : isRejected ? "Profile Rejected" : isVerified ? "Profile Confirmation Required" : "Profile Verification Required";
-  const description = isRevised ? "This profile has been revised after rejection. Review the full comment history and continue the approval flow." : isRejected ? "This profile was rejected. Review the details and verify again to restart the approval process." : isVerified ? "Profile verified successfully. Continue with confirmation to complete the appointment process." : "Ensure all details are accurate before proceeding with administration.";
+  const description = isRevised ? "This profile has been revised after rejection. Review the full comment history and continue the approval flow." : isRejected ? "This profile was rejected. Review the details and verify again to restart the approval process." : isVerified ? "Profile confirmed successfully. Continue with confirmation to complete the appointment process." : "Ensure all details are accurate before proceeding with administration.";
   const buttonLabel = isVerifying ? showUpdateAction ? "Updating..." : confirmOnly || isVerified ? "Confirming..." : "Verifying..." : showUpdateAction ? "Update" : confirmOnly || isVerified ? "Confirm" : "Verify Now";
   const buttonClass = "inline-flex items-center justify-center gap-2 rounded-xl bg-linear-to-r from-orange-500 to-amber-600 px-6 py-2 text-sm font-black text-white hover:from-orange-600 hover:to-amber-700 transition-all shadow-md shadow-orange-100 disabled:cursor-not-allowed disabled:opacity-70 dark:shadow-none";
   const commentEntries = [...new Set(String(rejectReason || "").split(/\n\s*\n/).map((comment) => String(comment || "").trim()).filter(Boolean))];
