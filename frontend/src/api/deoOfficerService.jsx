@@ -16,7 +16,7 @@ export const printDeoOfficerId = async (id) => {
 };
 
 export const downloadDeoOfficerProfileDocument = async (id) => {
-  const response = await api.get(`/pdf/teacher/${id}`, {
+  const response = await api.get(`/pdf/office-admin/${id}`, {
     responseType: "arraybuffer",
   });
   return response;
