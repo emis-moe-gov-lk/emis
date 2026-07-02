@@ -114,6 +114,7 @@ class DosAdminController extends Controller
                 'title',
                 'gender',
                 'appointment',
+                'myAppointments',
                 'currentAppointment.service',
                 'currentAppointment.rank',
                 'currentAppointment.position',
@@ -122,9 +123,15 @@ class DosAdminController extends Controller
 
             $admins = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
+            $data = collect($admins->items())->map(function (People $person) {
+                $arr = $person->toArray();
+                $arr['confirmed'] = $person->myAppointments->contains(fn($a) => (int) $a->is_confirmed === 1);
+                return $arr;
+            })->values();
+
             return response()->json([
                 'status'       => 'success',
-                'data'         => $admins->items(),
+                'data'         => $data,
                 'total'        => $admins->total(),
                 'per_page'     => $admins->perPage(),
                 'current_page' => $admins->currentPage(),
@@ -319,6 +326,13 @@ class DosAdminController extends Controller
                 'appointment_letter'      => 'none.pdf',
                 'recruitment_category_id' => $validated['recruitmentCategory'],
                 'recruitment_subject_id'  => $validated['recruitmentSubject'],
+                'active_status'           => 1,
+                'is_verified'             => 1,
+                'verified_by'             => auth()->user()?->people_id,
+                'verified_date'           => now()->toDateTimeString(),
+                'is_confirmed'            => 1,
+                'confirmed_by'            => auth()->user()?->people_id,
+                'confirmed_date'          => now()->toDateTimeString(),
             ]);
 
             // ==============================
