@@ -57,9 +57,3 @@ export const downloadMoeAdminProfileDocument = async (id) => {
   return response;
 };
 
-export const downloadMoeAdminProfileDocument = async (id) => {
-  const response = await api.get(`/pdf/moe-admin/${id}`, {
-    responseType: "arraybuffer",
-  });
-  return response;
-};

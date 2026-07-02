@@ -37,3 +37,10 @@ export const addDosAdminPastService = async (peopleId, data) => {
   return response.data;
 };
 
+export const downloadProvincialDeoProfileDocument = async (id) => {
+  const response = await api.get(`/pdf/provincial-deo/${id}`, {
+    responseType: "arraybuffer",
+  });
+  return response;
+};
+
