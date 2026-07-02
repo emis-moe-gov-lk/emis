@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use App\Http\Controllers\Controller;
 use App\Services\Wso2IsProvisioningService;
@@ -209,6 +210,13 @@ class DosAdminController extends Controller
     public function store(Request $request, Wso2IsProvisioningService $wso2Is)
     {
         try {
+            $nicInput = (string) $request->input('nic', '');
+            $existingPeopleId = null;
+            if ($nicInput !== '') {
+                $existingPeopleId = People::where('nic_hash', NicHelper::hash(NicHelper::normalize($nicInput)))
+                    ->value('people_id');
+            }
+
             $validated = $request->validate([
                 // PERSONAL
                 'nic'                         => 'required|string',
@@ -228,8 +236,16 @@ class DosAdminController extends Controller
                 'dsOfficeId'                  => 'required|string',
 
                 // CONTACT
-                'email'        => 'required|email',
-                'contact'      => 'required|string',
+                'email'   => [
+                    'required', 'email',
+                    Rule::unique('people', 'email')->ignore($existingPeopleId, 'people_id'),
+                    Rule::unique('users', 'email')->ignore($existingPeopleId, 'people_id'),
+                ],
+                'contact' => [
+                    'required', 'string',
+                    Rule::unique('people', 'phone')->ignore($existingPeopleId, 'people_id'),
+                    Rule::unique('users', 'contact')->ignore($existingPeopleId, 'people_id'),
+                ],
                 'addressLine1' => 'required|string',
                 'addressLine2' => 'required|string',
                 'addressLine3' => 'nullable|string',
