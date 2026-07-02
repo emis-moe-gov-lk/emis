@@ -3,8 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { HiDocumentText, HiPlus } from "react-icons/hi";
 import { Spinner } from "flowbite-react";
 import StatusBadge from "@/components/common/StatusBadge";
-import { getMoeAdminById, addMoeAdminServiceHistoryEntry, addMoeAdminPastService } from "@/api/moeAdminService";
-import { downloadOfficeAdminProfileDocument } from "@/api/teacherService";
+import { getMoeAdminById, addMoeAdminServiceHistoryEntry, addMoeAdminPastService, downloadMoeAdminProfileDocument } from "@/api/moeAdminService";
 import ProfileDataTable from "@/components/common/ProfileDataTable";
 import BackToListButton from "@/components/UiComponents/BackToListButton";
 import toast from "react-hot-toast";
@@ -394,7 +393,7 @@ function HeaderStrip({ profile }) {
               <button 
                 onClick={async () => {
                   try {
-                    const response = await downloadOfficeAdminProfileDocument(profile.employeeId);
+                    const response = await downloadMoeAdminProfileDocument(profile.employeeId);
                     const blob = new Blob([response.data], {
                       type: response.headers?.["content-type"] || "application/pdf",
                     });

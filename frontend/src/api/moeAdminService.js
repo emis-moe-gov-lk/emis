@@ -1,4 +1,4 @@
-﻿import api from "./axios";
+import api from "./axios";
 
 export const registerMoeAdmin = async (data) => {
   const response = await api.post("/moe-admins", data);
@@ -48,4 +48,18 @@ export const addMoeAdminServiceHistoryEntry = async (peopleId, data) => {
 export const addMoeAdminPastService = async (peopleId, data) => {
   const response = await api.post(`/moe-admins/${peopleId}/past-services`, data);
   return response.data;
+};
+
+export const downloadMoeAdminProfileDocument = async (id) => {
+  const response = await api.get(`/pdf/moe-admin/${id}`, {
+    responseType: "arraybuffer",
+  });
+  return response;
+};
+
+export const downloadMoeAdminProfileDocument = async (id) => {
+  const response = await api.get(`/pdf/moe-admin/${id}`, {
+    responseType: "arraybuffer",
+  });
+  return response;
 };
