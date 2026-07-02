@@ -322,10 +322,17 @@ class Wso2IsProvisioningService
         }
 
         try {
+            [$givenName, $familyName] = $this->splitName($user);
+
             $this->patchScimUser($isUserId, [[
                 'op'    => 'replace',
                 'value' => [
-                    'name'         => ['formatted' => $user->name],
+                    'name'         => [
+                        'formatted'  => $user->name,
+                        'givenName'  => $givenName,
+                        'familyName' => $familyName,
+                    ],
+                    'emails'       => [['value' => $user->email, 'primary' => true]],
                     'phoneNumbers' => $user->contact
                         ? [['value' => $user->contact, 'type' => 'mobile']]
                         : [],
