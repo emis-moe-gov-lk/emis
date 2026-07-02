@@ -1,0 +1,43 @@
+% ============================================================
+%  EMIS – API Reference  |  main.tex
+%  Compile: pdflatex main.tex  (run twice for TOC + refs)
+%
+%  File layout:
+%    main.tex          — this file (master include list only)
+%    preamble.tex      — packages, colours, macros
+%    titlepage.tex     — title page
+%    sections/*.tex    — one file per API section
+% ============================================================
+\documentclass[11pt,a4paper]{article}
+\input{preamble}
+
+\begin{document}
+
+\input{titlepage}
+
+\tableofcontents
+\newpage
+
+\input{sections/overview}
+\newpage
+
+\input{sections/health}
+\input{sections/auth}
+\input{sections/ref-data}
+\input{sections/offices}
+\input{sections/institutions}
+\input{sections/teachers}
+\input{sections/principals}
+\input{sections/alerts}
+\input{sections/employer-confirm}
+\input{sections/dos-admins}
+\input{sections/deo-officers}
+\input{sections/profile}
+\input{sections/user-management}
+\input{sections/roles-permissions}
+\input{sections/versions}
+\input{sections/timetable}
+
+\input{sections/summary}
+
+\end{document}

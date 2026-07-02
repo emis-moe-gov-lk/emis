@@ -1,0 +1,21 @@
+% ============================================================
+%  sections/employer-confirm.tex
+% ============================================================
+\section{Employer Appointment Confirmation}
+
+Used by employers and HR officers to manage the teacher appointment workflow.
+All endpoints require authentication.
+
+\subsection{Reject Comments}
+\apiendpoint{\GET}{/employer-appointment-reject-comments}{\authjwt}{Returns all appointment rejection comments.}
+\apiendpoint{\GET}{/employer-appointment-reject-comments/profile/\{people\_id\}}{\authjwt}{Returns rejection comments for a specific profile.}
+\apiendpoint{\PATCH}{/employer-appointment-reject-comments/\{id\}}{\authjwt}{Updates a rejection comment by ID.}
+
+\subsection{Workflow Actions}
+\apiendpoint{\PATCH}{/teachers/\{people\_id\}/verify}{\authjwt}{Marks a teacher profile as verified.}
+\apiendpoint{\PATCH}{/teachers/\{people\_id\}/confirm}{\authjwt}{Confirms a teacher's appointment.}
+\apiendpoint{\PATCH}{/principals/\{people\_id\}/confirm}{\authjwt}{Confirms a principal's appointment.}
+\apiendpoint{\PATCH}{/teachers/\{people\_id\}/promote}{\authjwt}{Promotes a teacher.}
+\apiendpoint{\PATCH}{/teachers/\{people\_id\}/reject}{\authjwt}{Rejects a teacher's appointment.}
+\apiendpoint{\PATCH}{/teachers/\{people\_id\}/update}{\authjwt}{Updates a teacher record through the employer workflow.}
+\apiendpoint{\PATCH}{/teachers/\{people\_id\}/rejected-status}{\authjwt}{Updates the rejected status flag on a teacher record.}

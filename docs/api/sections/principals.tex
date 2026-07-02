@@ -1,0 +1,13 @@
+% ============================================================
+%  sections/principals.tex
+% ============================================================
+\section{Principals}
+
+All principal endpoints require authentication.
+
+\apiendpoint{\GET}{/principals-list}{\authjwt}{Returns a paginated list of all principals.}
+\apiendpoint{\POST}{/principal-create}{\authjwt}{Creates a new principal profile.}
+\apiendpoint{\GET}{/principal-recruitment-categories}{\authjwt}{Returns recruitment categories available for principals.}
+\apiendpoint{\GET}{/principal/\{people\_id\}}{\authjwt}{Returns the full profile of a single principal.}
+\apiendpoint{\POST}{/principals/\{people\_id\}/service-history}{\authjwt}{Adds a service history entry to a principal record.}
+\apiendpoint{\POST}{/principals/\{people\_id\}/past-services}{\authjwt}{Adds a past service block to a principal record.}

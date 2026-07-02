@@ -1,0 +1,29 @@
+% ============================================================
+%  sections/teachers.tex
+% ============================================================
+\section{Teachers}
+
+All teacher endpoints require authentication.
+
+\subsection{Listing \& Search}
+\apiendpoint{\GET}{/teacher-settings}{\authjwt}{Returns teacher settings and configuration data.}
+\apiendpoint{\GET}{/teachers-list}{\authjwt}{Returns a paginated list of all teachers.}
+\apiendpoint{\GET}{/teacher/\{people\_id\}}{\authjwt}{Returns the full profile of a single teacher.}
+\apiendpoint{\GET}{/teachers/check-nic/\{nic\}}{\authjwt}{Checks whether a teacher with the given NIC already exists.}
+
+\subsection{Form Data}
+\apiendpoint{\GET}{/teachers/personal-form-data}{\authjwt}{Returns dropdown data for the teacher personal information form.}
+\apiendpoint{\GET}{/register/appointment-form-data}{\authjwt}{Returns dropdown data for the first appointment registration form.}
+\apiendpoint{\GET}{/teachers/current-appointment-form-data}{\authjwt}{Returns dropdown data for the current appointment form, filtered by the caller's role.}
+\apiendpoint{\GET}{/education-qualifications}{\authjwt}{Returns the list of education qualifications available for selection.}
+\apiendpoint{\GET}{/education-qualification-grades}{\authjwt}{Returns the list of education qualification grades.}
+
+\subsection{Create \& Update}
+\apiendpoint{\POST}{/teacher-create}{\authjwt}{Creates a new teacher profile.}
+\apiendpoint{\PATCH}{/teachers/\{people\_id\}}{\authjwt}{Updates an existing teacher profile.}
+\apiendpoint{\POST}{/teachers/check-contact}{\authjwt}{Checks whether the supplied email or phone number is already in use.}
+
+\subsection{Sub-resources}
+\apiendpoint{\POST}{/teachers/\{people\_id\}/education-qualifications}{\authjwt}{Saves education qualification records for a teacher.}
+\apiendpoint{\POST}{/teachers/\{people\_id\}/service-history}{\authjwt}{Adds a service history entry to a teacher record.}
+\apiendpoint{\POST}{/teachers/\{people\_id\}/past-services}{\authjwt}{Adds a past service block to a teacher record.}

@@ -1,0 +1,11 @@
+% ============================================================
+%  sections/offices.tex
+% ============================================================
+\section{Offices}
+
+\apiendpoint{\GET}{/moe-list}{\noauth}{Returns all Ministry of Education offices.}
+\apiendpoint{\GET}{/pmoe-list}{\noauth}{Returns all Provincial Ministry of Education offices.}
+\apiendpoint{\GET}{/peo-list}{\noauth}{Returns all Provincial Education Office records.}
+\apiendpoint{\GET}{/zeo-list}{\authjwt}{Returns all Zonal Education Office records.}
+\apiendpoint{\GET}{/deo-list}{\authjwt}{Returns all Divisional Education Office records.}
+\apiendpoint{\GET}{/office/\{type\}/\{workplace\_id\}}{\noauth}{Returns a single office record. \texttt{type} identifies the office category; \texttt{workplace\_id} is the office identifier.}

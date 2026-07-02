@@ -1,0 +1,124 @@
+% ============================================================
+%  preamble.tex  –  packages, colours, macros
+% ============================================================
+
+\usepackage[top=2.5cm,bottom=2.5cm,left=2.2cm,right=2.2cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage[table]{xcolor}
+\usepackage{parskip}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{hyperref}
+
+% -------------------------------------------------------
+%  COLOUR PALETTE
+% -------------------------------------------------------
+\definecolor{cget}{HTML}{0D6EFD}
+\definecolor{cpost}{HTML}{198754}
+\definecolor{cput}{HTML}{FD7E14}
+\definecolor{cpatch}{HTML}{6F42C1}
+\definecolor{cdel}{HTML}{DC3545}
+\definecolor{cjwt}{HTML}{0891B2}
+\definecolor{cpub}{HTML}{64748B}
+\definecolor{cnavy}{HTML}{0F172A}
+\definecolor{caccent}{HTML}{0D6EFD}
+\definecolor{cbg}{HTML}{F8FAFC}
+\definecolor{cborder}{HTML}{CBD5E1}
+\definecolor{ctext}{HTML}{334155}
+
+% -------------------------------------------------------
+%  BADGES
+% -------------------------------------------------------
+\newcommand{\mbadge}[2]{%
+  \colorbox{#1}{\color{white}\bfseries\footnotesize\strut\enspace #2\enspace}%
+}
+\newcommand{\authjwt}{\mbadge{cjwt}{JWT}}
+\newcommand{\noauth}{\mbadge{cpub}{Public}}
+
+% -------------------------------------------------------
+%  ENDPOINT MACRO
+%
+%  Each endpoint renders as its own tabularx row so it is
+%  guaranteed to be a block-level element — no inline flow.
+%
+%  Visual output:
+%
+%    [METHOD]  /path/here                         [AUTH]
+%              Description of what this does.
+%    ─────────────────────────────────────────────────────
+%
+%  Usage: \apiendpoint{\GET}{/path}{\authjwt}{description}
+% -------------------------------------------------------
+\makeatletter
+\gdef\ep@color{cpub}
+
+\newcommand{\GET}{\gdef\ep@color{cget}\mbadge{cget}{GET}}
+\newcommand{\POST}{\gdef\ep@color{cpost}\mbadge{cpost}{POST}}
+\newcommand{\PUT}{\gdef\ep@color{cput}\mbadge{cput}{PUT}}
+\newcommand{\PATCH}{\gdef\ep@color{cpatch}\mbadge{cpatch}{PATCH}}
+\newcommand{\DELETE}{\gdef\ep@color{cdel}\mbadge{cdel}{DELETE}}
+
+\newcommand{\apiendpoint}[4]{%
+  \par\vspace{2pt}%
+  \noindent
+  \makebox[2.0cm][l]{#1}%
+  \makebox[0.7\linewidth][l]{\texttt{\bfseries\small #2}}%
+  \hfill#3\par
+  \noindent\hspace{8pt}\parbox{0.95\linewidth}{\small\color{ctext}#4}\par
+  \vspace{2pt}%
+  \noindent\textcolor{cborder}{\rule{\linewidth}{0.5pt}}%
+  \par\vspace{4pt}%
+}
+\makeatother
+
+% -------------------------------------------------------
+%  SECTION / SUBSECTION STYLING
+% -------------------------------------------------------
+\titleformat{\section}
+  {\large\bfseries\color{cnavy}}
+  {\colorbox{cnavy}{\color{white}\footnotesize\bfseries\enspace\thesection\enspace}}
+  {8pt}{}
+  [{\color{cnavy!30}\rule{\linewidth}{1pt}\vspace{2pt}}]
+\titlespacing{\section}{0pt}{22pt}{8pt}
+
+\titleformat{\subsection}
+  {\normalsize\bfseries\color{cpub}}{}
+  {0pt}{}
+\titlespacing{\subsection}{0pt}{12pt}{2pt}
+
+% -------------------------------------------------------
+%  HEADER / FOOTER
+% -------------------------------------------------------
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\textcolor{cnavy}{\small\bfseries EMIS\enspace API Reference}}
+\rhead{\textcolor{cpub}{\small v1.0\enspace|\enspace\today}}
+\cfoot{\small\textcolor{cpub}{\thepage}}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% -------------------------------------------------------
+%  HYPERREF
+% -------------------------------------------------------
+\hypersetup{
+  colorlinks=true,
+  linkcolor=caccent,
+  urlcolor=caccent,
+  pdftitle={EMIS API Reference},
+}
+
+% -------------------------------------------------------
+%  SUMMARY TABLE CELL HELPERS
+% -------------------------------------------------------
+\newcommand{\tGET}{\cellcolor{cget!12}\textcolor{cget}{\bfseries\small GET}}
+\newcommand{\tPOST}{\cellcolor{cpost!12}\textcolor{cpost}{\bfseries\small POST}}
+\newcommand{\tPUT}{\cellcolor{cput!12}\textcolor{cput}{\bfseries\small PUT}}
+\newcommand{\tPATCH}{\cellcolor{cpatch!12}\textcolor{cpatch}{\bfseries\small PATCH}}
+\newcommand{\tDEL}{\cellcolor{cdel!12}\textcolor{cdel}{\bfseries\small DELETE}}
+\newcommand{\tJWT}{\cellcolor{cjwt!12}\textcolor{cjwt}{\bfseries\small JWT}}
+\newcommand{\tPUB}{\cellcolor{cpub!12}\textcolor{cpub}{\bfseries\small Public}}

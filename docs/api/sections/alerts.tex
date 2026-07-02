@@ -1,0 +1,12 @@
+% ============================================================
+%  sections/alerts.tex
+% ============================================================
+\section{Alerts}
+
+All alert endpoints require authentication.
+
+\apiendpoint{\GET}{/alerts/counts}{\authjwt}{Returns counts for every alert category: pending verification, revised, pending confirmation, and rejected.}
+\apiendpoint{\GET}{/alerts/pending-verification}{\authjwt}{Returns profiles that are pending verification.}
+\apiendpoint{\GET}{/alerts/revised}{\authjwt}{Returns profiles that have been revised after a rejection.}
+\apiendpoint{\GET}{/alerts/pending-confirmation}{\authjwt}{Returns profiles pending employer confirmation.}
+\apiendpoint{\GET}{/alerts/rejected}{\authjwt}{Returns profiles that have been rejected.}

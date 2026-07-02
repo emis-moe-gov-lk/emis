@@ -304,4 +304,27 @@ Route::prefix('')->group(function () {
 //        Route::delete('/versions/{versionId}/change-logs/{id}', 'destroy');    // DELETE change log
 //    });
 
+    // -------------------------------------------------------------------------
+    // Message Service — scope resolution endpoints
+    // Called by the Node.js message-service when dispatching notifications.
+    // Auth: Bearer JWT (same guard as the rest of the API).
+    // -------------------------------------------------------------------------
+    Route::prefix('message-service')
+        ->middleware('service.key')
+        ->controller(\App\Http\Controllers\MessageService\ScopeController::class)
+        ->group(function () {
+            Route::post('/resolve-recipients', 'resolveRecipients');
+            Route::post('/estimate-reach',     'estimateReach');
+        });
+
+    Route::prefix('message-service/scope-lists')
+        ->middleware('auth:jwt')
+        ->controller(\App\Http\Controllers\MessageService\ScopeListController::class)
+        ->group(function () {
+            Route::get('/provinces',  'provinces');
+            Route::get('/zones',      'zones');
+            Route::get('/divisions',  'divisions');
+            Route::get('/schools',    'schools');
+        });
+
 });

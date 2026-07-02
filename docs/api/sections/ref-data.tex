@@ -1,0 +1,47 @@
+% ============================================================
+%  sections/ref-data.tex
+% ============================================================
+\section{Reference / Lookup Data}
+
+Read endpoints are publicly accessible.
+Write endpoints update existing entries in the reference tables.
+
+\subsection{Appointed Subjects}
+\apiendpoint{\GET}{/apointed-subjects}{\noauth}{Returns all appointed subjects.}
+\apiendpoint{\PATCH}{/apointed-subjects/\{id\}}{\noauth}{Updates an appointed subject by ID.}
+
+\subsection{Authorities}
+\apiendpoint{\GET}{/authorities}{\noauth}{Returns all authorities.}
+\apiendpoint{\PUT}{/authorities/\{id\}}{\noauth}{Updates an authority by ID.}
+
+\subsection{Blood Groups}
+\apiendpoint{\GET}{/blood-groups}{\noauth}{Returns all blood groups.}
+\apiendpoint{\PUT}{/blood-groups/\{id\}}{\noauth}{Updates a blood group by ID.}
+
+\subsection{Titles}
+\apiendpoint{\GET}{/titles}{\noauth}{Returns all honorific titles.}
+\apiendpoint{\PUT}{/titles/\{id\}}{\noauth}{Updates a title by ID.}
+
+\subsection{Teacher Types}
+\apiendpoint{\GET}{/teacher-types}{\noauth}{Returns all teacher types.}
+\apiendpoint{\PUT}{/teacher-types/\{id\}}{\noauth}{Updates a teacher type by ID.}
+
+\subsection{Teacher Categories}
+\apiendpoint{\GET}{/teacher-categories}{\noauth}{Returns all teacher categories.}
+\apiendpoint{\GET}{/teacher-categories/\{id\}}{\noauth}{Returns a single teacher category by ID.}
+\apiendpoint{\PUT}{/teacher-categories/\{id\}}{\noauth}{Updates a teacher category by ID.}
+
+\subsection{Services}
+\apiendpoint{\GET}{/services}{\noauth}{Returns all services.}
+\apiendpoint{\GET}{/services/\{id\}}{\noauth}{Returns a single service by ID.}
+\apiendpoint{\PUT}{/services/\{id\}}{\noauth}{Updates a service by ID.}
+
+\subsection{Service Ranks}
+\apiendpoint{\GET}{/service-ranks}{\noauth}{Returns all service ranks.}
+\apiendpoint{\GET}{/service-ranks/\{id\}}{\noauth}{Returns a single service rank by ID.}
+\apiendpoint{\PUT}{/service-ranks/\{id\}}{\noauth}{Updates a service rank by ID.}
+
+\subsection{Subjects (HRM reference)}
+\apiendpoint{\GET}{/subjects}{\noauth}{Returns all subjects in the HRM reference list.}
+\apiendpoint{\GET}{/subjects/\{id\}}{\noauth}{Returns a single subject by ID.}
+\apiendpoint{\PUT}{/subjects/\{id\}}{\noauth}{Updates a subject by ID.}
