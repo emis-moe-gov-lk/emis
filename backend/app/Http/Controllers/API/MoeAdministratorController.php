@@ -592,9 +592,12 @@ class MoeAdministratorController extends Controller
                     'retirement_date' => $retirementDate,
                 ]);
 
-                User::where('people_id', $people_id)->update([
-                    'name' => $initials,
-                ]);
+                $user = User::where('people_id', $people_id)->first();
+                if ($user) {
+                    $user->update([
+                        'name' => $initials,
+                    ]);
+                }
             }
 
             if ($section === 'health') {
@@ -618,10 +621,13 @@ class MoeAdministratorController extends Controller
                     'postal_code'    => $validated['postalCode'],
                 ]);
 
-                User::where('people_id', $people_id)->update([
-                    'email'   => strtolower(trim((string) $validated['email'])),
-                    'contact' => $validated['phone'],
-                ]);
+                $user = User::where('people_id', $people_id)->first();
+                if ($user) {
+                    $user->update([
+                        'email'   => strtolower(trim((string) $validated['email'])),
+                        'contact' => $validated['phone'],
+                    ]);
+                }
             }
 
             if ($section === 'temporary') {
@@ -666,6 +672,16 @@ class MoeAdministratorController extends Controller
             }
 
             DB::commit();
+
+            try {
+                $user = User::where('people_id', $people_id)->first();
+                if ($user) {
+                    $wso2Is = app(\App\Services\Wso2IsProvisioningService::class);
+                    $wso2Is->syncUserProfile($user);
+                }
+            } catch (\Throwable $e) {
+                Log::error('MOE Admin Update WSO2 IS sync error', ['message' => $e->getMessage()]);
+            }
 
             return response()->json([
                 'status'  => 'success',

@@ -245,7 +245,10 @@ class ProvincialDeoController extends Controller
                 'appointmentHistory.rank',
                 'appointmentHistory.position',
                 'appointmentHistory.workplace.institution',
-            ])->where('people_id', $people_id)->first();
+            ])->where(function ($query) use ($people_id) {
+                $query->where('people_id', $people_id)
+                      ->orWhere('id', $people_id);
+            })->first();
 
             if (! $officer) {
                 return response()->json([
@@ -304,13 +307,47 @@ class ProvincialDeoController extends Controller
                 'addressLine3' => 'nullable|string',
                 'postalCode'   => 'required|string',
 
-                // APPOINTMENT
-                'appointmentDate'     => 'required|date',
-                'appointmentLetter'   => 'required|string',
-                'rankId'              => 'required|string',
-                'positionId'          => 'required|string',
-                'provincialOfficeId'  => 'required|string',
+                // CURRENT APPOINTMENT
+                'currentAppointmentDate'         => 'required|date',
+                'currentAppointmentLetter'       => 'required|string',
+                'currentAppointmentRank'         => 'required|string',
+                'currentAppointmentWorkplace'    => 'required|string',
+                'currentAppointmentPosition'     => 'required|string',
             ]);
+
+            // ==========================================
+            // GUARD: DUPLICATE EMAIL / PHONE CHECK (BUG-016)
+            // ==========================================
+            $email = strtolower($validated['email']);
+            $phone = $validated['contact'];
+            $nicNormalized = NicHelper::normalize($validated['nic']);
+
+            $existingEmail = People::where('email', $email)
+                ->where('nic', '!=', $nicNormalized)
+                ->exists() || User::where('email', $email)
+                ->where('nic', '!=', $nicNormalized)
+                ->exists();
+
+            $existingPhone = People::where('phone', $phone)
+                ->where('nic', '!=', $nicNormalized)
+                ->exists() || User::where('contact', $phone)
+                ->where('nic', '!=', $nicNormalized)
+                ->exists();
+
+            if ($existingEmail || $existingPhone) {
+                $validationErrors = [];
+                if ($existingEmail) {
+                    $validationErrors['email'] = ['The email address has already been registered.'];
+                }
+                if ($existingPhone) {
+                    $validationErrors['contact'] = ['The contact number has already been registered.'];
+                }
+                return response()->json([
+                    'status'  => 'validation_error',
+                    'message' => 'Validation failed',
+                    'errors'  => $validationErrors,
+                ], 422);
+            }
 
             DB::beginTransaction();
 
@@ -351,19 +388,19 @@ class ProvincialDeoController extends Controller
             }
 
             $retirementDate = Carbon::parse($people->date_of_birth)->addYears(60);
-            $appointmentId  = EmployerAppointment::generateAppointmentId($validated['appointmentDate']);
+            $appointmentId  = EmployerAppointment::generateAppointmentId($validated['currentAppointmentDate']);
 
             EmployerAppointment::create([
                 'appointment_id'          => $appointmentId,
                 'employee_id'             => $people->people_id,
-                'first_appointment_date'  => $validated['appointmentDate'],
+                'first_appointment_date'  => $validated['currentAppointmentDate'],
                 'retirement_date'         => $retirementDate->toDateString(),
                 'service_id'              => self::GENERAL_SERVICE_ID,
-                'rank_id'                 => $validated['rankId'],
-                'position_id'             => $validated['positionId'],
+                'rank_id'                 => $validated['currentAppointmentRank'],
+                'position_id'             => $validated['currentAppointmentPosition'],
                 'office_level_id'         => self::PROVINCIAL_PEO_LEVEL,
-                'workplace_id'            => $validated['provincialOfficeId'],
-                'appointment_letter_no'   => $validated['appointmentLetter'],
+                'workplace_id'            => $validated['currentAppointmentWorkplace'],
+                'appointment_letter_no'   => $validated['currentAppointmentLetter'],
                 'appointment_letter'      => 'none.pdf',
                 'active_status'          => 1,
                 'is_verified'            => 1,
@@ -376,22 +413,23 @@ class ProvincialDeoController extends Controller
 
             // Determine Office Level from Workplace
             $officeLevelId = DB::table('workplaces')
-                ->where('workplace_id', $validated['provincialOfficeId'])
+                ->where('workplace_id', $validated['currentAppointmentWorkplace'])
                 ->value('office_level_id') ?? self::PROVINCIAL_PEO_LEVEL;
 
             EmployerCurrentAppointment::create([
                 'appointment_id'       => $appointmentId,
                 'employee_id'          => $people->people_id,
-                'appoint_date'         => $validated['appointmentDate'],
-                'appointment_letter_no' => $validated['appointmentLetter'],
+                'appoint_date'         => $validated['currentAppointmentDate'],
+                'appointment_letter_no' => $validated['currentAppointmentLetter'],
                 'service_id'           => self::GENERAL_SERVICE_ID,
-                'rank_id'              => $validated['rankId'],
+                'rank_id'              => $validated['currentAppointmentRank'],
                 'office_level_id'      => $officeLevelId,
-                'position_id'          => $validated['positionId'],
-                'workplace_id'         => $validated['provincialOfficeId'],
+                'position_id'          => $validated['currentAppointmentPosition'],
+                'workplace_id'         => $validated['currentAppointmentWorkplace'],
             ]);
 
             $roleName = 'Provincial DEO';
+            $defaultPassword = 'Pw' . $nic;
 
             $user = User::create([
                 'nic'                      => $nic,
@@ -400,7 +438,7 @@ class ProvincialDeoController extends Controller
                 'name'                     => $people->name_with_initials,
                 'email'                    => strtolower($validated['email']),
                 'contact'                  => $validated['contact'],
-                'password'                 => Hash::make('Password@123'),
+                'password'                 => Hash::make($defaultPassword),
                 'identity_provider'        => 'local',
                 'active_status'            => true,
                 'must_change_password'     => true,
@@ -413,9 +451,9 @@ class ProvincialDeoController extends Controller
 
             DB::commit();
 
-            $wso2Is->provisionUser($user, 'Password@123', strtolower($roleName));
+            $wso2Is->provisionUser($user, $defaultPassword, strtolower($roleName));
 
-            $positionName = Position::where('position_id', $validated['positionId'])
+            $positionName = Position::where('position_id', $validated['currentAppointmentPosition'])
                 ->value('position_name');
 
             return response()->json([
@@ -431,7 +469,7 @@ class ProvincialDeoController extends Controller
                     'currentAppointmentPositionName' => $positionName,
                 ],
                 'people_id'        => $people->people_id,
-                'default_password' => 'Password@123',
+                'default_password' => $defaultPassword,
             ], 201);
 
         } catch (ValidationException $e) {

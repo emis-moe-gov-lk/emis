@@ -221,6 +221,7 @@ Route::prefix('')->group(function () {
 
     Route::controller(ProvincialAdminController::class)->middleware('auth:jwt')->prefix('provincial-admins')->group(function () {
         Route::get('/', 'index');
+        Route::get('/current-appointment-form-data', 'currentAppointmentFormData');
         Route::post('/', 'store');
         Route::get('/{people_id}', 'show');
         Route::post('/{id}/service-history', 'addServiceHistoryEntry');
@@ -268,6 +269,7 @@ Route::prefix('')->group(function () {
     Route::get('/pdf/teacher/{people_id}', [TeacherPdf::class, 'generateSimplePdf'])->middleware('auth:jwt');
     Route::get('/pdf/dos-admin/{people_id}', [DosAdminPdfController::class, 'generateSimplePdf'])->middleware('auth:jwt');
     Route::get('/pdf/deo/{people_id}', [DeoOfficerPdfController::class, 'generateSimplePdf'])->middleware('auth:jwt');
+    Route::get('/pdf/office-admin/{people_id}', [\App\Http\Controllers\Pdf\OfficeAdminPdf::class, 'generatePdf'])->middleware('auth:jwt');
 
 
     Route::middleware('auth:jwt')->group(function () {

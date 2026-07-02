@@ -2,11 +2,8 @@ import { TextInput } from "flowbite-react";
 import StatusBadge from "@/components/common/StatusBadge";
 import { HiSearch, HiPlus } from "react-icons/hi";
 import { useNavigate } from "react-router-dom";
-import Can from "@/components/common/Can";
-import { PermissionGroups } from "@/data/permissionGroups";
-import Button from "@/components/UiComponents/Button";
 
-export default function MoeHeader({
+export default function ProvincialHeader({
   count,
   search,
   setSearch,
@@ -14,6 +11,7 @@ export default function MoeHeader({
   description,
   searchPlaceholder,
   createLabel,
+  createPath,
   loadingLabel,
 }) {
   const navigate = useNavigate();
@@ -24,10 +22,10 @@ export default function MoeHeader({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            {title || "MOE Administrator Directory"}
+            {title || "Provincial Directory"}
           </h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
-            {description || "Manage MOE administrator profiles and records."}
+            {description || "Manage provincial profiles and records."}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -41,24 +39,23 @@ export default function MoeHeader({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="w-full sm:max-w-md">
           <TextInput
-            id="moe-search"
+            id="provincial-search"
             type="text"
             icon={HiSearch}
-            placeholder={searchPlaceholder || "Search MOE Administrators"}
+            placeholder={searchPlaceholder || "Search..."}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
 
         <div className="flex items-center gap-3">
-          <Can permission={PermissionGroups.MOE.ADMIN_CREATE}>
-            <Button
-              icon={<HiPlus />}
-              onClick={() => navigate("create")}
-            >
-              {createLabel || "Add MOE Administrator"}
-            </Button>
-          </Can>
+          <button
+            onClick={() => navigate(createPath || "create")}
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors shadow-sm"
+          >
+            <HiPlus />
+            {createLabel || "Add New"}
+          </button>
         </div>
       </div>
 
