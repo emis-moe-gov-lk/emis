@@ -4,7 +4,7 @@ import { HiDocumentText, HiPlus } from "react-icons/hi";
 import { Spinner } from "flowbite-react";
 import StatusBadge from "@/components/common/StatusBadge";
 import { getMoeAdminById, addMoeAdminServiceHistoryEntry, addMoeAdminPastService } from "@/api/moeAdminService";
-import { downloadTeacherProfileDocument } from "@/api/teacherService";
+import { downloadOfficeAdminProfileDocument } from "@/api/teacherService";
 import ProfileDataTable from "@/components/common/ProfileDataTable";
 import BackToListButton from "@/components/UiComponents/BackToListButton";
 import toast from "react-hot-toast";
@@ -394,7 +394,7 @@ function HeaderStrip({ profile }) {
               <button 
                 onClick={async () => {
                   try {
-                    const response = await downloadTeacherProfileDocument(profile.employeeId);
+                    const response = await downloadOfficeAdminProfileDocument(profile.employeeId);
                     const blob = new Blob([response.data], {
                       type: response.headers?.["content-type"] || "application/pdf",
                     });

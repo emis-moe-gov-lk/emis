@@ -11,7 +11,7 @@ import StepNICVerification from "@/components/moe/steps/StepNICVerification";
 import StepPersonalDetails from "@/components/moe/steps/StepPersonalDetails";
 import StepContactDetails from "@/components/moe/steps/StepContactDetails";
 import StepCurrentAppointment from "@/components/moe/steps/StepCurrentAppointment";
-import { checkTeacherContact } from "@/api/teacherService";
+import { checkTeacherContact, downloadOfficeAdminProfileDocument } from "@/api/teacherService";
 
 import api from "@/api/axios";
 import toast from "react-hot-toast";
@@ -210,7 +210,7 @@ function RegMoeAdminInner() {
     }
 
     try {
-      const response = await downloadTeacherProfileDocument(peopleId);
+      const response = await downloadOfficeAdminProfileDocument(peopleId);
       const contentType = response.headers?.["content-type"] || "application/pdf";
       const disposition = response.headers?.["content-disposition"] || "";
       const filenameMatch = disposition.match(/filename="?([^";]+)"?/i);

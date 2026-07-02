@@ -32,11 +32,21 @@ export const printTeacherId = async (id) => {
 
 /**
  * Download the full teacher profile document as PDF
- * @param {string|number} id - The teacher's people_id
- * @returns {Promise} - Axios promise with blob response
  */
 export const downloadTeacherProfileDocument = async (id) => {
   const response = await api.get(`/pdf/teacher/${id}`, {
+    responseType: "arraybuffer",
+  });
+  return response;
+};
+
+/**
+ * Download the full office administrator profile document as PDF
+ * @param {string|number} id - The administrator's people_id
+ * @returns {Promise} - Axios promise with blob response
+ */
+export const downloadOfficeAdminProfileDocument = async (id) => {
+  const response = await api.get(`/pdf/office-admin/${id}`, {
     responseType: "arraybuffer",
   });
   return response;

@@ -66,7 +66,13 @@ function RegDeoOfficerInner() {
     !isRegistrationComplete &&
     (currentStep > 1 || Object.keys(formData || {}).length > 0);
 
-  const canCreateDeoOfficer = hasRole("super admin") || hasRole("zonal deo");
+  const canCreateDeoOfficer =
+    hasRole("super admin") ||
+    hasRole("zonal deo") ||
+    hasRole("Provincial Director") ||
+    hasRole("Provincial Deputy Director") ||
+    hasRole("MOE Administrator") ||
+    hasRole("MOE Director");
   const isDeoOfficerCreateAuthLoading =
     isAuthLoading || (isAuthenticated && !identity);
 
@@ -100,7 +106,7 @@ function RegDeoOfficerInner() {
     if (isDeoOfficerCreateAuthLoading || canCreateDeoOfficer) return;
 
     dispatch({ type: "CLEAR" });
-    toast.error("Only Super Admin and Zonal DEO can create development officer profiles.", {
+    toast.error("Unauthorized access.", {
       id: "deo-officer-create-unauthorized",
     });
     navigate("/employees/development-officers", { replace: true });

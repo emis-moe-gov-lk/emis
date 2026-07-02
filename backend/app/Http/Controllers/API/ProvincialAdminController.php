@@ -10,6 +10,9 @@ use App\Helpers\NicHelper;
 use App\Models\EmployerAppointment;
 use App\Models\EmployerAppointmentHistory;
 use App\Models\EmployerCurrentAppointment;
+use App\Models\ServiceRank;
+use App\Models\ProvincialEducationOffice;
+use App\Models\ProvincialMinistryOfEducationOffice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -22,6 +25,28 @@ class ProvincialAdminController extends Controller
 {
     private const SLEAS_SERVICE_ID  = 'SER005';
     private const PROVINCIAL_PEO_LEVEL = 'OLID003';
+
+    public function currentAppointmentFormData(Request $request)
+    {
+        $service = $request->query('service');
+
+        $peoOffices = ProvincialEducationOffice::active()->get();
+        $pmoeOffices = ProvincialMinistryOfEducationOffice::active()->get();
+
+        $combinedOffices = $peoOffices->concat($pmoeOffices)->map(function ($office) {
+            return [
+                'workplace_id' => $office->workplace_id,
+                'name' => $office->name,
+            ];
+        });
+
+        return response()->json([
+            'status' => 'success',
+            'ranks' => $service ? ServiceRank::where('service_id', $service)->active()->get() : [],
+            'positions' => $service ? Position::where('service_id', $service)->active()->get() : Position::active()->get(),
+            'provincialOffices' => $combinedOffices,
+        ]);
+    }
 
     // ==============================
     // HELPERS
@@ -164,7 +189,10 @@ class ProvincialAdminController extends Controller
                 'appointmentHistory.rank',
                 'appointmentHistory.position',
                 'appointmentHistory.workplace.institution',
-            ])->where('people_id', $people_id)->first();
+            ])->where(function ($query) use ($people_id) {
+                $query->where('people_id', $people_id)
+                      ->orWhere('id', $people_id);
+            })->first();
 
             if (! $admin) {
                 return response()->json([
@@ -224,17 +252,6 @@ class ProvincialAdminController extends Controller
                 'addressLine3' => 'nullable|string',
                 'postalCode'   => 'required|string',
 
-                // FIRST APPOINTMENT
-                'firstAppointmentDate'     => 'required|date',
-                'firstAppointmentLetter'   => 'required|string',
-                'firstAppointmentService'  => 'required|string',
-                'firstAppointmentRank'     => 'required|string',
-                'firstAppointmentOfficeLevel' => 'required|string',
-                'firstAppointmentWorkplace'   => 'required|string',
-                'firstAppointmentPosition'    => 'required|string',
-                'recruitmentCategory'      => 'required|string',
-                'recruitmentSubject'       => 'required|string',
-
                 // CURRENT APPOINTMENT
                 'currentAppointmentDate'         => 'required|date',
                 'currentAppointmentLetter'       => 'required|string',
@@ -242,6 +259,28 @@ class ProvincialAdminController extends Controller
                 'currentAppointmentWorkplace'    => 'required|string',
                 'currentAppointmentPosition'     => 'required|string',
             ]);
+
+            // Check if email or phone is already taken (BUG-016 Fix)
+            $email = strtolower(trim($validated['email']));
+            $phone = trim($validated['contact']);
+
+            $emailExists = People::where('email', $email)->exists() || User::where('email', $email)->exists();
+            $phoneExists = People::where('phone', $phone)->exists() || User::where('contact', $phone)->exists();
+
+            if ($emailExists || $phoneExists) {
+                $errors = [];
+                if ($emailExists) {
+                    $errors['email'] = ['Email is already used by another profile.'];
+                }
+                if ($phoneExists) {
+                    $errors['contact'] = ['Phone number is already used by another profile.'];
+                }
+                return response()->json([
+                    'status' => 'validation_error',
+                    'message' => 'Validation failed',
+                    'errors' => $errors
+                ], 422);
+            }
 
             DB::beginTransaction();
 
@@ -289,26 +328,31 @@ class ProvincialAdminController extends Controller
                 throw new \Exception('This person already has an active appointment. Cannot register again.');
             }
 
+            // Determine Office Level from Workplace
+            $officeLevelId = DB::table('workplaces')
+                ->where('workplace_id', $validated['currentAppointmentWorkplace'])
+                ->value('office_level_id') ?? self::PROVINCIAL_PEO_LEVEL;
+
             // ==============================
             // FIRST APPOINTMENT
             // ==============================
             $retirementDate = Carbon::parse($people->date_of_birth)->addYears(60);
-            $appointmentId  = EmployerAppointment::generateAppointmentId($validated['firstAppointmentDate']);
+            $appointmentId  = EmployerAppointment::generateAppointmentId($validated['currentAppointmentDate']);
 
             EmployerAppointment::create([
                 'appointment_id'          => $appointmentId,
                 'employee_id'             => $people->people_id,
-                'first_appointment_date'  => $validated['firstAppointmentDate'],
+                'first_appointment_date'  => $validated['currentAppointmentDate'],
                 'retirement_date'         => $retirementDate->toDateString(),
-                'service_id'              => $validated['firstAppointmentService'],
-                'rank_id'                 => $validated['firstAppointmentRank'],
-                'position_id'             => $validated['firstAppointmentPosition'],
-                'office_level_id'         => $validated['firstAppointmentOfficeLevel'],
-                'workplace_id'            => $validated['firstAppointmentWorkplace'],
-                'appointment_letter_no'   => $validated['firstAppointmentLetter'],
+                'service_id'              => self::SLEAS_SERVICE_ID,
+                'rank_id'                 => $validated['currentAppointmentRank'],
+                'position_id'             => $validated['currentAppointmentPosition'],
+                'office_level_id'         => $officeLevelId,
+                'workplace_id'            => $validated['currentAppointmentWorkplace'],
+                'appointment_letter_no'   => $validated['currentAppointmentLetter'],
                 'appointment_letter'      => 'none.pdf',
-                'recruitment_category_id' => $validated['recruitmentCategory'],
-                'recruitment_subject_id'  => $validated['recruitmentSubject'],
+                'recruitment_category_id' => 'RC001',
+                'recruitment_subject_id'  => 'EAS001',
                 'active_status'          => 1,
                 'is_verified'            => 1,
                 'verified_by'            => auth()->user()?->people_id,
@@ -317,11 +361,6 @@ class ProvincialAdminController extends Controller
                 'confirmed_by'           => auth()->user()?->people_id,
                 'confirmed_date'         => now()->toDateTimeString(),
             ]);
-
-            // Determine Office Level from Workplace
-            $officeLevelId = DB::table('workplaces')
-                ->where('workplace_id', $validated['currentAppointmentWorkplace'])
-                ->value('office_level_id') ?? self::PROVINCIAL_PEO_LEVEL;
 
             // ==============================
             // CURRENT APPOINTMENT

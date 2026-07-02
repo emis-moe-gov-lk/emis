@@ -1,6 +1,6 @@
 import { TextInput } from "flowbite-react";
 import StatusBadge from "@/components/common/StatusBadge";
-import { HiSearch, HiUpload, HiPlus } from "react-icons/hi";
+import { HiSearch, HiPlus } from "react-icons/hi";
 import { useNavigate } from "react-router-dom";
 import Can from "@/components/common/Can";
 import { PermissionGroups } from "@/data/permissionGroups";
@@ -10,6 +10,10 @@ export default function MoeHeader({
   count,
   search,
   setSearch,
+  title,
+  description,
+  searchPlaceholder,
+  createLabel,
   loadingLabel,
 }) {
   const navigate = useNavigate();
@@ -20,10 +24,10 @@ export default function MoeHeader({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            MOE Administrator Directory
+            {title || "MOE Administrator Directory"}
           </h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
-            Manage Ministry of Education (MOE) administrator and director profiles and records.
+            {description || "Manage MOE administrator profiles and records."}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -40,29 +44,19 @@ export default function MoeHeader({
             id="moe-search"
             type="text"
             icon={HiSearch}
-            placeholder="Search MOE Administrators"
+            placeholder={searchPlaceholder || "Search MOE Administrators"}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
 
         <div className="flex items-center gap-3">
-          <Can permission={PermissionGroups.MOE.ADMIN_BULK_UPLOAD}>
-            <Button
-              variant="secondary"
-              icon={<HiUpload className="h-4 w-4" />}
-              onClick={() => navigate("bulk-upload")}
-            >
-              Bulk Upload
-            </Button>
-          </Can>
-
           <Can permission={PermissionGroups.MOE.ADMIN_CREATE}>
             <Button
               icon={<HiPlus />}
               onClick={() => navigate("create")}
             >
-              Add MOE Administrator
+              {createLabel || "Add MOE Administrator"}
             </Button>
           </Can>
         </div>

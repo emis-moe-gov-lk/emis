@@ -1,17 +1,16 @@
 "use client";
 import { useState, useContext, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { TeacherFormContext, TeacherFormProvider } from "@/context/TeacherFormContext";
+import { ProvincialAdminFormContext, ProvincialAdminFormProvider } from "@/context/ProvincialAdminFormContext";
 import Swal from "sweetalert2";
 
 import StepperHeader from "@/components/teacher/StepperHeader";
 import StepNavigation from "@/components/teacher/StepNavigation";
 
-import StepNICVerification from "@/components/dos/steps/StepNICVerification";
-import StepPersonalDetails from "@/components/dos/steps/StepPersonalDetails";
-import StepContactDetails from "@/components/dos/steps/StepContactDetails";
-import StepFirstAppointment from "@/components/dosAdmin/steps/StepFirstAppointment";
-import StepProvincialAdminCurrentAppointment from "@/components/dosAdmin/steps/StepProvincialAdminCurrentAppointment";
+import StepNICVerification from "@/components/provincial/steps/StepNICVerification";
+import StepPersonalDetails from "@/components/provincial/steps/StepPersonalDetails";
+import StepContactDetails from "@/components/provincial/steps/StepContactDetails";
+import StepCurrentAppointment from "@/components/provincial/steps/StepCurrentAppointment";
 
 import api from "@/api/axios";
 import toast from "react-hot-toast";
@@ -24,20 +23,19 @@ import { HiCheckCircle } from "react-icons/hi";
 
 const REG_PROVINCIAL_ADMIN_HISTORY_OWNER = "regProvincialAdminCreate";
 const REG_PROVINCIAL_ADMIN_HISTORY_STEP_KEY = "regProvincialAdminStep";
-const REG_PROVINCIAL_ADMIN_TOTAL_STEPS = 6;
+const REG_PROVINCIAL_ADMIN_TOTAL_STEPS = 5;
 
 const STEPS = [
   { id: 1, label: "Verification" },
   { id: 2, label: "Personal" },
   { id: 3, label: "Contact" },
-  { id: 4, label: "First Appt" },
-  { id: 5, label: "Current Appt" },
-  { id: 6, label: "Finishing" },
+  { id: 4, label: "Current Appointment" },
+  { id: 5, label: "Finishing" },
 ];
 
 function RegProvincialAdminInner() {
   const navigate = useNavigate();
-  const { state, dispatch } = useContext(TeacherFormContext);
+  const { state, dispatch } = useContext(ProvincialAdminFormContext);
   const { identity, hasRole, isAuthenticated, isLoading: isAuthLoading } = useAuthUser();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -57,7 +55,6 @@ function RegProvincialAdminInner() {
     isNicVerified,
     isPersonalValid,
     isContactValid,
-    isFirstApptValid,
     isCurrentApptValid,
     isRestored,
   } = state;
@@ -210,7 +207,10 @@ function RegProvincialAdminInner() {
   const setFormData = (updateOrValue) => dispatch({ type: "UPDATE_FORM_DATA", payload: updateOrValue });
   
   const handleStepClick = (stepId) => {
-    if (stepId < currentStep || (currentStep === 1 && isNicVerified) || (currentStep === 2 && isPersonalValid) || (currentStep === 3 && isContactValid) || (currentStep === 4 && isFirstApptValid)) {
+    if (stepId < currentStep || 
+        (currentStep === 1 && isNicVerified) || 
+        (currentStep === 2 && isPersonalValid) || 
+        (currentStep === 3 && isContactValid)) {
         dispatch({ type: "SET_STEP", payload: stepId });
     }
   };
@@ -251,7 +251,7 @@ function RegProvincialAdminInner() {
       }
     }
 
-    if (currentStep === 5) {
+    if (currentStep === 4) {
       try {
         setIsSubmitting(true);
         const payload = {
@@ -274,12 +274,19 @@ function RegProvincialAdminInner() {
               defaultPassword: result.default_password || "Password@123",
           });
           setIsRegistrationComplete(true);
-          dispatch({ type: "SET_STEP", payload: 6 });
+          dispatch({ type: "COMPLETE_REGISTRATION" });
+          dispatch({ type: "SET_STEP", payload: 5 });
         } else {
           toast.error(result.message || "Registration failed");
         }
       } catch (err) {
-        toast.error("Unable to complete registration.");
+        if (err.response?.data?.status === "validation_error") {
+          const apiValErrors = err.response.data.errors;
+          const displayMsg = Object.values(apiValErrors).flat().join(" ") || "Validation failed";
+          toast.error(displayMsg);
+        } else {
+          toast.error("Unable to complete registration.");
+        }
       } finally {
         setIsSubmitting(false);
       }
@@ -329,12 +336,17 @@ function RegProvincialAdminInner() {
       <div className="border border-gray-200 overflow-hidden rounded-lg">
         <StepperHeader steps={STEPS} currentStep={currentStep} onStepClick={handleStepClick} />
         <div className="p-6 lg:p-8">
-          {currentStep === 1 && <StepNICVerification formData={formData} setFormData={setFormData} onVerified={() => dispatch({ type: "SET_NIC_VERIFIED", payload: true })} />}
+          {currentStep === 1 && (
+            <StepNICVerification
+              formData={formData}
+              setFormData={setFormData}
+              onVerified={(verified) => dispatch({ type: "SET_NIC_VERIFIED", payload: verified })}
+            />
+          )}
           {currentStep === 2 && <StepPersonalDetails formData={formData} setFormData={setFormData} onValid={(v) => dispatch({ type: "SET_PERSONAL_VALID", payload: v })} />}
           {currentStep === 3 && <StepContactDetails formData={formData} setFormData={setFormData} onValid={(v) => dispatch({ type: "SET_CONTACT_VALID", payload: v })} apiErrors={contactApiErrors} />}
-          {currentStep === 4 && <StepFirstAppointment formData={formData} setFormData={setFormData} onValid={(v) => dispatch({ type: "SET_FIRST_APPT_VALID", payload: v })} />}
-          {currentStep === 5 && <StepProvincialAdminCurrentAppointment formData={formData} setFormData={setFormData} onValid={(v) => dispatch({ type: "SET_CURRENT_APPT_VALID", payload: v })} />}
-          {currentStep === 6 && (
+          {currentStep === 4 && <StepCurrentAppointment formData={formData} setFormData={setFormData} onValid={(v) => dispatch({ type: "SET_CURRENT_APPT_VALID", payload: v })} />}
+          {currentStep === 5 && (
             <div className="space-y-8">
               <div className="flex items-start gap-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900/40 rounded-2xl p-6">
                 <HiCheckCircle className="text-green-600 dark:text-green-500 w-8 h-8 mt-1" />
@@ -396,8 +408,7 @@ function RegProvincialAdminInner() {
                     currentStep === 1 ? isNicVerified :
                     currentStep === 2 ? isPersonalValid :
                     currentStep === 3 ? isContactValid :
-                    currentStep === 4 ? isFirstApptValid :
-                    currentStep === 5 ? isCurrentApptValid : true
+                    currentStep === 4 ? isCurrentApptValid : true
                 } />
             </div>
         )}
@@ -407,5 +418,9 @@ function RegProvincialAdminInner() {
 }
 
 export default function RegProvincialAdmin() {
-  return <TeacherFormProvider><RegProvincialAdminInner /></TeacherFormProvider>;
+  return (
+    <ProvincialAdminFormProvider>
+      <RegProvincialAdminInner />
+    </ProvincialAdminFormProvider>
+  );
 }
