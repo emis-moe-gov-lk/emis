@@ -399,6 +399,12 @@ class DeoOfficerController extends Controller
                 'workplace_id'           => $validated['zonalOfficeId'],
                 'appointment_letter_no'  => $validated['appointmentLetter'],
                 'appointment_letter'     => 'none.pdf',
+                'is_verified'            => 1,
+                'verified_by'            => auth()->user()?->people_id,
+                'verified_date'          => now()->toDateTimeString(),
+                'is_confirmed'           => 1,
+                'confirmed_by'           => auth()->user()?->people_id,
+                'confirmed_date'         => now()->toDateTimeString(),
             ]);
 
             // ---- CURRENT APPOINTMENT ----

@@ -276,7 +276,7 @@ class MoeAdministratorController extends Controller
         return response()->json([
             'status' => 'success',
             'ranks' => $service ? ServiceRank::where('service_id', $service)->active()->get() : [],
-            'positions' => Position::active()->get(),
+            'positions' => $service ? Position::where('service_id', $service)->active()->get() : Position::active()->get(),
             'moeOffices' => MinistryOfEducationOffice::active()->get(),
         ]);
     }
@@ -314,16 +314,7 @@ class MoeAdministratorController extends Controller
                 'addressLine3' => 'nullable|string',
                 'postalCode'   => 'required|string',
 
-                // FIRST APPOINTMENT
-                'firstAppointmentDate'     => 'required|date',
-                'firstAppointmentLetter'   => 'required|string',
-                'firstAppointmentService'  => 'required|string',
-                'firstAppointmentRank'     => 'required|string',
-                'firstAppointmentOfficeLevel' => 'required|string',
-                'firstAppointmentWorkplace'   => 'required|string',
-                'firstAppointmentPosition'    => 'required|string',
-                'recruitmentCategory'      => 'required|string',
-                'recruitmentSubject'       => 'required|string',
+                // FIRST APPOINTMENT - Removed from UI, now using current appointment details
 
                 // CURRENT APPOINTMENT
                 'currentAppointmentDate'         => 'required|date',
@@ -373,22 +364,22 @@ class MoeAdministratorController extends Controller
             }
 
             $retirementDate = Carbon::parse($people->date_of_birth)->addYears(60);
-            $appointmentId  = EmployerAppointment::generateAppointmentId($validated['firstAppointmentDate']);
+            $appointmentId  = EmployerAppointment::generateAppointmentId($validated['currentAppointmentDate']);
 
             EmployerAppointment::create([
                 'appointment_id'          => $appointmentId,
                 'employee_id'             => $people->people_id,
-                'first_appointment_date'  => $validated['firstAppointmentDate'],
+                'first_appointment_date'  => $validated['currentAppointmentDate'],
                 'retirement_date'         => $retirementDate->toDateString(),
-                'service_id'              => $validated['firstAppointmentService'],
-                'rank_id'                 => $validated['firstAppointmentRank'],
-                'position_id'             => $validated['firstAppointmentPosition'],
-                'office_level_id'         => $validated['firstAppointmentOfficeLevel'],
-                'workplace_id'            => $validated['firstAppointmentWorkplace'],
-                'appointment_letter_no'   => $validated['firstAppointmentLetter'],
+                'service_id'              => self::SLEAS_SERVICE_ID,
+                'rank_id'                 => $validated['currentAppointmentRank'],
+                'position_id'             => $validated['currentAppointmentPosition'],
+                'office_level_id'         => self::MOE_OFFICE_LEVEL,
+                'workplace_id'            => $validated['currentAppointmentWorkplace'],
+                'appointment_letter_no'   => $validated['currentAppointmentLetter'],
                 'appointment_letter'      => 'none.pdf',
-                'recruitment_category_id' => $validated['recruitmentCategory'],
-                'recruitment_subject_id'  => $validated['recruitmentSubject'],
+                'recruitment_category_id' => 'RC001', // Default Open General
+                'recruitment_subject_id'  => 'EAS001', // Default General
                 'active_status'          => 1,
                 'is_verified'            => 1,
                 'verified_by'            => auth()->user()?->people_id,
@@ -601,9 +592,12 @@ class MoeAdministratorController extends Controller
                     'retirement_date' => $retirementDate,
                 ]);
 
-                User::where('people_id', $people_id)->update([
-                    'name' => $initials,
-                ]);
+                $user = User::where('people_id', $people_id)->first();
+                if ($user) {
+                    $user->update([
+                        'name' => $initials,
+                    ]);
+                }
             }
 
             if ($section === 'health') {
@@ -627,10 +621,13 @@ class MoeAdministratorController extends Controller
                     'postal_code'    => $validated['postalCode'],
                 ]);
 
-                User::where('people_id', $people_id)->update([
-                    'email'   => strtolower(trim((string) $validated['email'])),
-                    'contact' => $validated['phone'],
-                ]);
+                $user = User::where('people_id', $people_id)->first();
+                if ($user) {
+                    $user->update([
+                        'email'   => strtolower(trim((string) $validated['email'])),
+                        'contact' => $validated['phone'],
+                    ]);
+                }
             }
 
             if ($section === 'temporary') {
@@ -675,6 +672,16 @@ class MoeAdministratorController extends Controller
             }
 
             DB::commit();
+
+            try {
+                $user = User::where('people_id', $people_id)->first();
+                if ($user) {
+                    $wso2Is = app(\App\Services\Wso2IsProvisioningService::class);
+                    $wso2Is->syncUserProfile($user);
+                }
+            } catch (\Throwable $e) {
+                Log::error('MOE Admin Update WSO2 IS sync error', ['message' => $e->getMessage()]);
+            }
 
             return response()->json([
                 'status'  => 'success',

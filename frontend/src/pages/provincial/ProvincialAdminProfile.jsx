@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { HiDocumentText, HiPlus } from "react-icons/hi";
 import { Spinner } from "flowbite-react";
 import StatusBadge from "@/components/common/StatusBadge";
-import { getProvincialAdminById, addProvincialAdminServiceHistoryEntry, addProvincialAdminPastService } from "@/api/provincialAdminService";
+import { getProvincialAdminById, addProvincialAdminServiceHistoryEntry, addProvincialAdminPastService, downloadProvincialAdminProfileDocument } from "@/api/provincialAdminService";
 import ProfileDataTable from "@/components/common/ProfileDataTable";
 import BackToListButton from "@/components/UiComponents/BackToListButton";
 import toast from "react-hot-toast";
@@ -374,7 +374,26 @@ function HeaderStrip({ profile }) {
 
           <div className="flex flex-col sm:flex-row xl:flex-col gap-3 min-w-[200px]">
             <Can permission={PermissionGroups.ZONAL.ADMIN_PROFILE_VIEW}>
-              <button className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-md shadow-blue-200 dark:shadow-none">
+              <button 
+                onClick={async () => {
+                  try {
+                    const data = await downloadProvincialAdminProfileDocument(profile.employeeId);
+                    const blob = new Blob([data], { type: "application/pdf" });
+                    const url = window.URL.createObjectURL(blob);
+                    const link = document.createElement("a");
+                    link.href = url;
+                    link.download = `provincial-admin-profile-${profile.nic || profile.employeeId}.pdf`;
+                    document.body.appendChild(link);
+                    link.click();
+                    link.remove();
+                    window.setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+                  } catch (error) {
+                    console.error("Failed to download provincial admin document:", error);
+                    toast.error("Failed to download profile document.");
+                  }
+                }}
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-md shadow-blue-200 dark:shadow-none"
+              >
                 <HiDocumentText className="h-4 w-4" />
                 Get Document
               </button>

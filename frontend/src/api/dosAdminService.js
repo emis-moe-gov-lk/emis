@@ -120,7 +120,7 @@ export const printDosAdminId = async (id) => {
  * link.click();
  */
 export const downloadDosAdminProfileDocument = async (id, format = "pdf") => {
-  const response = await api.get(`/pdf/dos-admin/${id}?format=${format}`, {
+  const response = await api.get(`/pdf/zonal-admin/${id}?format=${format}`, {
     responseType: "arraybuffer",
   });
   return response.data;

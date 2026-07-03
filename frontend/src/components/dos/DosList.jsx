@@ -74,8 +74,8 @@ export default function DosList({ employees }) {
           address={emp.address_line1}
           phone={emp.phone}
           email={emp.email}
-          status={emp.confirmed ? "Confirmed" : "Pending"}
-          statusColor={emp.confirmed ? "success" : "warning"}
+          status={(emp.appointment?.is_confirmed === 1 || emp.confirmed) ? "Confirmed" : "Pending"}
+          statusColor={(emp.appointment?.is_confirmed === 1 || emp.confirmed) ? "success" : "warning"}
           showProfilePicture={true}
           maleProfileImage={profileMale}
           femaleProfileImage={profileFemale}

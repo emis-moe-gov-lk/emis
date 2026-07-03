@@ -25,12 +25,12 @@ const FormGroup = ({ label, error, required = false, children }) => (
   </div>
 );
 
-export default function StepContactDetails({ formData, setFormData, onValid }) {
+export default function StepContactDetails({ formData, setFormData, onValid, apiErrors = {} }) {
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
 
-  const getFieldError = (key) => (touched[key] ? errors[key] : undefined);
-  const getFieldColor = (key) => (touched[key] && errors[key] ? "failure" : "gray");
+  const getFieldError = (key) => (touched[key] ? errors[key] || apiErrors[key] : apiErrors[key]);
+  const getFieldColor = (key) => ((touched[key] && errors[key]) || apiErrors[key] ? "failure" : "gray");
 
   // Mark existing fields as touched on mount so pre-loaded data behaves correctly
   useEffect(() => {
@@ -144,7 +144,7 @@ export default function StepContactDetails({ formData, setFormData, onValid }) {
           <div className="flex h-8 w-8 items-center justify-center rounded-md bg-blue-600 text-xs font-bold text-white">
             03
           </div>
-          <h2 className="text-xl font-semibold text-gray-900">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
             Contact Details
           </h2>
         </div>
@@ -181,7 +181,7 @@ export default function StepContactDetails({ formData, setFormData, onValid }) {
 
         {/* Permanent Address */}
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
             Permanent Address
           </h3>
 
@@ -260,7 +260,7 @@ export default function StepContactDetails({ formData, setFormData, onValid }) {
 
         {/* Temporary Address */}
         <div className="space-y-4 p-6 rounded-2xl border border-gray-200 bg-gray-50">
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
             Temporary Address
             <span className="text-sm font-normal text-gray-600 ml-2">
               (If different from permanent address)

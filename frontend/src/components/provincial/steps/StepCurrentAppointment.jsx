@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Label, Select, TextInput, Radio } from "flowbite-react";
 import { HiInformationCircle } from "react-icons/hi";
-import { getMoeAdminCurrentAppointmentFormData } from "@/api/moeAdminService";
+import api from "@/api/axios";
 
 const SLEAS_SERVICE_ID = "SER005";
 
@@ -15,13 +15,15 @@ const FormGroup = ({ label, error, required = false, children }) => (
   </div>
 );
 
-export default function StepMoeAdminCurrentAppointment({ formData, setFormData, onValid }) {
+export default function StepCurrentAppointment({ formData, setFormData, onValid }) {
   const [loading, setLoading] = useState(true);
-  const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
 
-  const getFieldError = (key) => (touched[key] ? errors[key] : undefined);
-  const getFieldColor = (key) => (touched[key] && errors[key] ? "failure" : "gray");
+  const [data, setData] = useState({
+    ranks: [],
+    positions: [],
+    provincialOffices: [],
+  });
 
   // Mark existing fields as touched on mount so pre-loaded data behaves correctly
   useEffect(() => {
@@ -34,20 +36,15 @@ export default function StepMoeAdminCurrentAppointment({ formData, setFormData, 
     setTouched(initialTouched);
   }, []);
 
-  const [data, setData] = useState({
-    ranks: [],
-    positions: [],
-    moeOffices: [],
-  });
-
+  // Fetch form data
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const d = await getMoeAdminCurrentAppointmentFormData({ service: SLEAS_SERVICE_ID });
+        const res = await api.get(`/provincial-admins/current-appointment-form-data?service=${SLEAS_SERVICE_ID}`);
         setData({
-          ranks: d.ranks ?? [],
-          positions: d.positions ?? [],
-          moeOffices: d.moeOffices ?? [],
+          ranks: res.data?.ranks ?? [],
+          positions: res.data?.positions ?? [],
+          provincialOffices: res.data?.provincialOffices ?? [],
         });
       } catch (error) {
         console.error("Failed to load current appointment form data", error);
@@ -59,33 +56,53 @@ export default function StepMoeAdminCurrentAppointment({ formData, setFormData, 
     fetchData();
   }, []);
 
-  const validate = useCallback(() => {
-    const e = {};
-    if (!formData.currentAppointmentRegType) e.currentAppointmentRegType = "Required";
-    if (!formData.currentAppointmentDate) e.currentAppointmentDate = "Required";
-    if (!formData.currentAppointmentLetter) e.currentAppointmentLetter = "Required";
-    if (!formData.currentAppointmentRank) e.currentAppointmentRank = "Required";
-    if (!formData.currentAppointmentPosition) e.currentAppointmentPosition = "Required";
-    if (!formData.currentAppointmentZone) e.currentAppointmentZone = "Required";
-    setErrors(e);
-    return Object.keys(e).length === 0;
+  // Validation logic - Computed on-the-fly via useMemo to prevent state-induced render loops!
+  const errors = useMemo(() => {
+    const newErrors = {};
+
+    if (!formData.currentAppointmentRegType) {
+      newErrors.currentAppointmentRegType = "Required";
+    }
+    if (!formData.currentAppointmentDate) {
+      newErrors.currentAppointmentDate = "Required";
+    }
+    if (!formData.currentAppointmentLetter) {
+      newErrors.currentAppointmentLetter = "Required";
+    }
+    if (!formData.currentAppointmentRank) {
+      newErrors.currentAppointmentRank = "Required";
+    }
+    if (!formData.currentAppointmentPosition) {
+      newErrors.currentAppointmentPosition = "Required";
+    }
+    if (!formData.currentAppointmentZone) {
+      newErrors.currentAppointmentZone = "Required";
+    }
+
+    return newErrors;
   }, [formData]);
 
-  useEffect(() => {
-    onValid?.(validate());
-  }, [formData, validate, onValid]);
+  const isValid = Object.keys(errors).length === 0;
 
+  // Notify parent of validity changes
+  useEffect(() => {
+    onValid?.(isValid);
+  }, [isValid, onValid]);
+
+  // Set default registration type if not set
   useEffect(() => {
     if (!formData.currentAppointmentRegType) {
-      update("currentAppointmentRegType", "existing");
+      setFormData((prev) => ({ ...prev, currentAppointmentRegType: "existing" }));
     }
-  }, []);
+  }, [formData.currentAppointmentRegType, setFormData]);
 
   const update = useCallback((key, value) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
     setTouched((prev) => ({ ...prev, [key]: true }));
-    setErrors((prev) => ({ ...prev, [key]: undefined }));
   }, [setFormData]);
+
+  const getFieldError = (key) => (touched[key] ? errors[key] : undefined);
+  const getFieldColor = (key) => (touched[key] && errors[key] ? "failure" : "gray");
 
   const selectPlaceholder = loading ? "Loading..." : "Select";
 
@@ -93,9 +110,9 @@ export default function StepMoeAdminCurrentAppointment({ formData, setFormData, 
     <div className="space-y-6 px-4 py-2">
       <div className="flex items-center gap-3 mb-6">
         <div className="flex h-8 w-8 items-center justify-center rounded-md bg-blue-600 text-xs font-bold text-white">
-          05
+          04
         </div>
-        <h2 className="text-xl font-semibold text-gray-900">Current Appointment Details</h2>
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Current Appointment Details</h2>
       </div>
 
       {/* Registration type */}
@@ -149,7 +166,7 @@ export default function StepMoeAdminCurrentAppointment({ formData, setFormData, 
       <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex gap-3">
         <HiInformationCircle className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" />
         <p className="text-blue-800 text-sm font-medium leading-relaxed">
-          Current appointment is recorded under the Sri Lanka Educational Administrative Service (SLEAS) at the Ministry of Education (MOE) National Level.
+          Current appointment is recorded under the Sri Lanka Educational Administrative Service (SLEAS) at the Provincial Level.
         </p>
       </div>
 
@@ -200,7 +217,7 @@ export default function StepMoeAdminCurrentAppointment({ formData, setFormData, 
           </Select>
         </FormGroup>
 
-        <FormGroup label="Ministry of Education Office" required error={getFieldError("currentAppointmentZone")} className="lg:col-span-2">
+        <FormGroup label="Provincial Education Office / Ministry" required error={getFieldError("currentAppointmentZone")} className="lg:col-span-2">
           <Select
             value={formData.currentAppointmentZone || ""}
             disabled={loading}
@@ -208,7 +225,7 @@ export default function StepMoeAdminCurrentAppointment({ formData, setFormData, 
             onChange={(e) => update("currentAppointmentZone", e.target.value)}
           >
             <option value="">{selectPlaceholder}</option>
-            {data.moeOffices.map((z) => (
+            {data.provincialOffices.map((z) => (
               <option key={z.workplace_id} value={z.workplace_id}>{z.name}</option>
             ))}
           </Select>
