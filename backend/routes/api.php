@@ -266,6 +266,11 @@ Route::prefix('')->group(function () {
     Route::get('/dashboard/{people_id}', DashboardController::class)->middleware('auth:jwt');
     Route::get('/pdf/teacher/{people_id}', [TeacherPdf::class, 'generateSimplePdf'])->middleware('auth:jwt');
     Route::get('/pdf/office-admin/{people_id}', [\App\Http\Controllers\Pdf\OfficeAdminPdf::class, 'generatePdf'])->middleware('auth:jwt');
+    Route::get('/pdf/moe-admin/{people_id}', [\App\Http\Controllers\Pdf\MoeAdminPdf::class, 'generatePdf'])->middleware('auth:jwt');
+    Route::get('/pdf/provincial-admin/{people_id}', [\App\Http\Controllers\Pdf\ProvincialAdminPdf::class, 'generatePdf'])->middleware('auth:jwt');
+    Route::get('/pdf/provincial-deo/{people_id}', [\App\Http\Controllers\Pdf\ProvincialDeoPdf::class, 'generatePdf'])->middleware('auth:jwt');
+    Route::get('/pdf/zonal-admin/{people_id}', [\App\Http\Controllers\Pdf\ZonalAdminPdf::class, 'generatePdf'])->middleware('auth:jwt');
+    Route::get('/pdf/zonal-deo/{people_id}', [\App\Http\Controllers\Pdf\ZonalDeoPdf::class, 'generatePdf'])->middleware('auth:jwt');
 
 
     Route::middleware('auth:jwt')->group(function () {
