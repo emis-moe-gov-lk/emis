@@ -319,6 +319,12 @@ class DosAdminController extends Controller
                 'appointment_letter'      => 'none.pdf',
                 'recruitment_category_id' => $validated['recruitmentCategory'],
                 'recruitment_subject_id'  => $validated['recruitmentSubject'],
+                'is_verified'             => 1,
+                'verified_by'             => auth()->user()?->people_id,
+                'verified_date'           => now()->toDateTimeString(),
+                'is_confirmed'            => 1,
+                'confirmed_by'            => auth()->user()?->people_id,
+                'confirmed_date'          => now()->toDateTimeString(),
             ]);
 
             // ==============================
