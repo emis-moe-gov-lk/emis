@@ -8,8 +8,9 @@
  */
 
 import { useAuthContext } from "@asgardeo/auth-react";
+import { getEnv } from "../utils/env";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = getEnv("VITE_API_BASE_URL");
 
 /**
  * useDosService - Custom hook for DOS API operations

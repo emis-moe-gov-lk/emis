@@ -337,6 +337,7 @@ export default function ProvincialAdminProfile() {
 ========================================================= */
 
 function HeaderStrip({ profile }) {
+  const [isDownloadingDocument, setIsDownloadingDocument] = useState(false);
   return (
     <div className="rounded-2xl overflow-hidden border border-blue-100 dark:border-blue-900/30 shadow-sm bg-white dark:bg-gray-800">
       <div className="bg-linear-to-r from-blue-50 to-indigo-50/30 dark:from-blue-900/10 dark:to-indigo-900/5">
@@ -377,6 +378,7 @@ function HeaderStrip({ profile }) {
               <button 
                 onClick={async () => {
                   try {
+                    setIsDownloadingDocument(true);
                     const data = await downloadProvincialAdminProfileDocument(profile.employeeId);
                     const blob = new Blob([data], { type: "application/pdf" });
                     const url = window.URL.createObjectURL(blob);
@@ -390,12 +392,24 @@ function HeaderStrip({ profile }) {
                   } catch (error) {
                     console.error("Failed to download provincial admin document:", error);
                     toast.error("Failed to download profile document.");
+                  } finally {
+                    setIsDownloadingDocument(false);
                   }
                 }}
-                className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-md shadow-blue-200 dark:shadow-none"
+                disabled={isDownloadingDocument}
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-75 disabled:cursor-not-allowed transition-all shadow-md shadow-blue-200 dark:shadow-none"
               >
-                <HiDocumentText className="h-4 w-4" />
-                Get Document
+                {isDownloadingDocument ? (
+                  <>
+                    <Spinner size="sm" light={true} />
+                    <span>Preparing PDF...</span>
+                  </>
+                ) : (
+                  <>
+                    <HiDocumentText className="h-4 w-4" />
+                    <span>Get Document</span>
+                  </>
+                )}
               </button>
             </Can>
           </div>
