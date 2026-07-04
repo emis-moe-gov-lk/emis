@@ -30,7 +30,7 @@ jobs:
           fi
 
           # Your naming convention regex
-          PATTERN="^(fe|be|fs|infra|wkflw|docs|config|ms)\/(feat|bug|hotfix|refactor|chore)\/[a-z0-9][a-z0-9\-]+$"
+          PATTERN="^(fe|be|ms|is|apim|fs)\/(feat|bug|hotfix|refactor|chore)\/[a-z0-9][a-z0-9\-]+$|^infra\/(chore|refactor|bug|update)\/[a-z0-9][a-z0-9\-]+$|^(docs|meta)\/(chore|update|refactor)\/[a-z0-9][a-z0-9\-]+$"
 
           if echo "$BRANCH" | grep -Eq "$PATTERN"; then
             echo "✅ Branch name '$BRANCH' is valid"
@@ -38,8 +38,10 @@ jobs:
             echo "❌ Branch name '$BRANCH' does not match naming convention"
             echo ""
             echo "Expected format: <area>/<type>/<descriptor>"
-            echo "Areas:  fe | be | infra | config | ms"
-            echo "Types:  feat | fix | hotfix | docs | refactor | chore | release"
+            echo "Service areas (fe | be | ms | is | apim | fs):  feat | bug | hotfix | refactor | chore"
+            echo "Infra area  (infra):                             chore | refactor | bug | update"
+            echo "Docs area   (docs):                              chore | update | refactor"
+            echo "Meta area   (meta):                              chore | update | refactor"
             echo "Example: fe/feat/ed-110  or  be/fix/ed-45"
             echo ""
             echo "Deleting invalid branch..."
