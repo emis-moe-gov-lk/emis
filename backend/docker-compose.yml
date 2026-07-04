@@ -5,6 +5,7 @@ services:
             dockerfile: Dockerfile
         container_name: emis-app-backend
         restart: unless-stopped
+        working_dir: /var/www/html
         entrypoint: ["/var/www/html/docker/entrypoint.sh"]
         volumes:
             - .:/var/www/html

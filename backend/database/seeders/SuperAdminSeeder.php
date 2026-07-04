@@ -18,6 +18,8 @@ class SuperAdminSeeder extends Seeder
 {
     public function run(Wso2IsProvisioningService $wso2Is): void
     {
+        $total = 2;
+
         // Ensure the role exists
         $superAdminRole = Role::firstOrCreate(['name' => 'super admin']);
 
@@ -119,6 +121,8 @@ class SuperAdminSeeder extends Seeder
             $this->command->warn("  WSO2 provisioning failed for {$user->email}: {$reason}");
         }
 
+        $this->command->getOutput()->writeln($this->progressBar(1, $total));
+
         // ---------------------------------------------------------------
         // Second Super Admin
         // ---------------------------------------------------------------
@@ -208,5 +212,18 @@ class SuperAdminSeeder extends Seeder
             $reason = $result['error'] ?? ($result['skipped'] ?? false ? 'WSO2 disabled' : 'unknown');
             $this->command->warn("  WSO2 provisioning failed for {$user2->email}: {$reason}");
         }
+
+        $this->command->getOutput()->writeln($this->progressBar(2, $total));
+    }
+
+    private function progressBar(int $current, int $total, int $width = 30): string
+    {
+        $percent = $total > 0 ? (int) floor(($current / $total) * 100) : 0;
+        $filled  = $total > 0 ? (int) floor(($current / $total) * $width) : 0;
+
+        $bar = str_repeat('=', max(0, $filled - 1)) . ($filled > 0 ? '>' : '');
+        $bar = str_pad($bar, $width, ' ');
+
+        return "  [{$bar}] {$percent}% ({$current}/{$total})";
     }
 }
