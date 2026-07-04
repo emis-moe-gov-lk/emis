@@ -49,6 +49,8 @@ class PeopleProfileEditRequestController extends Controller
                 'message' => 'Edit request submitted successfully.',
                 'data'    => $editRequest,
             ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
         } catch (\Throwable $e) {
             Log::error('Edit Request Store Error', ['message' => $e->getMessage()]);
 
