@@ -18,7 +18,7 @@ class SuperAdminSeeder extends Seeder
 {
     public function run(Wso2IsProvisioningService $wso2Is): void
     {
-        $total = 1;
+        $total = 2;
 
         // Ensure the role exists
         $superAdminRole = Role::firstOrCreate(['name' => 'super admin']);
@@ -125,6 +125,98 @@ class SuperAdminSeeder extends Seeder
 
         $this->command->getOutput()->writeln($this->progressBar(1, $total));
 
+        // ---------------------------------------------------------------
+        // Second Super Admin
+        // ---------------------------------------------------------------
+        $superAdmin2Nic = NicHelper::normalize('888888888888');
+
+        $person2 = People::updateOrCreate(
+            ['nic_hash' => NicHelper::hash($superAdmin2Nic)],
+            [
+                'nic'                => $superAdmin2Nic,
+                'nic_hash'           => NicHelper::hash($superAdmin2Nic),
+                'people_id'          => strtoupper(Str::random(12)),
+                'title_id'           => 'T01',
+                'full_name'          => 'System Super Admin 2',
+                'name_with_initials' => 'S.S.A2',
+                'gender_id'          => 'G01',
+                'date_of_birth'      => '1992-01-01',
+                'religion_id'        => 'R01',
+                'ethnicity_id'       => 'E01',
+                'civil_status_id'    => 'C01',
+                'health_condition'   => '0',
+                'blood_group_id'     => 'B01',
+                'email'              => 'mohammedshadhir5@gmail.com',
+                'phone'              => '0712345679',
+                'district_id'        => 'DIS001',
+                'gn_division_id'     => 'GND00001',
+                'address_line1'      => 'Main Office',
+                'address_line2'      => 'Colombo',
+                'address_line3'      => 'Sri Lanka',
+                'postal_code'        => '00100',
+                'profile_picture'    => 'default.png',
+                'active_status'      => '1',
+                'created_at'         => Carbon::now(),
+                'updated_at'         => Carbon::now(),
+            ]
+        );
+
+        $user2 = User::updateOrCreate(
+            ['nic_hash' => $person2->nic_hash],
+            [
+                'nic'           => $superAdmin2Nic,
+                'nic_hash'      => $person2->nic_hash,
+                'people_id'     => $person2->people_id,
+                'name'          => $person2->name_with_initials,
+                'email'         => 'mohammedshadhir5@gmail.com',
+                'contact'       => '0712345679',
+                'password'      => 'Password@*',
+                'active_status' => '1',
+                'must_change_password' => false,
+            ]
+        );
+
+        $appointment2 = EmployerAppointment::updateOrCreate(
+            ['employee_id' => $person2->people_id],
+            [
+                'appointment_id'         => strtoupper(Str::random(12)),
+                'first_appointment_date' => now(),
+                'retirement_date'        => now()->addYears(35),
+                'service_id'             => 'SER006',
+                'rank_id'                => 'RANK018',
+                'position_id'            => 'POS003',
+                'office_level_id'        => 'OLID001',
+                'workplace_id'           => 'MOE0000001',
+                'appointment_letter_no'  => 'LETTER002',
+                'appointment_letter'     => 'letter.pdf',
+                'active_status'          => '1',
+            ]
+        );
+
+        EmployerCurrentAppointment::updateOrCreate(
+            ['employee_id' => $person2->people_id],
+            [
+                'appointment_id'  => $appointment2->appointment_id,
+                'appoint_date'    => $appointment2->first_appointment_date,
+                'service_id'      => $appointment2->service_id,
+                'rank_id'         => $appointment2->rank_id,
+                'office_level_id' => $appointment2->office_level_id,
+                'position_id'     => $appointment2->position_id,
+                'workplace_id'    => $appointment2->workplace_id,
+            ]
+        );
+
+        $user2->assignRole($superAdminRole);
+
+        $result = $wso2Is->provisionUser($user2, 'SuperAdmin@123', 'super admin');
+        if ($result['provisioned'] ?? false) {
+            $this->command->info("  WSO2: provisioned {$user2->email}");
+        } else {
+            $reason = $result['error'] ?? ($result['skipped'] ?? false ? 'WSO2 disabled' : 'unknown');
+            $this->command->warn("  WSO2 provisioning failed for {$user2->email}: {$reason}");
+        }
+
+        $this->command->getOutput()->writeln($this->progressBar(2, $total));
     }
 
     private function progressBar(int $current, int $total, int $width = 30): string
