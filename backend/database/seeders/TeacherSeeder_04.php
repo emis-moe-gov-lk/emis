@@ -63,14 +63,19 @@ class TeacherSeeder_04 extends Seeder
             ],
         ];
 
-        foreach ($teachers as $data) {
-            DB::transaction(function () use ($data, $workplaceId, $wso2Is) {
+        $created = 0;
+        $skipped = 0;
+        $total   = count($teachers);
+
+        foreach ($teachers as $index => $data) {
+            DB::transaction(function () use ($data, $workplaceId, $wso2Is, &$created, &$skipped) {
                 $nic = NicHelper::normalize($data['nic']);
 
                 $existingPeople = People::where('nic_hash', NicHelper::hash($nic))->first();
 
                 if ($existingPeople && $existingPeople->teacher()->exists()) {
                     $this->command->warn("Teacher {$data['full_name']} already exists — skipping.");
+                    $skipped++;
 
                     return;
                 }
@@ -157,7 +162,26 @@ class TeacherSeeder_04 extends Seeder
                 $wso2Is->provisionUser($user, $data['password'], 'teacher');
 
                 $this->command->info("Kelaniya zone teacher {$data['full_name']} created and provisioned.");
+
+                $created++;
             });
+
+            $this->command->getOutput()->writeln(
+                $this->progressBar($index + 1, $total, $created, $skipped)
+            );
         }
+
+        $this->command->info("TeacherSeeder_04 complete: {$created} created, {$skipped} skipped.");
+    }
+
+    private function progressBar(int $current, int $total, int $created, int $skipped, int $width = 30): string
+    {
+        $percent = $total > 0 ? (int) floor(($current / $total) * 100) : 0;
+        $filled  = $total > 0 ? (int) floor(($current / $total) * $width) : 0;
+
+        $bar = str_repeat('=', max(0, $filled - 1)) . ($filled > 0 ? '>' : '');
+        $bar = str_pad($bar, $width, ' ');
+
+        return "  [{$bar}] {$percent}% ({$current}/{$total}) created={$created} skipped={$skipped}";
     }
 }

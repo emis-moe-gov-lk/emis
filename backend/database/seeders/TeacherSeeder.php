@@ -82,8 +82,12 @@ class TeacherSeeder extends Seeder
             ],
         ];
 
-        foreach ($teachers as $data) {
-            DB::transaction(function () use ($data, $workplaceId, $subjectId, $wso2Is) {
+        $created = 0;
+        $skipped = 0;
+        $total   = count($teachers);
+
+        foreach ($teachers as $index => $data) {
+            DB::transaction(function () use ($data, $workplaceId, $subjectId, $wso2Is, &$created) {
                 $nic = NicHelper::normalize($data['nic']);
 
                 // 1. People
@@ -173,7 +177,26 @@ class TeacherSeeder extends Seeder
                     $reason = $result['error'] ?? ($result['skipped'] ?? false ? 'WSO2 disabled' : 'unknown');
                     $this->command->warn("  WSO2 provisioning failed for {$data['email']}: {$reason}");
                 }
+
+                $created++;
             });
+
+            $this->command->getOutput()->writeln(
+                $this->progressBar($index + 1, $total, $created, $skipped)
+            );
         }
+
+        $this->command->info("TeacherSeeder complete: {$created} created, {$skipped} skipped.");
+    }
+
+    private function progressBar(int $current, int $total, int $created, int $skipped, int $width = 30): string
+    {
+        $percent = $total > 0 ? (int) floor(($current / $total) * 100) : 0;
+        $filled  = $total > 0 ? (int) floor(($current / $total) * $width) : 0;
+
+        $bar = str_repeat('=', max(0, $filled - 1)) . ($filled > 0 ? '>' : '');
+        $bar = str_pad($bar, $width, ' ');
+
+        return "  [{$bar}] {$percent}% ({$current}/{$total}) created={$created} skipped={$skipped}";
     }
 }
