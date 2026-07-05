@@ -31,10 +31,10 @@ infrastructure/
 ## 3. Architecture & Constraints
 
 ### Jumpbox / SSH Bastion Proxy
-All private hosts sit behind a public jumpbox at IP `124.43.177.235`. 
-- **Key Location:** `/var/home/dhakiweere/.ssh/emis_vmaccess_ed25519` (Must be `chmod 600`).
-- **Proxy Constraint:** When writing or diagnosing SSH connections, routing must use the SSH ProxyCommand: `ssh -o ProxyCommand="ssh -W %h:%p slaf-dhaki@124.43.177.235" slaf-dhaki@PRIVATE_IP`.
-- All playbooks must use `StrictHostKeyChecking=no` via `ansible.cfg`.
+All private hosts sit behind a public jumpbox.
+- **Proxy Constraint:** When writing or diagnosing SSH connections, routing must go through the jumpbox host using SSH ProxyCommand.
+- All playbooks must use `StrictHostKeyChecking=no` (configured in `ansible.cfg`).
+- The SSH key path and jumpbox credentials are defined in the Ansible inventory file.
 
 ### Topology & Roadmap
 - **Current State:** No-APIM Topology. The frontend communicates *directly* with the backend via `vite_api_base_url`. WSO2 IS handles authentication directly without an API Gateway.
