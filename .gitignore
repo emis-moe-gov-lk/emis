@@ -1,13 +1,13 @@
-# Environment
+# Environment - Sensitive configuration files containing secrets and credentials
 .env
 *.env
 
-# Node
+# Node.js - Dependencies, build artifacts, and generated config
 node_modules/
 dist/
 web/.flowbite-react/
 
-# PHP / Laravel
+# PHP / Laravel - Framework auto-generated files and cache
 vendor/
 storage/logs/*
 storage/framework/cache/*
@@ -17,44 +17,48 @@ storage/framework/sessions/*
 bootstrap/cache/*
 .phpunit.result.cache
 
-# Tmp directory (user workspace)
+# Temporary - User workspace and runtime artifacts
 tmp/
 
-# IDE
+# IDE & Editors - Editor-specific config and temporary swap files
 .idea/
 .vscode/
-.claude
 .playwright-mcp/
 *.swp
 *.swo
 *~
 
-# OS
+# AI Assistant Tools - Temporary cache, session files, and generated config
+# from AI coding assistants (aider, Claude Code, Gemini CLI, etc.)
+.claude
+.gemini/
+.antigravity/
+.codex/
+.aider*
+.cursor/
+.copilot/
+.windsurf/
+
+# Operating System - System-generated metadata files
 .DS_Store
 Thumbs.db
 
-# Docker
+# Docker - Local overrides and generated certificates
 docker-compose.override.yml
 infrastructure/docker-swarm/nginx-proxy/certs/*.pem
 apim/certs/*.pem
 is/certs/*.pem
 
-# Ansible
-vars.yml
-hosts.yml
+# Ansible - Sensitive variables, secrets, and generated artifacts
 .vault_pass
-
-infrastructure/ansible/deploy-noapim/env/*.yml
-!infrastructure/ansible/deploy-noapim/env/*.example
-
-infrastructure/ansible/deploy-noapim/inventory/*.yml
-!infrastructure/ansible/deploy-noapim/inventory/*.example
-
+infrastructure/ansible/deploy-setup/env/*.yml
+!infrastructure/ansible/deploy-setup/env/*.example
+infrastructure/ansible/deploy-setup/inventory/*.yml
+!infrastructure/ansible/deploy-setup/inventory/*.example
 .facts_cache/
 *actual*.yml
 *.retry
 
-# Backup Files
+# Backup Files - Editor and system backup artifacts
 *.bck
 serviceminutes
-.aider*
