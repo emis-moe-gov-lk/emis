@@ -53,6 +53,7 @@
 | `refactor`| Script/code cleanup, no behavior change |
 | `bug`     | Bug or issue fix |
 | `update`  | Version bumps, deploy config changes |
+| `setup`   | New infrastructure setup configuration |
 
 ### Docs (`docs`)
 
