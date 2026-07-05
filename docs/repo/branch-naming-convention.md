@@ -54,6 +54,7 @@
 | `bug`     | Bug or issue fix |
 | `update`  | Version bumps, deploy config changes |
 | `setup`   | New infrastructure setup configuration |
+| `wkflw`   | Workflow / CI/CD changes |
 
 ### Docs (`docs`)
 
@@ -93,6 +94,7 @@
 | `fs/feat/sync-flow` | Fullstack feature |
 | `infra/update/docker-stack` | Deploy config update |
 | `infra/chore/ansible-update` | Infrastructure maintenance |
+| `infra/wkflw/backup-db` | Workflow automation |
 | `docs/update/readme-setup` | Update README setup section |
 | `meta/update/codeowners` | Update CODEOWNERS |
 | `meta/chore/add-agents-md` | Add AGENTS.md |
@@ -101,15 +103,7 @@
 
 ## Exempt Branches
 
-The following branches are exempt from this convention:
-
-- `main`
-- `dev`
-- `uat`
-- `uat-release/*`
-- `prod*`
-
-*Exempt branches are defined in the GitHub Actions variable `EXEMPT_BRANCHES`.*
+Branches are exempt from this convention via the `EXEMPT_BRANCHES` variable in GitHub Actions. Refer to that variable for the current list of exempt branches.
 
 ---
 

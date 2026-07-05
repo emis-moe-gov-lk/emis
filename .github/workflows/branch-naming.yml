@@ -30,7 +30,7 @@ jobs:
           fi
 
           # Your naming convention regex
-          PATTERN="^(fe|be|ms|is|apim|fs)\/(feat|bug|hotfix|refactor|chore)\/[a-z0-9][a-z0-9\-]+$|^infra\/(chore|refactor|bug|update|setup)\/[a-z0-9][a-z0-9\-]+$|^(docs|meta)\/(chore|update|refactor)\/[a-z0-9][a-z0-9\-]+$"
+          PATTERN="^(fe|be|ms|is|apim|fs)\/(feat|bug|hotfix|refactor|chore)\/[a-z0-9][a-z0-9\-]+$|^infra\/(chore|refactor|bug|update|setup|wkflw)\/[a-z0-9][a-z0-9\-]+$|^(docs|meta)\/(chore|update|refactor)\/[a-z0-9][a-z0-9\-]+$"
 
           if echo "$BRANCH" | grep -Eq "$PATTERN"; then
             echo "✅ Branch name '$BRANCH' is valid"
@@ -39,7 +39,7 @@ jobs:
             echo ""
             echo "Expected format: <area>/<type>/<descriptor>"
             echo "Service areas (fe | be | ms | is | apim | fs):  feat | bug | hotfix | refactor | chore"
-            echo "Infra area  (infra):                             chore | refactor | bug | update | setup"
+            echo "Infra area  (infra):                             chore | refactor | bug | update | setup | wkflw"
             echo "Docs area   (docs):                              chore | update | refactor"
             echo "Meta area   (meta):                              chore | update | refactor"
             echo "Example: fe/feat/ed-110  or  be/fix/ed-45"
