@@ -53,10 +53,10 @@ is/certs/*.pem
 vars.yml
 hosts.yml
 .vault_pass
-infrastructure/ansible/deploy-noapim/env/*.yml
-!infrastructure/ansible/deploy-noapim/env/*.example
-infrastructure/ansible/deploy-noapim/inventory/*.yml
-!infrastructure/ansible/deploy-noapim/inventory/*.example
+infrastructure/ansible/deploy-setup/env/*.yml
+!infrastructure/ansible/deploy-setup/env/*.example
+infrastructure/ansible/deploy-setup/inventory/*.yml
+!infrastructure/ansible/deploy-setup/inventory/*.example
 .facts_cache/
 *actual*.yml
 *.retry
