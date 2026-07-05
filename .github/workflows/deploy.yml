@@ -1,0 +1,301 @@
+name: Deploy EMIS Stack
+run-name: "Deploy on ${{ github.ref_name }}"
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - 'backend/**'
+      - 'is/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # ── Phase 1: Detect which services changed and bump versions ─────────────────
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      frontend_changed: ${{ steps.set_flags.outputs.frontend_changed }}
+      backend_changed: ${{ steps.set_flags.outputs.backend_changed }}
+      is_changed: ${{ steps.set_flags.outputs.is_changed }}
+      any_changed: ${{ steps.set_flags.outputs.any_changed }}
+      frontend_current_version: ${{ steps.fetch_vars.outputs.frontend_current }}
+      backend_current_version: ${{ steps.fetch_vars.outputs.backend_current }}
+      is_current_version: ${{ steps.fetch_vars.outputs.is_current }}
+      frontend_new_version: ${{ steps.bump_frontend.outputs.new_version }}
+      backend_new_version: ${{ steps.bump_backend.outputs.new_version }}
+      is_new_version: ${{ steps.bump_is.outputs.new_version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect changed service directories
+        id: detect
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manual dispatch — checking all services"
+            echo "frontend_changed=true" >> $GITHUB_OUTPUT
+            echo "backend_changed=true" >> $GITHUB_OUTPUT
+            echo "is_changed=true" >> $GITHUB_OUTPUT
+          else
+            CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "")
+            if [ -z "$CHANGED" ]; then
+              CHANGED=$(git diff --name-only HEAD~0 2>/dev/null || echo "")
+            fi
+            echo "Changed files:"
+            echo "$CHANGED"
+
+            if echo "$CHANGED" | grep -q "^frontend/"; then
+              echo "frontend_changed=true" >> $GITHUB_OUTPUT
+            else
+              echo "frontend_changed=false" >> $GITHUB_OUTPUT
+            fi
+            if echo "$CHANGED" | grep -q "^backend/"; then
+              echo "backend_changed=true" >> $GITHUB_OUTPUT
+            else
+              echo "backend_changed=false" >> $GITHUB_OUTPUT
+            fi
+            if echo "$CHANGED" | grep -q "^is/"; then
+              echo "is_changed=true" >> $GITHUB_OUTPUT
+            else
+              echo "is_changed=false" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      - name: Fetch service versions from GitHub variables
+        id: fetch_vars
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+        run: |
+          VARS=$(curl -s -H "Authorization: Bearer $GH_PAT" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/variables")
+
+          FRONTEND=$(echo "$VARS" | jq -r '.variables[] | select(.name=="FRONTEND_VERSION") | .value')
+          BACKEND=$(echo "$VARS" | jq -r '.variables[] | select(.name=="BACKEND_VERSION") | .value')
+          IS=$(echo "$VARS" | jq -r '.variables[] | select(.name=="IS_VERSION") | .value')
+
+          echo "frontend_current=$FRONTEND" >> $GITHUB_OUTPUT
+          echo "backend_current=$BACKEND" >> $GITHUB_OUTPUT
+          echo "is_current=$IS" >> $GITHUB_OUTPUT
+
+      - name: Set change flags
+        id: set_flags
+        run: |
+          FE="${{ steps.detect.outputs.frontend_changed }}"
+          BE="${{ steps.detect.outputs.backend_changed }}"
+          IS_C="${{ steps.detect.outputs.is_changed }}"
+          echo "frontend_changed=$FE" >> $GITHUB_OUTPUT
+          echo "backend_changed=$BE" >> $GITHUB_OUTPUT
+          echo "is_changed=$IS_C" >> $GITHUB_OUTPUT
+          if [ "$FE" = "true" ] || [ "$BE" = "true" ] || [ "$IS_C" = "true" ]; then
+            echo "any_changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "any_changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Bump frontend version
+        id: bump_frontend
+        run: |
+          V="${{ steps.fetch_vars.outputs.frontend_current }}"
+          if [ "${{ steps.detect.outputs.frontend_changed }}" = "true" ]; then
+            BASE="${V%.*}"
+            PATCH="${V##*.}"
+            NEW="${BASE}.$((PATCH + 1))"
+          else
+            NEW="$V"
+          fi
+          echo "new_version=$NEW" >> $GITHUB_OUTPUT
+
+      - name: Bump backend version
+        id: bump_backend
+        run: |
+          V="${{ steps.fetch_vars.outputs.backend_current }}"
+          if [ "${{ steps.detect.outputs.backend_changed }}" = "true" ]; then
+            BASE="${V%.*}"
+            PATCH="${V##*.}"
+            NEW="${BASE}.$((PATCH + 1))"
+          else
+            NEW="$V"
+          fi
+          echo "new_version=$NEW" >> $GITHUB_OUTPUT
+
+      - name: Bump is version
+        id: bump_is
+        run: |
+          V="${{ steps.fetch_vars.outputs.is_current }}"
+          if [ "${{ steps.detect.outputs.is_changed }}" = "true" ]; then
+            BASE="${V%.*}"
+            PATCH="${V##*.}"
+            NEW="${BASE}.$((PATCH + 1))"
+          else
+            NEW="$V"
+          fi
+          echo "new_version=$NEW" >> $GITHUB_OUTPUT
+
+  # ── Phase 2: Build & push Docker images (parallel, conditional) ──────────────
+  build-frontend:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.frontend_changed == 'true'
+    uses: ./.github/workflows/build-push-frontend.yml
+    with:
+      version: ${{ needs.detect-changes.outputs.frontend_new_version }}
+    secrets: inherit
+
+  build-backend:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.backend_changed == 'true'
+    uses: ./.github/workflows/build-push-backend.yml
+    with:
+      version: ${{ needs.detect-changes.outputs.backend_new_version }}
+    secrets: inherit
+
+  build-is:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.is_changed == 'true'
+    uses: ./.github/workflows/build-push-is.yml
+    with:
+      version: ${{ needs.detect-changes.outputs.is_new_version }}
+    secrets: inherit
+
+  # ── Phase 3: Finalize — update GH variables and commit version files ─────────
+  finalize:
+    needs: [detect-changes, build-frontend, build-backend, build-is]
+    if: |
+      always() &&
+      needs.detect-changes.result == 'success' &&
+      (
+        (needs.build-frontend.result == 'success' && needs.build-frontend.outputs.image_built == 'true') ||
+        (needs.build-backend.result == 'success' && needs.build-backend.outputs.image_built == 'true') ||
+        (needs.build-is.result == 'success' && needs.build-is.outputs.image_built == 'true')
+      )
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_PAT: ${{ secrets.GH_PAT }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Finalize frontend
+        if: needs.build-frontend.result == 'success' && needs.build-frontend.outputs.image_built == 'true'
+        run: |
+          V="${{ needs.detect-changes.outputs.frontend_new_version }}"
+          echo "$V" > frontend/version
+          curl -s -X PATCH \
+            -H "Authorization: Bearer $GH_PAT" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/variables/FRONTEND_VERSION" \
+            -d "{\"name\":\"FRONTEND_VERSION\",\"value\":\"$V\"}"
+
+      - name: Finalize backend
+        if: needs.build-backend.result == 'success' && needs.build-backend.outputs.image_built == 'true'
+        run: |
+          V="${{ needs.detect-changes.outputs.backend_new_version }}"
+          echo "$V" > backend/version
+          curl -s -X PATCH \
+            -H "Authorization: Bearer $GH_PAT" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/variables/BACKEND_VERSION" \
+            -d "{\"name\":\"BACKEND_VERSION\",\"value\":\"$V\"}"
+
+      - name: Finalize IS
+        if: needs.build-is.result == 'success' && needs.build-is.outputs.image_built == 'true'
+        run: |
+          V="${{ needs.detect-changes.outputs.is_new_version }}"
+          echo "$V" > is/version
+          curl -s -X PATCH \
+            -H "Authorization: Bearer $GH_PAT" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/variables/IS_VERSION" \
+            -d "{\"name\":\"IS_VERSION\",\"value\":\"$V\"}"
+
+      - name: Commit version file changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet --exit-code; then
+            git add frontend/version backend/version is/version
+            git commit -m "chore: bump service versions [skip ci]"
+            git push
+          fi
+
+  # ── Phase 4: Deploy to Swarm ─────────────────────────────────────────────────
+  deploy:
+    needs: [detect-changes, build-frontend, build-backend, build-is]
+    if: |
+      always() &&
+      needs.detect-changes.result == 'success' &&
+      (
+        (needs.build-frontend.result == 'success' && needs.build-frontend.outputs.image_built == 'true') ||
+        (needs.build-backend.result == 'success' && needs.build-backend.outputs.image_built == 'true') ||
+        (needs.build-is.result == 'success' && needs.build-is.outputs.image_built == 'true')
+      )
+    runs-on: ubuntu-latest
+    env:
+      FRONTEND_VER: ${{ needs.detect-changes.outputs.frontend_new_version }}
+      BACKEND_VER: ${{ needs.detect-changes.outputs.backend_new_version }}
+      IS_VER: ${{ needs.detect-changes.outputs.is_new_version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Ansible
+        run: pip install ansible
+
+      - name: Write env.yml
+        run: |
+          mkdir -p infrastructure/ansible/deploy-setup/env
+          echo "${{ secrets.ENV_YML }}" > infrastructure/ansible/deploy-setup/env/env.yml
+
+      - name: Write inventory.yml
+        run: |
+          mkdir -p infrastructure/ansible/deploy-setup/inventory
+          echo "${{ secrets.INVENTORY_YML }}" > infrastructure/ansible/deploy-setup/inventory/inventory.yml
+
+      - name: Patch image tags in env.yml
+        run: |
+          sed -i "s/^frontend_image_tag:.*/frontend_image_tag: \"${FRONTEND_VER}\"/" \
+            infrastructure/ansible/deploy-setup/env/env.yml
+          sed -i "s/^backend_image_tag:.*/backend_image_tag: \"${BACKEND_VER}\"/" \
+            infrastructure/ansible/deploy-setup/env/env.yml
+          sed -i "s/^is_image_tag:.*/is_image_tag: \"7.2.0-${IS_VER}\"/" \
+            infrastructure/ansible/deploy-setup/env/env.yml
+
+      - name: Write SSH private key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+      - name: Fix inventory SSH key paths
+        run: |
+          sed -i "s|/var/home/dhakiweere/.ssh/emis_vmaccess_ed25519|$HOME/.ssh/deploy_key|g" \
+            infrastructure/ansible/deploy-setup/inventory/inventory.yml
+
+      - name: Configure SSH agent and known hosts
+        run: |
+          eval $(ssh-agent)
+          ssh-add ~/.ssh/deploy_key
+          JIP=$(grep -A3 'jumpbox:' infrastructure/ansible/deploy-setup/inventory/inventory.yml | \
+                grep 'ansible_host:' | awk '{print $2}')
+          if [ -n "$JIP" ]; then
+            ssh-keyscan -H "$JIP" >> ~/.ssh/known_hosts 2>/dev/null || true
+          fi
+
+      - name: Run deploy-stack playbook
+        working-directory: infrastructure/ansible/deploy-setup
+        run: |
+          eval $(ssh-agent)
+          ssh-add ~/.ssh/deploy_key
+          ansible-playbook \
+            -i inventory/inventory.yml \
+            -e @env/env.yml \
+            -e deploy_env=env \
+            playbooks/deploy-stack.yml
