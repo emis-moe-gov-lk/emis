@@ -29,7 +29,7 @@
 
     - name: Copy IS-only docker-stack file
       ansible.builtin.copy:
-        src: "../stacks/docker-stack-is-{{ deploy_env }}.yml"
+        src: "../../../docker-swarm/docker-stack-is.yml"
         dest: "{{ is_stack_file }}"
         mode: '0644'
 

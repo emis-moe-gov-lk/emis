@@ -1,0 +1,266 @@
+---
+# ============================================================
+# EMIS Deployment Environment — UAT (No APIM)
+# ============================================================
+# Generated from deploy-proto/env/uat.yml with APIM vars removed.
+# Credentials marked [VAULT] should be encrypted before committing:
+#   ansible-vault encrypt_string 'value' --name 'key'
+# Run:
+#   ansible-playbook deploy-noapim/playbooks/<play>.yml \
+#     -i deploy-noapim/inventory/uat.yml \
+#     -e @deploy-noapim/env/uat.yml \
+#     --vault-password-file deploy-noapim/.vault_pass
+# ============================================================
+
+# ── Stack identity ───────────────────────────────────────────
+stack_name: emis-uat-nevada
+deploy_env: uat
+expected_public_ip: "124.43.177.235" # [REQUIRED] Update to actual reverse proxy IP
+stack_deploy_path: /opt/emis-uat-nevada
+stack_network_subnet: "172.21.0.0/16"
+
+# Base Endpoints (Centralized)
+frontend_url: "https://app-uat.emis.moe.gov.lk"
+backend_url:  "https://api-uat.emis.moe.gov.lk"
+idp_hostname: "idp-uat.emis.moe.gov.lk"
+
+# -- Host Port Mappings --
+frontend_host_port: 80
+backend_host_port:  9000
+is_host_port:       9444
+
+# ── Docker image tags ────────────────────────────────────────
+frontend_image_repo: ghcr.io/emis-moe-gov-lk/emis-frontend
+frontend_image_tag:  "0.1.6.3"
+backend_image_repo:  ghcr.io/emis-moe-gov-lk/emis-backend
+backend_image_tag:   "0.5.9.3"
+is_image_repo:       ghcr.io/emis-moe-gov-lk/emis-is
+is_image_tag:        "7.2.0-0.4.9.9"
+
+# ── Docker registry auth ─────────────────────────────────────
+registry_host:     ghcr.io
+registry_username: emis-moe-gov-lk             # [REQUIRED] GitHub username / PAT owner
+registry_password: changeme                    # [REQUIRED] [VAULT] GitHub PAT with read:packages
+
+# ── MySQL — EMIS database ────────────────────────────────────
+mysql_root_password: root                      # [VAULT] in real deploys
+mysql_emis_db:       emis_hrm_db_uat
+mysql_emis_user:     emis-user-uat
+mysql_emis_password: EmisUserDev0                 # [VAULT]
+mysql_bind_address:  0.0.0.0
+
+# ── MySQL — WSO2 IS databases ────────────────────────────────
+mysql_wso2_user:          wso2-user-uat
+mysql_wso2_password:      "WSO2@UserUat4"         # [VAULT]
+mysql_is_db:              wso2_is_db_uat
+mysql_is_shared_db:       wso2_is_shared_db_uat
+
+# ── WSO2 IS ──────────────────────────────────────────────────
+is_hostname:          "{{ idp_hostname }}"
+is_port:              "9444"
+is_proxy_host:        "{{ idp_hostname }}"
+is_proxy_port:        "443"
+is_admin_user:        admin
+is_admin_password:    ADMIN11                  # [VAULT]
+is_db_host:           "{{ hostvars[groups['db_host'][0]].ansible_host }}"
+is_db_port:           "3306"
+
+# ── Backend (Laravel) ────────────────────────────────────────
+app_name:    EMIS
+app_env:     local
+app_key:     base64:MO/xhx7kxXI/6zErGCUHSQctAORLnFlUEZZXPKQlrYQ=  # [VAULT]
+app_debug:   "false"
+app_url:     "{{ backend_url }}"
+
+db_host:     "{{ hostvars[groups['db_host'][0]].ansible_host }}"
+db_port:     "3306"
+db_database: "{{ mysql_emis_db }}"
+db_username: "{{ mysql_emis_user }}"
+db_password: "{{ mysql_emis_password }}"
+
+wso2_enabled:    "True"
+wso2_base_url:   "https://{{ is_hostname }}"
+wso2_verify_ssl: "False"
+# Populated after configure-is-only.yml runs — paste output here, then re-run deploy-stack:
+wso2_m2m_client_id:     "63nOq1UbvfKPvmX6BZUjuJGl49ka"
+wso2_m2m_client_secret: "VY7xgmOVResF9UWNrfWD8kSO5K_fC8goAwZFqgXp1Ooa"
+wso2_teacher_role_id:   "64584000-30bd-4356-adbd-49994783f369"
+
+memcached_host: memcached
+
+# ── Frontend (Vite — baked at image build time) ──────────────
+vite_asgardeo_base_url:  "https://{{ is_hostname }}"
+vite_asgardeo_client_id: "JR92Ip2h4ffqS80Nm7H8EtXic5ga"
+vite_signin_redirect_url:  "{{ frontend_url }}/authentication/callback"
+vite_signout_redirect_url: "{{ frontend_url }}/logout"
+# Direct backend URL — no APIM gateway in this topology
+vite_api_base_url:         "{{ backend_url }}/api"
+
+# ── EMIS application resources (used by configure-is-only) ──
+emis_roles:
+  - "super admin" # done
+  - "Admin"
+  - "MOE Administrator"
+  - "MOE Director" # no user
+  - "Provincial Director"
+  - "Provincial DEO"
+  - "Zonal Director"
+  - "Zonal Deputy Director"
+  - "Zonal DEO"
+  - "Divisional Head"
+  - "Divisional DEO"
+  - "Principal"
+  - "Teacher"
+  - "School DEO"
+
+emis_users:
+  - username:    "zonald@gmail.com"
+    password:    ZonalDirector@123
+    first_name:  Zonal
+    last_name:   Director
+    email:       "zonald@gmail.com"
+    roles:       ["Zonal Director"]
+
+  - username:    "zonaldd@gmail.com"
+    password:    ZonalDeputyDirector@123
+    first_name:  Zonal
+    last_name:   DeputyDirector
+    email:       "zonaldd@gmail.com"
+    roles:       ["Zonal Deputy Director"]
+
+  - username:    "zonaldeo@gmail.com"
+    password:    ZonalDeo@123
+    first_name:  Zonal
+    last_name:   DEO
+    email:       "zonaldeo@gmail.com"
+    roles:       ["Zonal DEO"]
+
+  - username:    "moeadmin@gmail.com"
+    password:    MoeAdmin@123
+    first_name:  MOE
+    last_name:   Admin 
+    email:       "moeadmin@gmail.com"
+    roles:       ["MOE Admininstrator"]
+
+  - username:    "provinciald@gmail.com"
+    password:    ProvincialDirector@123
+    first_name:  Provincial
+    last_name:   Director
+    email:       "provinciald@gmail.com"
+    roles:       ["Provincial Director"]
+
+  - username:    "provincialdeo@gmail.com"
+    password:    ProvincialDeo@123
+    first_name:  Provincial
+    last_name:   DEO
+    email:       "provincialdeo@gmail.com"
+    roles:       ["Provincial DEO"]
+
+  - username:    "divisionalhead@gmail.com"
+    password:    DivisionalHead@123
+    first_name:  Divisional
+    last_name:   Head
+    email:       "divisionalhead@gmail.com"
+    roles:       ["Divisional HEAD"]
+
+  - username:    "divisionaldeo@gmail.com"
+    password:    DivisionalDeo@123
+    first_name:  Divisional
+    last_name:   DEO
+    email:       "divisionaldeo@gmail.com"
+    roles:       ["Divisional DEO"]
+
+  - username:    "principal@gmail.com"
+    password:    Principal@123
+    first_name:  Principal
+    last_name:   Test
+    email:       "principal@gmail.com"
+    roles:       ["Principal"]
+
+  - username:    "teachertest@gmail.com"
+    password:    Teacher@123
+    first_name:  Teacher
+    last_name:   Test
+    email:       "teachertest@gmail.com"
+    roles:       ["Teacher"]
+
+  - username:    "superadmin@example.com"
+    password:    SuperAdmin@123
+    first_name:  SuperAdmin
+    last_name:   One
+    email:       superadmin@example.com
+    roles:       ["super admin"]
+
+
+# OIDC apps created directly in IS (no APIM devportal).
+# Each entry is processed by configure-is-only.yml PART 4 & 5 (modular).
+# Add/remove/edit entries here — no playbook changes needed.
+emis_apps:
+
+  - name: "EMIS Web App"
+    description: "EMIS Frontend SPA"
+    template_id: ""                 # standard OIDC — no template
+    public_client: true
+    grant_types:
+      - "authorization_code"
+      - "refresh_token"
+    callback_urls:
+      - "{{ frontend_url }}/authentication/callback"
+      - "{{ frontend_url }}/logout"
+      - "https://localhost:5173/authentication/callback"
+      - "https://localhost:5173/logout"
+    allowed_origins:
+      - "{{ frontend_url }}"
+      - "https://localhost:5173"
+    claims:
+      dialect: "LOCAL"
+      requested_claims:
+        - claim:
+            uri: "http://wso2.org/claims/emailaddress"
+          mandatory: false
+        - claim:
+            uri: "http://wso2.org/claims/roles"
+          mandatory: false
+      subject:
+        uri: "http://wso2.org/claims/userid"
+        include_user_domain: false
+        include_tenant_domain: false
+        use_mapped_local_subject: false
+    associated_roles:
+      allowed_audience: "ORGANIZATION"
+    oidc_custom_config:
+      pkce:
+        mandatory: false
+        support_plain: false
+      access_token:
+        type: "JWT"
+        user_expiry: 3600
+        app_expiry: 3600
+        attributes:
+          - "email"
+          - "given_name"
+          - "roles"
+      refresh_token:
+        expiry: 86400
+      id_token:
+        expiry: 3600
+
+  - name: "EMIS-HRM M2M"
+    description: "Machine-to-Machine application for SCIM2 API access"
+    template_id: "m2m-application"
+    public_client: false
+    grant_types:
+      - "client_credentials"
+    callback_urls: []
+    allowed_origins: []
+    authorized_apis:
+      - identifier: "/scim2/Users"
+        policy: "RBAC"
+        scopes:
+          - "internal_user_mgt_create"
+          - "internal_user_mgt_update"
+      - identifier: "/scim2/Roles"
+        policy: "RBAC"
+        scopes:
+          - "internal_role_mgt_update"
+          - "internal_role_mgt_users_update"
