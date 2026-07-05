@@ -50,8 +50,6 @@ apim/certs/*.pem
 is/certs/*.pem
 
 # Ansible - Sensitive variables, secrets, and generated artifacts
-vars.yml
-hosts.yml
 .vault_pass
 infrastructure/ansible/deploy-setup/env/*.yml
 !infrastructure/ansible/deploy-setup/env/*.example
