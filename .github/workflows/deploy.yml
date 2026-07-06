@@ -330,6 +330,12 @@ jobs:
           mkdir -p infrastructure/ansible/deploy-setup/inventory
           echo "${{ secrets.INVENTORY_YML }}" > infrastructure/ansible/deploy-setup/inventory/inventory.yml
 
+      - name: Fix unquoted Jinja2 templates in YAML
+        run: |
+          sed -i -E 's/: +(\{\{[^}]*\}\})/: "\1"/' \
+            infrastructure/ansible/deploy-setup/env/env.yml \
+            infrastructure/ansible/deploy-setup/inventory/inventory.yml
+
       - name: Patch image tags in env.yml
         run: |
           sed -i "s/^frontend_image_tag:.*/frontend_image_tag: \"${FRONTEND_VER}\"/" \
