@@ -426,11 +426,6 @@ jobs:
             infrastructure/ansible/deploy-setup/env/env.yml \
             infrastructure/ansible/deploy-setup/inventory/inventory.yml
 
-      - name: Expand tilde in inventory ProxyCommand key path
-        run: |
-          sed -i "s|-i ~/|-i $HOME/|g" \
-            infrastructure/ansible/deploy-setup/inventory/inventory.yml
-
       - name: Patch image tags in env.yml
         run: |
           sed -i "s/^frontend_image_tag:.*/frontend_image_tag: \"${FRONTEND_VER}\"/" \
@@ -440,53 +435,20 @@ jobs:
           sed -i "s/^is_image_tag:.*/is_image_tag: \"7.2.0-${IS_VER}\"/" \
             infrastructure/ansible/deploy-setup/env/env.yml
 
-      - name: Parse SSH config from inventory
-        working-directory: infrastructure/ansible/deploy-setup
+      - name: Write SSH key and config
         run: |
-          if INV=$(ansible-inventory -i inventory/inventory.yml --list 2>/dev/null); then
-            SSH_KEY_PATH=$(echo "$INV" | jq -r '.all.vars.ansible_private_key_file // "~/.ssh/deploy_key"')
-            JUMPBOX_IP=$(echo "$INV" | jq -r '.all.vars.jumpbox_ip // ""')
-            ANSIBLE_USER=$(echo "$INV" | jq -r '.all.vars.ansible_user // "ubuntu"')
-          else
-            echo "::warning::ansible-inventory failed, falling back to grep"
-            SSH_KEY_PATH=$(grep 'ansible_private_key_file:' inventory/inventory.yml | head -1 | awk '{print $2}' | tr -d '"' || echo "~/.ssh/deploy_key")
-            JUMPBOX_IP=$(grep 'jumpbox_ip:' inventory/inventory.yml | head -1 | awk '{print $2}' | tr -d '"' || echo "")
-            ANSIBLE_USER=$(grep 'ansible_user:' inventory/inventory.yml | head -1 | awk '{print $2}' | tr -d '"' || echo "ubuntu")
-          fi
-          echo "SSH_KEY_PATH=${SSH_KEY_PATH}" >> "$GITHUB_ENV"
-          echo "JUMPBOX_IP=${JUMPBOX_IP}" >> "$GITHUB_ENV"
-          echo "ANSIBLE_USER=${ANSIBLE_USER}" >> "$GITHUB_ENV"
-
-      - name: Write SSH key
-        run: |
-          if [ -z "${SSH_KEY_PATH}" ]; then
-            echo "::error::SSH_KEY_PATH is empty — check inventory ansible_private_key_file"
-            exit 1
-          fi
-          KEY="${SSH_KEY_PATH/#\~/$HOME}"
-          mkdir -p "$(dirname "$KEY")"
-          printf '%s' "${{ secrets.SSH_PRIVATE_KEY }}" > "$KEY"
-          chmod 600 "$KEY"
-
-      - name: Configure SSH
-        run: |
-          if [ -z "$JUMPBOX_IP" ]; then
-            echo "::error::JUMPBOX_IP is empty — check inventory jumpbox_ip"
-            exit 1
-          fi
-          KEY="${SSH_KEY_PATH/#\~/$HOME}"
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          ssh-keyscan -H "$JUMPBOX_IP" >> ~/.ssh/known_hosts 2>/dev/null || true
-          cat > ~/.ssh/config << SSHEOF
-          Host 192.168.*
-              StrictHostKeyChecking no
-              UserKnownHostsFile /dev/null
-              ProxyCommand ssh -i ${KEY} -W %h:%p ${ANSIBLE_USER}@${JUMPBOX_IP}
-          SSHEOF
+          printf '%s' "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          cat > ~/.ssh/config << 'EOF'
+          Host *
+            StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+            IdentitiesOnly yes
+            IdentityFile ~/.ssh/deploy_key
+          EOF
           chmod 600 ~/.ssh/config
-          eval "$(ssh-agent -s)"
-          ssh-add "$KEY"
 
       - name: Run deploy-stack-rotate playbook
         working-directory: infrastructure/ansible/deploy-setup
