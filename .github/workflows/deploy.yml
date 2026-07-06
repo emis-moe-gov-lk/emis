@@ -339,11 +339,13 @@ jobs:
                   lines = f.readlines()
               with open(fpath, "w") as f:
                   for line in lines:
-                      m = re.match(r"^(\s*[\w-]+\s*:\s+)(.+?)(\s*)$", line)
-                      if m and "{{" in m.group(2):
-                          val = m.group(2)
-                          if not (val.startswith("\"") and val.endswith("\"")):
-                              line = m.group(1) + "\"" + val + "\"" + m.group(3) + "\n"
+                      for pat in [r"^(\s*[\w-]+\s*:\s+)(.+)$", r"^(\s*-\s+)(.+)$"]:
+                          m = re.match(pat, line)
+                          if m and "{{" in m.group(2):
+                              val = m.group(2).rstrip()
+                              if not (val.startswith("\"") and val.endswith("\"")):
+                                  line = m.group(1) + "\"" + val + "\"\n"
+                              break
                       f.write(line)
           ' \
             infrastructure/ansible/deploy-setup/env/env.yml \
