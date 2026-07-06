@@ -70,6 +70,7 @@ class SuperAdminSeeder extends Seeder
                 'contact'       => '0712345678',
                 'password'      => 'Password@*',
                 'active_status' => '1',
+                'must_change_password' => false,
             ]
         );
 
@@ -166,6 +167,7 @@ class SuperAdminSeeder extends Seeder
                 'contact'       => '0712345679',
                 'password'      => 'Password@*',
                 'active_status' => '1',
+                'must_change_password' => false,
             ]
         );
 
