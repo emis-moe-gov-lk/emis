@@ -193,21 +193,43 @@ jobs:
   debug-ssh:
     runs-on: ubuntu-latest
     steps:
-      - name: Write inventory.yml
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Ansible
+        run: pip install ansible
+
+      - name: Write inventory.yml and env.yml
         run: |
-          mkdir -p /tmp/inventory
-          cat > /tmp/inventory/inventory.yml << 'INVEOF'
+          mkdir -p infrastructure/ansible/deploy-setup/env
+          cat > infrastructure/ansible/deploy-setup/env/env.yml << 'ENVEOF'
+          ${{ secrets.ENV_YML }}
+          ENVEOF
+          mkdir -p infrastructure/ansible/deploy-setup/inventory
+          cat > infrastructure/ansible/deploy-setup/inventory/inventory.yml << 'INVEOF'
           ${{ secrets.INVENTORY_YML }}
           INVEOF
 
-      - name: Extract SSH vars from inventory
+      - name: Fix unquoted Jinja2 templates in YAML
         run: |
-          JUMPBOX_IP=$(grep 'jumpbox_ip:' /tmp/inventory/inventory.yml | head -1 | awk '{print $2}')
-          ANSIBLE_USER=$(grep 'ansible_user:' /tmp/inventory/inventory.yml | head -1 | awk '{print $2}')
-          TARGET_IPS=$(grep 'ansible_host:' /tmp/inventory/inventory.yml | awk '{print $2}' | sort -u)
-          echo "JUMPBOX_IP=${JUMPBOX_IP}" >> "$GITHUB_ENV"
-          echo "ANSIBLE_USER=${ANSIBLE_USER}" >> "$GITHUB_ENV"
-          echo "TARGET_IPS=${TARGET_IPS}" >> "$GITHUB_ENV"
+          python3 -c '
+          import re, sys
+          for fpath in sys.argv[1:]:
+              with open(fpath) as f:
+                  lines = f.readlines()
+              with open(fpath, "w") as f:
+                  for line in lines:
+                      for pat in [r"^(\s*[\w-]+\s*:\s+)(.+)$", r"^(\s*-\s+)(.+)$"]:
+                          m = re.match(pat, line)
+                          if m and "{{" in m.group(2):
+                              val = m.group(2).rstrip()
+                              if not (val.startswith("\"") and val.endswith("\"")):
+                                  line = m.group(1) + "\"" + val + "\"\n"
+                              break
+                      f.write(line)
+          ' \
+            infrastructure/ansible/deploy-setup/env/env.yml \
+            infrastructure/ansible/deploy-setup/inventory/inventory.yml
 
       - name: Write SSH key
         run: |
@@ -216,38 +238,15 @@ jobs:
           printf '%s' "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
 
-      - name: Test SSH connectivity
+      - name: Ping all hosts
+        working-directory: infrastructure/ansible/deploy-setup
         run: |
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
+          ansible -i inventory/inventory.yml all -m ping
 
-          cat > ~/.ssh/config << 'SSHEOF'
-          Host *
-              StrictHostKeyChecking no
-              UserKnownHostsFile /dev/null
-          SSHEOF
-          chmod 600 ~/.ssh/config
-
-          echo "=== Testing SSH to jumpbox (${JUMPBOX_IP}) ==="
-          ssh -o ConnectTimeout=10 -o BatchMode=yes \
-            -i ~/.ssh/deploy_key \
-            "${ANSIBLE_USER}@${JUMPBOX_IP}" "echo SSH_OK" || {
-              echo "::error::SSH to jumpbox ${JUMPBOX_IP} failed"
-              exit 1
-            }
-          echo "::notice::SSH to jumpbox ${JUMPBOX_IP} successful"
-
-          for host in $TARGET_IPS; do
-            echo "=== Testing SSH to ${host} via jumpbox ==="
-            ssh -o ConnectTimeout=15 -o BatchMode=yes \
-              -i ~/.ssh/deploy_key \
-              -J "${ANSIBLE_USER}@${JUMPBOX_IP}" \
-              "${ANSIBLE_USER}@${host}" "docker service ls" || {
-                echo "::error::SSH or docker on ${host} failed"
-                continue
-              }
-            echo "::notice::SSH + docker service ls OK on ${host}"
-          done
+      - name: Docker service ls on private hosts
+        working-directory: infrastructure/ansible/deploy-setup
+        run: |
+          ansible -i inventory/inventory.yml private_hosts -m shell -a "docker service ls"
 
   # ── Phase 3: Build & push Docker images (parallel, conditional) ──────────────
   build-frontend:
