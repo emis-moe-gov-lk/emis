@@ -341,22 +341,33 @@ jobs:
 
       - name: Parse SSH config from inventory
         run: |
-          python3 -c '
-          import yaml
-          with open("infrastructure/ansible/deploy-setup/inventory/inventory.yml") as f:
-              inv = yaml.safe_load(f)
-          kv = inv.get("all", {}).get("vars", {})
-          key = kv.get("ansible_private_key_file", "~/.ssh/deploy_key")
-          ip  = kv.get("jumpbox_ip", "")
-          print(f"SSH_KEY_PATH={key}")
-          print(f"JUMPBOX_IP={ip}")
-          ' | tee -a "$GITHUB_ENV"
+          KEY=$(python3 -c '
+          import yaml, sys
+          try:
+              with open("infrastructure/ansible/deploy-setup/inventory/inventory.yml") as f:
+                  inv = yaml.safe_load(f)
+              kv = inv.get("all", {}).get("vars", {})
+              key = kv.get("ansible_private_key_file") or "~/.ssh/deploy_key"
+              ip  = kv.get("jumpbox_ip") or ""
+              print(key)
+              print(ip)
+          except Exception as e:
+              print(f"::error::YAML parse failed: {e}", file=sys.stderr)
+              sys.exit(1)
+          ')
+          { read -r SSH_KEY_PATH; read -r JUMPBOX_IP; } <<< "$KEY"
+          echo "SSH_KEY_PATH=${SSH_KEY_PATH}" >> "$GITHUB_ENV"
+          echo "JUMPBOX_IP=${JUMPBOX_IP}" >> "$GITHUB_ENV"
 
       - name: Write SSH key
         run: |
+          if [ -z "${SSH_KEY_PATH}" ]; then
+            echo "::error::SSH_KEY_PATH is empty — check inventory ansible_private_key_file"
+            exit 1
+          fi
           KEY="${SSH_KEY_PATH/#\~/$HOME}"
           mkdir -p "$(dirname "$KEY")"
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > "$KEY"
+          printf '%s' "${{ secrets.SSH_PRIVATE_KEY }}" > "$KEY"
           chmod 600 "$KEY"
 
       - name: Configure SSH
@@ -365,14 +376,14 @@ jobs:
           if [ -n "$JUMPBOX_IP" ]; then
             ssh-keyscan -H "$JUMPBOX_IP" >> ~/.ssh/known_hosts 2>/dev/null || true
           fi
-          eval $(ssh-agent)
+          eval "$(ssh-agent -s)"
           ssh-add "$KEY"
 
       - name: Run deploy-stack-rotate playbook
         working-directory: infrastructure/ansible/deploy-setup
         run: |
           KEY="${SSH_KEY_PATH/#\~/$HOME}"
-          eval $(ssh-agent)
+          eval "$(ssh-agent -s)"
           ssh-add "$KEY"
           ansible-playbook \
             -i inventory/inventory.yml \
