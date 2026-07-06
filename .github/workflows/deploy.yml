@@ -238,14 +238,14 @@ jobs:
           printf '%s' "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
 
-      - name: Test manual jump
+      - name: Test manual jump verbose
         run: |
-          ssh -i ~/.ssh/deploy_key \
+          ssh -vvv -i ~/.ssh/deploy_key \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o IdentitiesOnly=yes \
             -J slaf-dhaki@124.43.177.235 \
-            slaf-dhaki@192.168.200.4 "echo hi"
+            slaf-dhaki@192.168.200.4 "echo hi" 2>&1 | tail -80
 
       - name: Ping all hosts
         working-directory: infrastructure/ansible/deploy-setup
