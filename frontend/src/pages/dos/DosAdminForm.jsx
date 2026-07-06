@@ -552,7 +552,7 @@ function DosAdminFormInner() {
               responseData.currentAppointmentPosition ||
               formData.currentAppointmentPositionLabel ||
               formData.currentAppointmentPosition,
-            people_id: responseData.people_id || responseData.id || null,
+            people_id: responseData.people_id || responseData.id || result.people_id || null,
           };
 
           setIsRegistrationComplete(true);

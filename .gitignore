@@ -1,5 +1,4 @@
 # Environment - Sensitive configuration files containing secrets and credentials
-.env
 *.env
 
 # Node.js - Dependencies, build artifacts, and generated config
@@ -62,3 +61,4 @@ infrastructure/ansible/deploy-setup/inventory/*.yml
 # Backup Files - Editor and system backup artifacts
 *.bck
 serviceminutes
+config.bat
