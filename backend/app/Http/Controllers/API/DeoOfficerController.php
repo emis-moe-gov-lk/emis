@@ -293,6 +293,18 @@ class DeoOfficerController extends Controller
 
     public function store(Request $request, Wso2IsProvisioningService $wso2Is)
     {
+        $jwtRoles = (array) $request->attributes->get('jwt_roles', []);
+        $dbRoles  = $request->user()?->getRoleNames()?->all() ?? [];
+        $roles    = array_unique(array_merge(
+            array_map('strtolower', $jwtRoles),
+            array_map('strtolower', $dbRoles),
+        ));
+
+        $allowed = ['super admin', 'zonal deo', 'zonal deo head', 'zonal director', 'zonal deputy director'];
+        if (empty(array_intersect($roles, $allowed))) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
+        }
+
         try {
             $validated = $request->validate([
                 // PERSONAL

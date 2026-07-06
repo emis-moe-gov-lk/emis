@@ -1169,9 +1169,18 @@ class RolePermissionSeeder extends Seeder
             'alerts.profile.view',
             'alerts.profile.verify',
             'alerts.profile.confirm',
+            'alerts.profile.reject',
             'menu.zonal',
             'menu.zonal.admin',
             'menu.zonal.deo',
+            'zonal.deo.create',
+            'zonal.deo.bulk.upload',
+            'zonal.deo.profile.view',
+            'zonal.deo.profile.exportpdf',
+            'zonal.deo.qualification.add',
+            'zonal.deo.service.add',
+            'zonal.deo.wop.edit',
+            'zonal.deo.family.add',
         ];
 
         // provincial director same permissions as zonal director + provincial permissions
