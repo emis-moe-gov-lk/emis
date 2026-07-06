@@ -375,13 +375,16 @@ jobs:
           if INV=$(ansible-inventory -i inventory/inventory.yml --list 2>/dev/null); then
             SSH_KEY_PATH=$(echo "$INV" | jq -r '.all.vars.ansible_private_key_file // "~/.ssh/deploy_key"')
             JUMPBOX_IP=$(echo "$INV" | jq -r '.all.vars.jumpbox_ip // ""')
+            ANSIBLE_USER=$(echo "$INV" | jq -r '.all.vars.ansible_user // "ubuntu"')
           else
             echo "::warning::ansible-inventory failed, falling back to grep"
             SSH_KEY_PATH=$(grep -oP 'ansible_private_key_file:\s*\K.*' inventory/inventory.yml | head -1 | tr -d '"' || echo "~/.ssh/deploy_key")
             JUMPBOX_IP=$(grep -oP 'jumpbox_ip:\s*\K.*' inventory/inventory.yml | head -1 | tr -d '"' || echo "")
+            ANSIBLE_USER=$(grep -oP 'ansible_user:\s*\K.*' inventory/inventory.yml | head -1 | tr -d '"' || echo "ubuntu")
           fi
           echo "SSH_KEY_PATH=${SSH_KEY_PATH}" >> "$GITHUB_ENV"
           echo "JUMPBOX_IP=${JUMPBOX_IP}" >> "$GITHUB_ENV"
+          echo "ANSIBLE_USER=${ANSIBLE_USER}" >> "$GITHUB_ENV"
 
       - name: Write SSH key
         run: |
@@ -396,19 +399,27 @@ jobs:
 
       - name: Configure SSH
         run: |
-          KEY="${SSH_KEY_PATH/#\~/$HOME}"
-          if [ -n "$JUMPBOX_IP" ]; then
-            ssh-keyscan -H "$JUMPBOX_IP" >> ~/.ssh/known_hosts 2>/dev/null || true
+          if [ -z "$JUMPBOX_IP" ]; then
+            echo "::error::JUMPBOX_IP is empty — check inventory jumpbox_ip"
+            exit 1
           fi
+          KEY="${SSH_KEY_PATH/#\~/$HOME}"
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          ssh-keyscan -H "$JUMPBOX_IP" >> ~/.ssh/known_hosts 2>/dev/null || true
+          cat > ~/.ssh/config << SSHEOF
+          Host 192.168.*
+              StrictHostKeyChecking no
+              UserKnownHostsFile /dev/null
+              ProxyCommand ssh -i ${KEY} -W %h:%p ${ANSIBLE_USER}@${JUMPBOX_IP}
+          SSHEOF
+          chmod 600 ~/.ssh/config
           eval "$(ssh-agent -s)"
           ssh-add "$KEY"
 
       - name: Run deploy-stack-rotate playbook
         working-directory: infrastructure/ansible/deploy-setup
         run: |
-          KEY="${SSH_KEY_PATH/#\~/$HOME}"
-          eval "$(ssh-agent -s)"
-          ssh-add "$KEY"
           ansible-playbook \
             -i inventory/inventory.yml \
             -e @env/env.yml \
