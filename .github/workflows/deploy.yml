@@ -1,14 +1,29 @@
-name: Deploy EMIS Stack
-run-name: "Deploy on ${{ github.ref_name }}"
+name: "Deploy EMIS Stack 🚀"
+run-name: "Deploy ${{ inputs.services || 'all' }} on ${{ github.ref_name }}"
 
 on:
   push:
     branches: [dev, infra/wkflw/dev-cicd]
-    paths:
-      - 'frontend/**'
-      - 'backend/**'
-      - 'is/**'
+    #paths:
+      #- 'frontend/**'
+      #- 'backend/**'
+      #- 'is/**'
   workflow_dispatch:
+    name: "Deploy EMIS Stack (manual)"
+    inputs:
+      services:
+        description: "Services to deploy"
+        type: choice
+        options:
+          - all
+          - frontend
+          - backend
+          - is
+          - frontend,backend
+          - frontend,is
+          - backend,is
+        required: true
+        default: "all"
 
 permissions:
   contents: read
@@ -38,10 +53,20 @@ jobs:
         id: detect
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "Manual dispatch — checking all services"
-            echo "frontend_changed=true" >> $GITHUB_OUTPUT
-            echo "backend_changed=true" >> $GITHUB_OUTPUT
-            echo "is_changed=true" >> $GITHUB_OUTPUT
+            SVC="${{ inputs.services }}"
+            echo "Manual dispatch — services: $SVC"
+            case "$SVC" in
+              *frontend*) echo "frontend_changed=true" >> $GITHUB_OUTPUT ;;
+              *)         echo "frontend_changed=false" >> $GITHUB_OUTPUT ;;
+            esac
+            case "$SVC" in
+              *backend*)  echo "backend_changed=true" >> $GITHUB_OUTPUT ;;
+              *)          echo "backend_changed=false" >> $GITHUB_OUTPUT ;;
+            esac
+            case "$SVC" in
+              *is*)       echo "is_changed=true" >> $GITHUB_OUTPUT ;;
+              *)          echo "is_changed=false" >> $GITHUB_OUTPUT ;;
+            esac
           else
             CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "")
             if [ -z "$CHANGED" ]; then
