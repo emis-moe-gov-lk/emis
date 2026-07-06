@@ -330,6 +330,7 @@ class DeoOfficerController extends Controller
             DB::beginTransaction();
 
             $nic        = NicHelper::normalize($validated['nic']);
+            $defaultPassword = 'Pw' . $nic;
             $initials   = People::generateInitials($validated['fullName']);
             $dosService = Service::where('service_name', 'DOS')->firstOrFail();
             $serviceId  = $dosService->service_id;
@@ -427,20 +428,20 @@ class DeoOfficerController extends Controller
                 'name'     => $people->name_with_initials,
                 'email'    => strtolower($validated['email']),
                 'contact'  => $validated['contact'],
-                'password' => Hash::make('Password@123'),
+                'password' => Hash::make($defaultPassword),
             ]);
 
             $user->assignRole('Zonal DEO');
 
             DB::commit();
 
-            $wso2Is->provisionUser($user, 'Password@123', 'zonal deo');
+            $wso2Is->provisionUser($user, $defaultPassword, 'zonal deo');
 
             return response()->json([
                 'status'           => 'success',
                 'message'          => 'DEO officer created successfully',
                 'people_id'        => $people->people_id,
-                'default_password' => 'Password@123',
+                'default_password' => $defaultPassword,
             ], 201);
         } catch (ValidationException $e) {
             activity('deo_officer_registration')

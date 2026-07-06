@@ -363,6 +363,11 @@ class DosAdminController extends Controller
             // ==============================
             $role = $this->resolveRole($validated['currentAppointmentPosition']);
 
+            // BUG-072: Zonal Deputy Director accounts get a per-person default
+            // password (Pw+NIC); Zonal Director keeps the shared default until
+            // that role is asked for the same change.
+            $defaultPassword = $role === 'zonal deputy director' ? 'Pw' . $nic : 'Password@123';
+
             $user = User::create([
                 'nic'      => $nic,
                 'nic_hash' => NicHelper::hash($nic),
@@ -370,14 +375,14 @@ class DosAdminController extends Controller
                 'name'     => $people->name_with_initials,
                 'email'    => strtolower($validated['email']),
                 'contact'  => $validated['contact'],
-                'password' => Hash::make('Password@123'),
+                'password' => Hash::make($defaultPassword),
             ]);
 
             $user->assignRole($role);
 
             DB::commit();
 
-            $wso2Is->provisionUser($user, 'Password@123', $role);
+            $wso2Is->provisionUser($user, $defaultPassword, $role);
 
             $positionName = Position::where('position_id', $validated['currentAppointmentPosition'])
                 ->value('position_name');
@@ -395,7 +400,7 @@ class DosAdminController extends Controller
                     'currentAppointmentPositionName' => $positionName,
                 ],
                 'people_id'        => $people->people_id,
-                'default_password' => 'Password@123',
+                'default_password' => $defaultPassword,
             ], 201);
 
         } catch (ValidationException $e) {
