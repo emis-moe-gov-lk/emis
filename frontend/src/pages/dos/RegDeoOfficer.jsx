@@ -464,7 +464,12 @@ function RegDeoOfficerInner() {
             people_id: result.people_id || responseData.people_id || null,
           };
 
-          setRegistrationSummary(summary);
+          // Kept out of `summary`/UPDATE_FORM_DATA deliberately: that payload is
+          // persisted to localStorage by TeacherFormContext, and this is a
+          // one-time plaintext credential that must never be written to disk.
+          const defaultPassword = result.default_password || responseData.default_password || null;
+
+          setRegistrationSummary({ ...summary, defaultPassword });
           dispatch({ type: "UPDATE_FORM_DATA", payload: summary });
           dispatch({ type: "COMPLETE_REGISTRATION" });
           setIsRegistrationComplete(true);
@@ -594,6 +599,18 @@ function RegDeoOfficerInner() {
                 <p className="text-gray-900 dark:text-gray-100"><strong>Contact Number:</strong> {registrationSummary?.contact || "-"}</p>
                 <p className="text-gray-900 dark:text-gray-100"><strong>Current Appointed Position:</strong> {registrationSummary?.currentAppointmentPositionName || "-"}</p>
               </div>
+
+              {registrationSummary?.defaultPassword && (
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/40 rounded-2xl p-6 text-sm">
+                  <p className="text-amber-900 dark:text-amber-300 font-semibold">
+                    Temporary Password: <span className="font-mono">{registrationSummary.defaultPassword}</span>
+                  </p>
+                  <p className="text-amber-800 dark:text-amber-400 mt-1">
+                    Share this password securely with the new officer. This is shown only once — they will be
+                    required to set their own password on first login.
+                  </p>
+                </div>
+              )}
 
               <div className="flex justify-center gap-4 pt-4">
                 <Button variant="secondary" onClick={resetRegistration}>New Registration</Button>
