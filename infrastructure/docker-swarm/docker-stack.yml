@@ -1,13 +1,13 @@
 # ── NETWORKS ──────────────────────────────────────────────────────────────────
 networks:
-  uat-emis-swm-network:
+  noapim-uat-swm-network:
     driver: overlay
-    name: hrm-uat-swm-network
+    name: "${STACK_NAME}-network"
     attachable: true
     ipam:
       driver: default
       config:
-        - subnet: 172.20.0.0/16
+        - subnet: "${STACK_NETWORK_SUBNET}"
 
 # ── SERVICES ──────────────────────────────────────────────────────────────────
 services:
@@ -16,11 +16,11 @@ services:
   wso2-is:
     image: "${WSO2_IS_DOCKERIMG_REPO}:${WSO2_IS_DOCKERIMG_TAG}"
     ports:
-      - "9444:9444"
+      - "${IS_HOST_PORT}:9444"
     env_file:
       - is.env
     networks:
-      - uat-emis-swm-network
+      - noapim-uat-swm-network
     deploy:
       replicas: 1
       restart_policy:
@@ -28,33 +28,15 @@ services:
         delay: 10s
         max_attempts: 3
 
-  # ── WSO2 API Manager ───────────────────────────────────────────────────────
-  wso2-apim:
-    image: "${WSO2_APIM_DOCKERIMG_REPO}:${WSO2_APIM_DOCKERIMG_TAG}"
-    ports:
-      - "9443:9443"
-      - "8243:8243"
-      - "8280:8280"
-    env_file:
-      - apim.env
-    networks:
-      - uat-emis-swm-network
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-        delay: 15s
-        max_attempts: 3
-
   # ── Frontend ───────────────────────────────────────────────────────────────
   frontend:
     image: "${FRONTEND_DOCKERIMG_REPO}:${FRONTEND_DOCKERIMG_TAG}"
     ports:
-      - "80:80"
+      - "${FRONTEND_HOST_PORT}:80"
     env_file:
       - frontend.env
     networks:
-      - uat-emis-swm-network
+      - noapim-uat-swm-network
     deploy:
       replicas: 1
       restart_policy:
@@ -66,17 +48,22 @@ services:
   backend:
     image: "${BACKEND_DOCKERIMG_REPO}:${BACKEND_DOCKERIMG_TAG}"
     ports:
-      - "9000:80"
+      - "${BACKEND_HOST_PORT}:80"
     env_file:
       - backend.env
     command: >
       sh -c "
-        composer install --no-interaction &&
-        cp .env.example .env &&
-        php artisan key:generate --force &&
-        php artisan migrate:fresh --seed --force &&
-        frankenphp run --config /etc/caddy/Caddyfile
+      composer install --no-interaction &&
+      cp .env.example .env &&
+      php artisan key:generate --force &&
+      php artisan migrate:fresh --force &&
+      php artisan wso2:cache-roles &&
+      php -d memory_limit=1G artisan db:seed --force &&
+      frankenphp run --config /etc/caddy/Caddyfile
       "
+    extra_hosts:
+      - "idp.app-uat.emis.moe.gov.lk:192.168.200.1"
+      - "idp-dev.emis.moe.gov.lk:192.168.200.1"
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:2019/metrics || exit 1"]
       interval: 30s
@@ -84,7 +71,7 @@ services:
       retries: 3
       start_period: 120s
     networks:
-      - uat-emis-swm-network
+      - noapim-uat-swm-network
     deploy:
       replicas: 1
       restart_policy:

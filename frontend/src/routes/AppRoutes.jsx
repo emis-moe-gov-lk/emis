@@ -109,7 +109,7 @@ export default function AppRoutes() {
         <Route
           path="/force-password-change"
           element={
-            <ProtectedRoute roles={["teacher"]}>
+            <ProtectedRoute>
               <ForcePasswordChange />
             </ProtectedRoute>
           }
