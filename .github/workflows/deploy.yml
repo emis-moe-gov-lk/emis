@@ -249,13 +249,10 @@ jobs:
       - name: Install Ansible
         run: pip install ansible
 
-      - name: Write env.yml
+      - name: Write env.yml and inventory.yml
         run: |
           mkdir -p infrastructure/ansible/deploy-setup/env
           echo "${{ secrets.ENV_YML }}" > infrastructure/ansible/deploy-setup/env/env.yml
-
-      - name: Write inventory.yml
-        run: |
           mkdir -p infrastructure/ansible/deploy-setup/inventory
           echo "${{ secrets.INVENTORY_YML }}" > infrastructure/ansible/deploy-setup/inventory/inventory.yml
 
@@ -268,34 +265,45 @@ jobs:
           sed -i "s/^is_image_tag:.*/is_image_tag: \"7.2.0-${IS_VER}\"/" \
             infrastructure/ansible/deploy-setup/env/env.yml
 
-      - name: Write SSH private key
+      - name: Parse SSH config from inventory
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
+          python3 << 'PYEOF' > /tmp/ssh_config.env
+import yaml
+with open('infrastructure/ansible/deploy-setup/inventory/inventory.yml') as f:
+    inv = yaml.safe_load(f)
+kv = inv.get('all', {}).get('vars', {})
+hosts = inv.get('all', {}).get('children', {}).get('jumpbox', {}).get('hosts', {})
+key = kv.get('ansible_private_key_file', '~/.ssh/deploy_key')
+ip = list(hosts.values())[0].get('ansible_host', '') if hosts else ''
+print(f"SSH_KEY_PATH={key}")
+print(f"JUMPBOX_IP={ip}")
+PYEOF
+          cat /tmp/ssh_config.env >> $GITHUB_ENV
 
-      - name: Fix inventory SSH key paths
+      - name: Write SSH key
         run: |
-          sed -i "s|/var/home/dhakiweere/.ssh/emis_vmaccess_ed25519|$HOME/.ssh/deploy_key|g" \
-            infrastructure/ansible/deploy-setup/inventory/inventory.yml
+          KEY="${SSH_KEY_PATH/#\~/$HOME}"
+          mkdir -p "$(dirname "$KEY")"
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > "$KEY"
+          chmod 600 "$KEY"
 
-      - name: Configure SSH agent and known hosts
+      - name: Configure SSH
         run: |
-          eval $(ssh-agent)
-          ssh-add ~/.ssh/deploy_key
-          JIP=$(grep -A3 'jumpbox:' infrastructure/ansible/deploy-setup/inventory/inventory.yml | \
-                grep 'ansible_host:' | awk '{print $2}')
-          if [ -n "$JIP" ]; then
-            ssh-keyscan -H "$JIP" >> ~/.ssh/known_hosts 2>/dev/null || true
+          KEY="${SSH_KEY_PATH/#\~/$HOME}"
+          if [ -n "$JUMPBOX_IP" ]; then
+            ssh-keyscan -H "$JUMPBOX_IP" >> ~/.ssh/known_hosts 2>/dev/null || true
           fi
+          eval $(ssh-agent)
+          ssh-add "$KEY"
 
-      - name: Run deploy-stack playbook
+      - name: Run deploy-stack-rotate playbook
         working-directory: infrastructure/ansible/deploy-setup
         run: |
+          KEY="${SSH_KEY_PATH/#\~/$HOME}"
           eval $(ssh-agent)
-          ssh-add ~/.ssh/deploy_key
+          ssh-add "$KEY"
           ansible-playbook \
             -i inventory/inventory.yml \
             -e @env/env.yml \
             -e deploy_env=env \
-            playbooks/deploy-stack.yml
+            playbooks/deploy-stack-rotate.yml
