@@ -1,5 +1,5 @@
-name: "Deploy EMIS Stack"
-run-name: "Deploy ${{ inputs.services || 'all' }} on ${{ github.ref_name }}"
+name: "Build & Deploy to dev"
+run-name: "running dev ci/cd from ${{ github.ref_name }}"
 
 on:
   push:
@@ -189,78 +189,7 @@ jobs:
           fi
           echo "new_version=$NEW" >> $GITHUB_OUTPUT
 
-  # ── Phase 2: Debug SSH ─────────────────────────────────────────────────────
-  debug-ssh:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install Ansible
-        run: pip install ansible
-
-      - name: Write inventory.yml and env.yml
-        run: |
-          mkdir -p infrastructure/ansible/deploy-setup/env
-          cat > infrastructure/ansible/deploy-setup/env/env.yml << 'ENVEOF'
-          ${{ secrets.ENV_YML }}
-          ENVEOF
-          mkdir -p infrastructure/ansible/deploy-setup/inventory
-          cat > infrastructure/ansible/deploy-setup/inventory/inventory.yml << 'INVEOF'
-          ${{ secrets.INVENTORY_YML }}
-          INVEOF
-
-      - name: Fix unquoted Jinja2 templates in YAML
-        run: |
-          python3 -c '
-          import re, sys
-          for fpath in sys.argv[1:]:
-              with open(fpath) as f:
-                  lines = f.readlines()
-              with open(fpath, "w") as f:
-                  for line in lines:
-                      for pat in [r"^(\s*[\w-]+\s*:\s+)(.+)$", r"^(\s*-\s+)(.+)$"]:
-                          m = re.match(pat, line)
-                          if m and "{{" in m.group(2):
-                              val = m.group(2).rstrip()
-                              if not (val.startswith("\"") and val.endswith("\"")):
-                                  line = m.group(1) + "\"" + val + "\"\n"
-                              break
-                      f.write(line)
-          ' \
-            infrastructure/ansible/deploy-setup/env/env.yml \
-            infrastructure/ansible/deploy-setup/inventory/inventory.yml
-
-      - name: Write SSH key and config
-        run: |
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          printf '%s' "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          cat > ~/.ssh/config << 'EOF'
-          Host *
-            StrictHostKeyChecking no
-            UserKnownHostsFile /dev/null
-            IdentitiesOnly yes
-            IdentityFile ~/.ssh/deploy_key
-          EOF
-          chmod 600 ~/.ssh/config
-
-      - name: Test manual jump
-        run: |
-          ssh -J slaf-dhaki@124.43.177.235 slaf-dhaki@192.168.200.4 "echo hi"
-
-      - name: Ping all hosts
-        working-directory: infrastructure/ansible/deploy-setup
-        run: |
-          ansible -i inventory/inventory.yml all -m ping
-
-      - name: Docker service ls on private hosts
-        working-directory: infrastructure/ansible/deploy-setup
-        run: |
-          ansible -i inventory/inventory.yml private_hosts -m shell -a "docker service ls"
-
-  # ── Phase 3: Build & push Docker images (parallel, conditional) ──────────────
+  # ── Phase 2: Build & push Docker images (parallel, conditional) ──────────────
   build-frontend:
     needs: detect-changes
     if: needs.detect-changes.outputs.frontend_changed == 'true'
@@ -285,7 +214,7 @@ jobs:
       version: ${{ needs.detect-changes.outputs.is_new_version }}
     secrets: inherit
 
-  # ── Phase 4: Finalize — update GH variables and commit version files ─────────
+  # ── Phase 3: Finalize — update GH variables and commit version files ─────────
   finalize:
     needs: [detect-changes, build-frontend, build-backend, build-is]
     if: |
@@ -371,7 +300,7 @@ jobs:
             git push
           fi
 
-  # ── Phase 5: Deploy to Swarm ─────────────────────────────────────────────────
+  # ── Phase 4: Deploy to Swarm ─────────────────────────────────────────────────
   deploy:
     needs: [detect-changes, build-frontend, build-backend, build-is]
     if: |
