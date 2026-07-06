@@ -193,143 +193,61 @@ jobs:
   debug-ssh:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install Ansible
-        run: pip install ansible
-
-      - name: Write env.yml and inventory.yml
+      - name: Write inventory.yml
         run: |
-          mkdir -p infrastructure/ansible/deploy-setup/env
-          cat > infrastructure/ansible/deploy-setup/env/env.yml << 'ENVEOF'
-          ${{ secrets.ENV_YML }}
-          ENVEOF
-          mkdir -p infrastructure/ansible/deploy-setup/inventory
-          cat > infrastructure/ansible/deploy-setup/inventory/inventory.yml << 'INVEOF'
+          mkdir -p /tmp/inventory
+          cat > /tmp/inventory/inventory.yml << 'INVEOF'
           ${{ secrets.INVENTORY_YML }}
           INVEOF
 
-      - name: Fix unquoted Jinja2 templates in YAML
+      - name: Extract SSH vars from inventory
         run: |
-          python3 -c '
-          import re, sys
-          for fpath in sys.argv[1:]:
-              with open(fpath) as f:
-                  lines = f.readlines()
-              with open(fpath, "w") as f:
-                  for line in lines:
-                      for pat in [r"^(\s*[\w-]+\s*:\s+)(.+)$", r"^(\s*-\s+)(.+)$"]:
-                          m = re.match(pat, line)
-                          if m and "{{" in m.group(2):
-                              val = m.group(2).rstrip()
-                              if not (val.startswith("\"") and val.endswith("\"")):
-                                  line = m.group(1) + "\"" + val + "\"\n"
-                              break
-                      f.write(line)
-          ' \
-            infrastructure/ansible/deploy-setup/env/env.yml \
-            infrastructure/ansible/deploy-setup/inventory/inventory.yml
-
-      - name: Expand tilde in inventory ProxyCommand key path
-        run: |
-          sed -i "s|-i ~/|-i $HOME/|g" \
-            infrastructure/ansible/deploy-setup/inventory/inventory.yml
-
-      - name: Parse SSH config from inventory
-        working-directory: infrastructure/ansible/deploy-setup
-        run: |
-          if INV=$(ansible-inventory -i inventory/inventory.yml --list 2>/dev/null); then
-            SSH_KEY_PATH=$(echo "$INV" | jq -r '.all.vars.ansible_private_key_file // "~/.ssh/deploy_key"')
-            JUMPBOX_IP=$(echo "$INV" | jq -r '.all.vars.jumpbox_ip // ""')
-            ANSIBLE_USER=$(echo "$INV" | jq -r '.all.vars.ansible_user // "ubuntu"')
-          else
-            echo "::warning::ansible-inventory failed, falling back to grep"
-            SSH_KEY_PATH=$(grep 'ansible_private_key_file:' inventory/inventory.yml | head -1 | awk '{print $2}' | tr -d '"' || echo "~/.ssh/deploy_key")
-            JUMPBOX_IP=$(grep 'jumpbox_ip:' inventory/inventory.yml | head -1 | awk '{print $2}' | tr -d '"' || echo "")
-            ANSIBLE_USER=$(grep 'ansible_user:' inventory/inventory.yml | head -1 | awk '{print $2}' | tr -d '"' || echo "ubuntu")
-          fi
-          echo "SSH_KEY_PATH=${SSH_KEY_PATH}" >> "$GITHUB_ENV"
+          JUMPBOX_IP=$(grep 'jumpbox_ip:' /tmp/inventory/inventory.yml | head -1 | awk '{print $2}')
+          ANSIBLE_USER=$(grep 'ansible_user:' /tmp/inventory/inventory.yml | head -1 | awk '{print $2}')
+          TARGET_IPS=$(grep 'ansible_host:' /tmp/inventory/inventory.yml | awk '{print $2}' | sort -u)
           echo "JUMPBOX_IP=${JUMPBOX_IP}" >> "$GITHUB_ENV"
           echo "ANSIBLE_USER=${ANSIBLE_USER}" >> "$GITHUB_ENV"
+          echo "TARGET_IPS=${TARGET_IPS}" >> "$GITHUB_ENV"
 
       - name: Write SSH key
         run: |
-          if [ -z "${SSH_KEY_PATH}" ]; then
-            echo "::error::SSH_KEY_PATH is empty — check inventory ansible_private_key_file"
-            exit 1
-          fi
-          KEY="${SSH_KEY_PATH/#\~/$HOME}"
-          mkdir -p "$(dirname "$KEY")"
-          printf '%s' "${{ secrets.SSH_PRIVATE_KEY }}" > "$KEY"
-          chmod 600 "$KEY"
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s' "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
 
-      - name: Configure SSH and test connectivity
-        working-directory: infrastructure/ansible/deploy-setup
+      - name: Test SSH connectivity
         run: |
-          if [ -z "$JUMPBOX_IP" ]; then
-            echo "::error::JUMPBOX_IP is empty — check inventory jumpbox_ip"
-            exit 1
-          fi
-          KEY="${SSH_KEY_PATH/#\~/$HOME}"
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
 
-          echo "=== Adding jumpbox host key ==="
-          ssh-keyscan -H "$JUMPBOX_IP" >> ~/.ssh/known_hosts 2>/dev/null || {
-            echo "::warning::ssh-keyscan failed for jumpbox ${JUMPBOX_IP}"
-          }
-
-          cat > ~/.ssh/config << SSHEOF
-          Host ${JUMPBOX_IP}
+          cat > ~/.ssh/config << 'SSHEOF'
+          Host *
               StrictHostKeyChecking no
               UserKnownHostsFile /dev/null
-          Host 192.168.*
-              StrictHostKeyChecking no
-              UserKnownHostsFile /dev/null
-              ProxyCommand ssh -i ${KEY} -W %h:%p ${ANSIBLE_USER}@${JUMPBOX_IP}
           SSHEOF
           chmod 600 ~/.ssh/config
 
-          eval "$(ssh-agent -s)"
-          ssh-add "$KEY"
-
           echo "=== Testing SSH to jumpbox (${JUMPBOX_IP}) ==="
-          if ssh -o ConnectTimeout=10 -o BatchMode=yes -o StrictHostKeyChecking=no \
-            "${ANSIBLE_USER}@${JUMPBOX_IP}" "echo SSH_OK"; then
-            echo "::notice::SSH to jumpbox ${JUMPBOX_IP} successful"
-          else
-            echo "::error::SSH to jumpbox ${JUMPBOX_IP} failed"
-            exit 1
-          fi
-
-          echo "=== Extracting target host IPs from inventory ==="
-          TARGET_IPS=$(ansible-inventory -i inventory/inventory.yml --list 2>/dev/null \
-            | jq -r '._meta.hostvars // {} | to_entries[] | .value.ansible_host // .key' 2>/dev/null \
-            | grep -E '^192\.168\.' | sort -u || true)
-
-          if [ -z "$TARGET_IPS" ]; then
-            TARGET_IPS=$(grep -oE '192\.168\.[0-9]+\.[0-9]+' inventory/inventory.yml | sort -u || true)
-          fi
-
-          if [ -z "$TARGET_IPS" ]; then
-            echo "::warning::Could not determine target node IPs from inventory"
-          else
-            echo "Target IPs found: ${TARGET_IPS}"
-          fi
+          ssh -o ConnectTimeout=10 -o BatchMode=yes \
+            -i ~/.ssh/deploy_key \
+            "${ANSIBLE_USER}@${JUMPBOX_IP}" "echo SSH_OK" || {
+              echo "::error::SSH to jumpbox ${JUMPBOX_IP} failed"
+              exit 1
+            }
+          echo "::notice::SSH to jumpbox ${JUMPBOX_IP} successful"
 
           for host in $TARGET_IPS; do
-            echo "=== Testing SSH to ${host} (via jumpbox) ==="
-            if ssh -o ConnectTimeout=15 -o BatchMode=yes "${ANSIBLE_USER}@${host}" "docker service ls 2>&1 || true"; then
-              echo "::notice::SSH and docker service ls OK on ${host}"
-            else
-              echo "::error::SSH to ${host} failed"
-            fi
+            echo "=== Testing SSH to ${host} via jumpbox ==="
+            ssh -o ConnectTimeout=15 -o BatchMode=yes \
+              -i ~/.ssh/deploy_key \
+              -J "${ANSIBLE_USER}@${JUMPBOX_IP}" \
+              "${ANSIBLE_USER}@${host}" "docker service ls" || {
+                echo "::error::SSH or docker on ${host} failed"
+                continue
+              }
+            echo "::notice::SSH + docker service ls OK on ${host}"
           done
-
-          if [ -z "$TARGET_IPS" ]; then
-            echo "::warning::No target IPs found — skipping internal node tests"
-          fi
 
   # ── Phase 3: Build & push Docker images (parallel, conditional) ──────────────
   build-frontend:

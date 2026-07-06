@@ -18,6 +18,7 @@ all:
       vars:
         ansible_ssh_common_args: >-
           -o StrictHostKeyChecking=no
+          -J "{{ ansible_user }}@{{ jumpbox_ip }}"
       children:
 
         swarm_managers:
