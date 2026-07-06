@@ -3,7 +3,7 @@ run-name: "running dev ci/cd from ${{ github.ref_name }}"
 
 on:
   push:
-    branches: [dev, infra/wkflw/dev-cicd]
+    branches: [dev]
     paths:
       - 'frontend/**'
       - 'backend/**'
