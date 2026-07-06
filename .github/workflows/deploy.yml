@@ -248,6 +248,10 @@ jobs:
         run: |
           ansible -i inventory/inventory.yml private_hosts -m shell -a "docker service ls"
 
+      - name: Test manual jump
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -J slaf-dhaki@124.43.177.235 slaf-dhaki@192.168.200.4 "echo hi"
+
   # ── Phase 3: Build & push Docker images (parallel, conditional) ──────────────
   build-frontend:
     needs: detect-changes
