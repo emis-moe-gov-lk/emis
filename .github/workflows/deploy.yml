@@ -326,9 +326,13 @@ jobs:
       - name: Write env.yml and inventory.yml
         run: |
           mkdir -p infrastructure/ansible/deploy-setup/env
-          echo "${{ secrets.ENV_YML }}" > infrastructure/ansible/deploy-setup/env/env.yml
+          cat > infrastructure/ansible/deploy-setup/env/env.yml << 'ENVEOF'
+          ${{ secrets.ENV_YML }}
+          ENVEOF
           mkdir -p infrastructure/ansible/deploy-setup/inventory
-          echo "${{ secrets.INVENTORY_YML }}" > infrastructure/ansible/deploy-setup/inventory/inventory.yml
+          cat > infrastructure/ansible/deploy-setup/inventory/inventory.yml << 'INVEOF'
+          ${{ secrets.INVENTORY_YML }}
+          INVEOF
 
       - name: Fix unquoted Jinja2 templates in YAML
         run: |
