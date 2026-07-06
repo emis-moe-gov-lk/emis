@@ -18,10 +18,7 @@ on:
           - all
           - frontend
           - backend
-          - is
           - frontend,backend
-          - frontend,is
-          - backend,is
         required: true
         default: "all"
 
@@ -36,14 +33,11 @@ jobs:
     outputs:
       frontend_changed: ${{ steps.set_flags.outputs.frontend_changed }}
       backend_changed: ${{ steps.set_flags.outputs.backend_changed }}
-      is_changed: ${{ steps.set_flags.outputs.is_changed }}
       any_changed: ${{ steps.set_flags.outputs.any_changed }}
       frontend_current_version: ${{ steps.fetch_vars.outputs.frontend_current }}
       backend_current_version: ${{ steps.fetch_vars.outputs.backend_current }}
-      is_current_version: ${{ steps.fetch_vars.outputs.is_current }}
       frontend_new_version: ${{ steps.bump_frontend.outputs.new_version }}
       backend_new_version: ${{ steps.bump_backend.outputs.new_version }}
-      is_new_version: ${{ steps.bump_is.outputs.new_version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -64,10 +58,6 @@ jobs:
               *backend*)  echo "backend_changed=true" >> $GITHUB_OUTPUT ;;
               *)          echo "backend_changed=false" >> $GITHUB_OUTPUT ;;
             esac
-            case "$SVC" in
-              *is*)       echo "is_changed=true" >> $GITHUB_OUTPUT ;;
-              *)          echo "is_changed=false" >> $GITHUB_OUTPUT ;;
-            esac
           else
             CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "")
             if [ -z "$CHANGED" ]; then
@@ -85,11 +75,6 @@ jobs:
               echo "backend_changed=true" >> $GITHUB_OUTPUT
             else
               echo "backend_changed=false" >> $GITHUB_OUTPUT
-            fi
-            if echo "$CHANGED" | grep -q "^is/"; then
-              echo "is_changed=true" >> $GITHUB_OUTPUT
-            else
-              echo "is_changed=false" >> $GITHUB_OUTPUT
             fi
           fi
 
@@ -129,22 +114,18 @@ jobs:
 
           FRONTEND=$(echo "$VARS" | jq -r '.variables[] | select(.name=="FRONTEND_VERSION") | .value')
           BACKEND=$(echo "$VARS" | jq -r '.variables[] | select(.name=="BACKEND_VERSION") | .value')
-          IS=$(echo "$VARS" | jq -r '.variables[] | select(.name=="IS_VERSION") | .value')
 
           echo "frontend_current=$FRONTEND" >> $GITHUB_OUTPUT
           echo "backend_current=$BACKEND" >> $GITHUB_OUTPUT
-          echo "is_current=$IS" >> $GITHUB_OUTPUT
 
       - name: Set change flags
         id: set_flags
         run: |
           FE="${{ steps.detect.outputs.frontend_changed }}"
           BE="${{ steps.detect.outputs.backend_changed }}"
-          IS_C="${{ steps.detect.outputs.is_changed }}"
           echo "frontend_changed=$FE" >> $GITHUB_OUTPUT
           echo "backend_changed=$BE" >> $GITHUB_OUTPUT
-          echo "is_changed=$IS_C" >> $GITHUB_OUTPUT
-          if [ "$FE" = "true" ] || [ "$BE" = "true" ] || [ "$IS_C" = "true" ]; then
+          if [ "$FE" = "true" ] || [ "$BE" = "true" ]; then
             echo "any_changed=true" >> $GITHUB_OUTPUT
           else
             echo "any_changed=false" >> $GITHUB_OUTPUT
@@ -176,19 +157,6 @@ jobs:
           fi
           echo "new_version=$NEW" >> $GITHUB_OUTPUT
 
-      - name: Bump is version
-        id: bump_is
-        run: |
-          V="${{ steps.fetch_vars.outputs.is_current }}"
-          if [ "${{ steps.detect.outputs.is_changed }}" = "true" ]; then
-            BASE="${V%.*}"
-            PATCH="${V##*.}"
-            NEW="${BASE}.$((PATCH + 1))"
-          else
-            NEW="$V"
-          fi
-          echo "new_version=$NEW" >> $GITHUB_OUTPUT
-
   # ── Phase 2: Build & push Docker images (parallel, conditional) ──────────────
   build-frontend:
     needs: detect-changes
@@ -206,24 +174,15 @@ jobs:
       version: ${{ needs.detect-changes.outputs.backend_new_version }}
     secrets: inherit
 
-  build-is:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.is_changed == 'true'
-    uses: ./.github/workflows/build-push-is.yml
-    with:
-      version: ${{ needs.detect-changes.outputs.is_new_version }}
-    secrets: inherit
-
   # ── Phase 3: Finalize — update GH variables and commit version files ─────────
   finalize:
-    needs: [detect-changes, build-frontend, build-backend, build-is]
+    needs: [detect-changes, build-frontend, build-backend]
     if: |
       always() &&
       needs.detect-changes.result == 'success' &&
       (
         (needs.build-frontend.result == 'success' && needs.build-frontend.outputs.image_built == 'true') ||
-        (needs.build-backend.result == 'success' && needs.build-backend.outputs.image_built == 'true') ||
-        (needs.build-is.result == 'success' && needs.build-is.outputs.image_built == 'true')
+        (needs.build-backend.result == 'success' && needs.build-backend.outputs.image_built == 'true')
       )
     runs-on: ubuntu-latest
     permissions:
@@ -279,43 +238,30 @@ jobs:
             "https://api.github.com/repos/${{ github.repository }}/actions/variables/BACKEND_VERSION" \
             -d "{\"name\":\"BACKEND_VERSION\",\"value\":\"$V\"}"
 
-      - name: Finalize IS
-        if: needs.build-is.result == 'success' && needs.build-is.outputs.image_built == 'true'
-        run: |
-          V="${{ needs.detect-changes.outputs.is_new_version }}"
-          echo "$V" > is/version
-          curl -s -X PATCH \
-            -H "Authorization: Bearer ${{ steps.app_token.outputs.token }}" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${{ github.repository }}/actions/variables/IS_VERSION" \
-            -d "{\"name\":\"IS_VERSION\",\"value\":\"$V\"}"
-
       - name: Commit version file changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           if ! git diff --quiet --exit-code; then
-            git add frontend/version backend/version is/version
+            git add frontend/version backend/version
             git commit -m "chore: bump service versions [skip ci]"
             git push
           fi
 
   # ── Phase 4: Deploy to Swarm ─────────────────────────────────────────────────
   deploy:
-    needs: [detect-changes, build-frontend, build-backend, build-is]
+    needs: [detect-changes, build-frontend, build-backend]
     if: |
       always() &&
       needs.detect-changes.result == 'success' &&
       (
         (needs.build-frontend.result == 'success' && needs.build-frontend.outputs.image_built == 'true') ||
-        (needs.build-backend.result == 'success' && needs.build-backend.outputs.image_built == 'true') ||
-        (needs.build-is.result == 'success' && needs.build-is.outputs.image_built == 'true')
+        (needs.build-backend.result == 'success' && needs.build-backend.outputs.image_built == 'true')
       )
     runs-on: ubuntu-latest
     env:
       FRONTEND_VER: ${{ needs.detect-changes.outputs.frontend_new_version }}
       BACKEND_VER: ${{ needs.detect-changes.outputs.backend_new_version }}
-      IS_VER: ${{ needs.detect-changes.outputs.is_new_version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -360,8 +306,6 @@ jobs:
           sed -i "s/^frontend_image_tag:.*/frontend_image_tag: \"${FRONTEND_VER}\"/" \
             infrastructure/ansible/deploy-setup/env/env.yml
           sed -i "s/^backend_image_tag:.*/backend_image_tag: \"${BACKEND_VER}\"/" \
-            infrastructure/ansible/deploy-setup/env/env.yml
-          sed -i "s/^is_image_tag:.*/is_image_tag: \"7.2.0-${IS_VER}\"/" \
             infrastructure/ansible/deploy-setup/env/env.yml
 
       - name: Write SSH key and config
