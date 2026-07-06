@@ -1169,6 +1169,7 @@ class RolePermissionSeeder extends Seeder
             'alerts.profile.view',
             'alerts.profile.verify',
             'alerts.profile.confirm',
+            'alerts.profile.reject',
             'menu.zonal',
             'menu.zonal.admin',
             'menu.zonal.deo',
