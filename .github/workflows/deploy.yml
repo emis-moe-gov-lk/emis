@@ -378,9 +378,9 @@ jobs:
             ANSIBLE_USER=$(echo "$INV" | jq -r '.all.vars.ansible_user // "ubuntu"')
           else
             echo "::warning::ansible-inventory failed, falling back to grep"
-            SSH_KEY_PATH=$(grep -oP 'ansible_private_key_file:\s*\K.*' inventory/inventory.yml | head -1 | tr -d '"' || echo "~/.ssh/deploy_key")
-            JUMPBOX_IP=$(grep -oP 'jumpbox_ip:\s*\K.*' inventory/inventory.yml | head -1 | tr -d '"' || echo "")
-            ANSIBLE_USER=$(grep -oP 'ansible_user:\s*\K.*' inventory/inventory.yml | head -1 | tr -d '"' || echo "ubuntu")
+            SSH_KEY_PATH=$(grep 'ansible_private_key_file:' inventory/inventory.yml | head -1 | awk '{print $2}' | tr -d '"' || echo "~/.ssh/deploy_key")
+            JUMPBOX_IP=$(grep 'jumpbox_ip:' inventory/inventory.yml | head -1 | awk '{print $2}' | tr -d '"' || echo "")
+            ANSIBLE_USER=$(grep 'ansible_user:' inventory/inventory.yml | head -1 | awk '{print $2}' | tr -d '"' || echo "ubuntu")
           fi
           echo "SSH_KEY_PATH=${SSH_KEY_PATH}" >> "$GITHUB_ENV"
           echo "JUMPBOX_IP=${JUMPBOX_IP}" >> "$GITHUB_ENV"
