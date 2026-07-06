@@ -16,8 +16,8 @@ all:
     # ── All private hosts (routed through jumpbox) ──────────────────
     private_hosts:
       vars:
+        # ── CHANGED: dropped the -o flags now handled by ~/.ssh/config ──
         ansible_ssh_common_args: >-
-          -o StrictHostKeyChecking=no
           -J "{{ ansible_user }}@{{ jumpbox_ip }}"
       children:
 

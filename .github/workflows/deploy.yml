@@ -231,21 +231,24 @@ jobs:
             infrastructure/ansible/deploy-setup/env/env.yml \
             infrastructure/ansible/deploy-setup/inventory/inventory.yml
 
-      - name: Write SSH key
+      - name: Write SSH key and config
         run: |
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
           printf '%s' "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
+          cat > ~/.ssh/config << 'EOF'
+          Host *
+            StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+            IdentitiesOnly yes
+            IdentityFile ~/.ssh/deploy_key
+          EOF
+          chmod 600 ~/.ssh/config
 
-      - name: Test manual jump verbose
+      - name: Test manual jump
         run: |
-          ssh -vvv -i ~/.ssh/deploy_key \
-            -o StrictHostKeyChecking=no \
-            -o UserKnownHostsFile=/dev/null \
-            -o IdentitiesOnly=yes \
-            -J slaf-dhaki@124.43.177.235 \
-            slaf-dhaki@192.168.200.4 "echo hi" 2>&1 | tail -80
+          ssh -J slaf-dhaki@124.43.177.235 slaf-dhaki@192.168.200.4 "echo hi"
 
       - name: Ping all hosts
         working-directory: infrastructure/ansible/deploy-setup
