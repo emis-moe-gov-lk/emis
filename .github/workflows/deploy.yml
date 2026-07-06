@@ -315,18 +315,16 @@ jobs:
 
       - name: Parse SSH config from inventory
         run: |
-          cat > /tmp/parse_ssh.py << 'PYEOF'
-import yaml
-with open('infrastructure/ansible/deploy-setup/inventory/inventory.yml') as f:
-    inv = yaml.safe_load(f)
-kv = inv.get('all', {}).get('vars', {})
-key = kv.get('ansible_private_key_file', '~/.ssh/deploy_key')
-ip  = kv.get('jumpbox_ip', '')
-print(f"SSH_KEY_PATH={key}")
-print(f"JUMPBOX_IP={ip}")
-PYEOF
-          python3 /tmp/parse_ssh.py > /tmp/ssh_config.env
-          cat /tmp/ssh_config.env >> $GITHUB_ENV
+          python3 -c '
+          import yaml
+          with open("infrastructure/ansible/deploy-setup/inventory/inventory.yml") as f:
+              inv = yaml.safe_load(f)
+          kv = inv.get("all", {}).get("vars", {})
+          key = kv.get("ansible_private_key_file", "~/.ssh/deploy_key")
+          ip  = kv.get("jumpbox_ip", "")
+          print(f"SSH_KEY_PATH={key}")
+          print(f"JUMPBOX_IP={ip}")
+          ' | tee -a "$GITHUB_ENV"
 
       - name: Write SSH key
         run: |
