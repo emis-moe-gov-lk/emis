@@ -332,7 +332,20 @@ jobs:
 
       - name: Fix unquoted Jinja2 templates in YAML
         run: |
-          sed -i -E 's/: +(\{\{[^}]*\}\})/: "\1"/' \
+          python3 -c '
+          import re, sys
+          for fpath in sys.argv[1:]:
+              with open(fpath) as f:
+                  lines = f.readlines()
+              with open(fpath, "w") as f:
+                  for line in lines:
+                      m = re.match(r"^(\s*[\w-]+\s*:\s+)(.+?)(\s*)$", line)
+                      if m and "{{" in m.group(2):
+                          val = m.group(2)
+                          if not (val.startswith("\"") and val.endswith("\"")):
+                              line = m.group(1) + "\"" + val + "\"" + m.group(3) + "\n"
+                      f.write(line)
+          ' \
             infrastructure/ansible/deploy-setup/env/env.yml \
             infrastructure/ansible/deploy-setup/inventory/inventory.yml
 
