@@ -4,7 +4,7 @@ import { Spinner } from "flowbite-react";
 import { HiUser } from "react-icons/hi";
 import DosHeader from "@/components/dos/DosHeader";
 import DosList from "@/components/dos/DosList";
-import { useDosService } from "@/services/dosService";
+import { getAllDeoOfficers } from "@/api/deoOfficerService";
 import { getAllDosAdmins } from "@/api/dosAdminService";
 
 export default function ZonalDirectory() {
@@ -13,7 +13,6 @@ export default function ZonalDirectory() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const { getAllDos } = useDosService();
   const location = useLocation();
   const isZonalAdmins = location.pathname.includes("/employees/edu-directors");
 
@@ -36,7 +35,7 @@ export default function ZonalDirectory() {
         data = await getAllDosAdmins({ search });
         setEmployees(data.data || data);
       } else {
-        data = await getAllDos({ search });
+        data = await getAllDeoOfficers({ search });
         setEmployees(data.data || data);
       }
     } catch (err) {
