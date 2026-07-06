@@ -340,22 +340,16 @@ jobs:
             infrastructure/ansible/deploy-setup/env/env.yml
 
       - name: Parse SSH config from inventory
+        working-directory: infrastructure/ansible/deploy-setup
         run: |
-          KEY=$(python3 -c '
-          import yaml, sys
-          try:
-              with open("infrastructure/ansible/deploy-setup/inventory/inventory.yml") as f:
-                  inv = yaml.safe_load(f)
-              kv = inv.get("all", {}).get("vars", {})
-              key = kv.get("ansible_private_key_file") or "~/.ssh/deploy_key"
-              ip  = kv.get("jumpbox_ip") or ""
-              print(key)
-              print(ip)
-          except Exception as e:
-              print(f"::error::YAML parse failed: {e}", file=sys.stderr)
-              sys.exit(1)
-          ')
-          { read -r SSH_KEY_PATH; read -r JUMPBOX_IP; } <<< "$KEY"
+          if INV=$(ansible-inventory -i inventory/inventory.yml --list 2>/dev/null); then
+            SSH_KEY_PATH=$(echo "$INV" | jq -r '.all.vars.ansible_private_key_file // "~/.ssh/deploy_key"')
+            JUMPBOX_IP=$(echo "$INV" | jq -r '.all.vars.jumpbox_ip // ""')
+          else
+            echo "::warning::ansible-inventory failed, falling back to grep"
+            SSH_KEY_PATH=$(grep -oP 'ansible_private_key_file:\s*\K.*' inventory/inventory.yml | head -1 | tr -d '"' || echo "~/.ssh/deploy_key")
+            JUMPBOX_IP=$(grep -oP 'jumpbox_ip:\s*\K.*' inventory/inventory.yml | head -1 | tr -d '"' || echo "")
+          fi
           echo "SSH_KEY_PATH=${SSH_KEY_PATH}" >> "$GITHUB_ENV"
           echo "JUMPBOX_IP=${JUMPBOX_IP}" >> "$GITHUB_ENV"
 
