@@ -272,9 +272,8 @@ import yaml
 with open('infrastructure/ansible/deploy-setup/inventory/inventory.yml') as f:
     inv = yaml.safe_load(f)
 kv = inv.get('all', {}).get('vars', {})
-hosts = inv.get('all', {}).get('children', {}).get('jumpbox', {}).get('hosts', {})
 key = kv.get('ansible_private_key_file', '~/.ssh/deploy_key')
-ip = list(hosts.values())[0].get('ansible_host', '') if hosts else ''
+ip  = kv.get('jumpbox_ip', '')
 print(f"SSH_KEY_PATH={key}")
 print(f"JUMPBOX_IP={ip}")
 PYEOF
