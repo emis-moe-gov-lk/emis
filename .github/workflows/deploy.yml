@@ -4,12 +4,10 @@ run-name: "running dev ci/cd from ${{ github.ref_name }}"
 on:
   push:
     branches: [dev, infra/wkflw/dev-cicd]
-    #paths:
-      #- 'frontend/**'
-      #- 'backend/**'
-      #- 'is/**'
+    paths:
+      - 'frontend/**'
+      - 'backend/**'
   workflow_dispatch:
-    name: "Deploy EMIS Stack (manual)"
     inputs:
       services:
         description: "Services to deploy"
@@ -18,7 +16,6 @@ on:
           - all
           - frontend
           - backend
-          - frontend,backend
         required: true
         default: "all"
 
