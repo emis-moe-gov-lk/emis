@@ -18,7 +18,7 @@ all:
       vars:
         ansible_ssh_common_args: >-
           -o StrictHostKeyChecking=no
-          -J {{ ansible_user }}@{{ jumpbox_ip }}
+          -o ProxyCommand="ssh -i {{ ansible_private_key_file }} -W {{ ansible_host }}:{{ ansible_port | default(22) }} {{ ansible_user }}@{{ jumpbox_ip }}"
       children:
 
         swarm_managers:
