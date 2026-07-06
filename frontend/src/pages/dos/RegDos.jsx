@@ -440,7 +440,13 @@ function RegDosInner() {
         <div className="p-6 lg:p-8">
           {/* Step 1: NIC Verification */}
           {currentStep === 1 && (
-            <StepNICVerification formData={formData} setFormData={setFormData} onVerified={() => dispatch({ type: "SET_NIC_VERIFIED", payload: true })} />
+            <StepNICVerification
+              formData={formData}
+              setFormData={setFormData}
+              isVerified={isNicVerified}
+              onVerified={() => dispatch({ type: "SET_NIC_VERIFIED", payload: true })}
+              onVerificationReset={() => dispatch({ type: "SET_NIC_VERIFIED", payload: false })}
+            />
           )}
 
           {/* Step 2: Personal Details (Name, Date of Birth, etc.) */}
