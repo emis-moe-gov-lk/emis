@@ -3,7 +3,7 @@ run-name: "Deploy on ${{ github.ref_name }}"
 
 on:
   push:
-    branches: [main]
+    branches: [dev, infra/wkflw/dev-cicd]
     paths:
       - 'frontend/**'
       - 'backend/**'
