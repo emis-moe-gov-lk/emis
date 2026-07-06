@@ -1,4 +1,4 @@
-name: "Deploy EMIS Stack 🚀"
+name: "Deploy EMIS Stack"
 run-name: "Deploy ${{ inputs.services || 'all' }} on ${{ github.ref_name }}"
 
 on:
@@ -353,6 +353,11 @@ jobs:
                       f.write(line)
           ' \
             infrastructure/ansible/deploy-setup/env/env.yml \
+            infrastructure/ansible/deploy-setup/inventory/inventory.yml
+
+      - name: Expand tilde in inventory ProxyCommand key path
+        run: |
+          sed -i "s|-i ~/|-i $HOME/|g" \
             infrastructure/ansible/deploy-setup/inventory/inventory.yml
 
       - name: Patch image tags in env.yml

@@ -1,9 +1,9 @@
 ---
 all:
   vars:
-    ansible_user: <ssh-user>
+    ansible_user: slaf-dhaki
     ansible_private_key_file: ~/.ssh/deploy_key
-    jumpbox_ip: <jumpbox-public-ip>
+    jumpbox_ip: 124.43.177.235
 
   children:
 
@@ -23,15 +23,15 @@ all:
 
         swarm_managers:
           hosts:
-            swarm-mgr:
-              ansible_host: <swarm-manager-private-ip>
+            dev-node:
+              ansible_host: 192.168.200.4
 
         swarm_workers:
           hosts:
-            swarm-wrk:
-              ansible_host: <swarm-worker-private-ip>
+            dev-node:              # same VM — manager is also its own worker
+              ansible_host: 192.168.200.4
 
         db_host:
           hosts:
-            db-host:
-              ansible_host: <db-host-private-ip>
+            dev-db:              # MySQL on bare metal of db VM
+              ansible_host: 192.168.200.3
