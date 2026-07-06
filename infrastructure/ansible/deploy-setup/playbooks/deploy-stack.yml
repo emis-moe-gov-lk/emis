@@ -9,11 +9,6 @@
     stack_file:  "{{ deploy_path }}/docker-stack.yml"
 
   tasks:
-    - name: Load environment variables
-      ansible.builtin.include_vars:
-        file: "../env/{{ deploy_env }}.yml"
-        name: fresh_vars
-
     - name: Debug environment variables
       ansible.builtin.debug:
         msg:
