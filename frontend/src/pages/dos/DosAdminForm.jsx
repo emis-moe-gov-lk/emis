@@ -522,10 +522,32 @@ function DosAdminFormInner() {
     }
   };
 
+
   /**
    * Handle step progression and form submission
    */
   const handleNext = async () => {
+    if (currentStep === 1 && !isNicVerified) {
+      toast.error("Please verify NIC before continuing.");
+      return;
+    }
+    if (currentStep === 2 && !isPersonalValid) {
+      toast.error("Please fill all required personal details.");
+      return;
+    }
+    if (currentStep === 3 && !isContactValid) {
+      toast.error("Please fill all required contact details.");
+      return;
+    }
+    if (currentStep === 4 && !isFirstApptValid) {
+      toast.error("Please fill all required first appointment details.");
+      return;
+    }
+    if (currentStep === 5 && !isCurrentApptValid) {
+      toast.error("Please fill all required current appointment details.");
+      return;
+    }
+
     // Current Appointment step — submit to backend
     if (currentStep === 5) {
       try {
@@ -572,7 +594,7 @@ function DosAdminFormInner() {
       return;
     }
 
-    // Standard step progression with validation
+    // Standard step progression
     dispatch({ type: "SET_STEP", payload: Math.min(currentStep + 1, STEPS.length) });
   };
 
@@ -596,7 +618,9 @@ function DosAdminFormInner() {
             <StepNICVerification
               formData={formData}
               setFormData={setFormData}
+              isVerified={isNicVerified}
               onVerified={() => dispatch({ type: "SET_NIC_VERIFIED", payload: true })}
+              onVerificationReset={() => dispatch({ type: "SET_NIC_VERIFIED", payload: false })}
             />
           )}
 
@@ -700,6 +724,13 @@ function DosAdminFormInner() {
               onBack={handleBack}
               onNext={handleNext}
               isProcessing={isSubmitting}
+              canNext={
+                currentStep === 1 ? isNicVerified :
+                currentStep === 2 ? isPersonalValid :
+                currentStep === 3 ? isContactValid :
+                currentStep === 4 ? isFirstApptValid :
+                currentStep === 5 ? isCurrentApptValid : true
+              }
             />
           </div>
         )}
