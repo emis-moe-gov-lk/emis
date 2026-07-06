@@ -1,36 +1,37 @@
 ---
 all:
   vars:
-    ansible_user: user
-    ansible_private_key_file: path/to/key/key 
+    ansible_user: <ssh-user>
+    ansible_private_key_file: ~/.ssh/deploy_key
+    jumpbox_ip: <jumpbox-public-ip>
 
   children:
 
     # ── Jumpbox (public-facing, no proxy hop) ───────────────────────
     jumpbox:
       hosts:
-        uat-jump:
-          ansible_host: 0.0.0.1
+        emis-jump:
+          ansible_host: "{{ jumpbox_ip }}"
 
     # ── All private hosts (routed through jumpbox) ──────────────────
     private_hosts:
       vars:
+        # ── CHANGED: dropped the -o flags now handled by ~/.ssh/config ──
         ansible_ssh_common_args: >-
-          -o StrictHostKeyChecking=no
-          -o ProxyJump=user@0.0.0.1
+          -J "{{ ansible_user }}@{{ jumpbox_ip }}"
       children:
 
         swarm_managers:
           hosts:
-            uat-node:
-              ansible_host: 0.0.0.2
+            swarm-mgr:
+              ansible_host: <swarm-manager-private-ip>
 
         swarm_workers:
           hosts:
-            uat-node:              # same VM — manager is also its own worker
-              ansible_host: 255.255.255.3
+            swarm-wrk:
+              ansible_host: <swarm-worker-private-ip>
 
         db_host:
           hosts:
-            uat-db:              # MySQL on bare metal of db  VM
-              ansible_host: 192.255.255.4
+            db-host:
+              ansible_host: <db-host-private-ip>

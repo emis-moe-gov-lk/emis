@@ -4,10 +4,21 @@ run-name: "Build & Push frontend image on ${{ github.ref_name }}"
 on:
   workflow_dispatch: # trigger workflow manually
   workflow_call:    # trigger workflow from an external workflow
+    inputs:
+      version:
+        type: string
+        required: false
+        default: ""
+    outputs:
+      image_built:
+        description: "Whether a new Docker image was actually built and pushed"
+        value: ${{ jobs.build-frontend.outputs.image_built }}
 
 jobs:
   build-frontend:
     runs-on: ubuntu-latest
+    outputs:
+      image_built: ${{ steps.build_image.outcome == 'success' }}
     permissions:
       contents: read
       packages: write
@@ -23,9 +34,13 @@ jobs:
       - name: Extract Frontend Version
         id: get_version
         run: |
-          FILE_VERSION=$(cat ${{ env.REPO_VER_FILE }} | xargs)
-          echo "Detected version in repo file: $FILE_VERSION"
-          echo "version=$FILE_VERSION" >> $GITHUB_OUTPUT
+          if [ -n "${{ inputs.version }}" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION=$(cat ${{ env.REPO_VER_FILE }} | xargs)
+          fi
+          echo "Detected version: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -49,6 +64,7 @@ jobs:
           fi
 
       - name: Build and push Frontend image
+        id: build_image
         if: steps.ghcr_check.outputs.should_build == 'true'
         uses: docker/build-push-action@v5
         with:

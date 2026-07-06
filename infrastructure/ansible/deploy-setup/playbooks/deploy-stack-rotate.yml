@@ -1,0 +1,35 @@
+---
+# ---PLAY-DEPLOY-STACK-ROTATE-----
+# CI/CD-optimised variant of deploy-stack.yml.
+# Only re-renders docker.env (.env file with image tags)
+# and redeploys the Docker stack.
+# Service env files (frontend.env, backend.env, is.env) and
+# docker-stack.yml are assumed to already exist on the server
+# and do not need regeneration during image rotation.
+- name: Rotate Docker stack images
+  hosts: swarm_managers
+  become: true
+  vars:
+    deploy_path: "{{ stack_deploy_path | default('/opt/emis-noapim') }}"
+    stack_file:  "{{ deploy_path }}/docker-stack.yml"
+
+  tasks:
+    - name: Render docker.env (.env — image tags only)
+      ansible.builtin.template:
+        src:  ../templates/docker.env.j2
+        dest: "{{ deploy_path }}/.env"
+        mode: '0600'
+
+    - name: Deploy Docker stack with rotated images
+      ansible.builtin.shell: |
+        set -a
+        source {{ deploy_path }}/.env
+        set +a
+        docker stack deploy -c {{ stack_file }} {{ stack_name }}
+      args:
+        executable: /bin/bash
+      register: stack_deploy_result
+
+    - name: Show deploy output
+      ansible.builtin.debug:
+        var: stack_deploy_result.stdout_lines
