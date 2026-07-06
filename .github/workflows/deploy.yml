@@ -240,7 +240,12 @@ jobs:
 
       - name: Test manual jump
         run: |
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -J slaf-dhaki@124.43.177.235 slaf-dhaki@192.168.200.4 "echo hi"
+          ssh -i ~/.ssh/deploy_key \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o IdentitiesOnly=yes \
+            -J slaf-dhaki@124.43.177.235 \
+            slaf-dhaki@192.168.200.4 "echo hi"
 
       - name: Ping all hosts
         working-directory: infrastructure/ansible/deploy-setup
