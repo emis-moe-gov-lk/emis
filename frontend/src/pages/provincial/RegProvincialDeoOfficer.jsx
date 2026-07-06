@@ -21,6 +21,7 @@ import { HiCheckCircle } from "react-icons/hi";
 import { useAuthUser } from "@/context/useAuthUser";
 import BackToListButton from "@/components/UiComponents/BackToListButton";
 import Button from "@/components/UiComponents/Button";
+import { downloadProvincialDeoProfileDocument } from "@/api/deoOfficerService";
 
 const REG_PROVINCIAL_DEO_HISTORY_OWNER = "regProvincialDeoCreate";
 const REG_PROVINCIAL_DEO_HISTORY_STEP_KEY = "regProvincialDeoStep";
@@ -425,6 +426,7 @@ function RegProvincialDeoOfficerInner() {
             email: result?.data?.email || "",
             contact: result?.data?.contact || "",
             currentPosition: result?.data?.currentAppointmentPositionName || "",
+            peopleId: result?.people_id,
             defaultPassword: result?.default_password || "",
           });
           setIsRegistrationComplete(true);
@@ -448,7 +450,35 @@ function RegProvincialDeoOfficerInner() {
       return;
     }
 
-    dispatch({ type: "SET_STEP", payload: currentStep + 1 });
+    dispatch({ type: "SET_STEP", payload: Math.min(currentStep + 1, STEPS.length) });
+  };
+
+  const handleDownloadProfile = async () => {
+    const peopleId = registrationSummary?.peopleId;
+
+    if (!peopleId) {
+      toast.error("Missing people id for PDF download.");
+      return;
+    }
+
+    try {
+      const data = await downloadProvincialDeoProfileDocument(peopleId);
+      const blob = new Blob([data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+
+      anchor.href = url;
+      anchor.download = `provincial-deo-profile-${peopleId}.pdf`;
+      document.body.appendChild(anchor);
+      anchor.click();
+
+      window.setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+        anchor.remove();
+      }, 3000);
+    } catch (_error) {
+      toast.error("Unable to download profile PDF.");
+    }
   };
 
   const back = () => {
@@ -545,18 +575,13 @@ function RegProvincialDeoOfficerInner() {
                     dispatch({ type: "SET_STEP", payload: 1 });
                   }}
                 >
-                  Register Another
+                  New Registration
                 </Button>
                 <Button
                   variant="primary"
-                  onClick={() =>
-                    confirmDiscardAndRun(() => navigate("/employees/provincial/deo"), {
-                      skipPrompt: true,
-                      forceDiscard: true,
-                    })
-                  }
+                  onClick={handleDownloadProfile}
                 >
-                  Return to Directory
+                  Download Profile
                 </Button>
               </div>
             </div>
