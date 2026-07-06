@@ -27,6 +27,7 @@ on:
 
 permissions:
   contents: read
+  packages: write
 
 jobs:
   # ── Phase 1: Detect which services changed and bump versions ─────────────────
