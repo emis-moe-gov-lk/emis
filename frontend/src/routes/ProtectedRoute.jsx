@@ -58,7 +58,7 @@ export default function ProtectedRoute({ roles, permissions, anyPermissions, chi
 
   const isPasswordRoute = location.pathname === "/force-password-change";
   const isLogoutRoute = location.pathname === "/logout";
-  const shouldForcePasswordChange = mustChangePassword && hasRole("teacher");
+  const shouldForcePasswordChange = mustChangePassword;
 
   if (shouldForcePasswordChange && !isPasswordRoute && !isLogoutRoute) {
     return <Navigate to="/force-password-change" replace />;
