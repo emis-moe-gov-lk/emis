@@ -69,6 +69,8 @@ function RegDeoOfficerInner() {
   const canCreateDeoOfficer =
     hasRole("super admin") ||
     hasRole("zonal deo") ||
+    hasRole("zonal director") ||
+    hasRole("zonal deputy director") ||
     hasRole("Provincial Director") ||
     hasRole("Provincial Deputy Director") ||
     hasRole("MOE Administrator") ||
