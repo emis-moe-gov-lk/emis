@@ -6,6 +6,7 @@ import DosHeader from "@/components/dos/DosHeader";
 import DosList from "@/components/dos/DosList";
 import { getAllDeoOfficers } from "@/api/deoOfficerService";
 import { getAllDosAdmins } from "@/api/dosAdminService";
+import { PermissionGroups } from "@/data/permissionGroups";
 
 export default function ZonalDirectory() {
   const [employees, setEmployees] = useState([]);
@@ -53,6 +54,11 @@ export default function ZonalDirectory() {
         isZonalAdmins={isZonalAdmins}
         search={search}
         setSearch={setSearch}
+        permission={
+          isZonalAdmins
+            ? PermissionGroups.ZONAL.ADMIN_CREATE
+            : PermissionGroups.ZONAL.DEO_CREATE
+        }
       />
 
       {/* ================= LIST / LOADING ================= */}
