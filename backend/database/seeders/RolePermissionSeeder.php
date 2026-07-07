@@ -1045,6 +1045,10 @@ class RolePermissionSeeder extends Seeder
 
 
         'menu.division',
+        'division.admin.create',
+        'division.admin.profile.view',
+        'division.deo.create',
+        'division.deo.profile.view',
 
 
         'menu.zonal',
