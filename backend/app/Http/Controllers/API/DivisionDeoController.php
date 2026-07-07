@@ -589,6 +589,8 @@ class DivisionDeoController extends Controller
                 'workplace_id'    => $validated['divisionalOfficeId'],
             ]);
 
+            $defaultPassword = 'Pw' . $nic;
+
             // ---- USER ----
             $user = User::create([
                 'nic'                      => $nic,
@@ -597,7 +599,7 @@ class DivisionDeoController extends Controller
                 'name'                     => $people->name_with_initials,
                 'email'                    => strtolower($validated['email']),
                 'contact'                  => $validated['contact'],
-                'password'                 => Hash::make('Password@123'),
+                'password'                 => Hash::make($defaultPassword),
                 'identity_provider'        => 'local',
                 'active_status'            => true,
                 'must_change_password'     => true,
@@ -610,13 +612,13 @@ class DivisionDeoController extends Controller
 
             DB::commit();
 
-            $wso2Is->provisionUser($user, 'Password@123', 'divisional deo');
+            $wso2Is->provisionUser($user, $defaultPassword, 'divisional deo');
 
             return response()->json([
                 'status'           => 'success',
                 'message'          => 'Divisional DEO officer created successfully',
                 'people_id'        => $people->people_id,
-                'default_password' => 'Password@123',
+                'default_password' => $defaultPassword,
             ], 201);
         } catch (ValidationException $e) {
             return response()->json([

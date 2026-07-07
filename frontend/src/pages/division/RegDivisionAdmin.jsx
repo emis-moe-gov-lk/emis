@@ -226,6 +226,7 @@ function RegDivisionAdminInner() {
               contact: result.data.contact,
               currentPosition: result.data.currentAppointmentPositionName,
               people_id: result.people_id,
+              defaultPassword: result.default_password || "Pw" + formData.nic,
           });
           setIsRegistrationComplete(true);
           dispatch({ type: "SET_STEP", payload: 5 });
