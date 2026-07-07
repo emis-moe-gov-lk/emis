@@ -363,10 +363,9 @@ class DosAdminController extends Controller
             // ==============================
             $role = $this->resolveRole($validated['currentAppointmentPosition']);
 
-            // BUG-072: Zonal Deputy Director accounts get a per-person default
-            // password (Pw+NIC); Zonal Director keeps the shared default until
-            // that role is asked for the same change.
-            $defaultPassword = $role === 'zonal deputy director' ? 'Pw' . $nic : 'Password@123';
+            // BUG-072: Zonal Deputy Director and Zonal Director accounts get a per-person
+            // default password (Pw+NIC) for better security instead of a shared default.
+            $defaultPassword = 'Pw' . $nic;
 
             $user = User::create([
                 'nic'      => $nic,
