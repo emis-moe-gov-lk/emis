@@ -58,7 +58,7 @@ services:
       php artisan key:generate --force &&
       php artisan migrate:fresh --force &&
       php artisan wso2:cache-roles &&
-      php -d memory_limit=1G artisan db:seed --force &&
+      php -d memory_limit=2G artisan db:seed --force &&
       frankenphp run --config /etc/caddy/Caddyfile
       "
     extra_hosts:
