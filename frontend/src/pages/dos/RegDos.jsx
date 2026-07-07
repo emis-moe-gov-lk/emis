@@ -323,6 +323,7 @@ function RegDosInner() {
               formData.currentAppointmentPositionLabel ||
               formData.currentAppointmentPosition,
             people_id: responseData.people_id || responseData.id || result.people_id || null,
+            defaultPassword: result.default_password || "Pw" + formData.nic,
           };
 
           setRegistrationSummary(summary);
@@ -509,6 +510,12 @@ function RegDosInner() {
                     formData.currentAppointmentPositionLabel ||
                     formData.currentAppointmentPosition ||
                     "-"}
+                </p>
+                <p className="text-gray-900 dark:text-gray-100 pt-2 border-t border-gray-100 dark:border-gray-800 mt-2">
+                  <strong>Temporary Password:</strong>{" "}
+                  <span className="font-mono font-bold bg-amber-50 dark:bg-amber-950/20 px-2 py-0.5 rounded text-amber-600 dark:text-amber-400">
+                    {registrationSummary?.defaultPassword || "-"}
+                  </span>
                 </p>
               </div>
 

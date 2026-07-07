@@ -109,6 +109,13 @@ export default function StepFinishing({ formData }) {
                                 "-"}
                         </span>
                     </p>
+
+                    <p className="text-sm font-medium text-gray-900 pt-2 border-t mt-2">
+                        Temporary Password:{" "}
+                        <span className="font-mono font-bold bg-amber-50 px-2 py-0.5 rounded text-amber-600">
+                            {formData.defaultPassword || "-"}
+                        </span>
+                    </p>
                 </div>
 
                 {/* Action Buttons */}
