@@ -62,3 +62,4 @@ infrastructure/ansible/deploy-setup/inventory/*.yml
 # Backup Files - Editor and system backup artifacts
 *.bck
 serviceminutes
+AGENTS.md

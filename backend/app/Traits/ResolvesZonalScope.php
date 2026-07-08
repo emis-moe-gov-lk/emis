@@ -63,7 +63,7 @@ trait ResolvesZonalScope
 
     protected function applyTeacherZonalScope($query, string $zonalWorkplaceId)
     {
-        return $query->whereHas('currentAppointment.workplace.institution', function ($q) use ($zonalWorkplaceId) {
+        return $query->whereHas('currentAppointment.institution', function ($q) use ($zonalWorkplaceId) {
             $q->where('zeo_wp_id', $zonalWorkplaceId);
         });
     }

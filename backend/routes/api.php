@@ -150,6 +150,8 @@ Route::prefix('')->group(function () {
         Route::post('/principals/{people_id}/past-services', 'addPastService');
     });
 
+    Route::get('/pdf/principal/{people_id}', [\App\Http\Controllers\Pdf\PrincipalPdf::class, 'generatePdf'])->middleware('auth:jwt');
+
     Route::controller(\App\Http\Controllers\API\SchoolDeoApiController::class)->middleware('auth:jwt')->group(function () {
         Route::get('/schooldeo-list', 'index');
         Route::post('/schooldeo-create', 'store');
