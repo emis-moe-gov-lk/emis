@@ -21,6 +21,8 @@ use Illuminate\Validation\ValidationException;
 
 class PrincipalApiController extends Controller
 {
+    use \App\Traits\ResolvesZonalScope;
+
     private function hasAnyRole(array $roles, array $targets): bool
     {
         $normalizedTargets = collect($targets)
@@ -52,7 +54,7 @@ class PrincipalApiController extends Controller
 
     private function canManagePrincipals(Request $request): bool
     {
-        return $this->hasAnyRole($this->resolvedRoles($request), ['super admin', 'zonal deo', 'zonal deo head']);
+        return $this->hasAnyRole($this->resolvedRoles($request), ['super admin', 'zonal deo', 'zonal deo head', 'zonal director', 'zonal deputy director']);
     }
 
     private function resolveDsOffice(?string $value): ?DivisionalSecretariatOffice
@@ -290,7 +292,9 @@ class PrincipalApiController extends Controller
 
     public function principalList(Request $request)
     {
-        if (! $this->canManagePrincipals($request)) {
+        $roles = $this->resolvedRoles($request);
+
+        if (! $this->hasAnyRole($roles, ['super admin', 'zonal deo', 'zonal deo head', 'zonal director', 'zonal deputy director'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Forbidden',
@@ -305,6 +309,19 @@ class PrincipalApiController extends Controller
                 ->whereHas('principal')
                 ->whereHas('appointment');
             $query = clone $baseQuery;
+
+            if ($this->hasAnyRole($roles, ['zonal director', 'zonal deputy director'])) {
+                $zonalWorkplaceId = $this->resolveUserZonalWorkplaceId($request);
+
+                if (! $zonalWorkplaceId) {
+                    return response()->json([
+                        'status'  => 'error',
+                        'message' => 'Authenticated user has no zonal workplace mapped',
+                    ], 403);
+                }
+
+                $this->applyTeacherZonalScope($query, $zonalWorkplaceId);
+            }
 
             if ($search !== '') {
                 $isNicSearch = is_numeric(substr($search, 0, 1));
@@ -362,7 +379,9 @@ class PrincipalApiController extends Controller
 
     public function getPrincipal(Request $request, string $people_id)
     {
-        if (! $this->canManagePrincipals($request)) {
+        $roles = $this->resolvedRoles($request);
+
+        if (! $this->hasAnyRole($roles, ['super admin', 'zonal deo', 'zonal deo head', 'zonal director', 'zonal deputy director'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Forbidden',
@@ -370,8 +389,24 @@ class PrincipalApiController extends Controller
         }
 
         try {
-            $principal = People::query()
-                ->with([
+            $principalQuery = People::query()
+                ->whereHas('principal')
+                ->whereHas('appointment');
+
+            if ($this->hasAnyRole($roles, ['zonal director', 'zonal deputy director'])) {
+                $zonalWorkplaceId = $this->resolveUserZonalWorkplaceId($request);
+
+                if (! $zonalWorkplaceId) {
+                    return response()->json([
+                        'status'  => 'error',
+                        'message' => 'Authenticated user has no zonal workplace mapped',
+                    ], 403);
+                }
+
+                $this->applyTeacherZonalScope($principalQuery, $zonalWorkplaceId);
+            }
+
+            $principal = $principalQuery->with([
                     'title',
                     'gender',
                     'religion',
@@ -412,8 +447,6 @@ class PrincipalApiController extends Controller
                     'principal',
                     'principal.recruitmentCategory',
                 ])
-                ->whereHas('principal')
-                ->whereHas('appointment')
                 ->where('people_id', $people_id)
                 ->first();
 
