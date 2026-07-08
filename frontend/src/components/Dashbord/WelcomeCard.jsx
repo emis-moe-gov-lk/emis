@@ -13,37 +13,33 @@ const WelcomeCard = ({ user }) => {
   const today = capitalizeFirstLetter(new Date().toDateString());
 
   const roles = Array.isArray(user?.roles) && user.roles.length ? user.roles : authRoles;
-  const zonalScopedRoles = new Set([
-    "zonal deo",
-    "zonal deo head",
-    "zonal director",
-  ]);
-  const isZonalRole = roles.some((role) => {
-    const normalizedRole = String(role).trim().toLowerCase().replace(/\s+/g, " ");
-    return zonalScopedRoles.has(normalizedRole);
-  });
+  const lowercaseRoles = roles.map((r) => String(r).trim().toLowerCase().replace(/\s+/g, " "));
 
-  const apiProvince = user?.province ?? null;
-  const apiZone = user?.zone ?? null;
+  // 1. Zonal roles
+  const hasZonalRole = lowercaseRoles.some((r) =>
+    ["zonal deo", "zonal deo head", "zonal director", "zonal deputy director"].includes(r)
+  );
 
-  const zonalEducationOffice =
-    authWorkplace?.zonal_education_office ??
-    user?.workplace?.zonal_education_office ??
-    null;
+  // 2. Provincial roles
+  const hasProvincialRole = lowercaseRoles.some((r) =>
+    ["provincial director", "provincial deputy director", "provincial subject head", "provincial clerk (deo)", "provincial admin", "provincial deo"].includes(r)
+  );
 
-  const provinceName =
-    apiProvince?.province_name ??
-    zonalEducationOffice?.province_name ??
-    zonalEducationOffice?.district?.province?.name ??
-    zonalEducationOffice?.district?.province?.province_name ??
-    "";
+  // 3. Divisional roles
+  const hasDivisionalRole = lowercaseRoles.some((r) =>
+    ["divisional head", "divisional deo", "divisional deputy director"].includes(r)
+  );
 
-  const zoneName =
-    apiZone?.short_name ??
-    apiZone?.name ??
-    zonalEducationOffice?.short_name ??
-    zonalEducationOffice?.name ??
-    "";
+  // 4. School level roles (Teachers/Principals/School DEOs)
+  const hasSchoolRole = lowercaseRoles.some((r) =>
+    ["teacher", "principal", "vice principal / dep principal", "school deo"].includes(r)
+  );
+
+  // Resolve names from user profile data
+  const provinceName = user?.province?.province_name ?? "";
+  const zoneName = user?.zone?.short_name ?? user?.zone?.name ?? "";
+  const divisionName = user?.division?.short_name ?? user?.division?.name ?? "";
+  const schoolName = user?.school?.name ?? "";
 
   return (
     <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-[#635BFF] via-[#564df0] to-[#4338ca] p-10 shadow-2xl shadow-indigo-200 text-white">
@@ -60,24 +56,45 @@ const WelcomeCard = ({ user }) => {
             <br /> {user?.name}!
           </h3>
 
-          {isZonalRole && (provinceName || zoneName) && (
-            <div className="grid gap-3 sm:grid-cols-2 max-w-xl">
-              {provinceName && (
+          {/* Geographical / Placement Details */}
+          {(hasZonalRole || hasProvincialRole || hasDivisionalRole || hasSchoolRole) && (
+            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 max-w-2xl">
+              {hasSchoolRole && schoolName && (
+                <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 backdrop-blur-md md:col-span-3">
+                  <p className="text-[0.65rem] font-bold uppercase tracking-[0.28em] text-indigo-100/90">
+                    School / Institution
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-white truncate" title={schoolName}>
+                    {schoolName}
+                  </p>
+                </div>
+              )}
+              {(hasProvincialRole || hasZonalRole || hasDivisionalRole || hasSchoolRole) && provinceName && (
                 <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 backdrop-blur-md">
                   <p className="text-[0.65rem] font-bold uppercase tracking-[0.28em] text-indigo-100/90">
                     Province
                   </p>
-                  <p className="mt-1 text-base font-semibold text-white">
+                  <p className="mt-1 text-sm font-semibold text-white truncate" title={provinceName}>
                     {provinceName}
                   </p>
                 </div>
               )}
-              {zoneName && (
+              {(hasDivisionalRole || hasSchoolRole) && divisionName && (
+                <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 backdrop-blur-md">
+                  <p className="text-[0.65rem] font-bold uppercase tracking-[0.28em] text-indigo-100/90">
+                    Division
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-white truncate" title={divisionName}>
+                    {divisionName}
+                  </p>
+                </div>
+              )}
+              {(hasZonalRole || hasDivisionalRole || hasSchoolRole) && zoneName && (
                 <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 backdrop-blur-md">
                   <p className="text-[0.65rem] font-bold uppercase tracking-[0.28em] text-indigo-100/90">
                     Zone
                   </p>
-                  <p className="mt-1 text-base font-semibold text-white">
+                  <p className="mt-1 text-sm font-semibold text-white truncate" title={zoneName}>
                     {zoneName}
                   </p>
                 </div>

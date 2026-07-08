@@ -74,12 +74,18 @@ class DashboardController extends Controller
             ], 422);
         }
 
+        $geoScope = $this->resolveGeographicalProfile($workplace);
+
         $base = [
             'people_id'    => $people_id,
             'name'         => $people->name_with_initials,
             'roles'        => $roles,
             'is_verified'  => $isVerified,
             'is_confirmed' => $isConfirmed,
+            'school'       => $geoScope['school'],
+            'division'     => $geoScope['division'],
+            'zone'         => $geoScope['zone'],
+            'province'     => $geoScope['province'],
         ];
 
         if (array_intersect($roles, ['teacher', 'principal'])) {
@@ -278,7 +284,7 @@ class DashboardController extends Controller
     {
         $officeLevelId   = $workplace->office_level_id;
         $childWorkplaces = $workplace->getAllChildWorkplaces();
-        $geoScope        = $this->resolveZoneAndProvince($workplace);
+        $geoScope        = $this->resolveGeographicalProfile($workplace);
 
         $institutionCount = Institution::whereIn('workplace_id', $childWorkplaces)->active()->count();
         $teacherCount     = Teacher::whereHas('currentAppointment', function ($q) use ($childWorkplaces) {
@@ -366,7 +372,7 @@ class DashboardController extends Controller
 
     private function deoOfficerData(Workplaces $workplace, int $institutionCount, int $teacherCount): array
     {
-        $geoScope = $this->resolveZoneAndProvince($workplace);
+        $geoScope = $this->resolveGeographicalProfile($workplace);
         $deo = DivisionalEducationOffice::where('workplace_id', $workplace->workplace_id)->first();
 
         $zoneBreakdown = collect();
@@ -402,53 +408,122 @@ class DashboardController extends Controller
         ];
     }
 
-    private function resolveZoneAndProvince(Workplaces $workplace): array
+    private function resolveGeographicalProfile(Workplaces $workplace): array
     {
-        $zoneWorkplaceId = null;
+        $school = null;
+        $division = null;
+        $zone = null;
+        $province = null;
 
-        if ($workplace->office_level_id === 'OLID004') {
-            $zoneWorkplaceId = $workplace->workplace_id;
-        } elseif ($workplace->office_level_id === 'OLID005') {
-            $zoneWorkplaceId = DivisionalEducationOffice::where('workplace_id', $workplace->workplace_id)
-                ->value('zeo_wp_id');
-        } elseif ($workplace->office_level_id === 'OLID006') {
-            $zoneWorkplaceId = Institution::where('workplace_id', $workplace->workplace_id)
-                ->value('zeo_wp_id');
+        $officeLevelId = $workplace->office_level_id;
+
+        // 1. Resolve School if OLID006
+        if ($officeLevelId === 'OLID006') {
+            $inst = Institution::where('workplace_id', $workplace->workplace_id)->first();
+            if ($inst) {
+                $school = [
+                    'workplace_id' => $inst->workplace_id,
+                    'name' => $inst->name,
+                ];
+                // Resolve division and zone from institution
+                if ($inst->deo_wp_id) {
+                    $div = DivisionalEducationOffice::where('workplace_id', $inst->deo_wp_id)->first();
+                    if ($div) {
+                        $division = [
+                            'workplace_id' => $div->workplace_id,
+                            'name' => $div->name,
+                            'short_name' => $div->short_name,
+                        ];
+                    }
+                }
+                if ($inst->zeo_wp_id) {
+                    $zo = ZonalEducationOffice::where('workplace_id', $inst->zeo_wp_id)->first();
+                    if ($zo) {
+                        $zone = [
+                            'workplace_id' => $zo->workplace_id,
+                            'name' => $zo->name,
+                            'short_name' => $zo->short_name,
+                        ];
+                        $province = $this->resolveProvinceFromPeo($zo->peo_wp_id);
+                    }
+                }
+            }
         }
 
-        if (! $zoneWorkplaceId) {
-            return [
-                'zone' => null,
-                'province' => null,
-            ];
+        // 2. Resolve Division if OLID005
+        if ($officeLevelId === 'OLID005') {
+            $div = DivisionalEducationOffice::where('workplace_id', $workplace->workplace_id)->first();
+            if ($div) {
+                $division = [
+                    'workplace_id' => $div->workplace_id,
+                    'name' => $div->name,
+                    'short_name' => $div->short_name,
+                ];
+                if ($div->zeo_wp_id) {
+                    $zo = ZonalEducationOffice::where('workplace_id', $div->zeo_wp_id)->first();
+                    if ($zo) {
+                        $zone = [
+                            'workplace_id' => $zo->workplace_id,
+                            'name' => $zo->name,
+                            'short_name' => $zo->short_name,
+                        ];
+                        $province = $this->resolveProvinceFromPeo($zo->peo_wp_id);
+                    }
+                }
+            }
         }
 
-        $zone = ZonalEducationOffice::query()
-            ->with('district.province')
-            ->where('workplace_id', $zoneWorkplaceId)
-            ->first();
-
-        if (! $zone) {
-            return [
-                'zone' => null,
-                'province' => null,
-            ];
+        // 3. Resolve Zone if OLID004
+        if ($officeLevelId === 'OLID004') {
+            $zo = ZonalEducationOffice::where('workplace_id', $workplace->workplace_id)->first();
+            if ($zo) {
+                $zone = [
+                    'workplace_id' => $zo->workplace_id,
+                    'name' => $zo->name,
+                    'short_name' => $zo->short_name,
+                ];
+                $province = $this->resolveProvinceFromPeo($zo->peo_wp_id);
+            }
         }
 
-        $province = $zone->district?->province;
+        // 4. Resolve Province if OLID003 or OLID002
+        if ($officeLevelId === 'OLID003') {
+            $province = $this->resolveProvinceFromPeo($workplace->workplace_id);
+        }
+
+        if ($officeLevelId === 'OLID002') {
+            $peo = ProvincialEducationOffice::where('pmoe_wp_id', $workplace->workplace_id)->first();
+            if ($peo) {
+                $province = $this->resolveProvinceFromPeo($peo->workplace_id);
+            }
+        }
 
         return [
-            'zone' => [
-                'workplace_id' => $zone->workplace_id,
-                'name' => $zone->name,
-                'short_name' => $zone->short_name,
-            ],
-            'province' => $province
-                ? [
-                    'province_id' => $province->province_id,
-                    'province_name' => $province->province_name,
-                ]
-                : null,
+            'school' => $school,
+            'division' => $division,
+            'zone' => $zone,
+            'province' => $province,
         ];
+    }
+
+    private function resolveProvinceFromPeo(?string $peoWpId): ?array
+    {
+        if (!$peoWpId) {
+            return null;
+        }
+        $peo = ProvincialEducationOffice::where('workplace_id', $peoWpId)->first();
+        if ($peo) {
+            $peoName = $peo->name;
+            $prov = \App\Models\ProvincesList::active()->get()->first(function ($p) use ($peoName) {
+                return str_contains(strtolower($peoName), strtolower($p->province_name));
+            });
+            if ($prov) {
+                return [
+                    'province_id' => $prov->province_id,
+                    'province_name' => $prov->province_name,
+                ];
+            }
+        }
+        return null;
     }
 }

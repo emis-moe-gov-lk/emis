@@ -47,39 +47,19 @@ class InstitutionController extends Controller
         ];
 
         $isAdmin = in_array('super admin', $roles) || in_array('admin', $roles);
-        $isZonalDeo = in_array('Zonal DEO', $roles) || in_array('zonal deo head', $roles);
-        $isDeo = in_array('development officer', $roles) || in_array('development officer head', $roles);
+        $workplace = $authed?->currentAppointment?->workplace;
+        $officeLevelId = $workplace?->office_level_id;
+        $workplaceId = $workplace?->workplace_id;
 
-        // Zonal DEO: return all institutions under their ZEO zone
-        if ($isZonalDeo) {
-            $workplaceId = $authed?->currentAppointment?->workplace_id;
+        $query = Institution::with($with)->withCount('teachers');
 
-            $query = Institution::with($with);
-
-            if ($workplaceId) {
-                $query->where('zeo_wp_id', $workplaceId);
-            } else {
-                $query->whereRaw('0 = 1');
-            }
-
-            $institutions = $query->orderBy('name')->paginate(20)->withQueryString();
-
-            return response()->json([
-                'status' => 'success',
-                'data'   => $institutions,
-            ]);
-        }
-
-        // DEO officer: return all institutions under their DEO division
-        if ($isDeo) {
-            $workplaceId = $authed?->currentAppointment?->workplace_id;
-
-            $query = Institution::with($with);
-
-            if ($workplaceId) {
-                $query->where('deo_wp_id', $workplaceId);
-            } else {
-                $query->whereRaw('0 = 1');
+        // Non-admin users: scope the list based on their office level
+        if (!$isAdmin) {
+            if (!$workplaceId) {
+                return response()->json([
+                    'status' => 'success',
+                    'data'   => Institution::with($with)->whereRaw('0 = 1')->paginate(20)->withQueryString(),
+                ]);
             }
 
             $institutions = $query->orderBy('name')->paginate(20)->withQueryString();
@@ -122,9 +102,6 @@ class InstitutionController extends Controller
                 'data'   => $institutions,
             ]);
         }
-
-        // Admin / super admin: full list with filters
-        $query = Institution::with($with);
 
         /* -------------------------
         | Filters

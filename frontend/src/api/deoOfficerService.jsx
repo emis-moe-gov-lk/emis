@@ -44,3 +44,18 @@ export const downloadProvincialDeoProfileDocument = async (id) => {
   return response;
 };
 
+export const getAllDeoOfficers = async (params = {}) => {
+  const response = await api.get("/deo-officers", { params });
+  return response.data;
+};
+
+export const getDeoOfficerById = async (id) => {
+  const response = await api.get(`/deo-officers/${id}`);
+  return response.data;
+};
+
+export const searchDeoOfficers = async (criteria = {}) => {
+  const response = await api.get("/deo-officers", { params: criteria });
+  return response.data;
+};
+

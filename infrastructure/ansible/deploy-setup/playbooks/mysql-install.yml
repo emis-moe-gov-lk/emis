@@ -11,6 +11,11 @@
     mysql_root_host_val:  "{{ mysql_root_allowed_host | default('%') }}"
 
   tasks:
+    - name: Accept repository label changes
+      ansible.builtin.command: apt-get update --allow-releaseinfo-change
+      changed_when: false
+      failed_when: false
+
     - name: Update apt and install MySQL + Python connector
       apt:
         name:
