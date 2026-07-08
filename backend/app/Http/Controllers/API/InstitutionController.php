@@ -19,6 +19,7 @@ class InstitutionController extends Controller
      *
      * - super admin / admin: full paginated list with filters
      * - all other roles (e.g. teacher): only the institution they are assigned to
+     * this has the both logics
      */
     public function index(Request $request)
     {
