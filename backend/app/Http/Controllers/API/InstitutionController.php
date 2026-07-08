@@ -46,84 +46,47 @@ class InstitutionController extends Controller
         ];
 
         $isAdmin = in_array('super admin', $roles) || in_array('admin', $roles);
-        $isZonalDeo = in_array('Zonal DEO', $roles) || in_array('zonal deo head', $roles);
-        $isDeo = in_array('development officer', $roles) || in_array('development officer head', $roles);
+        $workplace = $authed?->currentAppointment?->workplace;
+        $officeLevelId = $workplace?->office_level_id;
+        $workplaceId = $workplace?->workplace_id;
 
-        // Zonal DEO: return all institutions under their ZEO zone
-        if ($isZonalDeo) {
-            $workplaceId = $authed?->currentAppointment?->workplace_id;
+        $query = Institution::with($with)->withCount('teachers');
 
-            $query = Institution::with($with);
-
-            if ($workplaceId) {
-                $query->where('zeo_wp_id', $workplaceId);
-            } else {
-                $query->whereRaw('0 = 1');
-            }
-
-            $institutions = $query->orderBy('name')->paginate(20)->withQueryString();
-
-            return response()->json([
-                'status' => 'success',
-                'data'   => $institutions,
-            ]);
-        }
-
-        // DEO officer: return all institutions under their DEO division
-        if ($isDeo) {
-            $workplaceId = $authed?->currentAppointment?->workplace_id;
-
-            $query = Institution::with($with);
-
-            if ($workplaceId) {
-                $query->where('deo_wp_id', $workplaceId);
-            } else {
-                $query->whereRaw('0 = 1');
-            }
-
-            $institutions = $query->orderBy('name')->paginate(20)->withQueryString();
-
-            return response()->json([
-                'status' => 'success',
-                'data'   => $institutions,
-            ]);
-        }
-
-        // Non-admin users: return only their assigned institution
-        if (! $isAdmin) {
-            $workplaceId = $authed?->currentAppointment?->workplace_id;
-
-            if (! $workplaceId) {
+        // Non-admin users: scope the list based on their office level
+        if (!$isAdmin) {
+            if (!$workplaceId) {
                 return response()->json([
                     'status' => 'success',
                     'data'   => Institution::with($with)->whereRaw('0 = 1')->paginate(20)->withQueryString(),
                 ]);
             }
 
-            $cacheKey = "institution_by_workplace_{$workplaceId}";
-            Log::debug('[Cache] ' . (Cache::has($cacheKey) ? 'HIT' : 'MISS') . " key={$cacheKey}");
-
-            $dbQuery = fn () => Institution::with($with)
-                ->withCount('teachers')
-                ->where('workplace_id', $workplaceId)
-                ->paginate(20)
-                ->withQueryString();
-
-            try {
-                $institutions = Cache::remember($cacheKey, now()->addMinutes(30), $dbQuery);
-            } catch (\Throwable $e) {
-                Log::warning('[Cache] Redis unavailable, falling back to DB', ['key' => $cacheKey, 'error' => $e->getMessage()]);
-                $institutions = $dbQuery();
+            if ($officeLevelId === 'OLID006') {
+                // School level: see only their own school
+                $query->where('workplace_id', $workplaceId);
+            } elseif ($officeLevelId === 'OLID005') {
+                // Divisional level: see all schools in their division
+                $query->where('deo_wp_id', $workplaceId);
+            } elseif ($officeLevelId === 'OLID004') {
+                // Zonal level: see all schools in their zone
+                $query->where('zeo_wp_id', $workplaceId);
+            } elseif ($officeLevelId === 'OLID003') {
+                // Provincial level (PEO): see all schools in their province
+                $query->whereHas('zonalEducationOffice', function ($q) use ($workplaceId) {
+                    $q->where('peo_wp_id', $workplaceId);
+                });
+            } elseif ($officeLevelId === 'OLID002') {
+                // Provincial level (PMOE): see all schools in their province
+                $peo = ProvincialEducationOffice::where('pmoe_wp_id', $workplaceId)->first();
+                if ($peo) {
+                    $query->whereHas('zonalEducationOffice', function ($q) use ($peo) {
+                        $q->where('peo_wp_id', $peo->workplace_id);
+                    });
+                } else {
+                    $query->whereRaw('0 = 1');
+                }
             }
-
-            return response()->json([
-                'status' => 'success',
-                'data'   => $institutions,
-            ]);
         }
-
-        // Admin / super admin: full list with filters
-        $query = Institution::with($with);
 
         /* -------------------------
         | Filters
