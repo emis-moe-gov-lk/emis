@@ -230,15 +230,15 @@ export default function VersionPage() {
 
   /* ---------------- UI ---------------- */
 
-  if (loading) return <p className="p-10">Loading...</p>;
-  if (error) return <p className="p-10 text-red-500">{error}</p>;
+  if (loading) return <p className="p-10 text-gray-900 dark:text-gray-100">Loading...</p>;
+  if (error) return <p className="p-10 text-red-500 dark:text-red-400">{error}</p>;
 
   return (
-    <div className="min-h-screen p-10 bg-slate-50">
+    <div className="min-h-screen p-10 bg-slate-50 dark:bg-gray-900">
       <div className="flex justify-between mb-10">
         <div>
-          <h1 className="text-2xl font-semibold">What's New</h1>
-          <h5 className="text-black">
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">What's New</h1>
+          <h5 className="text-black dark:text-gray-300">
             Follow Our latest Updates and Improvements
           </h5>
         </div>
@@ -258,21 +258,21 @@ export default function VersionPage() {
 
       <div className="space-y-6">
         {versions.map((v) => (
-          <div key={v.id} className="p-6 bg-white rounded-xl shadow relative">
+          <div key={v.id} className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow relative">
             {v.isEditing ? (
               <div className="space-y-4">
                 <input
                   value={v.version}
                   onChange={(e) => updateField(v.id, "version", e.target.value)}
                   placeholder="Version"
-                  className="w-full border px-3 py-2 rounded"
+                  className="w-full border dark:border-gray-600 px-3 py-2 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
                 />
 
                 <input
                   value={v.title}
                   onChange={(e) => updateField(v.id, "title", e.target.value)}
                   placeholder="Title"
-                  className="w-full border px-3 py-2 rounded"
+                  className="w-full border dark:border-gray-600 px-3 py-2 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
                 />
 
                 <textarea
@@ -281,7 +281,7 @@ export default function VersionPage() {
                     updateField(v.id, "description", e.target.value)
                   }
                   placeholder="Description"
-                  className="w-full border px-3 py-2 rounded"
+                  className="w-full border dark:border-gray-600 px-3 py-2 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
                 />
 
                 {v.changes.map((c, i) => (
@@ -291,12 +291,12 @@ export default function VersionPage() {
                       onChange={(e) =>
                         updateField(v.id, "changes", e.target.value, i)
                       }
-                      className="w-full border px-3 py-2 rounded"
+                      className="w-full border dark:border-gray-600 px-3 py-2 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
                     />
 
                     <button
                       onClick={() => removeChangeField(v.id, i)}
-                      className="px-3 py-2 bg-red-100 text-red-600 rounded"
+                      className="px-3 py-2 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded"
                     >
                       ✕
                     </button>
@@ -305,7 +305,7 @@ export default function VersionPage() {
 
                 <button
                   onClick={() => addChangeField(v.id)}
-                  className="px-3 py-1 bg-blue-100 text-blue-600 rounded"
+                  className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded"
                 >
                   + Add Change
                 </button>
@@ -313,14 +313,14 @@ export default function VersionPage() {
                 <div className="flex gap-3">
                   <button
                     onClick={() => saveVersion(v.id)}
-                    className="px-4 py-2 bg-green-600 text-white rounded"
+                    className="px-4 py-2 bg-green-600 dark:bg-green-700 text-white rounded"
                   >
                     Save
                   </button>
 
                   <button
                     onClick={() => cancelEdit(v.id)}
-                    className="px-4 py-2 bg-gray-300 rounded"
+                    className="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-900 dark:text-gray-100 rounded"
                   >
                     Cancel
                   </button>
@@ -329,12 +329,12 @@ export default function VersionPage() {
             ) : (
               <div>
                 <div className="flex justify-between items-start mb-2">
-                  <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded">
+                  <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded">
                     {v.version}
                   </span>
 
                   <div className="flex items-start gap-6">
-                    <div className="text-sm text-gray-400 text-right">
+                    <div className="text-sm text-gray-400 dark:text-gray-500 text-right">
                       <div>Created: {v.created_at}</div>
 
                       {v.updated_at && v.updated_at !== v.created_at && (
@@ -345,24 +345,24 @@ export default function VersionPage() {
                     <div className="flex gap-2">
                       <Can permission={PermissionGroups.SETTINGS.VERSION_EDIT}>
                         <button onClick={() => handleEdit(v.id)}>
-                          <Pencil className="w-4 h-4 text-yellow-600" />
+                          <Pencil className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
                         </button>
                       </Can>
                       <Can
                         permission={PermissionGroups.SETTINGS.VERSION_DELETE}
                       >
                         <button onClick={() => openDeleteModal(v.id)}>
-                          <Trash2 className="w-4 h-4 text-red-600" />
+                          <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
                         </button>
                       </Can>
                     </div>
                   </div>
                 </div>
 
-                <h2 className="text-xl font-semibold">{v.title}</h2>
-                <p className="text-gray-600">{v.description}</p>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">{v.title}</h2>
+                <p className="text-gray-600 dark:text-gray-400">{v.description}</p>
 
-                <ul className="mt-3 space-y-1">
+                <ul className="mt-3 space-y-1 text-gray-900 dark:text-gray-200">
                   {v.changes.map((c, i) => (
                     <li key={i}>• {c}</li>
                   ))}
@@ -375,22 +375,22 @@ export default function VersionPage() {
 
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg w-80">
-            <p className="mb-4">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg w-80">
+            <p className="mb-4 text-gray-900 dark:text-gray-100">
               Are you sure you want to delete this version?
             </p>
 
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setShowDeleteModal(false)}
-                className="px-3 py-1 bg-gray-300 rounded"
+                className="px-3 py-1 bg-gray-300 dark:bg-gray-600 text-gray-900 dark:text-gray-100 rounded"
               >
                 Cancel
               </button>
 
               <button
                 onClick={confirmDelete}
-                className="px-3 py-1 bg-red-600 text-white rounded"
+                className="px-3 py-1 bg-red-600 dark:bg-red-700 text-white rounded"
               >
                 Delete
               </button>
