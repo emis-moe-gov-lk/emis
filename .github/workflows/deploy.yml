@@ -184,3 +184,66 @@ jobs:
             -e @env/env.yml \
             -e deploy_env=env \
             playbooks/deploy-stack-rotate.yml
+
+  # ── Phase 4: Health checks (parallel) ────────────────────────────────────────
+  health-frontend:
+    needs: [deploy]
+    if: |
+      always() &&
+      needs.deploy.result == 'success' &&
+      needs.build-frontend.result == 'success' &&
+      needs.build-frontend.outputs.image_built == 'true'
+    runs-on: ubuntu-latest
+    env:
+      HEALTH_URL: ${{ vars.FRONTEND_HEALTH_URL }}
+      HEALTH_INTERVAL: "5"
+      HEALTH_TIMEOUT: "180"
+    steps:
+      - name: Poll frontend health endpoint
+        run: |
+          URL="${HEALTH_URL}"
+          INTERVAL="${HEALTH_INTERVAL}"
+          TIMEOUT="${HEALTH_TIMEOUT}"
+          ELAPSED=0
+          while [ $ELAPSED -lt $TIMEOUT ]; do
+            if curl -sf "${URL}" > /dev/null; then
+              echo "Health check passed: ${URL}"
+              exit 0
+            fi
+            echo "Waiting... (${ELAPSED}s/${TIMEOUT}s)"
+            sleep $INTERVAL
+            ELAPSED=$((ELAPSED + INTERVAL))
+          done
+          echo "Health check failed after ${TIMEOUT}s: ${URL}"
+          exit 1
+
+  health-backend:
+    needs: [deploy]
+    if: |
+      always() &&
+      needs.deploy.result == 'success' &&
+      needs.build-backend.result == 'success' &&
+      needs.build-backend.outputs.image_built == 'true'
+    runs-on: ubuntu-latest
+    env:
+      HEALTH_URL: ${{ vars.BACKEND_HEALTH_URL }}
+      HEALTH_INTERVAL: "5"
+      HEALTH_TIMEOUT: "180"
+    steps:
+      - name: Poll backend health endpoint
+        run: |
+          URL="${HEALTH_URL}"
+          INTERVAL="${HEALTH_INTERVAL}"
+          TIMEOUT="${HEALTH_TIMEOUT}"
+          ELAPSED=0
+          while [ $ELAPSED -lt $TIMEOUT ]; do
+            if curl -sf "${URL}" > /dev/null; then
+              echo "Health check passed: ${URL}"
+              exit 0
+            fi
+            echo "Waiting... (${ELAPSED}s/${TIMEOUT}s)"
+            sleep $INTERVAL
+            ELAPSED=$((ELAPSED + INTERVAL))
+          done
+          echo "Health check failed after ${TIMEOUT}s: ${URL}"
+          exit 1
