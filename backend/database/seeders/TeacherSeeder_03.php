@@ -199,6 +199,7 @@ class TeacherSeeder_03 extends Seeder
 
         $created = 0;
         $skipped = 0;
+        $total   = count($namePool);
 
         foreach ($namePool as $index => [$fullName, $genderId, $religionId, $ethnicityId, $birthYear]) {
             DB::transaction(function () use (
@@ -334,9 +335,24 @@ class TeacherSeeder_03 extends Seeder
 
                 $created++;
             });
+
+            $this->command->getOutput()->writeln(
+                $this->progressBar($index + 1, $total, $created, $skipped)
+            );
         }
 
         $this->command->info("TeacherSeeder_03 complete: {$created} created, {$skipped} skipped.");
         $this->command->info('Verification breakdown: 35 pending verification, 30 pending confirmation, 20 rejected, 15 confirmed.');
+    }
+
+    private function progressBar(int $current, int $total, int $created, int $skipped, int $width = 30): string
+    {
+        $percent = $total > 0 ? (int) floor(($current / $total) * 100) : 0;
+        $filled  = $total > 0 ? (int) floor(($current / $total) * $width) : 0;
+
+        $bar = str_repeat('=', max(0, $filled - 1)) . ($filled > 0 ? '>' : '');
+        $bar = str_pad($bar, $width, ' ');
+
+        return "  [{$bar}] {$percent}% ({$current}/{$total}) created={$created} skipped={$skipped}";
     }
 }

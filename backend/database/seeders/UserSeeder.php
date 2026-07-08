@@ -39,6 +39,8 @@ class UserSeeder extends Seeder
             ['nic' => '900000000017', 'name' => 'School DEO', 'email' => 'schooldeo@gmail.com', 'contact' => '0700000017', 'password' => 'Password@123', 'role' => 'School DEO', 'service_id' => 'SER007', 'rank_id' => 'RANK019', 'position_id' => 'POS021', 'office_level_id' => 'OLID006', 'workplace_kind' => 'school', 'workplace_value' => 'KERAWALAPITIYA VIDYALOKA M.V.'],
         ];
 
+        $total = count($staticUsers);
+
         foreach ($staticUsers as $index => $staticUser) {
             $normalizedNic = NicHelper::normalize($staticUser['nic']);
             $nicHash = NicHelper::hash($normalizedNic);
@@ -115,7 +117,22 @@ class UserSeeder extends Seeder
                     'created_at' => Carbon::now(),
                 ]
             );
+
+            $this->command->getOutput()->writeln(
+                $this->progressBar($index + 1, $total)
+            );
         }
+    }
+
+    private function progressBar(int $current, int $total, int $width = 30): string
+    {
+        $percent = $total > 0 ? (int) floor(($current / $total) * 100) : 0;
+        $filled  = $total > 0 ? (int) floor(($current / $total) * $width) : 0;
+
+        $bar = str_repeat('=', max(0, $filled - 1)) . ($filled > 0 ? '>' : '');
+        $bar = str_pad($bar, $width, ' ');
+
+        return "  [{$bar}] {$percent}% ({$current}/{$total})";
     }
 
     private function resolveWorkplaceId(string $kind, string $value): string
