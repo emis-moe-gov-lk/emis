@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\People;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class MobileTeacherProfileController extends Controller
@@ -22,13 +23,17 @@ class MobileTeacherProfileController extends Controller
                 ], 403);
             }
 
-            $user = $request->user();
+            $user  = $request->user();
+            $email = $user?->email;
 
             $permissions = $user
                 ? $user->getAllPermissions()->pluck('name')->values()->all()
                 : [];
 
-            $teacher = People::with([
+            $cacheKey = "mobile_teacher_profile_{$peopleId}";
+            Log::debug('[Cache] ' . (Cache::has($cacheKey) ? 'HIT' : 'MISS') . " key={$cacheKey}");
+
+            $dbQuery = fn () => People::with([
                 'title',
                 'gender',
                 'religion',
@@ -69,6 +74,13 @@ class MobileTeacherProfileController extends Controller
             ])
                 ->where('people_id', $peopleId)
                 ->first();
+
+            try {
+                $teacher = Cache::remember($cacheKey, now()->addMinutes(15), $dbQuery);
+            } catch (\Throwable $e) {
+                Log::warning('[Cache] Redis unavailable, falling back to DB', ['key' => $cacheKey, 'error' => $e->getMessage()]);
+                $teacher = $dbQuery();
+            }
 
             if (! $teacher) {
                 return response()->json([
