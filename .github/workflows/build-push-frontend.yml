@@ -25,7 +25,7 @@ jobs:
 
     env:
       REGISTRY_BASE: "ghcr.io/emis-moe-gov-lk/emis-frontend"
-      REPO_VER_FILE: "frontend/version"
+
 
     steps:
       - name: Checkout repository
@@ -37,7 +37,7 @@ jobs:
           if [ -n "${{ inputs.version }}" ]; then
             VERSION="${{ inputs.version }}"
           else
-            VERSION=$(cat ${{ env.REPO_VER_FILE }} | xargs)
+            VERSION="${{ vars.FRONTEND_VERSION }}"
           fi
           echo "Detected version: $VERSION"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
