@@ -7,7 +7,6 @@ use App\Models\People;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -143,23 +142,8 @@ class ProfileController extends Controller
 
     try {
         $validated = $request->validate([
-            'current_password' => 'required|string',
-            'new_password'     => ['required', 'string', 'confirmed', Password::defaults()],
+            'new_password' => ['required', 'string', 'confirmed', Password::defaults()],
         ]);
-
-        if (!Hash::check($validated['current_password'], $user->password)) {
-            return response()->json([
-                'status'  => 'error',
-                'message' => 'Current password is incorrect',
-            ], 422);
-        }
-
-        if (Hash::check($validated['new_password'], $user->password)) {
-            return response()->json([
-                'status'  => 'error',
-                'message' => 'New password must be different',
-            ], 422);
-        }
 
         // Sync to IS first — if it rejects (e.g. password policy), we abort before touching the local DB.
         try {
