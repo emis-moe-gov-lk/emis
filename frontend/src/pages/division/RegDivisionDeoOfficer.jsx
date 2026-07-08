@@ -422,6 +422,7 @@ function RegDivisionDeoOfficerInner() {
               formData.currentAppointmentPositionLabel ||
               formData.currentAppointmentPosition,
             people_id: result.people_id || responseData.people_id || null,
+            defaultPassword: result.default_password || "Pw" + formData.nic,
           };
 
           setRegistrationSummary(summary);
@@ -551,6 +552,12 @@ function RegDivisionDeoOfficerInner() {
                 <p className="text-gray-900 dark:text-gray-100"><strong>Email:</strong> {registrationSummary?.email || "-"}</p>
                 <p className="text-gray-900 dark:text-gray-100"><strong>Contact Number:</strong> {registrationSummary?.contact || "-"}</p>
                 <p className="text-gray-900 dark:text-gray-100"><strong>Current Appointed Position:</strong> {registrationSummary?.currentAppointmentPositionName || "-"}</p>
+                <p className="text-gray-900 dark:text-gray-100 pt-2 border-t border-gray-100 dark:border-gray-800 mt-2">
+                  <strong>Temporary Password:</strong>{" "}
+                  <span className="font-mono font-bold bg-amber-50 dark:bg-amber-950/20 px-2 py-0.5 rounded text-amber-600 dark:text-amber-400">
+                    {registrationSummary?.defaultPassword || "-"}
+                  </span>
+                </p>
               </div>
 
               <div className="flex justify-center gap-4 pt-4">

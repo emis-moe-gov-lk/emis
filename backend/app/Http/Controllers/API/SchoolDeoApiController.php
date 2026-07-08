@@ -257,6 +257,8 @@ class SchoolDeoApiController extends Controller
                 'workplace_id' => $validated['currentAppointmentInstitution'],
             ]);
 
+            $defaultPassword = 'Pw' . $nic;
+
             // Create User Record
             $user = User::create([
                 'nic' => $nic,
@@ -265,7 +267,7 @@ class SchoolDeoApiController extends Controller
                 'name' => $people->name_with_initials,
                 'email' => strtolower($validated['email']),
                 'contact' => $validated['contact'],
-                'password' => Hash::make('Password@123'),
+                'password' => Hash::make($defaultPassword),
             ]);
 
             $user->assignRole('School DEO');
@@ -274,7 +276,7 @@ class SchoolDeoApiController extends Controller
 
             // WSO2 Provisioning
             try {
-                $wso2Is->provisionUser($user, 'Password@123', 'school deo');
+                $wso2Is->provisionUser($user, $defaultPassword, 'school deo');
             } catch (\Throwable $ex) {
                 Log::warning('WSO2 Provisioning failed for School DEO', ['error' => $ex->getMessage()]);
             }
@@ -289,6 +291,7 @@ class SchoolDeoApiController extends Controller
                     'contact' => $people->phone,
                 ],
                 'people_id' => $people->people_id,
+                'default_password' => $defaultPassword,
             ], 201);
 
         } catch (ValidationException $e) {

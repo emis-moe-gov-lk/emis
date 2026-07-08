@@ -1,0 +1,37 @@
+---
+all:
+  vars:
+    ansible_user: <ssh-user>
+    ansible_private_key_file: ~/.ssh/deploy_key
+    jumpbox_ip: <jumpbox-public-ip>
+
+  children:
+
+    # ── Jumpbox (public-facing, no proxy hop) ───────────────────────
+    jumpbox:
+      hosts:
+        emis-jump:
+          ansible_host: "{{ jumpbox_ip }}"
+
+    # ── All private hosts (routed through jumpbox) ──────────────────
+    private_hosts:
+      vars:
+        # ── CHANGED: dropped the -o flags now handled by ~/.ssh/config ──
+        ansible_ssh_common_args: >-
+          -J "{{ ansible_user }}@{{ jumpbox_ip }}"
+      children:
+
+        swarm_managers:
+          hosts:
+            swarm-mgr:
+              ansible_host: <swarm-manager-private-ip>
+
+        swarm_workers:
+          hosts:
+            swarm-wrk:
+              ansible_host: <swarm-worker-private-ip>
+
+        db_host:
+          hosts:
+            db-host:
+              ansible_host: <db-host-private-ip>

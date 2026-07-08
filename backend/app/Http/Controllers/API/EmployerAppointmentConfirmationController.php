@@ -284,7 +284,7 @@ class EmployerAppointmentConfirmationController extends Controller
     {
         try {
             $roles        = $this->resolvedRoles($request);
-            $allowedRoles = ['development officer', 'development officer head', 'zonal deo', 'zonal deo head', 'super admin'];
+            $allowedRoles = ['development officer', 'development officer head', 'zonal deo', 'zonal deo head', 'zonal deputy director', 'super admin'];
             if (! $this->hasAnyRole($roles, $allowedRoles)) {
                 return response()->json([
                     'status'  => 'error',
@@ -479,7 +479,7 @@ public function confirmTeacher(Request $request, string $people_id, TeacherAccou
 {
     try {
         $roles        = $this->resolvedRoles($request);
-        $allowedRoles = ['development officer', 'development officer head', 'zonal deo', 'zonal deo head', 'super admin'];
+        $allowedRoles = ['development officer', 'development officer head', 'zonal deo', 'zonal deo head', 'zonal deputy director', 'super admin'];
 
         // 🔒 Role check
         if (! $this->hasAnyRole($roles, $allowedRoles)) {

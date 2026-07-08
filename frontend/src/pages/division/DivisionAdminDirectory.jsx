@@ -3,6 +3,7 @@ import DosHeader from "@/components/dos/DosHeader";
 import DosList from "@/components/dos/DosList";
 import { getAllDivisionAdmins } from "@/api/divisionAdminService";
 import { Spinner } from "flowbite-react";
+import { PermissionGroups } from "@/data/permissionGroups";
 
 export default function DivisionAdminDirectory() {
   const [employees, setEmployees] = useState([]);
@@ -72,6 +73,7 @@ export default function DivisionAdminDirectory() {
         searchPlaceholder="Search Division Administrators"
         createLabel="Add Division Administrator"
         createPath="/employees/division/admin/create"
+        permission={PermissionGroups.DIVISION.ADMIN_CREATE}
       />
 
       {error ? (
