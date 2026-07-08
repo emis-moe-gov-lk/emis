@@ -5,23 +5,16 @@ FROM wso2/wso2am:4.6.0
 USER root
 
 # MySQL JDBC Driver to the lib directory
-# Assume 'lib' is present in the build context
 COPY --chown=wso2carbon:wso2 \
     lib/*.jar \
     ${WSO2_SERVER_HOME}/repository/components/lib/
 
-# 2. Replace the default deployment.toml with your custom one
-# This file should contain your MySQL and IS Key Manager configs
+# Replace the default deployment.toml with your custom one
 COPY --chown=wso2carbon:wso2 \
     conf/deployment.toml \
     ${WSO2_SERVER_HOME}/repository/conf/
 
-# 3. Trust any additional certificates dropped into certs/ (one .pem per CA).
-# Empty in prod; local-dev fills it with the nginx-proxy self-signed cert so
-# APIM trusts the proxy when calling IS over the public hostname. Imports into
-# both the WSO2 client-truststore (used by most clients) AND the JVM default
-# cacerts (used by Feign in the IS7 key manager client, which has its own SSL
-# context).
+# Trust any additional certificates dropped into certs/ (one .pem per CA).
 COPY --chown=root:root --chmod=0444 certs/ /tmp/extra-certs/
 RUN set -e; \
     for cert in /tmp/extra-certs/*.pem; do \
@@ -46,8 +39,25 @@ RUN set -e; \
     done; \
     rm -rf /tmp/extra-certs
 
+# ── Infisical CLI ──────────────────────────────────────────────
+ARG INFISICAL_URL
+ENV INFISICAL_URL=$INFISICAL_URL
+
+ARG INFISICAL_CLI_VERSION=0.88.3
+RUN curl -fsSL \
+    "https://github.com/Infisical/infisical/releases/download/infisical-cli-v${INFISICAL_CLI_VERSION}/infisical_${INFISICAL_CLI_VERSION}_linux_amd64.tar.gz" \
+    -o /tmp/infisical.tar.gz \
+    && tar xzf /tmp/infisical.tar.gz -C /usr/local/bin infisical \
+    && rm /tmp/infisical.tar.gz \
+    && chmod +x /usr/local/bin/infisical
+
+# Custom entrypoint: wraps startup with `infisical run` to inject secrets
+COPY --chmod=0555 docker-entrypoint.sh /docker-entrypoint.sh
+
 # Switch back to the non-root wso2carbon user
 USER wso2carbon
+
+ENTRYPOINT ["/docker-entrypoint.sh"]
 
 # Expose the standard ports
 EXPOSE 9443 8243 8280

@@ -2,7 +2,7 @@
 
 ## 1. Role & Scope
 - **Persona:** You are an expert DevOps and Automation Agent specialized in Infrastructure as Code (IaC), Ansible configurations, and Docker Swarm orchestration. You are managing the EMIS System Migration Test & Development Environment.
-- **Context:** This environment deploys the EMIS backend, frontend, and WSO2 Identity Server (IS) 7.2.0, utilizing a Jumpbox architecture for secure access.
+- **Context:** This environment deploys the EMIS backend, frontend, WSO2 Identity Server (IS) 7.2.0, and WSO2 API Manager (APIM) 4.6.0, utilizing a Jumpbox architecture for secure access.
 - **Allowed Directory:** Your operations are strictly bounded to the `/infrastructure` root directory. Do not modify source code directories outside this path unless explicitly requested.
 
 ## 2. Directory Layout & Enforcement
@@ -15,12 +15,12 @@ infrastructure/
 │   │   ├── .vault_pass              # Ansible vault password
 │   │   ├── env/env.yml              # Single environment variable file
 │   │   ├── inventory/inventory.yml  # Single inventory file
-│   │   ├── playbooks/               # 10 deployment playbooks (pre-check, mysql, deploy, site.yml)
+│   │   ├── playbooks/               # Deployment playbooks (pre-check, mysql, deploy, site.yml)
 │   │   ├── templates/               # Jinja2 env file templates (*.env.j2)
 │   │   └── resources/               # WSO2 IS 7.2.0 SQL schemas
 │   └── teardown/                    # Teardown playbooks (site-teardown, stack, mysql)
 ├── docker-swarm/
-│   ├── docker-stack.yml             # Full stack (IS + frontend + backend)
+│   ├── docker-stack.yml             # Full stack (IS + APIM + frontend + backend)
 │   ├── docker-stack-is.yml          # IS-only stack
 │   ├── .env                         # Rendered image tags from template
 │   └── .env.example
@@ -37,8 +37,8 @@ All private hosts sit behind a public jumpbox.
 - The SSH key path and jumpbox credentials are defined in the Ansible inventory file.
 
 ### Topology & Roadmap
-- **Current State:** No-APIM Topology. The frontend communicates *directly* with the backend via `vite_api_base_url`. WSO2 IS handles authentication directly without an API Gateway.
-- **Future State (TODO):** Reintroduce `wso2-apim` into `docker-swarm/docker-stack.yml`, add an `apim.env` configuration, and reroute the frontend to pass through the APIM gateway. Keep this in mind if asked to scale the architecture.
+- **Current State:** APIM-integrated Topology. WSO2 APIM is deployed alongside IS, frontend, and backend. APIM's key manager points to the external WSO2 IS. All APIM env vars (hostname, DB creds, IS creds, admin creds, etc.) are injected by Infisical via `infisical run` at container startup. The Infisical server URL is baked into the Docker image at build time via GitHub Actions secrets.
+- **Future State (TODO):** Reroute the frontend to pass through the APIM gateway instead of calling the backend directly. Keep this in mind if asked to scale the architecture.
 
 ## 4. Strict Guardrails
 - **CRITICAL:** Never hardcode secrets or passwords in the playbooks or compose files. Utilize Ansible Vault or referencing variables in `env/env.yml`. 

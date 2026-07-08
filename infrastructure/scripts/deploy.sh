@@ -41,13 +41,16 @@ ansible-playbook -i "$INVENTORY_FILE" -e @"$ENV_FILE" -e deploy_env="$ENV" "$PB_
 # ── Step 4: Create WSO2 IS databases and import schemas ──────────────────────
 ansible-playbook -i "$INVENTORY_FILE" -e @"$ENV_FILE" -e deploy_env="$ENV" "$PB_DIR/mysql-setup-wso2-is-only.yml"
 
-# ── Step 5: Render env files and deploy IS-only Docker stack ──────────────────
+# ── Step 5: Create WSO2 APIM databases ──────────────────────────────────────
+ansible-playbook -i "$INVENTORY_FILE" -e @"$ENV_FILE" -e deploy_env="$ENV" "$PB_DIR/mysql-setup-wso2-apim.yml"
+
+# ── Step 7: Render env files and deploy IS-only Docker stack ──────────────────
 ansible-playbook -i "$INVENTORY_FILE" -e @"$ENV_FILE" -e deploy_env="$ENV" "$PB_DIR/deploy-is-only.yml"
 
-# ── Step 6: Configure IS (roles, users, OIDC apps) ───────────────────────────
+# ── Step 8: Configure IS (roles, users, OIDC apps) ───────────────────────────
 ansible-playbook -i "$INVENTORY_FILE" -e @"$ENV_FILE" -e deploy_env="$ENV" "$PB_DIR/configure-is-only.yml"
 
-# ── Step 7: Deploy stack with updated credentials ────────────────────────────
+# ── Step 9: Deploy stack with updated credentials ────────────────────────────
 ansible-playbook -i "$INVENTORY_FILE" -e @"$ENV_FILE" -e deploy_env="$ENV" "$PB_DIR/deploy-stack.yml"
 
 echo "Deployment to $ENV finished successfully."

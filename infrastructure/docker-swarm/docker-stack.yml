@@ -28,6 +28,24 @@ services:
         delay: 10s
         max_attempts: 3
 
+  # ── WSO2 API Manager ──────────────────────────────────────────────────────
+  wso2-apim:
+    image: "${WSO2_APIM_DOCKERIMG_REPO}:${WSO2_APIM_DOCKERIMG_TAG}"
+    ports:
+      - "${APIM_HOST_PORT}:9443"
+      - "${APIM_GATEWAY_PORT}:8243"
+      - "${APIM_GATEWAY_HTTP_PORT}:8280"
+    env_file:
+      - apim.env
+    networks:
+      - noapim-uat-swm-network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+
   # ── Frontend ───────────────────────────────────────────────────────────────
   frontend:
     image: "${FRONTEND_DOCKERIMG_REPO}:${FRONTEND_DOCKERIMG_TAG}"
