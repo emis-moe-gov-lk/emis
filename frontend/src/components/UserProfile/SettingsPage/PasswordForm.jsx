@@ -8,13 +8,11 @@ const PasswordForm = ({ forceMode = false }) => {
   const navigate = useNavigate();
   const { hydrateIdentity } = useAuthUser();
   const [formData, setFormData] = useState({
-    currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
 
   const [showPassword, setShowPassword] = useState({
-    current: false,
     new: false,
     confirm: false,
   });
@@ -39,14 +37,12 @@ const PasswordForm = ({ forceMode = false }) => {
     setSaving(true);
     try {
       await changeOwnPassword({
-        current_password: formData.currentPassword,
         new_password: formData.newPassword,
         new_password_confirmation: formData.confirmPassword,
       });
       await hydrateIdentity();
       toast.success("Password changed successfully.");
       setFormData({
-        currentPassword: "",
         newPassword: "",
         confirmPassword: "",
       });
@@ -63,31 +59,6 @@ const PasswordForm = ({ forceMode = false }) => {
   return (
     <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
       <h3 className="text-lg font-semibold mb-4">Change Password</h3>
-
-      {/* Current Password */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Current Password
-        </label>
-        <div className="relative">
-          <input
-            type={showPassword.current ? "text" : "password"}
-            name="currentPassword"
-            value={formData.currentPassword}
-            onChange={handleChange}
-            disabled={saving}
-            className="w-full border border-gray-300 rounded-md p-2 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-400"
-            placeholder="Enter current password"
-          />
-          <button
-            type="button"
-            onClick={() => togglePassword("current")}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-          >
-            {showPassword.current ? "Hide" : "Show"}
-          </button>
-        </div>
-      </div>
 
       {/* New Password */}
       <div>
