@@ -3,8 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { HiDocumentText, HiPlus } from "react-icons/hi";
 import { Spinner } from "flowbite-react";
 import StatusBadge from "@/components/common/StatusBadge";
-import { getMoeAdminById, addMoeAdminServiceHistoryEntry, addMoeAdminPastService } from "@/api/moeAdminService";
-import { downloadTeacherProfileDocument } from "@/api/teacherService";
+import { getMoeAdminById, addMoeAdminServiceHistoryEntry, addMoeAdminPastService, downloadMoeAdminProfileDocument } from "@/api/moeAdminService";
 import ProfileDataTable from "@/components/common/ProfileDataTable";
 import BackToListButton from "@/components/UiComponents/BackToListButton";
 import toast from "react-hot-toast";
@@ -354,6 +353,7 @@ export default function MoeAdminProfile() {
 }
 
 function HeaderStrip({ profile }) {
+  const [isDownloadingDocument, setIsDownloadingDocument] = useState(false);
   return (
     <div className="rounded-2xl overflow-hidden border border-blue-100 dark:border-blue-900/30 shadow-sm bg-white dark:bg-gray-800">
       <div className="bg-linear-to-r from-blue-50 to-indigo-50/30 dark:from-blue-900/10 dark:to-indigo-900/5">
@@ -394,7 +394,8 @@ function HeaderStrip({ profile }) {
               <button 
                 onClick={async () => {
                   try {
-                    const response = await downloadTeacherProfileDocument(profile.employeeId);
+                    setIsDownloadingDocument(true);
+                    const response = await downloadMoeAdminProfileDocument(profile.employeeId);
                     const blob = new Blob([response.data], {
                       type: response.headers?.["content-type"] || "application/pdf",
                     });
@@ -409,12 +410,24 @@ function HeaderStrip({ profile }) {
                   } catch (error) {
                     console.error("Failed to download MOE admin document:", error);
                     toast.error("Unable to download the administrator document.");
+                  } finally {
+                    setIsDownloadingDocument(false);
                   }
                 }}
-                className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-md shadow-blue-200 dark:shadow-none"
+                disabled={isDownloadingDocument}
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-75 disabled:cursor-not-allowed transition-all shadow-md shadow-blue-200 dark:shadow-none"
               >
-                <HiDocumentText className="h-4 w-4" />
-                Get Document
+                {isDownloadingDocument ? (
+                  <>
+                    <Spinner size="sm" light={true} />
+                    <span>Preparing PDF...</span>
+                  </>
+                ) : (
+                  <>
+                    <HiDocumentText className="h-4 w-4" />
+                    <span>Get Document</span>
+                  </>
+                )}
               </button>
             </Can>
           </div>

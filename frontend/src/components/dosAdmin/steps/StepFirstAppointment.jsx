@@ -94,7 +94,7 @@ export default function StepFirstAppointment({ formData, setFormData, onValid })
         <div className="flex h-8 w-8 items-center justify-center rounded-md bg-blue-600 text-xs font-bold text-white">
           04
         </div>
-        <h2 className="text-xl font-semibold text-gray-900">First Appointment Details</h2>
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">First Appointment Details</h2>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

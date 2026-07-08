@@ -109,7 +109,7 @@ export default function AppRoutes() {
         <Route
           path="/force-password-change"
           element={
-            <ProtectedRoute roles={["teacher"]}>
+            <ProtectedRoute>
               <ForcePasswordChange />
             </ProtectedRoute>
           }
@@ -280,7 +280,14 @@ export default function AppRoutes() {
             <Route path="employees/development-officers">
               <Route index element={<ZonalDirectory />} />
               <Route path="bulk-upload" element={<DosBulkUpload />} />
-              <Route path="create" element={<RegDeoOfficer />} />
+              <Route
+                path="create"
+                element={
+                  <ProtectedRoute permissions={["zonal.deo.create"]}>
+                    <RegDeoOfficer />
+                  </ProtectedRoute>
+                }
+              />
               <Route path=":id" element={<DosAdminProfile />} />
             </Route>
             <Route path="employees/division/deo">

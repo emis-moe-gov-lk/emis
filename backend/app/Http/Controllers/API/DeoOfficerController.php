@@ -293,6 +293,18 @@ class DeoOfficerController extends Controller
 
     public function store(Request $request, Wso2IsProvisioningService $wso2Is)
     {
+        $jwtRoles = (array) $request->attributes->get('jwt_roles', []);
+        $dbRoles  = $request->user()?->getRoleNames()?->all() ?? [];
+        $roles    = array_unique(array_merge(
+            array_map('strtolower', $jwtRoles),
+            array_map('strtolower', $dbRoles),
+        ));
+
+        $allowed = ['super admin', 'zonal deo', 'zonal deo head', 'zonal director', 'zonal deputy director'];
+        if (empty(array_intersect($roles, $allowed))) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
+        }
+
         try {
             $validated = $request->validate([
                 // PERSONAL
@@ -330,6 +342,7 @@ class DeoOfficerController extends Controller
             DB::beginTransaction();
 
             $nic        = NicHelper::normalize($validated['nic']);
+            $defaultPassword = 'Pw' . $nic;
             $initials   = People::generateInitials($validated['fullName']);
             $dosService = Service::where('service_name', 'DOS')->firstOrFail();
             $serviceId  = $dosService->service_id;
@@ -399,6 +412,12 @@ class DeoOfficerController extends Controller
                 'workplace_id'           => $validated['zonalOfficeId'],
                 'appointment_letter_no'  => $validated['appointmentLetter'],
                 'appointment_letter'     => 'none.pdf',
+                'is_verified'            => 1,
+                'verified_by'            => auth()->user()?->people_id,
+                'verified_date'          => now()->toDateTimeString(),
+                'is_confirmed'           => 1,
+                'confirmed_by'           => auth()->user()?->people_id,
+                'confirmed_date'         => now()->toDateTimeString(),
             ]);
 
             // ---- CURRENT APPOINTMENT ----
@@ -421,20 +440,20 @@ class DeoOfficerController extends Controller
                 'name'     => $people->name_with_initials,
                 'email'    => strtolower($validated['email']),
                 'contact'  => $validated['contact'],
-                'password' => Hash::make('Password@123'),
+                'password' => Hash::make($defaultPassword),
             ]);
 
             $user->assignRole('Zonal DEO');
 
             DB::commit();
 
-            $wso2Is->provisionUser($user, 'Password@123', 'zonal deo');
+            $wso2Is->provisionUser($user, $defaultPassword, 'zonal deo');
 
             return response()->json([
                 'status'           => 'success',
                 'message'          => 'DEO officer created successfully',
                 'people_id'        => $people->people_id,
-                'default_password' => 'Password@123',
+                'default_password' => $defaultPassword,
             ], 201);
         } catch (ValidationException $e) {
             activity('deo_officer_registration')

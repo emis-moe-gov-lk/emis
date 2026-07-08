@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { getEditRequests, reviewEditRequest } from "@/api/userService";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { HiDocumentText, HiPlus } from "react-icons/hi";
 import { Badge, Spinner } from "flowbite-react";
 import StatusBadge from "@/components/common/StatusBadge";
-import { getDosAdmin, addDosAdminServiceHistoryEntry, addDosAdminPastService } from "@/api/deoOfficerService";
+import { getDosAdmin, addDosAdminServiceHistoryEntry, addDosAdminPastService, downloadDeoOfficerProfileDocument } from "@/api/deoOfficerService";
+import { downloadDosAdminProfileDocument } from "@/api/dosAdminService";
 import ProfileDataTable from "@/components/common/ProfileDataTable";
 import BackToListButton from "@/components/UiComponents/BackToListButton";
 import toast from "react-hot-toast";
@@ -34,6 +35,12 @@ const tableActionButtonClass =
 export default function DosAdminProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const isZonalDeo = location.pathname.includes("/employees/development-officers");
+  const documentPermission = isZonalDeo 
+    ? PermissionGroups.ZONAL.DEO_PROFILE_VIEW 
+    : PermissionGroups.ZONAL.ADMIN_PROFILE_VIEW;
 
   const [admin, setAdmin] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -48,6 +55,7 @@ export default function DosAdminProfile() {
   const [isPastServiceModalOpen, setIsPastServiceModalOpen] = useState(false);
   const [pastServiceForm, setPastServiceForm] = useState(DEFAULT_PAST_SERVICE_FORM);
   const [isSavingPastService, setIsSavingPastService] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -101,6 +109,40 @@ export default function DosAdminProfile() {
 
   const handlePastServiceFieldChange = (key, value) => {
     setPastServiceForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleDownload = async () => {
+    if (!admin?.people_id) {
+      toast.error("Missing employee details.");
+      return;
+    }
+    try {
+      setIsDownloading(true);
+      let responseData;
+      let filename;
+      if (isZonalDeo) {
+        const response = await downloadDeoOfficerProfileDocument(admin.people_id);
+        responseData = response.data;
+        filename = `zonal-deo-profile-${admin.nic || admin.people_id}.pdf`;
+      } else {
+        responseData = await downloadDosAdminProfileDocument(admin.people_id);
+        filename = `zonal-admin-profile-${admin.nic || admin.people_id}.pdf`;
+      }
+      const blob = new Blob([responseData], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      console.error("Failed to download profile document:", error);
+      toast.error("Unable to download the profile document.");
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   const handlePastServiceSave = async () => {
@@ -255,7 +297,12 @@ export default function DosAdminProfile() {
       </div>
 
       {/* Header strip */}
-      <HeaderStrip profile={profile} />
+      <HeaderStrip
+        profile={profile}
+        documentPermission={documentPermission}
+        handleDownload={handleDownload}
+        isDownloading={isDownloading}
+      />
 
       {/* Layout: Left menu + Right content */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -346,10 +393,10 @@ export default function DosAdminProfile() {
    Header Strip
 ========================================================= */
 
-function HeaderStrip({ profile }) {
+function HeaderStrip({ profile, documentPermission, handleDownload, isDownloading }) {
   return (
     <div className="rounded-2xl overflow-hidden border border-blue-100 dark:border-blue-900/30 shadow-sm bg-white dark:bg-gray-800">
-      <div className="bg-linear-to-r from-blue-50 to-indigo-50/30 dark:from-blue-900/10 dark:to-indigo-900/5">
+      <div className="bg-linear-to-r from-blue-50 to-indigo-50/30 dark:from-blue-950/10 dark:to-indigo-950/5">
         <div className="p-6 flex flex-col xl:flex-row xl:items-center gap-6">
           {/* LEFT: Name + meta */}
           <div className="flex items-start gap-4 min-w-0 max-w-2xl">
@@ -386,10 +433,23 @@ function HeaderStrip({ profile }) {
 
           {/* RIGHT: Actions */}
           <div className="flex flex-col sm:flex-row xl:flex-col gap-3 min-w-[200px]">
-            <Can permission={PermissionGroups.ZONAL.BULK_UPLOAD}>
-              <button className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-md shadow-blue-200 dark:shadow-none">
-                <HiDocumentText className="h-4 w-4" />
-                Get Document
+            <Can permission={documentPermission}>
+              <button 
+                onClick={handleDownload}
+                disabled={isDownloading}
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-75 disabled:cursor-not-allowed transition-all shadow-md shadow-blue-200 dark:shadow-none"
+              >
+                {isDownloading ? (
+                  <>
+                    <Spinner size="sm" light={true} />
+                    <span>Preparing PDF...</span>
+                  </>
+                ) : (
+                  <>
+                    <HiDocumentText className="h-4 w-4" />
+                    <span>Get Document</span>
+                  </>
+                )}
               </button>
             </Can>
           </div>

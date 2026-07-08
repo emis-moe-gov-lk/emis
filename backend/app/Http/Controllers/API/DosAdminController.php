@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use App\Http\Controllers\Controller;
 use App\Services\Wso2IsProvisioningService;
@@ -209,6 +210,13 @@ class DosAdminController extends Controller
     public function store(Request $request, Wso2IsProvisioningService $wso2Is)
     {
         try {
+            $nicInput = (string) $request->input('nic', '');
+            $existingPeopleId = null;
+            if ($nicInput !== '') {
+                $existingPeopleId = People::where('nic_hash', NicHelper::hash(NicHelper::normalize($nicInput)))
+                    ->value('people_id');
+            }
+
             $validated = $request->validate([
                 // PERSONAL
                 'nic'                         => 'required|string',
@@ -228,8 +236,16 @@ class DosAdminController extends Controller
                 'dsOfficeId'                  => 'required|string',
 
                 // CONTACT
-                'email'        => 'required|email',
-                'contact'      => 'required|string',
+                'email'   => [
+                    'required', 'email',
+                    Rule::unique('people', 'email')->ignore($existingPeopleId, 'people_id'),
+                    Rule::unique('users', 'email')->ignore($existingPeopleId, 'people_id'),
+                ],
+                'contact' => [
+                    'required', 'string',
+                    Rule::unique('people', 'phone')->ignore($existingPeopleId, 'people_id'),
+                    Rule::unique('users', 'contact')->ignore($existingPeopleId, 'people_id'),
+                ],
                 'addressLine1' => 'required|string',
                 'addressLine2' => 'required|string',
                 'addressLine3' => 'nullable|string',
@@ -319,6 +335,12 @@ class DosAdminController extends Controller
                 'appointment_letter'      => 'none.pdf',
                 'recruitment_category_id' => $validated['recruitmentCategory'],
                 'recruitment_subject_id'  => $validated['recruitmentSubject'],
+                'is_verified'             => 1,
+                'verified_by'             => auth()->user()?->people_id,
+                'verified_date'           => now()->toDateTimeString(),
+                'is_confirmed'            => 1,
+                'confirmed_by'            => auth()->user()?->people_id,
+                'confirmed_date'          => now()->toDateTimeString(),
             ]);
 
             // ==============================
@@ -341,6 +363,10 @@ class DosAdminController extends Controller
             // ==============================
             $role = $this->resolveRole($validated['currentAppointmentPosition']);
 
+            // BUG-072: Zonal Deputy Director and Zonal Director accounts get a per-person
+            // default password (Pw+NIC) for better security instead of a shared default.
+            $defaultPassword = 'Pw' . $nic;
+
             $user = User::create([
                 'nic'      => $nic,
                 'nic_hash' => NicHelper::hash($nic),
@@ -348,14 +374,14 @@ class DosAdminController extends Controller
                 'name'     => $people->name_with_initials,
                 'email'    => strtolower($validated['email']),
                 'contact'  => $validated['contact'],
-                'password' => Hash::make('Password@123'),
+                'password' => Hash::make($defaultPassword),
             ]);
 
             $user->assignRole($role);
 
             DB::commit();
 
-            $wso2Is->provisionUser($user, 'Password@123', $role);
+            $wso2Is->provisionUser($user, $defaultPassword, $role);
 
             $positionName = Position::where('position_id', $validated['currentAppointmentPosition'])
                 ->value('position_name');
@@ -373,7 +399,7 @@ class DosAdminController extends Controller
                     'currentAppointmentPositionName' => $positionName,
                 ],
                 'people_id'        => $people->people_id,
-                'default_password' => 'Password@123',
+                'default_password' => $defaultPassword,
             ], 201);
 
         } catch (ValidationException $e) {

@@ -947,6 +947,7 @@ const TeacherProfile = () => {
     userRoles.includes("zonal deo head");
   const isSuperAdmin = userRoles.includes("super admin");
   const isZonalDirector = userRoles.includes("zonal director");
+  const isZonalDeputyDirector = userRoles.includes("zonal deputy director");
   const isPendingStatus =
     !teacher?.confirmed &&
     !teacher?.verified &&
@@ -969,7 +970,9 @@ const TeacherProfile = () => {
     ? !!teacher?.rejected || !!teacher?.revised
     : isZonalDirector
       ? shouldShowZonalDirectorConfirmOnly
-      : !teacher?.confirmed;
+      : isZonalDeputyDirector
+        ? !teacher?.confirmed && !isVerifiedStatus
+        : !teacher?.confirmed;
   const isRevisedStatus = !!teacher?.revised;
   const canPromoteToPrincipal =
     (isSuperAdmin || isZonalDirector) &&

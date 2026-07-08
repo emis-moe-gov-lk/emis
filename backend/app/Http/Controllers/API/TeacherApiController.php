@@ -204,7 +204,7 @@ class TeacherApiController extends Controller
             $query = clone $baseQuery;
 
             // Scope registration forms to the authenticated officer's zonal office.
-            if ($this->hasAnyRole($roles, ['development officer', 'development officer head', 'zonal deo', 'zonal deo head', 'zonal director'])) {
+            if ($this->hasAnyRole($roles, ['development officer', 'development officer head', 'zonal deo', 'zonal deo head', 'zonal director', 'zonal deputy director'])) {
                 $zonalWorkplaceId = $this->resolveUserZonalWorkplaceId($request);
 
                 if (! $zonalWorkplaceId) {
@@ -553,7 +553,7 @@ class TeacherApiController extends Controller
         $roles = $this->resolvedRoles($request);
         $zonalWorkplaceId = null;
 
-        if ($this->hasAnyRole($roles, ['development officer', 'development officer head', 'zonal deo', 'zonal deo head'])) {
+        if ($this->hasAnyRole($roles, ['development officer', 'development officer head', 'zonal deo', 'zonal deo head', 'zonal deputy director'])) {
             $zonalWorkplaceId = $this->resolveUserZonalWorkplaceId($request);
 
             if (! $zonalWorkplaceId) {
@@ -740,7 +740,7 @@ class TeacherApiController extends Controller
     {
         $roles = $this->resolvedRoles($request);
 
-        if (! $this->hasAnyRole($roles, ['development officer', 'development officer head', 'zonal deo', 'zonal deo head', 'zonal director', 'super admin'])) {
+        if (! $this->hasAnyRole($roles, ['development officer', 'development officer head', 'zonal deo', 'zonal deo head', 'zonal director', 'zonal deputy director', 'super admin'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Unauthorized',
@@ -996,7 +996,7 @@ class TeacherApiController extends Controller
             $roles = $this->resolvedRoles($request);
             $zonalWorkplaceId = null;
 
-            if ($this->hasAnyRole($roles, ['development officer', 'development officer head', 'zonal deo', 'zonal deo head'])) {
+            if ($this->hasAnyRole($roles, ['development officer', 'development officer head', 'zonal deo', 'zonal deo head', 'zonal deputy director'])) {
                 $zonalWorkplaceId = $this->resolveUserZonalWorkplaceId($request);
 
                 if (! $zonalWorkplaceId) {
@@ -1124,6 +1124,7 @@ class TeacherApiController extends Controller
             'OLID003' => ProvincialEducationOffice::active()->get(),
             'OLID004' => ZonalEducationOffice::active()->get(),
             'OLID005' => DivisionalEducationOffice::active()->get(),
+            'OLID006' => Institution::active()->get(),
             default   => [],
         };
 
@@ -1379,7 +1380,7 @@ class TeacherApiController extends Controller
     {
         $roles = $this->resolvedRoles($request);
 
-        if (! $this->hasAnyRole($roles, ['super admin', 'zonal deo', 'zonal deo head', 'development officer', 'development officer head'])) {
+        if (! $this->hasAnyRole($roles, ['super admin', 'zonal deo', 'zonal deo head', 'zonal deputy director', 'development officer', 'development officer head'])) {
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Unauthorized',
@@ -1467,7 +1468,7 @@ class TeacherApiController extends Controller
     {
         $roles = $this->resolvedRoles($request);
 
-        if (! $this->hasAnyRole($roles, ['super admin', 'zonal deo', 'zonal deo head', 'development officer', 'development officer head'])) {
+        if (! $this->hasAnyRole($roles, ['super admin', 'zonal deo', 'zonal deo head', 'zonal deputy director', 'development officer', 'development officer head'])) {
             return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
         }
 

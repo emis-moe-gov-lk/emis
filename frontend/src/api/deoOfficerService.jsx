@@ -16,7 +16,7 @@ export const printDeoOfficerId = async (id) => {
 };
 
 export const downloadDeoOfficerProfileDocument = async (id) => {
-  const response = await api.get(`/pdf/teacher/${id}`, {
+  const response = await api.get(`/pdf/zonal-deo/${id}`, {
     responseType: "arraybuffer",
   });
   return response;
@@ -34,6 +34,28 @@ export const addDosAdminServiceHistoryEntry = async (peopleId, data) => {
 
 export const addDosAdminPastService = async (peopleId, data) => {
   const response = await api.post(`/dos-admins/${peopleId}/past-services`, data);
+  return response.data;
+};
+
+export const downloadProvincialDeoProfileDocument = async (id) => {
+  const response = await api.get(`/pdf/provincial-deo/${id}`, {
+    responseType: "arraybuffer",
+  });
+  return response;
+};
+
+export const getAllDeoOfficers = async (params = {}) => {
+  const response = await api.get("/deo-officers", { params });
+  return response.data;
+};
+
+export const getDeoOfficerById = async (id) => {
+  const response = await api.get(`/deo-officers/${id}`);
+  return response.data;
+};
+
+export const searchDeoOfficers = async (criteria = {}) => {
+  const response = await api.get("/deo-officers", { params: criteria });
   return response.data;
 };
 

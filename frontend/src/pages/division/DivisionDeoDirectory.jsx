@@ -3,6 +3,7 @@ import DosHeader from "@/components/dos/DosHeader";
 import DosList from "@/components/dos/DosList";
 import { getAllDivisionDeos } from "@/api/divisionDeoService";
 import { Spinner } from "flowbite-react";
+import { PermissionGroups } from "@/data/permissionGroups";
 
 export default function DivisionDeoDirectory() {
   const [employees, setEmployees] = useState([]);
@@ -72,6 +73,7 @@ export default function DivisionDeoDirectory() {
         searchPlaceholder="Search Division DEOs"
         createLabel="Add Division DEO"
         createPath="/employees/division/deo/create"
+        permission={PermissionGroups.DIVISION.DEO_CREATE}
       />
 
       {error ? (

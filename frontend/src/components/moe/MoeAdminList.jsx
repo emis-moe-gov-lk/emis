@@ -1,5 +1,7 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { HiUser } from "react-icons/hi";
+import toast from "react-hot-toast";
+import { downloadMoeAdminProfileDocument } from "@/api/moeAdminService";
 import DirectoryCard from "../common/DirectoryCard";
 import profileMale from "../../assets/images/profile_m.png";
 import profileFemale from "../../assets/images/profile_f.png";
@@ -44,8 +46,8 @@ export default function MoeAdminList({ employees }) {
           address={emp.address_line1}
           phone={emp.phone}
           email={emp.email}
-          status={emp.confirmed ? "Confirmed" : "Pending"}
-          statusColor={emp.confirmed ? "success" : "warning"}
+          status={emp.appointment?.is_confirmed === 1 ? "Confirmed" : "Pending"}
+          statusColor={emp.appointment?.is_confirmed === 1 ? "success" : "warning"}
           showProfilePicture={true}
           maleProfileImage={profileMale}
           femaleProfileImage={profileFemale}
@@ -55,8 +57,24 @@ export default function MoeAdminList({ employees }) {
           onPrintId={(employee) => {
             window.open(`/print-id/${employee.id}`, "_blank");
           }}
-          onExportPdf={(employee) => {
-            window.open(`/export-pdf/${employee.id}`, "_blank");
+          onExportPdf={async (employee) => {
+            try {
+              toast.loading("Preparing PDF download...", { id: "moe-pdf-download" });
+              const response = await downloadMoeAdminProfileDocument(employee.people_id);
+              const blob = new Blob([response.data], { type: "application/pdf" });
+              const url = window.URL.createObjectURL(blob);
+              const link = document.createElement("a");
+              link.href = url;
+              link.download = `moe-admin-profile-${employee.people_id}.pdf`;
+              document.body.appendChild(link);
+              link.click();
+              link.remove();
+              window.setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+              toast.success("PDF downloaded successfully!", { id: "moe-pdf-download" });
+            } catch (error) {
+              console.error("Failed to download PDF:", error);
+              toast.error("Unable to download the PDF.", { id: "moe-pdf-download" });
+            }
           }}
         />
       ))}

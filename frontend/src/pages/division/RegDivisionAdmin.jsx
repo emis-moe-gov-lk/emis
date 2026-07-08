@@ -226,6 +226,7 @@ function RegDivisionAdminInner() {
               contact: result.data.contact,
               currentPosition: result.data.currentAppointmentPositionName,
               people_id: result.people_id,
+              defaultPassword: result.default_password || "Pw" + formData.nic,
           });
           setIsRegistrationComplete(true);
           dispatch({ type: "SET_STEP", payload: 5 });
@@ -252,7 +253,15 @@ function RegDivisionAdminInner() {
       <div className="border border-gray-200 overflow-hidden rounded-lg">
         <StepperHeader steps={STEPS} currentStep={currentStep} onStepClick={handleStepClick} />
         <div className="p-6 lg:p-8">
-          {currentStep === 1 && <StepNICVerification formData={formData} setFormData={setFormData} onVerified={() => dispatch({ type: "SET_NIC_VERIFIED", payload: true })} />}
+          {currentStep === 1 && (
+            <StepNICVerification
+              formData={formData}
+              setFormData={setFormData}
+              isVerified={isNicVerified}
+              onVerified={() => dispatch({ type: "SET_NIC_VERIFIED", payload: true })}
+              onVerificationReset={() => dispatch({ type: "SET_NIC_VERIFIED", payload: false })}
+            />
+          )}
           {currentStep === 2 && <StepPersonalDetails formData={formData} setFormData={setFormData} onValid={(v) => dispatch({ type: "SET_PERSONAL_VALID", payload: v })} />}
           {currentStep === 3 && <StepContactDetails formData={formData} setFormData={setFormData} onValid={(v) => dispatch({ type: "SET_CONTACT_VALID", payload: v })} />}
           {currentStep === 4 && <StepCurrentAppointment formData={formData} setFormData={setFormData} onValid={(v) => dispatch({ type: "SET_CURRENT_APPT_VALID", payload: v })} />}

@@ -1,7 +1,14 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import api from "@/api/axios";
 import { Button, TextInput, Label, Alert } from "flowbite-react";
 import { HiXCircle, HiCheckCircle, HiExclamationCircle } from "react-icons/hi";
+
+const NIC_VALIDATION = {
+  OLD_FORMAT: /^[0-9]{9}[VX]$/,          // Legacy format: 900000000V
+  NEW_FORMAT: /^[0-9]{12}$/,             // New format: 900000000001
+  MIN_DAY: 1,                             // Minimum valid day of year
+  MAX_DAY: 866,                           // Maximum valid day (accounting for leap years)
+};
 
 export default function StepNICVerification({
   formData,
@@ -15,47 +22,60 @@ export default function StepNICVerification({
   const [resultTone, setResultTone] = useState(null); // green | orange | red
   const [message, setMessage] = useState("");
 
-  const isValidSriLankaNIC = (value) => {
+  const handleVerificationSuccess = useCallback(() => {
+    onVerified?.(true);
+  }, [onVerified]);
+
+  const handleVerificationFailure = useCallback(() => {
+    if (onVerificationReset) {
+      onVerificationReset();
+    } else {
+      onVerified?.(false);
+    }
+  }, [onVerified, onVerificationReset]);
+
+  const isValidSriLankaNIC = useCallback((value) => {
     const v = value.trim().toUpperCase();
 
-    if (/^[0-9]{9}[VX]$/.test(v)) {
+    if (NIC_VALIDATION.OLD_FORMAT.test(v)) {
       const days = parseInt(v.substring(2, 5), 10);
-      return days >= 1 && days <= 866;
+      return days >= NIC_VALIDATION.MIN_DAY && days <= NIC_VALIDATION.MAX_DAY;
     }
 
-    if (/^[0-9]{12}$/.test(v)) {
+    if (NIC_VALIDATION.NEW_FORMAT.test(v)) {
       const days = parseInt(v.substring(4, 7), 10);
-      return days >= 1 && days <= 866;
+      return days >= NIC_VALIDATION.MIN_DAY && days <= NIC_VALIDATION.MAX_DAY;
     }
 
     return false;
-  };
+  }, []);
 
-  const isAppropriateNICForNEMIS = (value) => {
+  const isAppropriateNICForNEMIS = useCallback((value) => {
     const v = value.trim().toUpperCase();
     const minYear = new Date().getFullYear() - 100;
 
-    if (/^[0-9]{12}$/.test(v)) {
+    if (NIC_VALIDATION.NEW_FORMAT.test(v)) {
       const firstFourDigits = parseInt(v.substring(0, 4), 10);
       return firstFourDigits > minYear;
     }
 
-    if (/^[0-9]{9}[VX]$/.test(v)) {
+    if (NIC_VALIDATION.OLD_FORMAT.test(v)) {
       const thresholdTwoDigits = parseInt(String(minYear).slice(-2), 10);
       const firstTwoDigits = parseInt(v.substring(0, 2), 10);
       return firstTwoDigits > thresholdTwoDigits;
     }
 
     return false;
-  };
+  }, []);
 
-  const verifyNIC = async () => {
+  const verifyNIC = useCallback(async () => {
     const clean = nic.trim().toUpperCase();
 
     if (!clean) {
       setStatus("invalid");
       setResultTone(null);
       setMessage("NIC number is required");
+      handleVerificationFailure();
       return;
     }
 
@@ -63,13 +83,15 @@ export default function StepNICVerification({
       setStatus("invalid");
       setResultTone(null);
       setMessage("Invalid NIC format");
+      handleVerificationFailure();
       return;
     }
 
     if (!isAppropriateNICForNEMIS(clean)) {
       setStatus("invalid");
       setResultTone(null);
-      setMessage("In appropriate NIC for NEMIS system");
+      setMessage("Inappropriate NIC for NEMIS system");
+      handleVerificationFailure();
       return;
     }
 
@@ -137,15 +159,15 @@ export default function StepNICVerification({
         if (activeAppointment) {
           setResultTone("red");
           setMessage(
-            `NIC Already Exist and Current workplace is  - ${workplaceInstitutionName}`,
+            `NIC Already Exists with Current Workplace: ${workplaceInstitutionName}`,
           );
-          onVerificationReset?.();
+          handleVerificationFailure();
         } else {
           setResultTone("orange");
           setMessage(
-            "NIC Already available Data loaded, you add appointment details",
+            "NIC Found - Data Loaded. Please add appointment details.",
           );
-          onVerified(); // Enable NEXT only when no active appointment exists
+          handleVerificationSuccess();
         }
         return;
       }
@@ -194,96 +216,130 @@ export default function StepNICVerification({
 
       setStatus("result");
       setResultTone("green");
-      setMessage("Varification Sucess, NIC not found, You can continue");
-      onVerified(); // Enable NEXT
+      setMessage("NIC Verified Successfully - Continue with new registration");
+      handleVerificationSuccess();
     } catch (error) {
-      console.error(error);
+      console.error("NIC verification error:", error);
       setStatus("invalid");
       setResultTone(null);
-      setMessage(error.response?.data?.message || "Verification failed");
+      setMessage(
+        error.response?.data?.message ||
+          "Verification failed. Please try again.",
+      );
+      handleVerificationFailure();
     }
-  };
+  }, [
+    nic,
+    isValidSriLankaNIC,
+    isAppropriateNICForNEMIS,
+    setFormData,
+    handleVerificationSuccess,
+    handleVerificationFailure,
+  ]);
+
+  const handleInputChange = useCallback((e) => {
+    const nextNic = e.target.value;
+    const normalizedNextNic = nextNic.trim().toUpperCase();
+    const normalizedVerifiedNic = (formData.nic || "").trim().toUpperCase();
+
+    if (isVerified && normalizedNextNic !== normalizedVerifiedNic) {
+      if (onVerificationReset) {
+        onVerificationReset();
+      } else {
+        onVerified?.(false);
+      }
+    }
+
+    setNic(nextNic);
+    setStatus(null);
+    setResultTone(null);
+    setMessage("");
+  }, [formData.nic, isVerified, onVerificationReset, onVerified]);
+
+  const handleFormSubmit = useCallback((e) => {
+    e.preventDefault();
+    verifyNIC();
+  }, [verifyNIC]);
 
   return (
     <div className="flex flex-col justify-center px-4 py-2">
-      {/* Title */}
-      <div className="mb-4 flex items-center gap-3">
-        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-600 text-xs font-bold text-white">
+      {/* Step title */}
+      <div className="mb-6 flex items-center gap-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-blue-600 text-xs font-bold text-white">
           01
         </div>
-        <h2 className="text-lg font-semibold">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
           Identity Verification
         </h2>
       </div>
 
-      <div className="w-full max-w-xl">
-        {/* NIC input + Verify button (INLINE — EXACT DESIGN) */}
-        <form
-          className="mb-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            verifyNIC();
-          }}
-        >
-          <Label value="NIC Number" className="mb-1 block" />
-          <div className="flex items-center gap-4">
+      <div className="w-full max-w-2xl">
+        {/* Information banner */}
+        <div className="mb-6 bg-amber-50 border border-amber-200 rounded-2xl p-4">
+          <p className="text-sm text-amber-800">
+            Before starting the registration, ensure that the National Identity
+            Card (NIC) number already exists in the system. After confirming the
+            correctness of the NIC you enter, proceed further.
+          </p>
+        </div>
+
+        {/* Input Form */}
+        <form className="mb-4" onSubmit={handleFormSubmit}>
+          <Label
+            htmlFor="nic-input"
+            value="NIC Number"
+            className="mb-2 block text-sm font-semibold"
+          />
+          <div className="flex items-center gap-3">
             <TextInput
+              id="nic-input"
               className="flex-1 [&_input]:bg-white dark:[&_input]:bg-gray-800"
-              placeholder="Enter NIC number"
+              placeholder="Enter NIC number (e.g., 9908811970 or 990881197V)"
               value={nic}
-              onChange={(e) => {
-                const nextNic = e.target.value;
-                const normalizedNextNic = nextNic.trim().toUpperCase();
-                const normalizedVerifiedNic = (formData.nic || "").trim().toUpperCase();
-
-                if (isVerified && normalizedNextNic !== normalizedVerifiedNic) {
-                  onVerificationReset?.();
-                }
-
-                setNic(nextNic);
-                setStatus(null);
-                setResultTone(null);
-                setMessage("");
-              }}
+              onChange={handleInputChange}
+              disabled={status === "checking"}
             />
             <Button
               type="submit"
-              className="rounded-full bg-blue-600 px-8 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
+              disabled={status === "checking" || !nic.trim()}
+              className="rounded-full bg-blue-600 px-8 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
             >
-              Verify
+              {status === "checking" ? "Verifying..." : "Verify"}
             </Button>
           </div>
-          <p className="mt-1 text-sm text-gray-500">Standard SL NIC Formats</p>
+          <p className="mt-2 text-xs text-gray-500">
+            Standard Sri Lanka NIC Formats: 9908811970 (12-digit) or 990881197V (9-digit+letter)
+          </p>
         </form>
 
-        {/* Status message (ONE at a time) */}
+        {/* Status Messages */}
         {status === "checking" && (
           <Alert color="warning" icon={HiExclamationCircle} className="mt-6">
-            Verifying NIC number...
+            <span className="font-medium">Verifying NIC number...</span>
           </Alert>
         )}
 
         {status === "result" && resultTone === "green" && (
           <Alert color="success" icon={HiCheckCircle} className="mt-6">
-            {message}
+            <span className="font-medium">{message}</span>
           </Alert>
         )}
 
         {status === "result" && resultTone === "orange" && (
           <Alert color="warning" icon={HiExclamationCircle} className="mt-6">
-            {message}
+            <span className="font-medium">{message}</span>
           </Alert>
         )}
 
         {status === "result" && resultTone === "red" && (
           <Alert color="failure" icon={HiXCircle} className="mt-6">
-            {message}
+            <span className="font-medium">{message}</span>
           </Alert>
         )}
 
         {status === "invalid" && (
           <Alert color="failure" icon={HiXCircle} className="mt-6">
-            {message}
+            <span className="font-medium">{message}</span>
           </Alert>
         )}
       </div>

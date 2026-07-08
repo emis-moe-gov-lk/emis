@@ -125,7 +125,13 @@ function DosAdminFormInner() {
     (currentStep > 1 || Object.keys(formData || {}).length > 0);
 
   // Access control: Only Super Admin and Zonal DEO can create DOS Admin profiles
-  const canCreateDosAdmin = hasRole("super admin") || hasRole("zonal deo");
+  const canCreateDosAdmin =
+    hasRole("super admin") ||
+    hasRole("zonal deo") ||
+    hasRole("Provincial Director") ||
+    hasRole("Provincial Deputy Director") ||
+    hasRole("MOE Administrator") ||
+    hasRole("MOE Director");
   const isDosAdminCreateAuthLoading =
     isAuthLoading || (isAuthenticated && !identity);
 
@@ -187,7 +193,7 @@ function DosAdminFormInner() {
     if (isDosAdminCreateAuthLoading || canCreateDosAdmin) return;
 
     dispatch({ type: "CLEAR" });
-    toast.error("Only Super Admin and Zonal DEO can create DOS Admin profiles.", {
+    toast.error("Unauthorized access.", {
       id: "dos-admin-create-unauthorized",
     });
     navigate("/employees/dos-admins", { replace: true });
@@ -516,10 +522,32 @@ function DosAdminFormInner() {
     }
   };
 
+
   /**
    * Handle step progression and form submission
    */
   const handleNext = async () => {
+    if (currentStep === 1 && !isNicVerified) {
+      toast.error("Please verify NIC before continuing.");
+      return;
+    }
+    if (currentStep === 2 && !isPersonalValid) {
+      toast.error("Please fill all required personal details.");
+      return;
+    }
+    if (currentStep === 3 && !isContactValid) {
+      toast.error("Please fill all required contact details.");
+      return;
+    }
+    if (currentStep === 4 && !isFirstApptValid) {
+      toast.error("Please fill all required first appointment details.");
+      return;
+    }
+    if (currentStep === 5 && !isCurrentApptValid) {
+      toast.error("Please fill all required current appointment details.");
+      return;
+    }
+
     // Current Appointment step — submit to backend
     if (currentStep === 5) {
       try {
@@ -546,7 +574,8 @@ function DosAdminFormInner() {
               responseData.currentAppointmentPosition ||
               formData.currentAppointmentPositionLabel ||
               formData.currentAppointmentPosition,
-            people_id: responseData.people_id || responseData.id || null,
+            people_id: responseData.people_id || responseData.id || result.people_id || null,
+            defaultPassword: result.default_password || "Pw" + formData.nic,
           };
 
           setIsRegistrationComplete(true);
@@ -566,7 +595,7 @@ function DosAdminFormInner() {
       return;
     }
 
-    // Standard step progression with validation
+    // Standard step progression
     dispatch({ type: "SET_STEP", payload: Math.min(currentStep + 1, STEPS.length) });
   };
 
@@ -590,7 +619,9 @@ function DosAdminFormInner() {
             <StepNICVerification
               formData={formData}
               setFormData={setFormData}
+              isVerified={isNicVerified}
               onVerified={() => dispatch({ type: "SET_NIC_VERIFIED", payload: true })}
+              onVerificationReset={() => dispatch({ type: "SET_NIC_VERIFIED", payload: false })}
             />
           )}
 
@@ -663,6 +694,12 @@ function DosAdminFormInner() {
                     <strong>Current Appointed Position:</strong>{" "}
                     {registrationSummary.currentPosition || "-"}
                   </p>
+                  <p className="text-gray-900 dark:text-gray-100 pt-2 border-t border-gray-100 dark:border-gray-800 mt-2">
+                    <strong>Temporary Password:</strong>{" "}
+                    <span className="font-mono font-bold bg-amber-50 dark:bg-amber-950/20 px-2 py-0.5 rounded text-amber-600 dark:text-amber-400">
+                      {registrationSummary.defaultPassword || "-"}
+                    </span>
+                  </p>
                 </div>
               )}
 
@@ -694,6 +731,13 @@ function DosAdminFormInner() {
               onBack={handleBack}
               onNext={handleNext}
               isProcessing={isSubmitting}
+              canNext={
+                currentStep === 1 ? isNicVerified :
+                currentStep === 2 ? isPersonalValid :
+                currentStep === 3 ? isContactValid :
+                currentStep === 4 ? isFirstApptValid :
+                currentStep === 5 ? isCurrentApptValid : true
+              }
             />
           </div>
         )}
