@@ -36,21 +36,21 @@ export default function SentBox() {
   );
 
   return (
-    <div className="h-screen bg-gradient-to-br from-gray-100 to-gray-200 flex p-4 gap-4">
+    <div className="h-screen bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-900 dark:to-gray-950 flex p-4 gap-4">
       {/* LEFT PANEL */}
-      <div className="w-full md:w-1/3 bg-white rounded-2xl shadow-lg flex flex-col overflow-hidden">
+      <div className="w-full md:w-1/3 bg-white dark:bg-gray-800 rounded-2xl shadow-lg flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="p-4 border-b bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+        <div className="p-4 border-b dark:border-gray-700 bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-700 dark:to-indigo-700 text-white">
           <h2 className="text-xl font-bold">Message Inbox</h2>
           <p className="text-xs opacity-80">All your incoming messages</p>
         </div>
 
         {/* Search */}
-        <div className="p-3 border-b">
+        <div className="p-3 border-b dark:border-gray-700">
           <input
             type="text"
             placeholder="Search by recipient or subject..."
-            className="w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="w-full px-3 py-2 border dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-500"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -65,15 +65,15 @@ export default function SentBox() {
               className={`p-3 rounded-xl cursor-pointer transition border
               ${
                 selected?.id === msg.id
-                  ? "bg-blue-50 border-blue-400 shadow"
-                  : "hover:bg-gray-50 border-transparent"
+                  ? "bg-blue-50 dark:bg-blue-900/30 border-blue-400 dark:border-blue-600 shadow"
+                  : "hover:bg-gray-50 dark:hover:bg-gray-700/50 border-transparent"
               }`}
             >
               <div className="flex justify-between items-center">
-                <p className="font-semibold text-gray-800">To: {msg.to}</p>
-                <span className="text-xs text-gray-400">{msg.date}</span>
+                <p className="font-semibold text-gray-800 dark:text-gray-100">To: {msg.to}</p>
+                <span className="text-xs text-gray-400 dark:text-gray-500">{msg.date}</span>
               </div>
-              <p className="text-sm text-gray-600 mt-1 truncate">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 truncate">
                 {msg.subject}
               </p>
             </div>
@@ -82,15 +82,15 @@ export default function SentBox() {
       </div>
 
       {/* RIGHT PANEL */}
-      <div className="hidden md:flex flex-1 bg-white rounded-2xl shadow-lg overflow-hidden">
+      <div className="hidden md:flex flex-1 bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
         {selected ? (
           <div className="w-full flex flex-col">
             {/* Header */}
-            <div className="p-6 border-b bg-gray-50">
-              <h2 className="text-2xl font-bold text-gray-800">
+            <div className="p-6 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
                 {selected.subject}
               </h2>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                 To: <span className="font-medium">{selected.to}</span> •{" "}
                 {selected.date}
               </p>
@@ -98,15 +98,15 @@ export default function SentBox() {
 
             {/* Body */}
             <div className="p-6">
-              <div className="bg-gray-50 p-5 rounded-xl border text-gray-700 leading-relaxed">
+              <div className="bg-gray-50 dark:bg-gray-900 p-5 rounded-xl border dark:border-gray-700 text-gray-700 dark:text-gray-300 leading-relaxed">
                 {selected.message}
               </div>
             </div>
           </div>
         ) : (
           <div className="m-auto text-center">
-            <div className="text-gray-400 text-lg">📩 Select a message</div>
-            <p className="text-sm text-gray-500">Preview will appear here</p>
+            <div className="text-gray-400 dark:text-gray-500 text-lg">📩 Select a message</div>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Preview will appear here</p>
           </div>
         )}
       </div>
