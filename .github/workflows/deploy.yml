@@ -24,17 +24,13 @@ permissions:
   packages: write
 
 jobs:
-  # ── Phase 1: Detect which services changed and bump versions ─────────────────
+  # ── Phase 1: Detect which services changed ────────────────────────────────────
   detect-changes:
     runs-on: ubuntu-latest
     outputs:
       frontend_changed: ${{ steps.set_flags.outputs.frontend_changed }}
       backend_changed: ${{ steps.set_flags.outputs.backend_changed }}
       any_changed: ${{ steps.set_flags.outputs.any_changed }}
-      frontend_current_version: ${{ steps.fetch_vars.outputs.frontend_current }}
-      backend_current_version: ${{ steps.fetch_vars.outputs.backend_current }}
-      frontend_new_version: ${{ steps.bump_frontend.outputs.new_version }}
-      backend_new_version: ${{ steps.bump_backend.outputs.new_version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -75,46 +71,6 @@ jobs:
             fi
           fi
 
-      - name: Generate GitHub App token
-        id: app_token
-        env:
-          APP_ID: ${{ secrets.GH_APP_ID }}
-          PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
-          INSTALLATION_ID: ${{ secrets.GH_APP_INSTALLATION_ID }}
-        run: |
-          printf '%s' "$PRIVATE_KEY" > /tmp/app-key.pem
-          chmod 600 /tmp/app-key.pem
-
-          NOW=$(date +%s)
-          HEADER=$(printf '{"alg":"RS256","typ":"JWT"}' | base64 -w0 | tr -d '=' | tr '/+' '_-')
-          PAYLOAD=$(printf '{"iat":%d,"exp":%d,"iss":"%s"}' $((NOW-60)) $((NOW+540)) "$APP_ID" \
-            | base64 -w0 | tr -d '=' | tr '/+' '_-')
-          SIG=$(printf '%s.%s' "$HEADER" "$PAYLOAD" \
-            | openssl dgst -sha256 -sign /tmp/app-key.pem -binary \
-            | base64 -w0 | tr -d '=' | tr '/+' '_-')
-          JWT="${HEADER}.${PAYLOAD}.${SIG}"
-
-          RESP=$(curl -s -X POST \
-            -H "Authorization: Bearer ${JWT}" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/app/installations/${INSTALLATION_ID}/access_tokens")
-          TOKEN=$(echo "$RESP" | jq -r '.token')
-          echo "::add-mask::$TOKEN"
-          echo "token=$TOKEN" >> $GITHUB_OUTPUT
-
-      - name: Fetch service versions from GitHub variables
-        id: fetch_vars
-        run: |
-          VARS=$(curl -s -H "Authorization: Bearer ${{ steps.app_token.outputs.token }}" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${{ github.repository }}/actions/variables")
-
-          FRONTEND=$(echo "$VARS" | jq -r '.variables[] | select(.name=="FRONTEND_VERSION") | .value')
-          BACKEND=$(echo "$VARS" | jq -r '.variables[] | select(.name=="BACKEND_VERSION") | .value')
-
-          echo "frontend_current=$FRONTEND" >> $GITHUB_OUTPUT
-          echo "backend_current=$BACKEND" >> $GITHUB_OUTPUT
-
       - name: Set change flags
         id: set_flags
         run: |
@@ -128,124 +84,20 @@ jobs:
             echo "any_changed=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Bump frontend version
-        id: bump_frontend
-        run: |
-          V="${{ steps.fetch_vars.outputs.frontend_current }}"
-          if [ "${{ steps.detect.outputs.frontend_changed }}" = "true" ]; then
-            BASE="${V%.*}"
-            PATCH="${V##*.}"
-            NEW="${BASE}.$((PATCH + 1))"
-          else
-            NEW="$V"
-          fi
-          echo "new_version=$NEW" >> $GITHUB_OUTPUT
-
-      - name: Bump backend version
-        id: bump_backend
-        run: |
-          V="${{ steps.fetch_vars.outputs.backend_current }}"
-          if [ "${{ steps.detect.outputs.backend_changed }}" = "true" ]; then
-            BASE="${V%.*}"
-            PATCH="${V##*.}"
-            NEW="${BASE}.$((PATCH + 1))"
-          else
-            NEW="$V"
-          fi
-          echo "new_version=$NEW" >> $GITHUB_OUTPUT
-
-  # ── Phase 2: Build & push Docker images (parallel, conditional) ──────────────
+  # ── Phase 2: Build & push Docker images (parallel, self-bumping) ──────────────
   build-frontend:
     needs: detect-changes
     if: needs.detect-changes.outputs.frontend_changed == 'true'
     uses: ./.github/workflows/build-push-frontend.yml
-    with:
-      version: ${{ needs.detect-changes.outputs.frontend_new_version }}
     secrets: inherit
 
   build-backend:
     needs: detect-changes
     if: needs.detect-changes.outputs.backend_changed == 'true'
     uses: ./.github/workflows/build-push-backend.yml
-    with:
-      version: ${{ needs.detect-changes.outputs.backend_new_version }}
     secrets: inherit
 
-  # ── Phase 3: Finalize — update GH variables and commit version files ─────────
-  finalize:
-    needs: [detect-changes, build-frontend, build-backend]
-    if: |
-      always() &&
-      needs.detect-changes.result == 'success' &&
-      (
-        (needs.build-frontend.result == 'success' && needs.build-frontend.outputs.image_built == 'true') ||
-        (needs.build-backend.result == 'success' && needs.build-backend.outputs.image_built == 'true')
-      )
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Generate GitHub App token
-        id: app_token
-        env:
-          APP_ID: ${{ secrets.GH_APP_ID }}
-          PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
-          INSTALLATION_ID: ${{ secrets.GH_APP_INSTALLATION_ID }}
-        run: |
-          printf '%s' "$PRIVATE_KEY" > /tmp/app-key.pem
-          chmod 600 /tmp/app-key.pem
-          NOW=$(date +%s)
-          HEADER=$(printf '{"alg":"RS256","typ":"JWT"}' | base64 -w0 | tr -d '=' | tr '/+' '_-')
-          PAYLOAD=$(printf '{"iat":%d,"exp":%d,"iss":"%s"}' $((NOW-60)) $((NOW+540)) "$APP_ID" \
-            | base64 -w0 | tr -d '=' | tr '/+' '_-')
-          SIG=$(printf '%s.%s' "$HEADER" "$PAYLOAD" \
-            | openssl dgst -sha256 -sign /tmp/app-key.pem -binary \
-            | base64 -w0 | tr -d '=' | tr '/+' '_-')
-          JWT="${HEADER}.${PAYLOAD}.${SIG}"
-          RESP=$(curl -s -X POST \
-            -H "Authorization: Bearer ${JWT}" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/app/installations/${INSTALLATION_ID}/access_tokens")
-          TOKEN=$(echo "$RESP" | jq -r '.token')
-          echo "::add-mask::$TOKEN"
-          echo "token=$TOKEN" >> $GITHUB_OUTPUT
-
-      - name: Finalize frontend
-        if: needs.build-frontend.result == 'success' && needs.build-frontend.outputs.image_built == 'true'
-        run: |
-          V="${{ needs.detect-changes.outputs.frontend_new_version }}"
-          echo "$V" > frontend/version
-          curl -s -X PATCH \
-            -H "Authorization: Bearer ${{ steps.app_token.outputs.token }}" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${{ github.repository }}/actions/variables/FRONTEND_VERSION" \
-            -d "{\"name\":\"FRONTEND_VERSION\",\"value\":\"$V\"}"
-
-      - name: Finalize backend
-        if: needs.build-backend.result == 'success' && needs.build-backend.outputs.image_built == 'true'
-        run: |
-          V="${{ needs.detect-changes.outputs.backend_new_version }}"
-          echo "$V" > backend/version
-          curl -s -X PATCH \
-            -H "Authorization: Bearer ${{ steps.app_token.outputs.token }}" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${{ github.repository }}/actions/variables/BACKEND_VERSION" \
-            -d "{\"name\":\"BACKEND_VERSION\",\"value\":\"$V\"}"
-
-      - name: Commit version file changes
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          if ! git diff --quiet --exit-code; then
-            git add frontend/version backend/version
-            git commit -m "chore: bump service versions [skip ci]"
-            git push
-          fi
-
-  # ── Phase 4: Deploy to Swarm ─────────────────────────────────────────────────
+  # ── Phase 3: Deploy to Swarm ─────────────────────────────────────────────────
   deploy:
     needs: [detect-changes, build-frontend, build-backend]
     if: |
@@ -257,8 +109,8 @@ jobs:
       )
     runs-on: ubuntu-latest
     env:
-      FRONTEND_VER: ${{ needs.detect-changes.outputs.frontend_new_version }}
-      BACKEND_VER: ${{ needs.detect-changes.outputs.backend_new_version }}
+      FRONTEND_VER: ${{ needs.build-frontend.outputs.built_version }}
+      BACKEND_VER: ${{ needs.build-backend.outputs.built_version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -300,10 +152,14 @@ jobs:
 
       - name: Patch image tags in env.yml
         run: |
-          sed -i "s/^frontend_image_tag:.*/frontend_image_tag: \"${FRONTEND_VER}\"/" \
-            infrastructure/ansible/deploy-setup/env/env.yml
-          sed -i "s/^backend_image_tag:.*/backend_image_tag: \"${BACKEND_VER}\"/" \
-            infrastructure/ansible/deploy-setup/env/env.yml
+          if [ -n "${FRONTEND_VER}" ]; then
+            sed -i "s/^frontend_image_tag:.*/frontend_image_tag: \"${FRONTEND_VER}\"/" \
+              infrastructure/ansible/deploy-setup/env/env.yml
+          fi
+          if [ -n "${BACKEND_VER}" ]; then
+            sed -i "s/^backend_image_tag:.*/backend_image_tag: \"${BACKEND_VER}\"/" \
+              infrastructure/ansible/deploy-setup/env/env.yml
+          fi
 
       - name: Write SSH key and config
         run: |
