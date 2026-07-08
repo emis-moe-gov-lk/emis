@@ -2,6 +2,7 @@ import { HiCheckCircle } from "react-icons/hi";
 import { useNavigate } from "react-router-dom";
 import { downloadDivisionAdminProfileDocument } from "@/api/divisionAdminService";
 import toast from "react-hot-toast";
+import Button from "@/components/UiComponents/Button";
 
 export default function StepFinishing({ formData }) {
     const navigate = useNavigate();
@@ -13,7 +14,7 @@ export default function StepFinishing({ formData }) {
     };
 
     const handleDownloadProfile = async () => {
-        const peopleId = formData?.people_id || formData?.peopleId || formData?.peopleId;
+        const peopleId = formData?.people_id || formData?.peopleId;
         if (!peopleId) {
             toast.error("Missing people id for download.");
             return;
@@ -44,98 +45,67 @@ export default function StepFinishing({ formData }) {
     };
 
     return (
-        <div className="flex justify-center px-4 py-4 md:py-6 animate-in fade-in duration-500">
-            <div className="w-full max-w-3xl space-y-8">
-                {/* Step Title */}
-                <div className="flex items-center gap-3">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-600 text-xs font-bold text-white">
-                        06
-                    </div>
-                    <h2 className="text-lg font-semibold text-gray-800">
-                        Finishing
-                    </h2>
-                </div>
-
-                {/* Success Alert */}
-                <div className="flex items-start gap-4 rounded-2xl border border-green-200 bg-green-50 p-5">
-                    <div className="shrink-0">
-                        <HiCheckCircle className="h-7 w-7 text-green-600" />
-                    </div>
-                    <div>
-                        <p className="font-semibold text-green-800">
-                            Admin Registration Successfully
-                        </p>
-                        <p className="text-sm text-green-700 mt-1">
-                            Registration has been completed successfully.
-                        </p>
-                    </div>
-                </div>
-
-                {/* Summary Card */}
-                <div className="rounded-2xl bg-white border shadow-sm p-6 space-y-3">
-                    <p className="text-sm font-medium text-gray-900">
-                        Name:{" "}
-                        <span className="font-semibold">
-                            {formData.fullName || "-"}
-                        </span>
-                    </p>
-
-                    <p className="text-sm font-medium text-gray-900">
-                        NIC:{" "}
-                        <span className="font-semibold">
-                            {formData.nic || "-"}
-                        </span>
-                    </p>
-
-                    <p className="text-sm font-medium text-gray-900">
-                        Email:{" "}
-                        <span className="font-semibold">
-                            {formData.email || "-"}
-                        </span>
-                    </p>
-
-                    <p className="text-sm font-medium text-gray-900">
-                        Contact Number:{" "}
-                        <span className="font-semibold">
-                            {formData.contact || "-"}
-                        </span>
-                    </p>
-
-                    <p className="text-sm font-medium text-gray-900">
-                        Current Appointed Position:{" "}
-                        <span className="font-semibold">
-                            {formData.currentAppointmentPositionName ||
-                                formData.currentAppointmentPosition ||
-                                "-"}
-                        </span>
-                    </p>
-
-                    <p className="text-sm font-medium text-gray-900 pt-2 border-t mt-2">
-                        Temporary Password:{" "}
-                        <span className="font-mono font-bold bg-amber-50 px-2 py-0.5 rounded text-amber-600">
-                            {formData.defaultPassword || "-"}
-                        </span>
+        <div className="space-y-8 animate-in fade-in duration-500">
+            {/* Success Alert */}
+            <div className="flex items-start gap-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900/40 rounded-2xl p-6">
+                <HiCheckCircle className="text-green-600 dark:text-green-500 w-8 h-8 mt-1 shrink-0" />
+                <div>
+                    <h3 className="font-semibold text-green-800 dark:text-green-300">
+                        Admin Registration Successfully
+                    </h3>
+                    <p className="text-sm text-green-700 dark:text-green-400 mt-1">
+                        Registration has been completed successfully.
                     </p>
                 </div>
+            </div>
 
-                {/* Action Buttons */}
-                <div className="flex justify-center gap-4 pt-4">
-                    <button
-                        type="button"
-                        onClick={handleNewRegistration}
-                        className="rounded-full bg-gray-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-gray-700 transition"
-                    >
-                        New Registration
-                    </button>
+            {/* Summary Card */}
+            <div className="surface rounded-2xl p-6 space-y-2 text-sm">
+                <p className="text-gray-900 dark:text-gray-100">
+                    <strong>Name:</strong> {formData.fullName || "-"}
+                </p>
 
-                    <button
-                        type="button"
-                        onClick={handleDownloadProfile}
-                        className="rounded-full bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 transition"
-                    >
-                        Download Profile
-                    </button>
-                </div>
+                <p className="text-gray-900 dark:text-gray-100">
+                    <strong>NIC:</strong> {formData.nic || "-"}
+                </p>
+
+                <p className="text-gray-900 dark:text-gray-100">
+                    <strong>Email:</strong> {formData.email || "-"}
+                </p>
+
+                <p className="text-gray-900 dark:text-gray-100">
+                    <strong>Contact Number:</strong> {formData.contact || "-"}
+                </p>
+
+                <p className="text-gray-900 dark:text-gray-100">
+                    <strong>Current Appointed Position:</strong> {formData.currentAppointmentPositionName ||
+                        formData.currentAppointmentPosition ||
+                        "-"}
+                </p>
+
+                <p className="text-gray-900 dark:text-gray-100 pt-2 border-t border-gray-100 dark:border-gray-800 mt-2">
+                    <strong>Temporary Password:</strong>{" "}
+                    <span className="font-mono font-bold bg-amber-50 dark:bg-amber-950/20 px-2 py-0.5 rounded text-amber-600 dark:text-amber-400">
+                        {formData.defaultPassword || "-"}
+                    </span>
+                </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-center gap-4 pt-4">
+                <Button
+                    variant="secondary"
+                    onClick={handleNewRegistration}
+                >
+                    New Registration
+                </Button>
+
+                <Button
+                    variant="primary"
+                    onClick={handleDownloadProfile}
+                >
+                    Download Profile
+                </Button>
             </div>
         </div>
     );
