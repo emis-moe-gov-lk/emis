@@ -1,0 +1,63 @@
+---
+# ---PLAY-SETUP-MYSQL-WSO2-APIM-----
+# Creates the WSO2 APIM database (apim_db).
+# The shared_db is already created by the IS setup.
+- name: Setup MySQL databases for WSO2 APIM
+  hosts: db_host
+  become: yes
+  gather_facts: false
+  collections:
+    - community.mysql
+  vars:
+    mysql_root_user_val: "{{ mysql_root_user | default('root') }}"
+    mysql_socket:        /var/run/mysqld/mysqld.sock
+
+  tasks:
+    - name: Ensure PyMySQL client is installed
+      ansible.builtin.package:
+        name: python3-pymysql
+        state: present
+
+    - name: Drop APIM database if it exists
+      community.mysql.mysql_db:
+        name: "{{ mysql_apim_db }}"
+        state: absent
+        login_unix_socket: "{{ mysql_socket }}"
+        login_user: "{{ mysql_root_user_val }}"
+        login_password: "{{ mysql_root_password }}"
+
+    - name: Create APIM database (latin1)
+      community.mysql.mysql_query:
+        login_unix_socket: "{{ mysql_socket }}"
+        login_user: "{{ mysql_root_user_val }}"
+        login_password: "{{ mysql_root_password }}"
+        query: >
+          CREATE DATABASE IF NOT EXISTS `{{ mysql_apim_db }}`
+          CHARACTER SET latin1
+          COLLATE latin1_swedish_ci
+
+    - name: Force latin1 character set on APIM database
+      community.mysql.mysql_query:
+        login_unix_socket: "{{ mysql_socket }}"
+        login_user: "{{ mysql_root_user_val }}"
+        login_password: "{{ mysql_root_password }}"
+        query: "ALTER DATABASE `{{ mysql_apim_db }}` CHARACTER SET latin1 COLLATE latin1_swedish_ci"
+
+    - name: Grant WSO2 user full privileges on APIM database
+      community.mysql.mysql_user:
+        name: "{{ mysql_wso2_user }}"
+        password: "{{ mysql_wso2_password }}"
+        host: "%"
+        priv: "{{ mysql_apim_db }}.*:ALL"
+        append_privs: yes
+        state: present
+        login_unix_socket: "{{ mysql_socket }}"
+        login_user: "{{ mysql_root_user_val }}"
+        login_password: "{{ mysql_root_password }}"
+
+    - name: Flush MySQL privileges
+      community.mysql.mysql_query:
+        query: "FLUSH PRIVILEGES"
+        login_unix_socket: "{{ mysql_socket }}"
+        login_user: "{{ mysql_root_user_val }}"
+        login_password: "{{ mysql_root_password }}"

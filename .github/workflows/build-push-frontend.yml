@@ -2,14 +2,12 @@ name: Build and Push Frontend
 run-name: "Build & Push frontend image on ${{ github.ref_name }}"
 
 on:
-  workflow_dispatch: # trigger workflow manually
-  workflow_call:    # trigger workflow from an external workflow
-    inputs:
-      version:
-        type: string
-        required: false
-        default: ""
+  workflow_dispatch:
+  workflow_call:
     outputs:
+      built_version:
+        description: "The version tag of the built image"
+        value: ${{ jobs.build-frontend.outputs.built_version }}
       image_built:
         description: "Whether a new Docker image was actually built and pushed"
         value: ${{ jobs.build-frontend.outputs.image_built }}
@@ -18,6 +16,7 @@ jobs:
   build-frontend:
     runs-on: ubuntu-latest
     outputs:
+      built_version: ${{ steps.bump_version.outputs.new_version }}
       image_built: ${{ steps.build_image.outcome == 'success' }}
     permissions:
       contents: read
@@ -25,22 +24,46 @@ jobs:
 
     env:
       REGISTRY_BASE: "ghcr.io/emis-moe-gov-lk/emis-frontend"
-      REPO_VER_FILE: "frontend/version"
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Extract Frontend Version
-        id: get_version
+      - name: Bump version
+        id: bump_version
         run: |
-          if [ -n "${{ inputs.version }}" ]; then
-            VERSION="${{ inputs.version }}"
-          else
-            VERSION=$(cat ${{ env.REPO_VER_FILE }} | xargs)
-          fi
-          echo "Detected version: $VERSION"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          CURRENT="${{ vars.FRONTEND_VERSION }}"
+          BASE="${CURRENT%.*}"
+          PATCH="${CURRENT##*.}"
+          NEW="${BASE}.$((PATCH + 1))"
+          echo "Bumped from $CURRENT to $NEW"
+          echo "new_version=$NEW" >> $GITHUB_OUTPUT
+          echo "var_value=$NEW" >> $GITHUB_OUTPUT
+
+      - name: Generate GitHub App token
+        id: app_token
+        env:
+          APP_ID: ${{ secrets.GH_APP_ID }}
+          PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
+          INSTALLATION_ID: ${{ secrets.GH_APP_INSTALLATION_ID }}
+        run: |
+          printf '%s' "$PRIVATE_KEY" > /tmp/app-key.pem
+          chmod 600 /tmp/app-key.pem
+          NOW=$(date +%s)
+          HEADER=$(printf '{"alg":"RS256","typ":"JWT"}' | base64 -w0 | tr -d '=' | tr '/+' '_-')
+          PAYLOAD=$(printf '{"iat":%d,"exp":%d,"iss":"%s"}' $((NOW-60)) $((NOW+540)) "$APP_ID" \
+            | base64 -w0 | tr -d '=' | tr '/+' '_-')
+          SIG=$(printf '%s.%s' "$HEADER" "$PAYLOAD" \
+            | openssl dgst -sha256 -sign /tmp/app-key.pem -binary \
+            | base64 -w0 | tr -d '=' | tr '/+' '_-')
+          JWT="${HEADER}.${PAYLOAD}.${SIG}"
+          RESP=$(curl -s -X POST \
+            -H "Authorization: Bearer ${JWT}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/app/installations/${INSTALLATION_ID}/access_tokens")
+          TOKEN=$(echo "$RESP" | jq -r '.token')
+          echo "::add-mask::$TOKEN"
+          echo "token=$TOKEN" >> $GITHUB_OUTPUT
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -52,14 +75,14 @@ jobs:
       - name: Check if Tag Exists in GHCR
         id: ghcr_check
         run: |
-          TARGET_IMAGE="${{ env.REGISTRY_BASE }}:${{ steps.get_version.outputs.version }}"
+          TARGET_IMAGE="${{ env.REGISTRY_BASE }}:${{ steps.bump_version.outputs.new_version }}"
           echo "Checking if $TARGET_IMAGE exists in GHCR..."
           
           if docker manifest inspect $TARGET_IMAGE > /dev/null 2>&1; then
-            echo "Image tag ${{ steps.get_version.outputs.version }} already exists in GHCR."
+            echo "Image tag ${{ steps.bump_version.outputs.new_version }} already exists in GHCR."
             echo "should_build=false" >> $GITHUB_OUTPUT
           else
-            echo "Image tag ${{ steps.get_version.outputs.version }} not found. Proceeding with build."
+            echo "Image tag ${{ steps.bump_version.outputs.new_version }} not found. Proceeding with build."
             echo "should_build=true" >> $GITHUB_OUTPUT
           fi
 
@@ -71,5 +94,14 @@ jobs:
           context: ./frontend
           push: true
           tags: |
-            ${{ env.REGISTRY_BASE }}:${{ steps.get_version.outputs.version }}
+            ${{ env.REGISTRY_BASE }}:${{ steps.bump_version.outputs.new_version }}
             ${{ env.REGISTRY_BASE }}:latest
+
+      - name: Update FRONTEND_VERSION
+        if: steps.build_image.outcome == 'success'
+        run: |
+          curl -s -X PATCH \
+            -H "Authorization: Bearer ${{ steps.app_token.outputs.token }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/variables/FRONTEND_VERSION" \
+            -d "{\"name\":\"FRONTEND_VERSION\",\"value\":\"${{ steps.bump_version.outputs.var_value }}\"}"

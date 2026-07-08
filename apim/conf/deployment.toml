@@ -78,16 +78,16 @@ url = "https://$env{APIM_HOSTNAME}/publisher"
 # ----------
 
 [apim.key_manager]
-enable_lightweight_apikey_generation = true
-service_url = "https://localhost:${mgt.transport.https.port}/services/"
-username = "$ref{super_admin.username}"
-password = "$ref{super_admin.password}"
+service_url = "https://$env{APIM_IS_HOST}:$env{APIM_IS_PORT}/services/"
+username = "$env{APIM_IS_KEYMANAGER_USERNAME}"
+password = "$env{APIM_IS_KEYMANAGER_PASSWORD}"
+type = "WSO2-IS"
 
 [apim.idp]
-server_url = "https://localhost:${mgt.transport.https.port}"
-authorize_endpoint = "https://$env{APIM_HOSTNAME}/oauth2/authorize"
-oidc_logout_endpoint = "https://$env{APIM_HOSTNAME}/oidc/logout"
-oidc_check_session_endpoint = "https://$env{APIM_HOSTNAME}/oidc/checksession"
+server_url = "https://$env{APIM_IS_HOST}:$env{APIM_IS_PORT}"
+authorize_endpoint = "https://$env{APIM_IS_HOSTNAME}/oauth2/authorize"
+oidc_logout_endpoint = "https://$env{APIM_IS_HOSTNAME}/oidc/logout"
+oidc_check_session_endpoint = "https://$env{APIM_IS_HOSTNAME}/oidc/checksession"
 
 
 # ----------------

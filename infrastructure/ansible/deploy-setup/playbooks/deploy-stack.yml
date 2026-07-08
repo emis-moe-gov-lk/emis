@@ -47,6 +47,12 @@
         dest: "{{ deploy_path }}/is.env"
         mode: '0600'
 
+    - name: Render apim.env
+      ansible.builtin.template:
+        src:  ../templates/apim.env.j2
+        dest: "{{ deploy_path }}/apim.env"
+        mode: '0600'
+
     - name: Copy docker-stack.yml to deploy path
       ansible.builtin.copy:
         src:  "../../../docker-swarm/docker-stack.yml"

@@ -20,6 +20,12 @@
         dest: "{{ deploy_path }}/.env"
         mode: '0600'
 
+    - name: Render apim.env (infisical credentials)
+      ansible.builtin.template:
+        src:  ../templates/apim.env.j2
+        dest: "{{ deploy_path }}/apim.env"
+        mode: '0600'
+
     - name: Deploy Docker stack with rotated images
       ansible.builtin.shell: |
         set -a
