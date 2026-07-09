@@ -9,6 +9,8 @@ const STATUS_STYLES = {
   rejected: { bg: "#DC3545", color: "#ffffff" },
   pending: { bg: "#FFC107", color: "#1f2937" },
   revised: { bg: "#6F42C1", color: "#ffffff" },
+  active: { bg: "#28A745", color: "#ffffff" },
+  inactive: { bg: "#DC3545", color: "#ffffff" },
 };
 
 function resolveStyle(status) {
@@ -23,6 +25,8 @@ function resolveStyle(status) {
   if (key.includes("reject")) return STATUS_STYLES.rejected;
   if (key.includes("pending")) return STATUS_STYLES.pending;
   if (key.includes("revise")) return STATUS_STYLES.revised;
+  if (key.includes("inactive")) return STATUS_STYLES.inactive;
+  if (key.includes("active")) return STATUS_STYLES.active;
 
   return { bg: "#e5e7eb", color: "#111827" };
 }

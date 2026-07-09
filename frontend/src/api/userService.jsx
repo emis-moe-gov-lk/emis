@@ -39,12 +39,18 @@ export const getUsers = async ({
   page = 1,
   perPage = USER_LIST_PER_PAGE,
   search = "",
+  role = "",
+  status = "",
+  workplace = "",
 } = {}) => {
   const response = await api.get("/users/", {
     params: {
       page,
       per_page: perPage,
       search: search || undefined,
+      role: role || undefined,
+      status: status !== "" ? status : undefined,
+      workplace: workplace || undefined,
     },
   });
   return normalizeUsersListResponse(response?.data);
