@@ -2,21 +2,48 @@ import React, { useState } from "react";
 
 import Can from "@/components/common/Can";
 import { PermissionGroups } from "@/data/permissionGroups";
+import { updatePersonSection } from "@/api/profileService";
 
-const HealthInformation = ({ employee, canEdit }) => {
+const HealthInformation = ({
+  employee,
+  canEdit,
+  peopleId,
+  onSaveSuccess,
+  bloodGroupOptions = [],
+}) => {
   const [showModal, setShowModal] = useState(false);
-  const [bloodGroup, setBloodGroup] = useState(employee?.bloodGroup || "");
-  const [healthStatus, setHealthStatus] = useState(
-    employee?.health_status || "",
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  const [bloodGroupId, setBloodGroupId] = useState(
+    employee?.blood_group?.blood_group_id || "",
   );
-  const [healthProblem, setHealthProblem] = useState(
+  const [healthCondition, setHealthCondition] = useState(
+    employee?.health_condition ?? 0,
+  );
+  const [knownProblems, setKnownProblems] = useState(
     employee?.health_problem || "",
   );
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log({ bloodGroup, healthStatus, healthProblem });
-    setShowModal(false);
+    setSaving(true);
+    setError(null);
+    try {
+      await updatePersonSection(peopleId, "health", {
+        bloodGroupId,
+        healthCondition: Number(healthCondition),
+        knownProblems: knownProblems || null,
+      });
+      setShowModal(false);
+      onSaveSuccess?.();
+    } catch (err) {
+      setError(
+        err.response?.data?.message || "Failed to save. Please try again.",
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -75,7 +102,7 @@ const HealthInformation = ({ employee, canEdit }) => {
               <div className="mt-1">
                 <div
                   className={`size-2.5 rounded-full ${
-                    healthStatus === "Healthy"
+                    employee?.health_condition === 0
                       ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"
                       : "bg-amber-500"
                   }`}
@@ -86,7 +113,7 @@ const HealthInformation = ({ employee, canEdit }) => {
                   Overall Condition
                 </p>
                 <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wide">
-                  {healthStatus}
+                  {employee?.health_condition === 0 ? "Healthy" : "Under Treatment"}
                 </p>
               </div>
             </div>
@@ -99,7 +126,7 @@ const HealthInformation = ({ employee, canEdit }) => {
                     Known Problems
                   </p>
                   <p className="text-sm font-medium text-gray-900 dark:text-gray-100 leading-tight">
-                    {healthProblem || "No reported medical conditions"}
+                    {employee?.health_problem || "No reported medical conditions"}
                   </p>
                 </div>
                 <span className="text-gray-300 dark:text-gray-600">🛡</span>
@@ -122,15 +149,16 @@ const HealthInformation = ({ employee, canEdit }) => {
                   Blood Group
                 </label>
                 <select
-                  value={bloodGroup}
-                  onChange={(e) => setBloodGroup(e.target.value)}
+                  value={bloodGroupId}
+                  onChange={(e) => setBloodGroupId(e.target.value)}
                   className="w-full border rounded-lg p-2 dark:bg-gray-700"
                 >
                   <option value="">Select</option>
-                  <option>A+</option>
-                  <option>A-</option>
-                  <option>B+</option>
-                  <option>O+</option>
+                  {bloodGroupOptions.map((bg) => (
+                    <option key={bg.id} value={bg.id}>
+                      {bg.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -140,30 +168,33 @@ const HealthInformation = ({ employee, canEdit }) => {
                   Current Health Status
                 </label>
                 <select
-                  value={healthStatus}
-                  onChange={(e) => setHealthStatus(e.target.value)}
+                  value={healthCondition}
+                  onChange={(e) => setHealthCondition(Number(e.target.value))}
                   className="w-full border rounded-lg p-2 dark:bg-gray-700"
                 >
-                  <option value="">Select</option>
-                  <option value="Healthy">Healthy</option>
-                  <option value="Under Treatment">Under Treatment</option>
+                  <option value={0}>Healthy</option>
+                  <option value={1}>Under Treatment</option>
                 </select>
               </div>
 
               {/* Medical Details */}
-              {healthStatus !== "Healthy" && (
+              {healthCondition === 1 && (
                 <div>
                   <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
                     Medical Details
                   </label>
                   <textarea
                     rows="3"
-                    value={healthProblem}
-                    onChange={(e) => setHealthProblem(e.target.value)}
+                    value={knownProblems}
+                    onChange={(e) => setKnownProblems(e.target.value)}
                     className="w-full border rounded-lg p-2 dark:bg-gray-700"
                     placeholder="Enter details..."
                   />
                 </div>
+              )}
+
+              {error && (
+                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
               )}
 
               <div className="flex gap-3 pt-4">
@@ -176,9 +207,10 @@ const HealthInformation = ({ employee, canEdit }) => {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2 rounded-lg bg-blue-600 text-white"
+                  disabled={saving}
+                  className="flex-1 py-2 rounded-lg bg-blue-600 text-white disabled:opacity-60"
                 >
-                  Save Changes
+                  {saving ? "Saving..." : "Save Changes"}
                 </button>
               </div>
             </form>

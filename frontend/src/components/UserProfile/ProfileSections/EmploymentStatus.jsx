@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Modal from "./Modal";
 import Input from "./Input";
 import Select from "./Select";
@@ -10,40 +10,186 @@ import StatusBadge from "@/components/common/StatusBadge";
 
 import Can from "@/components/common/Can";
 import { PermissionGroups } from "@/data/permissionGroups";
+import { getAppointmentFormData, updatePersonSection } from "@/api/profileService";
 
 const EmploymentStatus = ({
   employee = {},
   canEdit = false,
-  userServicesOptions = [],
-  ranksOptions = [],
-  positionOption = [],
-  officeLevelOption = [],
-  zonalEducationOfficeOption = [],
-  institutionCategoryOption = [],
-  workingPlaceOption = [],
+  peopleId,
+  onSaveSuccess,
+  servicesOptions = [],
+  allRanks = [],
 }) => {
   const [showModal, setShowModal] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+
   const [formData, setFormData] = useState({
-    appointmentDate: "",
-    appointmentLetterNo: "",
-    service: "",
-    serviceRank: "",
-    position: "",
-    officeLevel: "",
+    appointmentDate: employee.current_appointment?.appoint_date || "",
+    appointmentLetterNo: employee.current_appointment?.appointment_letter_no || "",
+    service: employee.current_appointment?.service_id || "",
+    serviceRank: employee.current_appointment?.rank_id || "",
+    position: employee.current_appointment?.position_id || "",
+    officeLevel: employee.current_appointment?.workplace?.office_level_id || "",
     zonalEducationOffice: "",
     institutionCategory: "",
-    workingPlace: "",
+    workingPlace: employee.current_appointment?.workplace_id || "",
   });
+
+  const [officeLevelOptions, setOfficeLevelOptions] = useState([]);
+  const [positionOptions, setPositionOptions] = useState([]);
+  const [zonalOptions, setZonalOptions] = useState([]);
+  const [categoryOptions, setCategoryOptions] = useState([]);
+  const [institutionOptions, setInstitutionOptions] = useState([]);
+
+  // Ranks filtered client-side by selected service
+  const ranksOptions = allRanks
+    .filter((r) => !formData.service || r.service_id === formData.service)
+    .map((r) => ({ id: r.rank_id, name: r.rank_name }));
+
+  // Fetch form data when modal opens
+  useEffect(() => {
+    if (!showModal) return;
+
+    const loadFormData = async () => {
+      try {
+        const res = await getAppointmentFormData({
+          service: formData.service || undefined,
+        });
+        const data = res.data;
+        setOfficeLevelOptions(
+          (data.officeLevels || []).map((l) => ({
+            id: l.office_level_id,
+            name: l.office_level_name,
+          })),
+        );
+        setPositionOptions(
+          (data.positions || []).map((p) => ({
+            id: p.position_id,
+            name: p.position_name,
+          })),
+        );
+        setZonalOptions(
+          (data.zonalEducationOffices || []).map((z) => ({
+            id: z.workplace_id,
+            name: z.short_name ?? z.office_name ?? z.name,
+          })),
+        );
+        setCategoryOptions(
+          (data.institutionCategory || []).map((c) => ({
+            id: c.institution_category_id,
+            name: c.institution_category_name,
+          })),
+        );
+      } catch (err) {
+        console.error("Error loading appointment form data:", err);
+      }
+    };
+
+    loadFormData();
+  }, [showModal]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleServiceChange = async (e) => {
+    const serviceId = e.target.value;
+    setFormData((prev) => ({
+      ...prev,
+      service: serviceId,
+      serviceRank: "",
+      position: "",
+    }));
+    setPositionOptions([]);
+    if (!serviceId) return;
+    try {
+      const res = await getAppointmentFormData({ service: serviceId });
+      setPositionOptions(
+        (res.data.positions || []).map((p) => ({
+          id: p.position_id,
+          name: p.position_name,
+        })),
+      );
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleOfficeLevelChange = (e) => {
+    const level = e.target.value;
+    setFormData((prev) => ({
+      ...prev,
+      officeLevel: level,
+      zonalEducationOffice: "",
+      institutionCategory: "",
+      workingPlace: "",
+    }));
+    setInstitutionOptions([]);
+  };
+
+  const handleZonalChange = async (e) => {
+    const zoneId = e.target.value;
+    setFormData((prev) => ({
+      ...prev,
+      zonalEducationOffice: zoneId,
+      institutionCategory: "",
+      workingPlace: "",
+    }));
+    setInstitutionOptions([]);
+  };
+
+  const handleCategoryChange = async (e) => {
+    const catId = e.target.value;
+    setFormData((prev) => ({
+      ...prev,
+      institutionCategory: catId,
+      workingPlace: "",
+    }));
+    setInstitutionOptions([]);
+    if (!catId || !formData.zonalEducationOffice) return;
+    try {
+      const res = await getAppointmentFormData({
+        service: formData.service || undefined,
+        zone: formData.zonalEducationOffice,
+        ins_cat: catId,
+      });
+      setInstitutionOptions(
+        (res.data.institutions || []).map((i) => ({
+          id: i.workplace_id,
+          name: i.name ?? i.institution_name,
+        })),
+      );
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Update Employment:", formData);
-    setShowModal(false);
+    setSaving(true);
+    setError(null);
+    try {
+      await updatePersonSection(peopleId, "current_appointment", {
+        currentAppointmentDate: formData.appointmentDate,
+        currentAppointmentService: formData.service,
+        currentAppointmentRank: formData.serviceRank,
+        currentAppointmentPosition: formData.position,
+        currentAppointmentInstitution: formData.workingPlace || null,
+      });
+      setShowModal(false);
+      onSaveSuccess?.();
+    } catch (err) {
+      const fieldErrors = err.response?.data?.errors;
+      setError(
+        fieldErrors
+          ? Object.values(fieldErrors).flat().join(", ")
+          : err.response?.data?.message || "Failed to save. Please try again.",
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -222,21 +368,15 @@ const EmploymentStatus = ({
                 label="Service"
                 name="service"
                 value={formData.service}
-                onChange={handleChange}
-                options={userServicesOptions.map((s) => ({
-                  value: s.service_id,
-                  label: s.service_name,
-                }))}
+                onChange={handleServiceChange}
+                options={servicesOptions}
               />
               <Select
                 label="Service Rank"
                 name="serviceRank"
                 value={formData.serviceRank}
                 onChange={handleChange}
-                options={ranksOptions.map((r) => ({
-                  value: r.rank_id,
-                  label: r.rank_name,
-                }))}
+                options={ranksOptions}
               />
             </div>
 
@@ -245,10 +385,7 @@ const EmploymentStatus = ({
               name="position"
               value={formData.position}
               onChange={handleChange}
-              options={positionOption.map((p) => ({
-                value: p.position_id,
-                label: p.position_name,
-              }))}
+              options={positionOptions}
             />
 
             <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 space-y-4">
@@ -260,11 +397,8 @@ const EmploymentStatus = ({
                 label="Workplace Level"
                 name="officeLevel"
                 value={formData.officeLevel}
-                onChange={handleChange}
-                options={officeLevelOption.map((l) => ({
-                  value: l.office_level_id,
-                  label: l.office_level_name,
-                }))}
+                onChange={handleOfficeLevelChange}
+                options={officeLevelOptions}
               />
 
               {formData.officeLevel === "OLID006" && (
@@ -273,21 +407,15 @@ const EmploymentStatus = ({
                     label="Zonal Education Office"
                     name="zonalEducationOffice"
                     value={formData.zonalEducationOffice}
-                    onChange={handleChange}
-                    options={zonalEducationOfficeOption.map((z) => ({
-                      value: z.workplace_id,
-                      label: z.short_name,
-                    }))}
+                    onChange={handleZonalChange}
+                    options={zonalOptions}
                   />
                   <Select
                     label="Institution Category"
                     name="institutionCategory"
                     value={formData.institutionCategory}
-                    onChange={handleChange}
-                    options={institutionCategoryOption.map((c) => ({
-                      value: c.institution_category_id,
-                      label: c.institution_category_name,
-                    }))}
+                    onChange={handleCategoryChange}
+                    options={categoryOptions}
                   />
                 </>
               )}
@@ -297,27 +425,28 @@ const EmploymentStatus = ({
                 name="workingPlace"
                 value={formData.workingPlace}
                 onChange={handleChange}
-                options={workingPlaceOption.map((o) => ({
-                  value: o.workplace_id,
-                  label: o.office_name,
-                }))}
+                options={institutionOptions}
               />
             </div>
+
+            {error && (
+              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+            )}
 
             <div className="flex flex-col-reverse sm:flex-row gap-3 pt-4 pb-2">
               <button
                 type="button"
                 onClick={() =>
                   setFormData({
-                    appointmentDate: "",
-                    appointmentLetterNo: "",
-                    service: "",
-                    serviceRank: "",
-                    position: "",
-                    officeLevel: "",
+                    appointmentDate: employee.current_appointment?.appoint_date || "",
+                    appointmentLetterNo: employee.current_appointment?.appointment_letter_no || "",
+                    service: employee.current_appointment?.service_id || "",
+                    serviceRank: employee.current_appointment?.rank_id || "",
+                    position: employee.current_appointment?.position_id || "",
+                    officeLevel: employee.current_appointment?.workplace?.office_level_id || "",
                     zonalEducationOffice: "",
                     institutionCategory: "",
-                    workingPlace: "",
+                    workingPlace: employee.current_appointment?.workplace_id || "",
                   })
                 }
                 className="w-full sm:flex-1 px-4 py-2 border rounded-lg"
@@ -326,9 +455,10 @@ const EmploymentStatus = ({
               </button>
               <button
                 type="submit"
-                className="w-full sm:flex-[2] px-4 py-2 bg-blue-600 text-white rounded-lg"
+                disabled={saving}
+                className="w-full sm:flex-[2] px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-60"
               >
-                Update Records
+                {saving ? "Saving..." : "Update Records"}
               </button>
             </div>
           </form>
