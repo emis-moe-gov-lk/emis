@@ -21,7 +21,11 @@ export default function OidcCallback() {
           navigate("/dashboard", { replace: true });
         } catch (error) {
           console.error("Identity fetch failed", error);
-          navigate("/login");
+          if (error.response?.status === 401) {
+            navigate("/not-authorized", { replace: true });
+          } else {
+            navigate("/login", { replace: true });
+          }
         }
       };
 

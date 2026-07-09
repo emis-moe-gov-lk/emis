@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Badge, Button, Spinner, TextInput } from "flowbite-react";
+import { Badge, Button, Select, Spinner, TextInput } from "flowbite-react";
 import StatusBadge from "@/components/common/StatusBadge";
 import {
   HiOfficeBuilding,
@@ -24,15 +24,63 @@ const OfficeListTemplate = ({ title, subtitle, endpoint, createLabel }) => {
   const [lastPage, setLastPage] = useState(1);
   const [total, setTotal] = useState(0);
 
+  const [selectedPeo, setSelectedPeo] = useState("");
+  const [selectedZeo, setSelectedZeo] = useState("");
+  const [peoOptions, setPeoOptions] = useState([]);
+  const [zeoOptions, setZeoOptions] = useState([]);
+
   useEffect(() => {
     setPage(1);
     setSearch("");
   }, [endpoint]);
 
+  // Load PEO list once when endpoint changes if applicable
+  useEffect(() => {
+    if (endpoint === "/deo-list" || endpoint === "/zeo-list") {
+      api.get("/peo-list", { params: { per_page: 100 } })
+        .then((res) => {
+          const list = res.data?.data || res.data || [];
+          setPeoOptions(list);
+        })
+        .catch((err) => console.error("Failed to load PEOs:", err));
+    } else {
+      setPeoOptions([]);
+    }
+    setSelectedPeo("");
+    setSelectedZeo("");
+  }, [endpoint]);
+
+  // Load ZEO list when PEO is selected
+  useEffect(() => {
+    if (endpoint === "/deo-list") {
+      api.get("/zeo-list", { params: { per_page: 100, peo_wp_id: selectedPeo || undefined } })
+        .then((res) => {
+          const list = res.data?.data || res.data || [];
+          setZeoOptions(list);
+        })
+        .catch((err) => console.error("Failed to load ZEOs:", err));
+      setSelectedZeo("");
+    } else {
+      setZeoOptions([]);
+    }
+  }, [endpoint, selectedPeo]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [selectedPeo, selectedZeo]);
+
   useEffect(() => {
     setLoading(true);
+    const params = { page, per_page: 20 };
+    if (endpoint === "/deo-list") {
+      if (selectedPeo) params.peo_wp_id = selectedPeo;
+      if (selectedZeo) params.zeo_wp_id = selectedZeo;
+    } else if (endpoint === "/zeo-list") {
+      if (selectedPeo) params.peo_wp_id = selectedPeo;
+    }
+
     api
-      .get(endpoint, { params: { page, per_page: 20 } })
+      .get(endpoint, { params })
       .then((res) => {
         const data = res.data;
         const list = Array.isArray(data)
@@ -53,7 +101,7 @@ const OfficeListTemplate = ({ title, subtitle, endpoint, createLabel }) => {
         setRows([]);
       })
       .finally(() => setLoading(false));
-  }, [endpoint, page]);
+  }, [endpoint, page, selectedPeo, selectedZeo]);
 
   // pick helper: first existing key value
   const pick = (obj, keys) => {
@@ -99,6 +147,8 @@ const OfficeListTemplate = ({ title, subtitle, endpoint, createLabel }) => {
         "city",
       ]);
 
+      const shortName = pick(r, ["short_name", "shortname"]);
+
       const contact = pick(r, [
         "contact",
         "phone",
@@ -128,7 +178,7 @@ const OfficeListTemplate = ({ title, subtitle, endpoint, createLabel }) => {
         raw: r,
         name: name || "—",
         code: code || "—",
-        address,
+        address: address || shortName || "—",
         contact,
         email,
         status,
@@ -176,8 +226,8 @@ const OfficeListTemplate = ({ title, subtitle, endpoint, createLabel }) => {
       </div>
 
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="w-full sm:max-w-md">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="w-full md:max-w-md">
           <TextInput
             id="search"
             type="text"
@@ -186,6 +236,57 @@ const OfficeListTemplate = ({ title, subtitle, endpoint, createLabel }) => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          {(endpoint === "/deo-list" || endpoint === "/zeo-list") && (
+            <div className="min-w-[180px] w-full sm:w-auto">
+              <Select
+                id="filter-peo"
+                value={selectedPeo}
+                onChange={(e) => setSelectedPeo(e.target.value)}
+              >
+                <option value="">All Provinces (PEO)</option>
+                {peoOptions.map((opt) => (
+                  <option key={opt.workplace_id} value={opt.workplace_id}>
+                    {opt.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          )}
+
+          {endpoint === "/deo-list" && (
+            <div className="min-w-[180px] w-full sm:w-auto">
+              <Select
+                id="filter-zeo"
+                value={selectedZeo}
+                onChange={(e) => setSelectedZeo(e.target.value)}
+              >
+                <option value="">All Zones (ZEO)</option>
+                {zeoOptions.map((opt) => (
+                  <option key={opt.workplace_id} value={opt.workplace_id}>
+                    {opt.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          )}
+
+          {(selectedPeo || selectedZeo || search) && (
+            <Button
+              color="gray"
+              size="md"
+              onClick={() => {
+                setSearch("");
+                setSelectedPeo("");
+                setSelectedZeo("");
+              }}
+              className="w-full sm:w-auto"
+            >
+              Clear Filters
+            </Button>
+          )}
         </div>
       </div>
 
