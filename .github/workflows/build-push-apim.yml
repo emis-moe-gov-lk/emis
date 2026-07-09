@@ -21,7 +21,7 @@ jobs:
       contents: read
       packages: write
     env:
-      REGISTRY_BASE: "ghcr.io/emis-moe-gov-lk/emis-apim-service"
+      REGISTRY_BASE: "ghcr.io/emis-moe-gov-lk/emis-apim"
 
     steps:
       - name: Checkout repository
