@@ -63,6 +63,18 @@ export default function InstitutionIndex() {
     });
   };
 
+  const clearFilters = () => {
+    setFilters({
+      authorityId: "",
+      peoWpId: "",
+      zeoWpId: "",
+      deoWpId: "",
+      activeStatus: "",
+    });
+    setSearch("");
+    setPage(1);
+  };
+
   const fetchInstitutions = useCallback(async (pageNumber = 1) => {
     setLoading(true);
     try {
@@ -201,6 +213,13 @@ export default function InstitutionIndex() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+        {(filters.authorityId || filters.peoWpId || filters.zeoWpId || filters.deoWpId || filters.activeStatus || search) && (
+          <div className="flex justify-end mt-4">
+            <Button variant="secondary" onClick={clearFilters}>
+              Clear Filters
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="flex justify-end">
