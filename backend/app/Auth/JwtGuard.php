@@ -77,6 +77,15 @@ class JwtGuard implements Guard
             return null;
         }
 
+        // Check if user is active locally
+        if (! $user->active_status) {
+            Log::warning('JWT authentication blocked: user is inactive locally', [
+                'uuid' => $uuid,
+                'email' => $user->email,
+            ]);
+            return null;
+        }
+
         // -----------------------------------------------------------------
         // EMERGENCY EMAIL FALLBACK 
         //
