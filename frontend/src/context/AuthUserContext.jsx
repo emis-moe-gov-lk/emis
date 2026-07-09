@@ -32,7 +32,7 @@ const persistIdentity = (identity) => {
 
 // Provider
 export function AuthUserProvider({ children }) {
-  const { state } = useAuthContext();
+  const { state, signOut } = useAuthContext();
   const [identity, setIdentity] = useState(null);
   const [isHydrating, setIsHydrating] = useState(false);
   const [error, setError] = useState(null);
@@ -59,6 +59,9 @@ export function AuthUserProvider({ children }) {
       return nextIdentity;
     } catch (nextError) {
       setError(nextError);
+      if (nextError.response?.status === 401) {
+        clearIdentity();
+      }
       throw nextError;
     } finally {
       setIsHydrating(false);

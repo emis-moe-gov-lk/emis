@@ -115,6 +115,12 @@ class OfficesController extends Controller
             $query->where('zeo_wp_id', $request->zeo_wp_id);
         }
 
+        if ($request->filled('peo_wp_id')) {
+            $query->whereHas('zonalEducationOffice', function ($q) use ($request) {
+                $q->where('peo_wp_id', $request->peo_wp_id);
+            });
+        }
+
         return $this->paginatedResponse($query, $request);
     }
 
