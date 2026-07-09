@@ -12,13 +12,13 @@ const PreviousService = ({
   employeeServiceList,
   canCreate,
   canDelete,
-  servicesOptions,
-  ranksOptions,
-  positionOption,
-  officeLevelOption,
-  zonalEducationOfficeOption,
-  institutionCategoryOption,
-  workingPlaceOption,
+  servicesOptions = [],
+  ranksOptions = [],
+  positionOption = [],
+  officeLevelOption = [],
+  zonalEducationOfficeOption = [],
+  institutionCategoryOption = [],
+  workingPlaceOption = [],
 }) => {
   const [showModal, setShowModal] = useState(false);
   const [firstAppointmentDate, setFirstAppointmentDate] = useState("");
@@ -209,19 +209,13 @@ const PreviousService = ({
                 label="Service"
                 value={service}
                 onChange={(e) => setService(e.target.value)}
-                options={servicesOptions.map((s) => ({
-                  value: s.service_id,
-                  label: s.service_name,
-                }))}
+                options={servicesOptions}
               />
               <Select
                 label="Grade"
                 value={rank}
                 onChange={(e) => setRank(e.target.value)}
-                options={ranksOptions.map((r) => ({
-                  value: r.rank_id,
-                  label: r.rank_name,
-                }))}
+                options={ranksOptions}
               />
             </div>
 
@@ -229,20 +223,14 @@ const PreviousService = ({
               label="Position"
               value={position}
               onChange={(e) => setPosition(e.target.value)}
-              options={positionOption.map((p) => ({
-                value: p.position_id,
-                label: p.position_name,
-              }))}
+              options={positionOption}
             />
 
             <Select
               label="Working Place Level"
               value={officeLevel}
               onChange={(e) => setOfficeLevel(e.target.value)}
-              options={officeLevelOption.map((l) => ({
-                value: l.office_level_id,
-                label: l.office_level_name,
-              }))}
+              options={officeLevelOption}
             />
 
             {officeLevel === "OLID006" && (
@@ -251,19 +239,13 @@ const PreviousService = ({
                   label="Zonal Education Office"
                   value={zonalEducationOffice}
                   onChange={(e) => setZonalEducationOffice(e.target.value)}
-                  options={zonalEducationOfficeOption.map((z) => ({
-                    value: z.workplace_id,
-                    label: z.short_name,
-                  }))}
+                  options={zonalEducationOfficeOption}
                 />
                 <Select
                   label="Institution Category"
                   value={institutionCategory}
                   onChange={(e) => setInstitutionCategory(e.target.value)}
-                  options={institutionCategoryOption.map((i) => ({
-                    value: i.institution_category_id,
-                    label: i.institution_category_name,
-                  }))}
+                  options={institutionCategoryOption}
                 />
               </div>
             )}
@@ -272,10 +254,7 @@ const PreviousService = ({
               label="Working Place"
               value={workingPlace}
               onChange={(e) => setWorkingPlace(e.target.value)}
-              options={workingPlaceOption.map((w) => ({
-                value: w.workplace_id,
-                label: w.office_name,
-              }))}
+              options={workingPlaceOption}
             />
 
             <div className="flex pt-2 justify-end gap-2">

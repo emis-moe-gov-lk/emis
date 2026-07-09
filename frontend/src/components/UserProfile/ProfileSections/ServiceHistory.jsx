@@ -287,8 +287,8 @@ const ServiceHistory = ({
                   >
                     <option value="">Select Service</option>
                     {userServicesOptions.map((s) => (
-                      <option key={s.service_id} value={s.service_id}>
-                        {s.service_name}
+                      <option key={s.id} value={s.id}>
+                        {s.name}
                       </option>
                     ))}
                   </select>
@@ -304,8 +304,8 @@ const ServiceHistory = ({
                   >
                     <option value="">Select Rank</option>
                     {ranksOptions.map((r) => (
-                      <option key={r.rank_id} value={r.rank_id}>
-                        {r.rank_name}
+                      <option key={r.id} value={r.id}>
+                        {r.name}
                       </option>
                     ))}
                   </select>
@@ -322,8 +322,8 @@ const ServiceHistory = ({
                 >
                   <option value="">Select Position</option>
                   {positionOption.map((p) => (
-                    <option key={p.position_id} value={p.position_id}>
-                      {p.position_name}
+                    <option key={p.id} value={p.id}>
+                      {p.name}
                     </option>
                   ))}
                 </select>

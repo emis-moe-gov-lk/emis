@@ -7,10 +7,13 @@ import Card from "./Card";
 
 import Can from "@/components/common/Can";
 import { PermissionGroups } from "@/data/permissionGroups";
+import { updatePersonSection } from "@/api/profileService";
 
 const PersonalProfile = ({
   employee,
   canEdit,
+  peopleId,
+  onSaveSuccess,
   titleOptions = [],
   genderOptions = [],
   ethnicityOptions = [],
@@ -18,6 +21,8 @@ const PersonalProfile = ({
   civilStatusOptions = [],
 }) => {
   const [showModal, setShowModal] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
 
   const [formData, setFormData] = useState({
     nic: employee?.nic || "",
@@ -34,10 +39,32 @@ const PersonalProfile = ({
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Updated Data:", formData);
-    setShowModal(false);
+    setSaving(true);
+    setError(null);
+    try {
+      await updatePersonSection(peopleId, "personal", {
+        titleId: formData.title,
+        fullName: formData.fullName,
+        genderId: formData.gender,
+        dateOfBirth: formData.birthday,
+        ethnicityId: formData.ethnicity,
+        religionId: formData.religion,
+        civilStatusId: formData.civilStatus,
+      });
+      setShowModal(false);
+      onSaveSuccess?.();
+    } catch (err) {
+      const fieldErrors = err.response?.data?.errors;
+      setError(
+        fieldErrors
+          ? Object.values(fieldErrors).flat().join(", ")
+          : err.response?.data?.message || "Failed to save. Please try again.",
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -111,6 +138,7 @@ const PersonalProfile = ({
               name="nic"
               value={formData.nic}
               onChange={handleChange}
+              disabled
             />
 
             <div className="flex gap-3">
@@ -171,6 +199,10 @@ const PersonalProfile = ({
               options={civilStatusOptions}
             />
 
+            {error && (
+              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+            )}
+
             <div className="flex gap-3 pt-2">
               <button
                 type="button"
@@ -181,9 +213,10 @@ const PersonalProfile = ({
               </button>
               <button
                 type="submit"
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg"
+                disabled={saving}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-60"
               >
-                Save Changes
+                {saving ? "Saving..." : "Save Changes"}
               </button>
             </div>
           </form>

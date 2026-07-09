@@ -260,6 +260,7 @@ Route::prefix('')->group(function () {
     Route::post('/profile/avatar', [ProfileController::class, 'uploadProfileAvatar'])->middleware('auth:jwt');
     Route::delete('/profile/avatar', [ProfileController::class, 'deleteProfileAvatar'])->middleware('auth:jwt');
     Route::patch('/profile/password', [ProfileController::class, 'changePassword'])->middleware('auth:jwt');
+    Route::patch('/people/{people_id}', [\App\Http\Controllers\API\PeopleProfileController::class, 'update'])->middleware('auth:jwt');
     Route::post('/profile/password/complete-external', [ProfileController::class, 'completeExternalPasswordChange'])->middleware('auth:jwt');
     Route::get('/user/{people_id}', UserApiController::class)->middleware('auth:jwt');
     Route::get('/user/{people_id}/edit-requests', [PeopleProfileEditRequestController::class, 'indexByPerson'])->middleware('auth:jwt');

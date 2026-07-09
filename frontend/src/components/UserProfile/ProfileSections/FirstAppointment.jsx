@@ -9,9 +9,20 @@ import StatusBadge from "@/components/common/StatusBadge";
 
 import Can from "@/components/common/Can";
 import { PermissionGroups } from "@/data/permissionGroups";
+import { updatePersonSection } from "@/api/profileService";
 
-const FirstAppointment = ({ employee, canEdit, options }) => {
+const FirstAppointment = ({
+  employee,
+  canEdit,
+  peopleId,
+  onSaveSuccess,
+  servicesOptions = [],
+  allRanks = [],
+}) => {
   const [showModal, setShowModal] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+
   const [appointmentDate, setAppointmentDate] = useState(
     employee?.appointment?.first_appointment_date || "",
   );
@@ -27,12 +38,11 @@ const FirstAppointment = ({ employee, canEdit, options }) => {
   const [position, setPosition] = useState(
     employee?.appointment?.position_id || "",
   );
-  const [officeLevel, setOfficeLevel] = useState(
-    employee?.appointment?.office_level_id || "",
-  );
-  const [workingPlace, setWorkingPlace] = useState(
-    employee?.appointment?.workplace_id || "",
-  );
+
+  // Ranks filtered client-side by selected service
+  const ranksOptions = allRanks
+    .filter((r) => !service || r.service_id === service)
+    .map((r) => ({ id: r.rank_id, name: r.rank_name }));
 
   const resetFields = () => {
     setAppointmentDate(employee?.appointment?.first_appointment_date || "");
@@ -40,8 +50,33 @@ const FirstAppointment = ({ employee, canEdit, options }) => {
     setService(employee?.appointment?.service_id || "");
     setServiceRank(employee?.appointment?.rank_id || "");
     setPosition(employee?.appointment?.position_id || "");
-    setOfficeLevel(employee?.appointment?.office_level_id || "");
-    setWorkingPlace(employee?.appointment?.workplace_id || "");
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setError(null);
+    try {
+      await updatePersonSection(peopleId, "my_appointment", {
+        firstAppointmentDate: appointmentDate,
+        firstAppointmentLetter: appointmentLetterNo || null,
+        firstAppointmentService: service,
+        firstAppointmentRank: serviceRank,
+        firstAppointmentPosition: position,
+        firstAppointmentInstitution: employee?.appointment?.workplace_id || null,
+      });
+      setShowModal(false);
+      onSaveSuccess?.();
+    } catch (err) {
+      const fieldErrors = err.response?.data?.errors;
+      setError(
+        fieldErrors
+          ? Object.values(fieldErrors).flat().join(", ")
+          : err.response?.data?.message || "Failed to save. Please try again.",
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -186,7 +221,7 @@ const FirstAppointment = ({ employee, canEdit, options }) => {
       {/* Modal */}
       {canEdit && showModal && (
         <Modal title="Update Appointment" onClose={() => setShowModal(false)}>
-          <form className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input
                 type="date"
@@ -206,13 +241,13 @@ const FirstAppointment = ({ employee, canEdit, options }) => {
                 label="Service"
                 value={service}
                 onChange={(e) => setService(e.target.value)}
-                options={options.services}
+                options={servicesOptions}
               />
               <Select
                 label="Service Rank"
                 value={serviceRank}
                 onChange={(e) => setServiceRank(e.target.value)}
-                options={options.ranks}
+                options={ranksOptions}
               />
             </div>
 
@@ -220,28 +255,12 @@ const FirstAppointment = ({ employee, canEdit, options }) => {
               label="Designation"
               value={position}
               onChange={(e) => setPosition(e.target.value)}
-              options={options.positions}
+              options={[]}
             />
 
-            <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 space-y-4">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                Initial Placement
-              </p>
-
-              <Select
-                label="Workplace Level"
-                value={officeLevel}
-                onChange={(e) => setOfficeLevel(e.target.value)}
-                options={options.officeLevels}
-              />
-
-              <Select
-                label="Working Place"
-                value={workingPlace}
-                onChange={(e) => setWorkingPlace(e.target.value)}
-                options={options.workingPlaces}
-              />
-            </div>
+            {error && (
+              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+            )}
 
             <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2 pb-2">
               <button
@@ -253,9 +272,10 @@ const FirstAppointment = ({ employee, canEdit, options }) => {
               </button>
               <button
                 type="submit"
-                className="w-full sm:flex-[2] px-4 py-2 bg-emerald-600 text-white rounded-lg shadow-lg shadow-emerald-500/20"
+                disabled={saving}
+                className="w-full sm:flex-[2] px-4 py-2 bg-emerald-600 text-white rounded-lg shadow-lg shadow-emerald-500/20 disabled:opacity-60"
               >
-                Save Appointment
+                {saving ? "Saving..." : "Save Appointment"}
               </button>
             </div>
           </form>
