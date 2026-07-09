@@ -43,13 +43,9 @@ RUN set -e; \
 ARG INFISICAL_URL
 ENV INFISICAL_URL=$INFISICAL_URL
 
-RUN VERSION=$(curl -fsSL https://api.github.com/repos/Infisical/cli/releases/latest | grep '"tag_name"' | sed -E 's/.*"v([^"]+)".*/\1/') \
-    && curl -fsSL \
-    "https://github.com/Infisical/cli/releases/download/v${VERSION}/cli_${VERSION}_linux_amd64.tar.gz" \
-    -o /tmp/infisical.tar.gz \
-    && tar xzf /tmp/infisical.tar.gz -C /usr/local/bin infisical \
-    && rm /tmp/infisical.tar.gz \
-    && chmod +x /usr/local/bin/infisical
+RUN curl -1sLf 'https://artifacts-cli.infisical.com/setup.deb.sh' | bash \
+    && apt-get update && apt-get install -y infisical \
+    && rm -rf /var/lib/apt/lists/*
 
 # Custom entrypoint: wraps startup with `infisical run` to inject secrets
 COPY --chmod=0555 docker-entrypoint.sh /docker-entrypoint.sh
