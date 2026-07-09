@@ -1,7 +1,8 @@
 ---
 # ---PLAY-SETUP-MYSQL-WSO2-APIM-----
-# Creates the WSO2 APIM database (apim_db).
-# The shared_db is already created by the IS setup.
+# Creates the WSO2 APIM database (apim_db) and imports schemas.
+# The shared_db is already created by the IS setup; this playbook
+# imports the APIM-specific shared schema into the existing shared_db.
 - name: Setup MySQL databases for WSO2 APIM
   hosts: db_host
   become: yes
@@ -11,12 +12,30 @@
   vars:
     mysql_root_user_val: "{{ mysql_root_user | default('root') }}"
     mysql_socket:        /var/run/mysqld/mysqld.sock
+    resources_dir:       "../resources"
+    remote_tmp_dir:      "/tmp/sql_imports_apim"
+    apim_db_script:       "{{ remote_tmp_dir }}/wso2_apim_4.6.0_db_script.sql"
+    apim_shared_db_script: "{{ remote_tmp_dir }}/wso2_apim_4.6.0_shared_db_script.sql"
 
   tasks:
     - name: Ensure PyMySQL client is installed
       ansible.builtin.package:
         name: python3-pymysql
         state: present
+
+    - name: Create temporary directory on remote host
+      ansible.builtin.file:
+        path: "{{ remote_tmp_dir }}"
+        state: directory
+        mode: '0777'
+
+    - name: Upload APIM SQL scripts to remote host
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: "{{ remote_tmp_dir }}/"
+        mode: '0644'
+      with_fileglob:
+        - "{{ resources_dir }}/wso2_apim_*.sql"
 
     - name: Drop APIM database if it exists
       community.mysql.mysql_db:
@@ -42,6 +61,24 @@
         login_user: "{{ mysql_root_user_val }}"
         login_password: "{{ mysql_root_password }}"
         query: "ALTER DATABASE `{{ mysql_apim_db }}` CHARACTER SET latin1 COLLATE latin1_swedish_ci"
+
+    - name: Import APIM main schema
+      community.mysql.mysql_db:
+        name: "{{ mysql_apim_db }}"
+        state: import
+        target: "{{ apim_db_script }}"
+        login_unix_socket: "{{ mysql_socket }}"
+        login_user: "{{ mysql_root_user_val }}"
+        login_password: "{{ mysql_root_password }}"
+
+    - name: Import APIM shared schema into existing shared database
+      community.mysql.mysql_db:
+        name: "{{ mysql_is_shared_db }}"
+        state: import
+        target: "{{ apim_shared_db_script }}"
+        login_unix_socket: "{{ mysql_socket }}"
+        login_user: "{{ mysql_root_user_val }}"
+        login_password: "{{ mysql_root_password }}"
 
     - name: Grant WSO2 user full privileges on APIM database
       community.mysql.mysql_user:
