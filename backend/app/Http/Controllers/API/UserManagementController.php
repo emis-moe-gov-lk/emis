@@ -39,12 +39,15 @@ class UserManagementController extends Controller
 
             $perPage = (int) $request->get('per_page', 20);
             $search  = trim($request->get('search', ''));
+            $role    = trim($request->get('role', ''));
+            $status  = $request->get('status');
+            $workplace = trim($request->get('workplace', ''));
 
             $query = User::query()
-                ->select('id', 'name', 'email', 'nic', 'active_status')
+                ->select('id', 'name', 'email', 'nic', 'active_status', 'people_id')
                 ->with([
                     'roles:id,name',
-                    'currentAppointment.workplace:workplace_id,name'
+                    'currentAppointment.workplace'
                 ]);
 
             if ($search !== '') {
@@ -55,9 +58,37 @@ class UserManagementController extends Controller
                 });
             }
 
-            $users = $query->paginate($perPage);
+            if ($role !== '') {
+                $query->whereHas('roles', function ($q) use ($role) {
+                    $q->where('name', $role);
+                });
+            }
 
-            \Log::debug($users);
+            if ($status !== null && $status !== '') {
+                $query->where('active_status', $status);
+            }
+
+            if ($workplace !== '') {
+                $query->whereHas('currentAppointment.workplace', function ($q) use ($workplace) {
+                    $q->where(function ($sub) use ($workplace) {
+                        $sub->whereHas('ministry', function ($o) use ($workplace) {
+                            $o->where('name', 'like', "%{$workplace}%");
+                        })->orWhereHas('provincialMinistry', function ($o) use ($workplace) {
+                            $o->where('name', 'like', "%{$workplace}%");
+                        })->orWhereHas('provincial', function ($o) use ($workplace) {
+                            $o->where('name', 'like', "%{$workplace}%");
+                        })->orWhereHas('zonal', function ($o) use ($workplace) {
+                            $o->where('name', 'like', "%{$workplace}%");
+                        })->orWhereHas('divisional', function ($o) use ($workplace) {
+                            $o->where('name', 'like', "%{$workplace}%");
+                        })->orWhereHas('institution', function ($o) use ($workplace) {
+                            $o->where('name', 'like', "%{$workplace}%");
+                        });
+                    });
+                });
+            }
+
+            $users = $query->paginate($perPage);
 
             $data = $users->through(function ($user) {
 
@@ -70,7 +101,7 @@ class UserManagementController extends Controller
                     'nic'       => $user->nic,
                     'email'     => $user->email,
                     'role'      => $user->roles->pluck('name'),
-                    'workplace' => $user->currentAppointment?->workplace?->name
+                    'workplace' => $user->currentAppointment?->workplace?->office_name
 
                 ];
             });
@@ -390,7 +421,7 @@ class UserManagementController extends Controller
     // -------------------------------------------------------
     // PATCH /users/{id}/toggle-status
     // -------------------------------------------------------
-    public function toggleStatus(Request $request, string $id)
+    public function toggleStatus(Request $request, string $id, Wso2IsProvisioningService $wso2Is)
     {
         if (! $this->isSuperAdmin($request)) {
             return response()->json(['status' => 'error', 'message' => 'Forbidden'], 403);
@@ -405,6 +436,9 @@ class UserManagementController extends Controller
 
             $user->active_status = $user->active_status ? 0 : 1;
             $user->save();
+
+            // Sync status update to WSO2 IS
+            $wso2Is->syncUserProfile($user);
 
             return response()->json([
                 'status'  => 'success',

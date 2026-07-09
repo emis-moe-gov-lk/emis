@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Badge, Button, Spinner, TextInput } from "flowbite-react";
+import { Badge, Button, Select, Spinner, TextInput } from "flowbite-react";
 import { resolveProfileImage } from "@/utils/profileImage";
 import StatusBadge from "@/components/common/StatusBadge";
 import {
@@ -19,6 +19,8 @@ import {
   toggleUserStatus,
   USER_LIST_PER_PAGE,
 } from "@/api/userService";
+import { getRoles } from "@/api/roleService";
+import { useAuthUser } from "@/context/useAuthUser";
 
 const getUserId = (user) => user?.id ?? user?.user_id ?? user?.people_id ?? user?.uuid;
 
@@ -96,14 +98,37 @@ const getStatusColor = (statusLabel) => {
   return "warning";
 };
 
+const ROLE_LEVELS = {
+  "super admin": 1,
+  "admin": 2,
+  "moe administrator": 2,
+  "moe director": 2,
+  "provincial director": 3,
+  "provincial deputy director": 3,
+  "provincial subject head": 3,
+  "zonal director": 5,
+  "zonal deputy director": 6,
+  "zonal deo": 7,
+  "divisional head": 8,
+  "divisional deo": 9,
+  "school deo": 10,
+  "principal": 11,
+  "teacher": 12,
+};
+
 const isActiveStatus = (statusLabel) => statusLabel?.toLowerCase() === "active";
 
 const UsersList = () => {
   const navigate = useNavigate();
+  const { roles: authRoles = [] } = useAuthUser();
 
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
+  const [selectedRole, setSelectedRole] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("");
+  const [selectedWorkplace, setSelectedWorkplace] = useState("");
+  const [rolesList, setRolesList] = useState([]);
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
   const [from, setFrom] = useState(0);
@@ -112,7 +137,27 @@ const UsersList = () => {
   const [openMenuKey, setOpenMenuKey] = useState(null);
   const [actionLoadingKey, setActionLoadingKey] = useState(null);
 
-  const fetchUsers = async (pageNumber = 1, searchTerm = search) => {
+  const loggedInUserLevel = useMemo(() => {
+    const levels = authRoles.map((role) => ROLE_LEVELS[String(role).toLowerCase()] || 99);
+    return levels.length > 0 ? Math.min(...levels) : 99;
+  }, [authRoles]);
+
+  const visibleRoles = useMemo(() => {
+    if (loggedInUserLevel === 1) return rolesList;
+
+    return rolesList.filter((role) => {
+      const roleLevel = ROLE_LEVELS[role.name.toLowerCase()] || 99;
+      return roleLevel >= loggedInUserLevel;
+    });
+  }, [rolesList, loggedInUserLevel]);
+
+  const fetchUsers = async (
+    pageNumber = 1,
+    searchTerm = search,
+    roleTerm = selectedRole,
+    statusTerm = selectedStatus,
+    workplaceTerm = selectedWorkplace
+  ) => {
     setLoading(true);
     try {
       const {
@@ -126,6 +171,9 @@ const UsersList = () => {
         page: pageNumber,
         perPage: USER_LIST_PER_PAGE,
         search: searchTerm,
+        role: roleTerm,
+        status: statusTerm,
+        workplace: workplaceTerm,
       });
       setUsers(usersList);
       setTotal(usersTotal);
@@ -151,20 +199,32 @@ const UsersList = () => {
   }, []);
 
   useEffect(() => {
+    const loadRoles = async () => {
+      try {
+        const rolesData = await getRoles();
+        setRolesList(rolesData);
+      } catch (err) {
+        console.error("Failed to load roles for filter:", err);
+      }
+    };
+    loadRoles();
+  }, []);
+
+  useEffect(() => {
     const timer = setTimeout(() => {
       if (page !== 1) {
         setPage(1);
         return;
       }
 
-      fetchUsers(1, search);
+      fetchUsers(1, search, selectedRole, selectedStatus, selectedWorkplace);
     }, 350);
 
     return () => clearTimeout(timer);
-  }, [search]);
+  }, [search, selectedRole, selectedStatus, selectedWorkplace]);
 
   useEffect(() => {
-    fetchUsers(page, search);
+    fetchUsers(page, search, selectedRole, selectedStatus, selectedWorkplace);
   }, [page]);
 
   const handleToggleStatusClick = async (event, user) => {
@@ -246,15 +306,72 @@ const UsersList = () => {
         </div> */}
       </div>
 
-      <div className="w-full sm:max-w-md">
-        <TextInput
-          id="search-users"
-          type="text"
-          icon={HiSearch}
-          placeholder="Search by name, NIC, or email..."
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-        />
+      <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+        <div className="w-full md:max-w-md">
+          <TextInput
+            id="search-users"
+            type="text"
+            icon={HiSearch}
+            placeholder="Search by name, NIC, or email..."
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          <div className="min-w-[180px] w-full sm:w-auto">
+            <TextInput
+              id="filter-workplace"
+              type="text"
+              placeholder="Filter by workplace..."
+              value={selectedWorkplace}
+              onChange={(e) => setSelectedWorkplace(e.target.value)}
+            />
+          </div>
+
+          <div className="min-w-[150px] w-full sm:w-auto">
+            <Select
+              id="filter-role"
+              value={selectedRole}
+              onChange={(e) => setSelectedRole(e.target.value)}
+            >
+              <option value="">All Roles</option>
+              {visibleRoles.map((role) => (
+                <option key={role.id || role.name} value={role.name}>
+                  {role.name.charAt(0).toUpperCase() + role.name.slice(1)}
+                </option>
+              ))}
+            </Select>
+          </div>
+
+          <div className="min-w-[130px] w-full sm:w-auto">
+            <Select
+              id="filter-status"
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+            >
+              <option value="">All Statuses</option>
+              <option value="1">Active</option>
+              <option value="0">Inactive</option>
+            </Select>
+          </div>
+
+          {(selectedRole || selectedStatus || selectedWorkplace || search) && (
+            <Button
+              color="gray"
+              size="md"
+              onClick={() => {
+                setSearch("");
+                setSelectedRole("");
+                setSelectedStatus("");
+                setSelectedWorkplace("");
+              }}
+              className="w-full sm:w-auto"
+            >
+              Clear Filters
+            </Button>
+          )}
+        </div>
       </div>
 
       {loading ? (
