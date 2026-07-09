@@ -43,9 +43,9 @@ RUN set -e; \
 ARG INFISICAL_URL
 ENV INFISICAL_URL=$INFISICAL_URL
 
-ARG INFISICAL_CLI_VERSION=0.88.3
+ARG INFISICAL_CLI_VERSION=0.43.103
 RUN curl -fsSL \
-    "https://github.com/Infisical/infisical/releases/download/infisical-cli-v${INFISICAL_CLI_VERSION}/infisical_${INFISICAL_CLI_VERSION}_linux_amd64.tar.gz" \
+    "https://github.com/Infisical/cli/releases/download/v${INFISICAL_CLI_VERSION}/cli_${INFISICAL_CLI_VERSION}_linux_amd64.tar.gz" \
     -o /tmp/infisical.tar.gz \
     && tar xzf /tmp/infisical.tar.gz -C /usr/local/bin infisical \
     && rm /tmp/infisical.tar.gz \
