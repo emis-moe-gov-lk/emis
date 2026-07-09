@@ -147,6 +147,8 @@ const OfficeListTemplate = ({ title, subtitle, endpoint, createLabel }) => {
         "city",
       ]);
 
+      const shortName = pick(r, ["short_name", "shortname"]);
+
       const contact = pick(r, [
         "contact",
         "phone",
@@ -176,7 +178,7 @@ const OfficeListTemplate = ({ title, subtitle, endpoint, createLabel }) => {
         raw: r,
         name: name || "—",
         code: code || "—",
-        address,
+        address: address || shortName || "—",
         contact,
         email,
         status,
