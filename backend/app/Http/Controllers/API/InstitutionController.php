@@ -8,6 +8,17 @@ use App\Models\Institution;
 use App\Models\InstitutionAuthority;
 use App\Models\ProvincialEducationOffice;
 use App\Models\ZonalEducationOffice;
+use App\Models\DistrictsList;
+use App\Models\InstitutionCategory;
+use App\Models\InstitutionGender;
+use App\Models\InstitutionLanguages;
+use App\Models\InstitutionType;
+use App\Models\InstitutionEthnisity;
+use App\Models\InstitutionalFacility;
+use App\Models\GradeSpan;
+use App\Models\GnDivision;
+use App\Models\PoliceStation;
+use App\Models\MohArea;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -213,6 +224,23 @@ class InstitutionController extends Controller
                     'divisions'   => DivisionalEducationOffice::active()
                         ->orderBy('name')
                         ->get(['workplace_id', 'name', 'zeo_wp_id']),
+                    'districts'   => DistrictsList::all(['district_id', 'district_name']),
+                    'categories'  => InstitutionCategory::all(['institution_category_id', 'institution_category_name']),
+                    'genders'     => InstitutionGender::all(['gender_id', 'name']),
+                    'languages'   => InstitutionLanguages::all(['language_id', 'name']),
+                    'types'       => InstitutionType::all(['institution_types_id', 'institution_types_name']),
+                    'ethnicities' => InstitutionEthnisity::all(['ethnicity_id', 'ethnicity_name']),
+                    'facilities'  => InstitutionalFacility::all(['facilities_id', 'name']),
+                    'gradeSpans'  => GradeSpan::all(['grade_span_id', 'grade_span_name']),
+                    'gnDivisions' => GnDivision::active()
+                        ->orderBy('gn_division_name')
+                        ->get(['gn_division_id', 'gn_division_name']),
+                    'policeStations' => PoliceStation::active()
+                        ->orderBy('police_station_name')
+                        ->get(['police_station_id', 'police_station_name']),
+                    'mohAreas' => MohArea::active()
+                        ->orderBy('moh_area_name')
+                        ->get(['moh_area_id', 'moh_area_name']),
                 ],
             ]);
         }
@@ -253,6 +281,84 @@ class InstitutionController extends Controller
             'status' => 'success',
             'data'   => ['authorities' => $authorities],
         ]);
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'workplace_id'           => 'required|string|max:10|unique:institutions,workplace_id',
+            'census_no'              => 'required|string|max:10|unique:institutions,census_no',
+            'category_id'            => 'required|string',
+            'authority_id'           => 'required|string',
+            'language_id'            => 'required|string',
+            'ethnicity_id'           => 'required|string',
+            'gender_id'              => 'required|string',
+            'type_id'                => 'required|string',
+            'gradespan'              => 'nullable|string',
+            'facility_id'            => 'required|string',
+            'district_id'            => 'required|string',
+            'zeo_wp_id'              => 'required|string',
+            'deo_wp_id'              => 'required|string',
+            'gn_division_id'         => 'nullable|string',
+            'police_station_id'      => 'nullable|string',
+            'moh_area_id'            => 'nullable|string',
+            'name'                   => 'required|string|max:255',
+            'other_name'             => 'nullable|string|max:50',
+            'established_year'       => 'required|string',
+            'email'                  => 'nullable|email|max:255',
+            'contact_number'         => 'nullable|string|max:20',
+            'address'                => 'nullable|string',
+            'postal_code'            => 'nullable|string|max:10',
+            'latitude'               => 'nullable|numeric',
+            'longitude'              => 'nullable|numeric',
+            'mission'                => 'nullable|string',
+            'vision'                 => 'nullable|string',
+            'logo'                   => 'nullable|string',
+            'active_status'          => 'required|string',
+        ]);
+
+        $data = [
+            'workplace_id' => $validated['workplace_id'],
+            'census_no' => $validated['census_no'],
+            'institution_category_id' => $validated['category_id'],
+            'authority_id' => $validated['authority_id'],
+            'language_id' => $validated['language_id'],
+            'ethnicity_id' => $validated['ethnicity_id'],
+            'gender_id' => $validated['gender_id'],
+            'facilities_id' => $validated['facility_id'],
+            'institution_types_id' => $validated['type_id'],
+            'grade_span_id' => $validated['gradespan'] ?? null,
+            'sport_s' => '0',
+            'district_id' => $validated['district_id'],
+            'zeo_wp_id' => $validated['zeo_wp_id'],
+            'deo_wp_id' => $validated['deo_wp_id'],
+            'gn_division_id' => $validated['gn_division_id'] ?? null,
+            'police_station_id' => $validated['police_station_id'] ?? null,
+            'moh_area_id' => $validated['moh_area_id'] ?? null,
+            'name' => $validated['name'],
+            'other_name' => $validated['other_name'] ?? null,
+            'established_year' => $validated['established_year'] ?? null,
+            'email' => $validated['email'] ?? null,
+            'phone' => $validated['contact_number'] ?? null,
+            'address' => $validated['address'] ?? null,
+            'postal_code' => $validated['postal_code'] ?? null,
+            'latitude' => $validated['latitude'] ?? null,
+            'longitude' => $validated['longitude'] ?? null,
+            'mission' => $validated['mission'] ?? null,
+            'vision' => $validated['vision'] ?? null,
+            'logo' => $validated['logo'] ?? null,
+            'active_status' => (int) $validated['active_status'],
+            'created_by' => $request->user()->people_id ?? 'system',
+            'updated_by' => $request->user()->people_id ?? 'system',
+        ];
+
+        $institution = Institution::create($data);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Institution created successfully',
+            'data' => $institution,
+        ], 201);
     }
 
     /**
