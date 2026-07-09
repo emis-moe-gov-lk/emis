@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button, Checkbox, Label, Spinner, TextInput } from "flowbite-react";
-import { HiArrowLeft, HiEye, HiEyeOff, HiPencilAlt } from "react-icons/hi";
+import { HiArrowLeft, HiEye, HiEyeOff, HiPencilAlt, HiX } from "react-icons/hi";
 import { toast } from "react-hot-toast";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useAuthUser } from "@/context/useAuthUser";
@@ -254,7 +254,15 @@ const UserEdit = () => {
   return (
     <div className="p-4 sm:p-6 lg:p-10 max-w-4xl mx-auto">
       <div className="rounded-3xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm bg-white dark:bg-gray-800">
-        <div className="bg-gradient-to-r from-cyan-600 via-sky-600 to-blue-700 px-6 sm:px-8 py-8 text-white">
+        <div className="bg-gradient-to-r from-cyan-600 via-sky-600 to-blue-700 px-6 sm:px-8 py-8 text-white relative">
+          <button
+            type="button"
+            onClick={() => navigate("/users")}
+            className="absolute top-6 right-6 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-2 rounded-full transition-all duration-200"
+            title="Close"
+          >
+            <HiX className="w-5 h-5" />
+          </button>
           <p className="text-xs uppercase tracking-[0.25em] text-cyan-100">User Management</p>
           <h1 className="mt-2 text-2xl sm:text-3xl font-bold">User Edit</h1>
           <p className="text-cyan-100 mt-2">Update user profile and account</p>
