@@ -39,6 +39,12 @@ services:
       - apim.env
     networks:
       - noapim-uat-swm-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -kf https://localhost:9443/api/health-check/v1.0/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
     deploy:
       replicas: 1
       restart_policy:

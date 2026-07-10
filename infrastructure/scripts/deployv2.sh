@@ -1,8 +1,18 @@
 #!/bin/bash
 
-# Universal deployment script
-# Auto-detects env, inventory, and stack files.
+# Deployment script v2 — explicit env + inventory args
+# Usage: ./deployv2.sh <env-file> <inventory-file>
+# Example: ./deployv2.sh env-uat-v2.yml inventory-uat.yml
 set -e
+
+if [ $# -ne 2 ]; then
+  echo "Usage: $0 <env-file> <inventory-file>"
+  echo "Example: $0 env-uat-v2.yml inventory-uat.yml"
+  exit 1
+fi
+
+ENV_NAME="$1"
+INV_NAME="$2"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ANSIBLE_DIR="$SCRIPT_DIR/../ansible/deploy-setup"
@@ -10,16 +20,16 @@ ENV_DIR="$ANSIBLE_DIR/env"
 INVENTORY_DIR="$ANSIBLE_DIR/inventory"
 PB_DIR="$ANSIBLE_DIR/playbooks"
 
-ENV_FILE="$ENV_DIR/env.yml"
-INVENTORY_FILE="$INVENTORY_DIR/inventory.yml"
+ENV_FILE="$ENV_DIR/$ENV_NAME"
+INVENTORY_FILE="$INVENTORY_DIR/$INV_NAME"
 
 if [ ! -f "$ENV_FILE" ]; then
-  echo "Error: env.yml not found in $ENV_DIR"
+  echo "Error: env file not found at $ENV_FILE"
   exit 1
 fi
 
 if [ ! -f "$INVENTORY_FILE" ]; then
-  echo "Error: inventory.yml not found in $INVENTORY_DIR"
+  echo "Error: inventory file not found at $INVENTORY_FILE"
   exit 1
 fi
 

@@ -1,55 +1,58 @@
 ---
 # ============================================================
-# EMIS No-APIM — Master Deployment Orchestration
+# EMIS — Master Deployment Orchestration
 # ============================================================
 # Runs all deployment steps in order:
 #   1. Pre-flight SSH / become checks
 #   2. Install MySQL
 #   3. Create EMIS application database
 #   4. Create WSO2 IS databases and import schemas
-#   5. Render env files and deploy the 3-service Docker stack
-#   6. Configure IS: roles, users, OIDC apps — display credentials
-#   7. Print instructions for the manual credential-paste step
+#   5. Create WSO2 APIM database and import schemas (APIM envs only)
+#   6. Render env files and deploy IS-only Docker stack
+#   7. Configure IS: roles, users, OIDC apps — display credentials
+#   8. Deploy full stack (IS + APIM + frontend + backend)
 #
-# Usage (UAT):
-#   ansible-playbook deploy-noapim/playbooks/site.yml \
-#     -i deploy-noapim/inventory/uat.yml \
-#     -e @deploy-noapim/env/uat.yml \
-#     -e target_hosts=all \
-#     --vault-password-file deploy-noapim/.vault_pass
+# Usage:
+#   ansible-playbook playbooks/site.yml \
+#     -i inventory/inventory.yml \
+#     -e @env/env.yml \
+#     --vault-password-file .vault_pass
 #
 # After site.yml completes:
-#   - Copy the client_id / client_secret values printed by Step 6
-#   - Paste them into deploy-noapim/env/uat.yml
+#   - Copy the client_id / client_secret values printed by Step 7
+#   - Paste them into env/env.yml
 #   - Re-run deploy-stack.yml alone to push the updated credentials:
-#       ansible-playbook deploy-noapim/playbooks/deploy-stack.yml \
-#         -i deploy-noapim/inventory/uat.yml \
-#         -e @deploy-noapim/env/uat.yml \
-#         --vault-password-file deploy-noapim/.vault_pass
+#       ansible-playbook playbooks/deploy-stack.yml \
+#         -i inventory/inventory.yml \
+#         -e @env/env.yml \
+#         --vault-password-file .vault_pass
 # ============================================================
 
-# ── Step 1: Pre-flight checks ─────────────────────────────────────────────────
+# -- Step 1: Pre-flight checks --
 - import_playbook: pre-check.yml
 
-# ── Step 2: Install MySQL 8.0 ────────────────────────────────────────────────
+# -- Step 2: Install MySQL 8.0 --
 - import_playbook: mysql-install.yml
 
-# ── Step 3: Create EMIS application database and user ────────────────────────
+# -- Step 3: Create EMIS application database and user --
 - import_playbook: mysql-setup-emis-db.yml
 
-# ── Step 4: Create WSO2 IS databases and import schemas ──────────────────────
+# -- Step 4: Create WSO2 IS databases and import schemas --
 - import_playbook: mysql-setup-wso2-is-only.yml
 
-# ── Step 5: Render env files and deploy IS-only Docker stack ──────────────────
+# -- Step 5: Create WSO2 APIM database and import schemas --
+- import_playbook: mysql-setup-wso2-apim.yml
+
+# -- Step 6: Render env files and deploy IS-only Docker stack --
 - import_playbook: deploy-is-only.yml
 
-# ── Step 6: Configure IS (roles, users, OIDC apps) ───────────────────────────
+# -- Step 7: Configure IS (roles, users, OIDC apps) --
 - import_playbook: configure-is-only.yml
 
-# ── Step 7: Deploy stack with updated credentials ────────────────────────────
-# - import_playbook: deploy-stack.yml
+# -- Step 8: Deploy full stack with updated credentials --
+- import_playbook: deploy-stack.yml
 
-# ── Step 8: Post-deployment summary ──────────────────────────────────────────
+# -- Post-deployment summary --
 - name: Post-deployment — status summary
   hosts: localhost
   gather_facts: false
@@ -58,5 +61,5 @@
       ansible.builtin.debug:
         msg:
           - "================================================================"
-          - "EMIS No-APIM stack is successfully Configured on {{ deploy_env }}."
+          - "EMIS stack successfully deployed on {{ deploy_env }}."
           - "================================================================"
