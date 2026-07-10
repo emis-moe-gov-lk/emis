@@ -72,13 +72,18 @@
         login_password: "{{ mysql_root_password }}"
 
     - name: Import APIM shared schema into existing shared database
-      community.mysql.mysql_db:
-        name: "{{ mysql_is_shared_db }}"
-        state: import
-        target: "{{ apim_shared_db_script }}"
-        login_unix_socket: "{{ mysql_socket }}"
-        login_user: "{{ mysql_root_user_val }}"
-        login_password: "{{ mysql_root_password }}"
+      ansible.builtin.shell: |
+        mysql --socket={{ mysql_socket }} \
+              -u {{ mysql_root_user_val }} \
+              -p{{ mysql_root_password }} \
+              --force \
+              {{ mysql_is_shared_db }} < {{ apim_shared_db_script }}
+      changed_when: true
+      register: apim_shared_import
+      # --force ignores duplicate-key errors (IS already created shared DB tables)
+      failed_when:
+        - apim_shared_import.rc != 0
+        - "'ERROR' in apim_shared_import.stderr"
 
     - name: Grant WSO2 user full privileges on APIM database
       community.mysql.mysql_user:
