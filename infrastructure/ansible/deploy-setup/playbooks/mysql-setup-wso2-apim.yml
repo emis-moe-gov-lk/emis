@@ -7,7 +7,6 @@
   hosts: db_host
   become: yes
   gather_facts: false
-  when: mysql_apim_db is defined
   collections:
     - community.mysql
   vars:
