@@ -94,8 +94,6 @@ jobs:
           tags: |
             ${{ env.REGISTRY_BASE }}:${{ steps.bump_version.outputs.new_version }}
             ${{ env.REGISTRY_BASE }}:latest
-          build-args: |
-            INFISICAL_URL=${{ secrets.INFISICAL_URL }}
 
       - name: Update APIM_VERSION
         if: steps.build_image.outcome == 'success'

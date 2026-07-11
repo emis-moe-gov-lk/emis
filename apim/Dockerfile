@@ -40,8 +40,6 @@ RUN set -e; \
     rm -rf /tmp/extra-certs
 
 # ── Infisical CLI ──────────────────────────────────────────────
-ARG INFISICAL_URL
-ENV INFISICAL_DOMAIN=$INFISICAL_URL
 
 RUN curl -1sLf 'https://artifacts-cli.infisical.com/setup.deb.sh' | bash \
     && apt-get update && apt-get install -y infisical \
