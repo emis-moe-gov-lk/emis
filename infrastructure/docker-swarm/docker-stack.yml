@@ -37,6 +37,7 @@ services:
       - "${APIM_GATEWAY_HTTP_PORT}:8280"
     env_file:
       - apim.env
+    command: ["sh", "-c", "exec ${WSO2_SERVER_HOME}/bin/api-manager.sh"]
     networks:
       - noapim-uat-swm-network
     healthcheck:
