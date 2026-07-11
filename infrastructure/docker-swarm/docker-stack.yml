@@ -39,7 +39,7 @@ services:
       - "secret.emis.moe.gov.lk:192.168.200.1"
     env_file:
       - apim.env
-    command: ["sh", "-c", "exec ${WSO2_SERVER_HOME}/bin/api-manager.sh"]
+    command: ["sh", "-c", "exec $${WSO2_SERVER_HOME}/bin/api-manager.sh"]
     networks:
       - noapim-uat-swm-network
     healthcheck:
