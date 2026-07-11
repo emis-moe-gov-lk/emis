@@ -35,6 +35,8 @@ services:
       - "${APIM_HOST_PORT}:9443"
       - "${APIM_GATEWAY_PORT}:8243"
       - "${APIM_GATEWAY_HTTP_PORT}:8280"
+    extra_hosts:
+      - "secret.emis.moe.gov.lk:192.168.200.1"
     env_file:
       - apim.env
     command: ["sh", "-c", "exec ${WSO2_SERVER_HOME}/bin/api-manager.sh"]
