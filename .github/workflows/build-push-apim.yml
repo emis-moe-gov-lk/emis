@@ -84,6 +84,12 @@ jobs:
             echo "should_build=true" >> $GITHUB_OUTPUT
           fi
 
+      - name: Inject IS default cert
+        env:
+          IS_CERT_DEFAULT: ${{ secrets.IS_CERT_DEFAULT }}
+        run: |
+          printf '%s' "$IS_CERT_DEFAULT" > apim/certs/is.pem
+
       - name: Build and push APIM Service image
         id: build_image
         if: steps.ghcr_check.outputs.should_build == 'true'
