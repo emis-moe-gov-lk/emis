@@ -96,7 +96,7 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 120s
+      start_period: 480s
     networks:
       - noapim-uat-swm-network
     deploy:
