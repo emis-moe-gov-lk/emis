@@ -354,11 +354,6 @@ class EmployerAppointmentConfirmationController extends Controller
             ], 500);
         }
     }
-public function confirmPrincipal(Request $request, string $people_id, TeacherAccountProvisioningService $teacherAccountProvisioningService)
-{
-    return $this->confirmTeacher($request, $people_id, $teacherAccountProvisioningService);
-}
-
 public function confirmTeacher(Request $request, string $people_id, TeacherAccountProvisioningService $teacherAccountProvisioningService)
 {
     try {
@@ -591,11 +586,6 @@ public function confirmTeacher(Request $request, string $people_id, TeacherAccou
             'message' => 'Failed to reject teacher appointment',
         ], 500);
     }
-}
-
-public function updateTeacher(Request $request, string $people_id)
-{
-    return $this->updateTeacherRejectedStatus($request, $people_id);
 }
 
 public function updateTeacherRejectedStatus(Request $request, string $people_id)
