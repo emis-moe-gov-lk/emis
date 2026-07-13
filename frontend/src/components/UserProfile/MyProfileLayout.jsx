@@ -78,7 +78,7 @@ const MyProfileLayout = () => {
   };
 
   if (!profileData) {
-    <Spinner />;
+    return <Spinner />;
   }
 
   return (

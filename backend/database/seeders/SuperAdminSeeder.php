@@ -25,16 +25,19 @@ class SuperAdminSeeder extends Seeder
 
         $superAdminNic = NicHelper::normalize('999999999999');
 
+        // Reuse the existing people_id on re-seed; only mint a new one on first creation.
+        // (people_id is referenced by FKs elsewhere, e.g. employer_appointments.confirmed_by,
+        // so regenerating it on every run breaks those constraints.)
+        $existingPerson = People::where('nic_hash', NicHelper::hash($superAdminNic))->first();
+        $personId = $existingPerson->people_id ?? strtoupper(Str::random(12));
+
         // Create or update People record (Eloquent => encryption + nic_hash applied)
         $person = People::updateOrCreate(
             ['nic_hash' => NicHelper::hash($superAdminNic)], // check via hash
             [
                 'nic'            => $superAdminNic, // encrypted automatically by mutator
                 'nic_hash'       => NicHelper::hash($superAdminNic), // deterministic hash for uniqueness
-
-                //removing the people id commend
-
-                'people_id'      => strtoupper(Str::random(12)),
+                'people_id'      => $personId,
                 'title_id'       => 'T01',
                 'full_name'      => 'System Super Admin',
                 'name_with_initials' => 'S.S.A',
@@ -76,14 +79,14 @@ class SuperAdminSeeder extends Seeder
             ]
         );
 
-        // Create Appointment
+        // Create Appointment (reuse existing appointment_id on re-seed; see note above)
+        $existingAppointment = EmployerAppointment::where('employee_id', $person->people_id)->first();
+        $appointmentId = $existingAppointment->appointment_id ?? strtoupper(Str::random(12));
+
         $appointment = EmployerAppointment::updateOrCreate(
             ['employee_id' => $person->people_id],
             [
-
-                // removing commend
-
-                'appointment_id'        => strtoupper(Str::random(12)),
+                'appointment_id'        => $appointmentId,
                 'first_appointment_date' => now(),
                 'retirement_date'       => now()->addYears(35),
                 'service_id'            => 'SER006',
@@ -129,12 +132,15 @@ class SuperAdminSeeder extends Seeder
         // ---------------------------------------------------------------
         $superAdmin2Nic = NicHelper::normalize('888888888888');
 
+        $existingPerson2 = People::where('nic_hash', NicHelper::hash($superAdmin2Nic))->first();
+        $person2Id = $existingPerson2->people_id ?? strtoupper(Str::random(12));
+
         $person2 = People::updateOrCreate(
             ['nic_hash' => NicHelper::hash($superAdmin2Nic)],
             [
                 'nic'                => $superAdmin2Nic,
                 'nic_hash'           => NicHelper::hash($superAdmin2Nic),
-                'people_id'          => strtoupper(Str::random(12)),
+                'people_id'          => $person2Id,
                 'title_id'           => 'T01',
                 'full_name'          => 'System Super Admin 2',
                 'name_with_initials' => 'S.S.A2',
@@ -175,10 +181,13 @@ class SuperAdminSeeder extends Seeder
             ]
         );
 
+        $existingAppointment2 = EmployerAppointment::where('employee_id', $person2->people_id)->first();
+        $appointment2Id = $existingAppointment2->appointment_id ?? strtoupper(Str::random(12));
+
         $appointment2 = EmployerAppointment::updateOrCreate(
             ['employee_id' => $person2->people_id],
             [
-                'appointment_id'         => strtoupper(Str::random(12)),
+                'appointment_id'         => $appointment2Id,
                 'first_appointment_date' => now(),
                 'retirement_date'        => now()->addYears(35),
                 'service_id'             => 'SER006',
