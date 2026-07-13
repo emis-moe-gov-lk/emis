@@ -1281,6 +1281,10 @@ class RolePermissionSeeder extends Seeder
             'zonal.deo.service.add',
             'zonal.deo.wop.edit',
             'zonal.deo.family.add',
+            'menu.settings.system.settings',
+            'menu.settings.version',
+            'menu.settings.notifications',
+            'menu.settings.privacy',
         ];
 
 
