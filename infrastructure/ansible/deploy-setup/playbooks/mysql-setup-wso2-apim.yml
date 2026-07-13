@@ -1,8 +1,7 @@
 ---
 # ---PLAY-SETUP-MYSQL-WSO2-APIM-----
-# Creates the WSO2 APIM database (apim_db) and the shared registry DB
-# (wso2_shared_db). The shared DB hosts Carbon registry tables used by
-# both IS and APIM. IS identity DB is handled by mysql-setup-wso2-is-only.yml.
+# Creates the WSO2 APIM database (apim_db) and the APIM shared registry DB.
+# IS shared registry DB is handled by mysql-setup-wso2-is-only.yml.
 - name: Setup MySQL databases for WSO2 APIM
   hosts: db_host
   become: yes
@@ -14,9 +13,8 @@
     mysql_socket:        /var/run/mysqld/mysqld.sock
     resources_dir:       "../resources"
     remote_tmp_dir:      "/tmp/sql_imports_apim"
-    apim_db_script:       "{{ remote_tmp_dir }}/wso2_apim_4.6.0_db_script.sql"
-    apim_shared_db_script: "{{ remote_tmp_dir }}/wso2_apim_4.6.0_shared_db_script.sql"
-    is_shared_db_script:   "{{ remote_tmp_dir }}/wso2_is_7.2.0_shared_db_script.sql"
+    apim_db_script:         "{{ remote_tmp_dir }}/wso2_apim_4.6.0_db_script.sql"
+    apim_shared_db_script:  "{{ remote_tmp_dir }}/wso2_apim_4.6.0_shared_db_script.sql"
 
   tasks:
     - name: Ensure PyMySQL client is installed
@@ -30,16 +28,15 @@
         state: directory
         mode: '0777'
 
-    - name: Upload APIM and IS shared SQL scripts to remote host
+    - name: Upload APIM SQL scripts to remote host
       ansible.builtin.copy:
         src: "{{ item }}"
         dest: "{{ remote_tmp_dir }}/"
         mode: '0644'
       with_fileglob:
         - "{{ resources_dir }}/wso2_apim_*.sql"
-        - "{{ resources_dir }}/wso2_is_7.2.0_shared_db_script.sql"
 
-    # ── APIM main database ──────────────────────────────────────────────────────
+    # ── APIM main database ──────────────────────────────────────────────────
 
     - name: Drop APIM database if it exists
       community.mysql.mysql_db:
@@ -75,59 +72,45 @@
         login_user: "{{ mysql_root_user_val }}"
         login_password: "{{ mysql_root_password }}"
 
-    # ── Shared registry database (used by both IS and APIM) ─────────────────────
+    # ── APIM shared registry database ──────────────────────────────────────
 
-    - name: Drop shared database if it exists
+    - name: Drop APIM shared database if it exists
       community.mysql.mysql_db:
-        name: "{{ mysql_wso2_shared_db }}"
+        name: "{{ mysql_apim_shared_db }}"
         state: absent
         login_unix_socket: "{{ mysql_socket }}"
         login_user: "{{ mysql_root_user_val }}"
         login_password: "{{ mysql_root_password }}"
 
-    - name: Create shared database (latin1)
+    - name: Create APIM shared database (latin1)
       community.mysql.mysql_query:
         login_unix_socket: "{{ mysql_socket }}"
         login_user: "{{ mysql_root_user_val }}"
         login_password: "{{ mysql_root_password }}"
         query: >
-          CREATE DATABASE IF NOT EXISTS `{{ mysql_wso2_shared_db }}`
+          CREATE DATABASE IF NOT EXISTS `{{ mysql_apim_shared_db }}`
           CHARACTER SET latin1
           COLLATE latin1_swedish_ci
 
-    - name: Force latin1 on shared database
+    - name: Force latin1 on APIM shared database
       community.mysql.mysql_query:
         login_unix_socket: "{{ mysql_socket }}"
         login_user: "{{ mysql_root_user_val }}"
         login_password: "{{ mysql_root_password }}"
-        query: "ALTER DATABASE `{{ mysql_wso2_shared_db }}` CHARACTER SET latin1 COLLATE latin1_swedish_ci"
+        query: "ALTER DATABASE `{{ mysql_apim_shared_db }}` CHARACTER SET latin1 COLLATE latin1_swedish_ci"
 
-    - name: Import IS shared schema into shared database
+    - name: Import APIM shared registry schema
       community.mysql.mysql_db:
-        name: "{{ mysql_wso2_shared_db }}"
+        name: "{{ mysql_apim_shared_db }}"
         state: import
-        target: "{{ is_shared_db_script }}"
+        target: "{{ apim_shared_db_script }}"
         login_unix_socket: "{{ mysql_socket }}"
         login_user: "{{ mysql_root_user_val }}"
         login_password: "{{ mysql_root_password }}"
 
-    - name: Import APIM shared schema into shared database
-      ansible.builtin.shell: |
-        mysql --socket={{ mysql_socket }} \
-              -u {{ mysql_root_user_val }} \
-              -p{{ mysql_root_password }} \
-              --force \
-              {{ mysql_wso2_shared_db }} < {{ apim_shared_db_script }}
-      changed_when: true
-      register: apim_shared_import
-      # --force ignores duplicate-key errors (IS shared schema already created some indexes)
-      failed_when:
-        - apim_shared_import.rc != 0
-        - "'ERROR' in apim_shared_import.stderr"
+    # ── User privileges ─────────────────────────────────────────────────────
 
-    # ── User privileges ─────────────────────────────────────────────────────────
-
-    - name: Grant WSO2 user full privileges on APIM and shared databases
+    - name: Grant WSO2 user full privileges on APIM databases
       community.mysql.mysql_user:
         name: "{{ mysql_wso2_user }}"
         password: "{{ mysql_wso2_password }}"
@@ -140,7 +123,7 @@
         login_password: "{{ mysql_root_password }}"
       loop:
         - "{{ mysql_apim_db }}"
-        - "{{ mysql_wso2_shared_db }}"
+        - "{{ mysql_apim_shared_db }}"
 
     - name: Flush MySQL privileges
       community.mysql.mysql_query:

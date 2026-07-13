@@ -27,7 +27,7 @@
         WARNING: This will permanently destroy only the resources defined in your variables:
           - Docker stack: {{ stack_name | default('UNDEFINED - WILL BE SKIPPED') }}
           - Deployed files under: {{ stack_deploy_path | default('UNDEFINED - WILL BE SKIPPED') }}
-          - MySQL databases: {{ [mysql_emis_db, mysql_is_db, mysql_wso2_shared_db] | select('defined') | list | join(' ') | default('UNDEFINED - WILL BE SKIPPED') }}
+          - MySQL databases: {{ [mysql_emis_db, mysql_is_db, mysql_is_shared_db, mysql_apim_shared_db] | select('defined') | list | join(' ') | default('UNDEFINED - WILL BE SKIPPED') }}
           - MySQL users: {{ [mysql_emis_user, mysql_wso2_user] | select('defined') | list | join(' ') | default('UNDEFINED - WILL BE SKIPPED') }}
           {% if purge_mysql | default(false) | bool %}
           - MySQL itself (packages, data, config, logs)
@@ -84,7 +84,7 @@
           EMIS teardown complete.
             - Docker stack: {{ stack_name | default('SKIPPED') }}
             - Deploy dir: {{ stack_deploy_path | default('SKIPPED') }}
-            - Databases dropped: {{ [mysql_emis_db, mysql_is_db, mysql_wso2_shared_db] | select('defined') | list | join(' ') | default('NONE') }}
+            - Databases dropped: {{ [mysql_emis_db, mysql_is_db, mysql_is_shared_db, mysql_apim_shared_db] | select('defined') | list | join(' ') | default('NONE') }}
             - MySQL users removed: {{ [mysql_emis_user, mysql_wso2_user] | select('defined') | list | join(' ') | default('NONE') }}
             {% if purge_mysql | default(false) | bool %}
             - MySQL purged from host

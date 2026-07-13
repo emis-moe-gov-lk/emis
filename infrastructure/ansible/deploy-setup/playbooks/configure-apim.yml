@@ -1,0 +1,251 @@
+---
+# ---PLAY-CONFIGURE-APIM--------------------------------------------------
+# Registers WSO2 IS as external Key Manager in APIM, disables Resident KM,
+# and creates DevPortal application shells (no subscriptions or keys yet).
+# Run after deploy-is-apim.yml and before configure-is-only.yml.
+- name: Configure APIM — Key Manager registration and DevPortal applications
+  hosts: swarm_managers
+  gather_facts: false
+  vars:
+    apim_admin_user: "{{ apim_notification_user }}"
+    apim_admin_pass: "{{ apim_notification_password }}"
+
+    is_admin_name: "{{ is_admin_user }}"
+    is_admin_pw: "{{ is_admin_password }}"
+
+    key_manager_name: "{{ stack_name }}-km"
+    key_manager_display_name: "EMIS IDP Key Manager"
+    key_manager_description: "IS as external Key Manager"
+
+    apps_to_create: "{{ emis_apim_apps | default([]) }}"
+
+  tasks:
+    # =========================================================================
+    # PART 1: Register IS as Key Manager in APIM
+    # =========================================================================
+
+    - name: Set APIM management base URL
+      ansible.builtin.set_fact:
+        apim_mgmt: "https://{{ apim_hostname }}"
+        is_mgmt: "https://{{ idp_hostname }}"
+
+    - name: Wait for APIM to be ready
+      ansible.builtin.uri:
+        url: "{{ apim_mgmt }}/services/Version"
+        method: GET
+        validate_certs: no
+        status_code: [200, 401, 403]
+      register: apim_ready
+      until: apim_ready.status in [200, 401, 403]
+      retries: 30
+      delay: 10
+
+    - name: Wait for IS to be ready
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/api/server/v1/configs"
+        method: GET
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pw }}"
+        force_basic_auth: yes
+        status_code: [200, 401, 403]
+      register: is_ready
+      until: is_ready.status in [200, 401, 403]
+      retries: 30
+      delay: 10
+
+    # ── Check existing Key Manager ────────────────────────────────────────
+
+    - name: Check if Key Manager already exists
+      ansible.builtin.uri:
+        url: "{{ apim_mgmt }}/api/am/admin/v4/key-managers"
+        method: GET
+        validate_certs: no
+        user: "{{ apim_admin_user }}"
+        password: "{{ apim_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+      register: existing_key_managers
+
+    - name: Set fact for existing key manager
+      set_fact:
+        km_exists: "{{ existing_key_managers.json.list | selectattr('name', 'equalto', key_manager_name) | list | length > 0 }}"
+
+    # ── Register Key Manager ──────────────────────────────────────────────
+
+    - name: Register WSO2 IS as Key Manager in APIM
+      ansible.builtin.uri:
+        url: "{{ apim_mgmt }}/api/am/admin/v4/key-managers"
+        method: POST
+        validate_certs: no
+        user: "{{ apim_admin_user }}"
+        password: "{{ apim_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          name: "{{ key_manager_name }}"
+          displayName: "{{ key_manager_display_name }}"
+          description: "{{ key_manager_description }}"
+          type: "WSO2-IS-7"
+          enabled: true
+          tokenType: "DIRECT"
+          wellKnownEndpoint: "{{ is_mgmt }}/oauth2/token/.well-known/openid-configuration"
+          introspectionEndpoint: "{{ is_mgmt }}/oauth2/introspect"
+          clientRegistrationEndpoint: "{{ is_mgmt }}/api/identity/oauth2/dcr/v1.1/register"
+          tokenEndpoint: "{{ is_mgmt }}/oauth2/token"
+          displayTokenEndpoint: "{{ is_mgmt }}/oauth2/token"
+          revokeEndpoint: "{{ is_mgmt }}/oauth2/revoke"
+          displayRevokeEndpoint: "{{ is_mgmt }}/oauth2/revoke"
+          userInfoEndpoint: "{{ is_mgmt }}/oauth2/userinfo"
+          authorizeEndpoint: "{{ is_mgmt }}/oauth2/authorize"
+          scopeManagementEndpoint: "{{ is_mgmt }}/api/identity/oauth2/v1.0/scopes"
+          endpoints: []
+          certificates:
+            type: "JWKS"
+            value: "{{ is_mgmt }}/oauth2/jwks"
+          issuer: "{{ is_mgmt }}/oauth2/token"
+          alias: ""
+          availableGrantTypes:
+            - refresh_token
+            - urn:ietf:params:oauth:grant-type:saml2-bearer
+            - password
+            - client_credentials
+            - iwa:ntlm
+            - urn:ietf:params:oauth:grant-type:device_code
+            - authorization_code
+            - account_switch
+            - urn:ietf:params:oauth:grant-type:token-exchange
+            - organization_switch
+            - urn:ietf:params:oauth:grant-type:jwt-bearer
+          enableTokenGeneration: true
+          enableTokenEncryption: false
+          enableTokenHashing: false
+          enableMapOAuthConsumerApps: true
+          enableOAuthAppCreation: true
+          enableSelfValidationJWT: true
+          claimMapping: []
+          consumerKeyClaim: "azp"
+          scopesClaim: "scope"
+          tokenValidation: []
+          additionalProperties:
+            Authentication: "BasicAuth"
+            Username: "{{ is_admin_name }}"
+            Password: "{{ is_admin_pw }}"
+            api_resource_management_endpoint: "{{ is_mgmt }}/api/server/v1/api-resources"
+            is7_roles_endpoint: "{{ is_mgmt }}/scim2/v2/Roles"
+            enable_roles_creation: true
+          permissions: null
+          allowedOrganizations:
+            - "ALL"
+        status_code: [201, 200]
+      register: km_registration
+      when: not km_exists
+
+    - name: Display Key Manager registration result
+      debug:
+        msg: "Key Manager '{{ key_manager_name }}' {{ 'already exists' if km_exists else 'registered successfully' }}"
+
+    # ── Disable Resident Key Manager ──────────────────────────────────────
+
+    - name: Get Resident Key Manager details
+      ansible.builtin.uri:
+        url: "{{ apim_mgmt }}/api/am/admin/v4/key-managers"
+        method: GET
+        validate_certs: no
+        user: "{{ apim_admin_user }}"
+        password: "{{ apim_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+      register: all_key_managers
+
+    - name: Find Resident Key Manager
+      set_fact:
+        resident_km: "{{ all_key_managers.json.list | selectattr('name', 'equalto', 'Resident Key Manager') | first | default(None) }}"
+
+    - name: Disable Resident Key Manager
+      ansible.builtin.uri:
+        url: "{{ apim_mgmt }}/api/am/admin/v4/key-managers/{{ resident_km.id }}"
+        method: PUT
+        validate_certs: no
+        user: "{{ apim_admin_user }}"
+        password: "{{ apim_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          name: "{{ resident_km.name }}"
+          type: "{{ resident_km.type }}"
+          description: "{{ resident_km.description | default('Resident Key Manager') }}"
+          enabled: false
+          tokenType: "{{ resident_km.tokenType | default('DIRECT') }}"
+        status_code: [200]
+      when:
+        - resident_km is not none
+        - resident_km.enabled | default(false)
+      register: resident_km_disabled
+
+    - name: Display Resident Key Manager status
+      debug:
+        msg: "Resident Key Manager {{ 'disabled successfully' if (resident_km_disabled is defined and resident_km_disabled.status | default(0) == 200) else ('already disabled' if (resident_km is not none and not (resident_km.enabled | default(true))) else 'not found') }}"
+
+    # =========================================================================
+    # PART 2: Create DevPortal Applications (shells only — no subs or keys yet)
+    # =========================================================================
+
+    - name: Check existing applications
+      ansible.builtin.uri:
+        url: "{{ apim_mgmt }}/api/am/devportal/v3/applications?query={{ app.name | urlencode }}"
+        method: GET
+        validate_certs: no
+        user: "{{ apim_admin_user }}"
+        password: "{{ apim_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+      loop: "{{ apps_to_create | default([]) }}"
+      loop_control:
+        loop_var: app
+        label: "{{ app.name }}"
+      register: existing_apps
+      when: apps_to_create is defined and apps_to_create | length > 0
+
+    - name: Create applications in DevPortal
+      ansible.builtin.uri:
+        url: "{{ apim_mgmt }}/api/am/devportal/v3/applications"
+        method: POST
+        validate_certs: no
+        user: "{{ apim_admin_user }}"
+        password: "{{ apim_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          name: "{{ app_check.app.name }}"
+          description: "{{ app_check.app.description | default('') }}"
+          throttlingPolicy: "{{ app_check.app.throttling_policy | default('Unlimited') }}"
+          tokenType: "{{ app_check.app.token_type | default('JWT') }}"
+        status_code: [201, 200]
+      loop: "{{ existing_apps.results | default([]) }}"
+      loop_control:
+        loop_var: app_check
+        label: "{{ app_check.app.name }}"
+      when:
+        - existing_apps.results is defined
+        - app_check.json.count | default(0) == 0
+
+    - name: Configuration summary
+      debug:
+        msg:
+          - "============================================"
+          - "APIM Configuration Complete!"
+          - "============================================"
+          - "Key Manager: {{ key_manager_name }} — {{ 'exists' if km_exists else 'created' }}"
+          - "Resident KM: {{ 'disabled' if (resident_km is not none and not (resident_km.enabled | default(true))) else 'active' }}"
+          - "DevPortal applications: {{ apps_to_create | default([]) | length }}"
+          - "============================================"

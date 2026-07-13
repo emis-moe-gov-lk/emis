@@ -1,0 +1,56 @@
+# ── NETWORKS ──────────────────────────────────────────────────────────────────
+networks:
+  noapim-uat-swm-network:
+    driver: overlay
+    name: "${STACK_NAME}-network"
+    attachable: true
+    ipam:
+      driver: default
+      config:
+        - subnet: "${STACK_NETWORK_SUBNET}"
+
+# ── SERVICES ──────────────────────────────────────────────────────────────────
+services:
+
+  # ── WSO2 Identity Server ───────────────────────────────────────────────────
+  wso2-is:
+    image: "${WSO2_IS_DOCKERIMG_REPO}:${WSO2_IS_DOCKERIMG_TAG}"
+    ports:
+      - "${IS_HOST_PORT}:9444"
+    env_file:
+      - is.env
+    networks:
+      - noapim-uat-swm-network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+
+  # ── WSO2 API Manager ──────────────────────────────────────────────────────
+  wso2-apim:
+    image: "${WSO2_APIM_DOCKERIMG_REPO}:${WSO2_APIM_DOCKERIMG_TAG}"
+    ports:
+      - "${APIM_HOST_PORT}:9443"
+      - "${APIM_GATEWAY_PORT}:8243"
+      - "${APIM_GATEWAY_HTTP_PORT}:8280"
+    extra_hosts:
+      - "secret.emis.moe.gov.lk:192.168.200.1"
+    env_file:
+      - apim.env
+    command: ["sh", "-c", "exec $${WSO2_SERVER_HOME}/bin/api-manager.sh"]
+    networks:
+      - noapim-uat-swm-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -kf https://localhost:9443/api/health-check/v1.0/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3

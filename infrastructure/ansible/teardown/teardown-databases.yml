@@ -29,7 +29,7 @@
 
     - name: Set databases and users to clean up
       ansible.builtin.set_fact:
-        databases_to_drop: "{{ [mysql_emis_db | default(''), mysql_is_db | default(''), mysql_wso2_shared_db | default('')] | reject('equalto', '') | list }}"
+        databases_to_drop: "{{ [mysql_emis_db | default(''), mysql_is_db | default(''), mysql_is_shared_db | default(''), mysql_apim_shared_db | default('')] | reject('equalto', '') | list }}"
         users_to_remove: "{{ [mysql_emis_user | default(''), mysql_wso2_user | default('')] | reject('equalto', '') | list }}"
       when: mysql_check.rc == 0
 

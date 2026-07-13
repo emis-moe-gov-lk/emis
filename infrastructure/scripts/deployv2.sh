@@ -58,13 +58,27 @@ else
   echo "Skipping Step 5: APIM database setup (mysql_apim_db not defined in env)"
 fi
 
-# -- Step 6: Render env files and deploy IS-only Docker stack --
-ansible-playbook -i "$INVENTORY_FILE" -e @"$ENV_FILE" -e deploy_env="$ENV" "$PB_DIR/deploy-is-only.yml"
+# -- Step 6: Render env files and deploy IS+APIM Docker stack --
+ansible-playbook -i "$INVENTORY_FILE" -e @"$ENV_FILE" -e deploy_env="$ENV" "$PB_DIR/deploy-is-apim.yml"
 
-# -- Step 7: Configure IS (roles, users, OIDC apps) --
+# -- Step 7: Configure APIM (KM registration + DevPortal app shells) --
+if grep -q "^mysql_apim_db:" "$ENV_FILE"; then
+  ansible-playbook -i "$INVENTORY_FILE" -e @"$ENV_FILE" -e deploy_env="$ENV" "$PB_DIR/configure-apim.yml"
+else
+  echo "Skipping Step 7: APIM configuration (mysql_apim_db not defined in env)"
+fi
+
+# -- Step 8: Configure IS (roles, users, OIDC apps) --
 ansible-playbook -i "$INVENTORY_FILE" -e @"$ENV_FILE" -e deploy_env="$ENV" "$PB_DIR/configure-is-only.yml"
 
-# -- Step 8: Deploy full stack (IS + APIM + frontend + backend) --
+# -- Step 9: Deploy full stack (IS + APIM + frontend + backend) --
 ansible-playbook -i "$INVENTORY_FILE" -e @"$ENV_FILE" -e deploy_env="$ENV" "$PB_DIR/deploy-stack.yml"
+
+# -- Step 10: Configure APIM (API import, subscriptions, keys, DCR sync) --
+if grep -q "^mysql_apim_db:" "$ENV_FILE"; then
+  ansible-playbook -i "$INVENTORY_FILE" -e @"$ENV_FILE" -e deploy_env="$ENV" "$PB_DIR/configure-apim-apis-appsub.yml"
+else
+  echo "Skipping Step 10: APIM API import and subscriptions (mysql_apim_db not defined in env)"
+fi
 
 echo "Deployment to $ENV finished successfully."

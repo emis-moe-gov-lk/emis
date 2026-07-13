@@ -1,0 +1,619 @@
+---
+# ---PLAY-CONFIGURE-APIM-APIS-APPSUB--------------------------------------
+# Imports APIs, subscribes DevPortal apps, generates OAuth keys linked to
+# the IS key manager, and syncs callback/origin/claim config back to IS.
+# Run after deploy-stack.yml (APIM + backend are live) and after
+# configure-is-only.yml (IS apps exist).
+- name: Configure APIM — API import, subscriptions, keys, and IS sync
+  hosts: swarm_managers
+  gather_facts: false
+  vars:
+    apim_admin_user: "{{ apim_notification_user }}"
+    apim_admin_pass: "{{ apim_notification_password }}"
+
+    is_admin_name: "{{ is_admin_user }}"
+    is_admin_pw: "{{ is_admin_password }}"
+
+    key_manager_name: "{{ stack_name }}-km"
+
+    apis_to_create: "{{ emis_apis | default([]) }}"
+    apps_to_create: "{{ emis_apim_apps | default([]) }}"
+
+  tasks:
+    # =========================================================================
+    # PART 1: Wait for APIM
+    # =========================================================================
+
+    - name: Set APIM and IS management base URLs
+      ansible.builtin.set_fact:
+        apim_mgmt: "https://{{ apim_hostname }}"
+        is_mgmt: "https://{{ is_hostname }}"
+
+    - name: Wait for APIM to be ready
+      ansible.builtin.uri:
+        url: "{{ apim_mgmt }}/services/Version"
+        method: GET
+        validate_certs: no
+        status_code: [200, 401, 403]
+      register: apim_ready
+      until: apim_ready.status in [200, 401, 403]
+      retries: 30
+      delay: 10
+
+    # =========================================================================
+    # PART 2: Import APIs, configure CORS, create revision, deploy, publish
+    # =========================================================================
+
+    - name: Check existing APIs
+      ansible.builtin.uri:
+        url: "{{ apim_mgmt }}/api/am/publisher/v4/apis?query=name:{{ api.name | urlencode }}"
+        method: GET
+        validate_certs: no
+        user: "{{ apim_admin_user }}"
+        password: "{{ apim_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+      loop: "{{ apis_to_create | default([]) }}"
+      loop_control:
+        loop_var: api
+        label: "{{ api.name }}"
+      register: existing_apis
+      when: apis_to_create is defined and apis_to_create | length > 0
+
+    - name: Import API from OpenAPI URL
+      ansible.builtin.uri:
+        url: "{{ apim_mgmt }}/api/am/publisher/v4/apis/import-openapi"
+        method: POST
+        validate_certs: no
+        user: "{{ apim_admin_user }}"
+        password: "{{ apim_admin_pass }}"
+        force_basic_auth: yes
+        body_format: form-multipart
+        body:
+          url: "{{ api_check.api.openapi_url }}"
+          additionalProperties:
+            content: "{{ {
+              'name': api_check.api.name,
+              'version': api_check.api.version,
+              'context': api_check.api.context,
+              'endpointConfig': {
+                'endpoint_type': 'http',
+                'sandbox_endpoints': {'url': api_check.api.endpoint_url},
+                'production_endpoints': {'url': api_check.api.endpoint_url}
+              }
+            } | to_json | string }}"
+        status_code: [201, 200]
+      loop: "{{ existing_apis.results | default([]) }}"
+      loop_control:
+        loop_var: api_check
+        label: "{{ api_check.api.name }}"
+      register: created_apis
+      when:
+        - existing_apis.results is defined
+        - api_check.json.count | default(0) == 0
+
+    - name: Wait for APIM search index after import
+      ansible.builtin.pause:
+        seconds: 10
+      when: created_apis.results | default([]) | selectattr('status', 'equalto', 201) | list | length > 0
+
+    - name: Get API list for further operations
+      ansible.builtin.uri:
+        url: "{{ apim_mgmt }}/api/am/publisher/v4/apis?query=name:{{ api.name | urlencode }}"
+        method: GET
+        validate_certs: no
+        user: "{{ apim_admin_user }}"
+        password: "{{ apim_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+      loop: "{{ apis_to_create | default([]) }}"
+      loop_control:
+        loop_var: api
+        label: "{{ api.name }}"
+      register: api_list
+      when: apis_to_create is defined and apis_to_create | length > 0
+
+    - name: Get full API details for CORS update
+      ansible.builtin.uri:
+        url: "{{ apim_mgmt }}/api/am/publisher/v4/apis/{{ api_info.json.list[0].id }}"
+        method: GET
+        validate_certs: no
+        user: "{{ apim_admin_user }}"
+        password: "{{ apim_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+      loop: "{{ api_list.results | default([]) }}"
+      loop_control:
+        loop_var: api_info
+        label: "{{ api_info.api.name }}"
+      register: api_details
+      when:
+        - api_list.results is defined
+        - api_info.json.count | default(0) > 0
+
+    - name: Enable CORS and set subscription policies for APIs
+      ansible.builtin.uri:
+        url: "{{ apim_mgmt }}/api/am/publisher/v4/apis/{{ api_full.json.id }}"
+        method: PUT
+        validate_certs: no
+        user: "{{ apim_admin_user }}"
+        password: "{{ apim_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body: "{{ api_full.json | combine({'policies': api_full.api_info.api.subscription_policies | default(['Unlimited']), 'corsConfiguration': {'corsConfigurationEnabled': true, 'accessControlAllowOrigins': ['*'], 'accessControlAllowCredentials': false, 'accessControlAllowHeaders': ['authorization', 'Access-Control-Allow-Origin', 'Content-Type', 'SOAPAction', 'apikey', 'Internal-Key'], 'accessControlAllowMethods': ['GET', 'PUT', 'POST', 'DELETE', 'PATCH', 'OPTIONS']}}) }}"
+        status_code: [200]
+      loop: "{{ api_details.results | default([]) }}"
+      loop_control:
+        loop_var: api_full
+        label: "{{ api_full.api_info.api.name }}"
+      when:
+        - api_details.results is defined
+        - api_full.json is defined
+
+    - name: Check existing API revisions
+      ansible.builtin.uri:
+        url: "{{ apim_mgmt }}/api/am/publisher/v4/apis/{{ api_info.json.list[0].id }}/revisions"
+        method: GET
+        validate_certs: no
+        user: "{{ apim_admin_user }}"
+        password: "{{ apim_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+      loop: "{{ api_list.results | default([]) }}"
+      loop_control:
+        loop_var: api_info
+        label: "{{ api_info.api.name }}"
+      register: api_revisions
+      when:
+        - api_list.results is defined
+        - api_info.json.count | default(0) > 0
+
+    - name: Create API revision for deployment
+      ansible.builtin.uri:
+        url: "{{ apim_mgmt }}/api/am/publisher/v4/apis/{{ rev_check.api_info.json.list[0].id }}/revisions"
+        method: POST
+        validate_certs: no
+        user: "{{ apim_admin_user }}"
+        password: "{{ apim_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          description: "Revision created by Ansible deployment"
+        status_code: [201, 200]
+      loop: "{{ api_revisions.results | default([]) }}"
+      loop_control:
+        loop_var: rev_check
+        label: "{{ rev_check.api_info.api.name }}"
+      register: created_revisions
+      when:
+        - api_revisions.results is defined
+        - not (rev_check.skipped | default(false))
+        - rev_check.json.count | default(0) == 0
+
+    - name: Get latest API revision
+      ansible.builtin.uri:
+        url: "{{ apim_mgmt }}/api/am/publisher/v4/apis/{{ api_info.json.list[0].id }}/revisions"
+        method: GET
+        validate_certs: no
+        user: "{{ apim_admin_user }}"
+        password: "{{ apim_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+      loop: "{{ api_list.results | default([]) }}"
+      loop_control:
+        loop_var: api_info
+        label: "{{ api_info.api.name }}"
+      register: latest_revisions
+      when:
+        - api_list.results is defined
+        - api_info.json.count | default(0) > 0
+
+    - name: Deploy API revision to gateway
+      ansible.builtin.uri:
+        url: "{{ apim_mgmt }}/api/am/publisher/v4/apis/{{ rev_info.api_info.json.list[0].id }}/deploy-revision?revisionId={{ rev_info.json.list[0].id }}"
+        method: POST
+        validate_certs: no
+        user: "{{ apim_admin_user }}"
+        password: "{{ apim_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          - name: "Default"
+            vhost: "{{ apim_gateway_vhost | default(apim_hostname) }}"
+            displayOnDevportal: true
+        status_code: [200, 201]
+      loop: "{{ latest_revisions.results | default([]) }}"
+      loop_control:
+        loop_var: rev_info
+        label: "{{ rev_info.api_info.api.name }}"
+      when:
+        - latest_revisions.results is defined
+        - rev_info.json.list | default([]) | length > 0
+        - rev_info.json.list[0].deploymentInfo | default([]) | length == 0
+
+    - name: Publish APIs to DevPortal
+      ansible.builtin.uri:
+        url: "{{ apim_mgmt }}/api/am/publisher/v4/apis/change-lifecycle?apiId={{ api_info.json.list[0].id }}&action=Publish"
+        method: POST
+        validate_certs: no
+        user: "{{ apim_admin_user }}"
+        password: "{{ apim_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+        status_code: [200]
+      register: publish_result
+      until: publish_result.status == 200
+      retries: 6
+      delay: 10
+      loop: "{{ api_list.results | default([]) }}"
+      loop_control:
+        loop_var: api_info
+        label: "{{ api_info.api.name }}"
+      when:
+        - api_list.results is defined
+        - api_info.json.count | default(0) > 0
+        - api_info.json.list[0].lifeCycleStatus != 'PUBLISHED'
+
+    # =========================================================================
+    # PART 3: Get application details, subscribe to APIs, generate keys
+    # =========================================================================
+
+    - name: Get application details
+      ansible.builtin.uri:
+        url: "{{ apim_mgmt }}/api/am/devportal/v3/applications?query={{ app.name | urlencode }}"
+        method: GET
+        validate_certs: no
+        user: "{{ apim_admin_user }}"
+        password: "{{ apim_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+      loop: "{{ apps_to_create | default([]) }}"
+      loop_control:
+        loop_var: app
+        label: "{{ app.name }}"
+      register: app_details
+      when: apps_to_create is defined and apps_to_create | length > 0
+
+    - name: Get published APIs for subscription
+      ansible.builtin.uri:
+        url: "{{ apim_mgmt }}/api/am/devportal/v3/apis?query=name:{{ api_name | urlencode }}"
+        method: GET
+        validate_certs: no
+        user: "{{ apim_admin_user }}"
+        password: "{{ apim_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+      loop: "{{ apps_to_create | default([]) | map(attribute='subscribe_to', default=[]) | flatten | unique }}"
+      loop_control:
+        loop_var: api_name
+        label: "{{ api_name }}"
+      register: published_apis
+      when: apps_to_create is defined and apps_to_create | length > 0
+
+    - name: Build API lookup dictionary
+      set_fact:
+        api_lookup: "{{ api_lookup | default({}) | combine({pub_api.api_name: {'id': pub_api.json.list[0].id, 'all_tiers': pub_api.json.list[0].throttlingPolicies | default([]), 'tiers': pub_api.json.list[0].throttlingPolicies | default([]) | reject('equalto', 'DefaultSubscriptionless') | list}}) }}"
+      loop: "{{ published_apis.results | default([]) }}"
+      loop_control:
+        loop_var: pub_api
+        label: "{{ pub_api.api_name }}"
+      when:
+        - published_apis.results is defined
+        - pub_api.json.count | default(0) > 0
+
+    - name: Subscribe applications to APIs
+      ansible.builtin.uri:
+        url: "{{ apim_mgmt }}/api/am/devportal/v3/subscriptions"
+        method: POST
+        validate_certs: no
+        user: "{{ apim_admin_user }}"
+        password: "{{ apim_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          applicationId: "{{ app_sub.0.json.list[0].applicationId }}"
+          apiId: "{{ api_lookup[app_sub.1].id }}"
+          throttlingPolicy: "{{ api_lookup[app_sub.1].tiers[0] }}"
+        status_code: [201, 200, 409]
+      loop: "{{ app_details.results | default([]) | subelements('app.subscribe_to', skip_missing=True) }}"
+      loop_control:
+        loop_var: app_sub
+        label: "{{ app_sub.0.app.name }} -> {{ app_sub.1 }}"
+      when:
+        - app_details.results is defined
+        - app_sub.0.json.count | default(0) > 0
+        - api_lookup is defined
+        - app_sub.1 in api_lookup
+        - api_lookup[app_sub.1].tiers | length > 0
+
+    - name: Note subscriptionless APIs
+      debug:
+        msg: "API '{{ app_sub.1 }}' uses DefaultSubscriptionless only — no subscription needed"
+      loop: "{{ app_details.results | default([]) | subelements('app.subscribe_to', skip_missing=True) }}"
+      loop_control:
+        loop_var: app_sub
+        label: "{{ app_sub.1 }}"
+      when:
+        - api_lookup is defined
+        - app_sub.1 in api_lookup
+        - api_lookup[app_sub.1].tiers | length == 0
+
+    - name: Check existing OAuth keys for applications
+      ansible.builtin.uri:
+        url: "{{ apim_mgmt }}/api/am/devportal/v3/applications/{{ app_info.json.list[0].applicationId }}/oauth-keys"
+        method: GET
+        validate_certs: no
+        user: "{{ apim_admin_user }}"
+        password: "{{ apim_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+      loop: "{{ app_details.results | default([]) }}"
+      loop_control:
+        loop_var: app_info
+        label: "{{ app_info.app.name }}"
+      register: existing_keys
+      when:
+        - app_details.results is defined
+        - app_info.json.count | default(0) > 0
+
+    - name: Generate OAuth keys for applications (new)
+      ansible.builtin.uri:
+        url: "{{ apim_mgmt }}/api/am/devportal/v3/applications/{{ keys_check.app_info.json.list[0].applicationId }}/generate-keys"
+        method: POST
+        validate_certs: no
+        user: "{{ apim_admin_user }}"
+        password: "{{ apim_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          keyType: "PRODUCTION"
+          keyManager: "{{ key_manager_name }}"
+          grantTypesToBeSupported: "{{ keys_check.app_info.app.grant_types | default(['authorization_code']) }}"
+          callbackUrl: "{{ keys_check.app_info.app.callback_url | default('') }}"
+          additionalProperties:
+            application_access_token_expiry_time: "{{ keys_check.app_info.app.token_expiry | default('3600') }}"
+            user_access_token_expiry_time: "{{ keys_check.app_info.app.token_expiry | default('3600') }}"
+            refresh_token_expiry_time: "{{ keys_check.app_info.app.refresh_token_expiry | default('86400') }}"
+            id_token_expiry_time: "{{ keys_check.app_info.app.id_token_expiry | default('3600') }}"
+          scopes: "{{ keys_check.app_info.app.scopes | default([]) }}"
+          validityTime: "{{ keys_check.app_info.app.token_expiry | default(3600) }}"
+        status_code: [200, 201]
+      loop: "{{ existing_keys.results | default([]) }}"
+      loop_control:
+        loop_var: keys_check
+        label: "{{ keys_check.app_info.app.name }}"
+      when:
+        - existing_keys.results is defined
+        - keys_check.json.list | default([]) | length == 0
+
+    - name: Update OAuth keys for applications (existing)
+      ansible.builtin.uri:
+        url: "{{ apim_mgmt }}/api/am/devportal/v3/applications/{{ keys_check.app_info.json.list[0].applicationId }}/oauth-keys/{{ keys_check.json.list[0].keyMappingId }}"
+        method: PUT
+        validate_certs: no
+        user: "{{ apim_admin_user }}"
+        password: "{{ apim_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          keyType: "PRODUCTION"
+          keyManager: "{{ key_manager_name }}"
+          supportedGrantTypes: "{{ keys_check.app_info.app.grant_types | default(['authorization_code']) }}"
+          callbackUrl: "{{ keys_check.app_info.app.callback_url | default('') }}"
+          additionalProperties:
+            application_access_token_expiry_time: "{{ keys_check.app_info.app.token_expiry | default('3600') }}"
+            user_access_token_expiry_time: "{{ keys_check.app_info.app.token_expiry | default('3600') }}"
+            refresh_token_expiry_time: "{{ keys_check.app_info.app.refresh_token_expiry | default('86400') }}"
+            id_token_expiry_time: "{{ keys_check.app_info.app.id_token_expiry | default('3600') }}"
+        status_code: [200]
+      loop: "{{ existing_keys.results | default([]) }}"
+      loop_control:
+        loop_var: keys_check
+        label: "{{ keys_check.app_info.app.name }}"
+      when:
+        - existing_keys.results is defined
+        - keys_check.json.list | default([]) | length > 0
+
+    - name: Get application keys
+      ansible.builtin.uri:
+        url: "{{ apim_mgmt }}/api/am/devportal/v3/applications/{{ app_info.json.list[0].applicationId }}/oauth-keys"
+        method: GET
+        validate_certs: no
+        user: "{{ apim_admin_user }}"
+        password: "{{ apim_admin_pass }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+      loop: "{{ app_details.results | default([]) }}"
+      loop_control:
+        loop_var: app_info
+        label: "{{ app_info.app.name }}"
+      register: app_keys
+      when:
+        - app_details.results is defined
+        - app_info.json.count | default(0) > 0
+
+    # =========================================================================
+    # PART 4: DCR sync — update callback URLs, allowed origins, and claims in IS
+    # =========================================================================
+
+    - name: Extract allowed origin from callback URL
+      set_fact:
+        app_allowed_origins: "{{ app_allowed_origins | default({}) | combine({keys_info.app_info.app.name: (keys_info.app_info.app.callback_url | regex_replace('(https?://[^/]+).*', '\\1'))}) }}"
+      loop: "{{ app_keys.results | default([]) }}"
+      loop_control:
+        loop_var: keys_info
+        label: "{{ keys_info.app_info.app.name }}"
+      when:
+        - app_keys.results is defined
+        - keys_info.json.list | default([]) | length > 0
+        - keys_info.app_info.app.callback_url is defined
+
+    - name: Search for application in IS by consumer key
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/api/server/v1/applications?filter=clientId+eq+{{ keys_info.json.list[0].consumerKey }}"
+        method: GET
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pw }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+      loop: "{{ app_keys.results | default([]) }}"
+      loop_control:
+        loop_var: keys_info
+        label: "{{ keys_info.app_info.app.name }}"
+      register: is_app_search
+      when:
+        - app_keys.results is defined
+        - keys_info.json.list | default([]) | length > 0
+
+    - name: Get full IS application details
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/api/server/v1/applications/{{ is_search.json.applications[0].id }}"
+        method: GET
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pw }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+      loop: "{{ is_app_search.results | default([]) }}"
+      loop_control:
+        loop_var: is_search
+        label: "{{ is_search.keys_info.app_info.app.name }}"
+      register: is_app_details
+      when:
+        - is_app_search.results is defined
+        - is_search.json.applications | default([]) | length > 0
+
+    - name: Get current OIDC configuration from IS
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/api/server/v1/applications/{{ is_details.json.id }}/inbound-protocols/oidc"
+        method: GET
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pw }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+      loop: "{{ is_app_details.results | default([]) }}"
+      loop_control:
+        loop_var: is_details
+        label: "{{ is_details.is_search.keys_info.app_info.app.name }}"
+      register: is_oidc_config
+      when:
+        - is_app_details.results is defined
+        - is_details.json is defined
+
+    - name: Update IS application (callback URLs, allowed origins, public client)
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/api/server/v1/applications/{{ oidc_cfg.is_details.json.id }}/inbound-protocols/oidc"
+        method: PUT
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pw }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body: "{{ oidc_cfg.json | combine({'callbackURLs': ['regexp=' + app_allowed_origins[oidc_cfg.is_details.is_search.keys_info.app_info.app.name] + '(/.*)?'], 'allowedOrigins': [app_allowed_origins[oidc_cfg.is_details.is_search.keys_info.app_info.app.name]], 'publicClient': oidc_cfg.is_details.is_search.keys_info.app_info.app.public_client | default(true)}) }}"
+        status_code: [200]
+      loop: "{{ is_oidc_config.results | default([]) }}"
+      loop_control:
+        loop_var: oidc_cfg
+        label: "{{ oidc_cfg.is_details.is_search.keys_info.app_info.app.name }}"
+      when:
+        - is_oidc_config.results is defined
+        - oidc_cfg.json is defined
+        - app_allowed_origins is defined
+        - oidc_cfg.is_details.is_search.keys_info.app_info.app.name in app_allowed_origins
+
+    - name: Update IS application claim configuration (email, roles, groups in JWT)
+      ansible.builtin.uri:
+        url: "{{ is_mgmt }}/api/server/v1/applications/{{ is_details.json.id }}"
+        method: PATCH
+        validate_certs: no
+        user: "{{ is_admin_name }}"
+        password: "{{ is_admin_pw }}"
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          claimConfiguration:
+            dialect: "LOCAL"
+            requestedClaims:
+              - claim:
+                  uri: "http://wso2.org/claims/emailaddress"
+                mandatory: false
+              - claim:
+                  uri: "http://wso2.org/claims/roles"
+                mandatory: false
+              - claim:
+                  uri: "http://wso2.org/claims/groups"
+                mandatory: false
+            subject:
+              claim:
+                uri: "http://wso2.org/claims/userid"
+              includeUserDomain: false
+              includeTenantDomain: false
+              useMappedLocalSubject: false
+            role:
+              includeUserDomain: false
+              claim:
+                uri: "http://wso2.org/claims/roles"
+        status_code: [200]
+      loop: "{{ is_app_details.results | default([]) }}"
+      loop_control:
+        loop_var: is_details
+        label: "{{ is_details.is_search.keys_info.app_info.app.name }}"
+      when:
+        - is_app_details.results is defined
+        - is_details.json is defined
+
+    - name: Display generated credentials
+      debug:
+        msg: |
+          Application: {{ keys_info.app_info.app.name }}
+          Consumer Key: {{ keys_info.json.list[0].consumerKey | default('N/A') }}
+          Consumer Secret: {{ keys_info.json.list[0].consumerSecret | default('N/A') }}
+      loop: "{{ app_keys.results | default([]) }}"
+      loop_control:
+        loop_var: keys_info
+        label: "{{ keys_info.app_info.app.name }}"
+      when:
+        - app_keys.results is defined
+        - keys_info.json.list | default([]) | length > 0
+
+    - name: Configuration summary
+      debug:
+        msg:
+          - "============================================"
+          - "APIM API & Subscription Configuration Complete!"
+          - "============================================"
+          - "APIs imported/published: {{ apis_to_create | default([]) | length }}"
+          - "Applications subscribed: {{ apps_to_create | default([]) | length }}"
+          - "OAuth keys generated: {{ app_keys.results | default([]) | length }}"
+          - "============================================"

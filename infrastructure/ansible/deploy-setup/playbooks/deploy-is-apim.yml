@@ -1,12 +1,13 @@
 ---
-# ---PLAY-DEPLOY-IS-ONLY-NOAPIM-----
-# Renders essential env files and deploys ONLY the WSO2 Identity Server service.
-- name: Render environment files and deploy IS-only Docker stack
+# ---PLAY-DEPLOY-IS-APIM------------------------------------------------
+# Renders essential env files and deploys WSO2 IS + APIM Docker stack.
+# Frontend and backend are deployed later via deploy-stack.yml.
+- name: Render environment files and deploy IS+APIM Docker stack
   hosts: swarm_managers
   become: true
   vars:
     deploy_path: "{{ stack_deploy_path | default('/opt/emis-noapim') }}"
-    is_stack_file: "{{ deploy_path }}/docker-stack-is.yml"
+    stack_file: "{{ deploy_path }}/docker-stack-is-apim.yml"
 
   tasks:
     - name: Ensure stack deploy directory exists
@@ -27,22 +28,28 @@
         dest: "{{ deploy_path }}/is.env"
         mode: '0600'
 
-    - name: Copy IS-only docker-stack file
+    - name: Render apim.env
+      ansible.builtin.template:
+        src:  ../templates/apim.env.j2
+        dest: "{{ deploy_path }}/apim.env"
+        mode: '0600'
+
+    - name: Copy IS+APIM docker-stack file
       ansible.builtin.copy:
-        src: "../../../docker-swarm/docker-stack-is.yml"
-        dest: "{{ is_stack_file }}"
+        src: "../../../docker-swarm/docker-stack-is-apim.yml"
+        dest: "{{ stack_file }}"
         mode: '0644'
 
-    - name: Deploy IS-only Docker stack
+    - name: Deploy IS+APIM Docker stack
       ansible.builtin.shell: |
         set -a
         source {{ deploy_path }}/.env
         set +a
-        docker stack deploy -c {{ is_stack_file }} {{ stack_name }}
+        docker stack deploy -c {{ stack_file }} {{ stack_name }}
       args:
         executable: /bin/bash
-      register: is_deploy_result
+      register: deploy_result
 
-    - name: Show IS-only deploy output
+    - name: Show deploy output
       ansible.builtin.debug:
-        var: is_deploy_result.stdout_lines
+        var: deploy_result.stdout_lines

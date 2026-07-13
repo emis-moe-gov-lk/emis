@@ -1,6 +1,6 @@
 ---
 # ---PLAY-SETUP-MYSQL-WSO2-IS-ONLY-----
-# Creates only the WSO2 Identity Server databases (no APIM databases).
+# Creates WSO2 Identity Server databases: identity, consent, and shared registry.
 - name: Setup MySQL databases for WSO2 IS
   hosts: db_host
   become: yes
@@ -14,6 +14,7 @@
     remote_tmp_dir:      "/tmp/sql_imports_noapim"
     is_identity_db_script: "{{ remote_tmp_dir }}/wso2_is_7.2.0_identity_db_script.sql"
     is_consent_db_script:  "{{ remote_tmp_dir }}/wso2_is_7.2.0_consent_db_script.sql"
+    is_shared_db_script:   "{{ remote_tmp_dir }}/wso2_is_7.2.0_shared_db_script.sql"
 
   tasks:
     - name: Ensure PyMySQL client is installed
@@ -34,6 +35,8 @@
         mode: '0644'
       with_fileglob:
         - "{{ resources_dir }}/wso2_is_*.sql"
+
+    # ── IS identity + consent database ────────────────────────────────────
 
     - name: Drop IS databases if they exist
       community.mysql.mysql_db:
@@ -84,6 +87,44 @@
         login_user: "{{ mysql_root_user_val }}"
         login_password: "{{ mysql_root_password }}"
 
+    # ── IS shared registry database ───────────────────────────────────────
+
+    - name: Drop IS shared database if it exists
+      community.mysql.mysql_db:
+        name: "{{ mysql_is_shared_db }}"
+        state: absent
+        login_unix_socket: "{{ mysql_socket }}"
+        login_user: "{{ mysql_root_user_val }}"
+        login_password: "{{ mysql_root_password }}"
+
+    - name: Create IS shared database (latin1)
+      community.mysql.mysql_query:
+        login_unix_socket: "{{ mysql_socket }}"
+        login_user: "{{ mysql_root_user_val }}"
+        login_password: "{{ mysql_root_password }}"
+        query: >
+          CREATE DATABASE IF NOT EXISTS `{{ mysql_is_shared_db }}`
+          CHARACTER SET latin1
+          COLLATE latin1_swedish_ci
+
+    - name: Force latin1 on IS shared database
+      community.mysql.mysql_query:
+        login_unix_socket: "{{ mysql_socket }}"
+        login_user: "{{ mysql_root_user_val }}"
+        login_password: "{{ mysql_root_password }}"
+        query: "ALTER DATABASE `{{ mysql_is_shared_db }}` CHARACTER SET latin1 COLLATE latin1_swedish_ci"
+
+    - name: Import IS shared registry schema
+      community.mysql.mysql_db:
+        name: "{{ mysql_is_shared_db }}"
+        state: import
+        target: "{{ is_shared_db_script }}"
+        login_unix_socket: "{{ mysql_socket }}"
+        login_user: "{{ mysql_root_user_val }}"
+        login_password: "{{ mysql_root_password }}"
+
+    # ── User privileges ───────────────────────────────────────────────────
+
     - name: Grant WSO2 user full privileges on IS databases
       community.mysql.mysql_user:
         name: "{{ mysql_wso2_user }}"
@@ -97,6 +138,7 @@
         login_password: "{{ mysql_root_password }}"
       loop:
         - "{{ mysql_is_db }}"
+        - "{{ mysql_is_shared_db }}"
 
     - name: Flush MySQL privileges
       community.mysql.mysql_query:

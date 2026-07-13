@@ -7,10 +7,12 @@
 #   2. Install MySQL
 #   3. Create EMIS application database
 #   4. Create WSO2 IS databases and import schemas
-#   5. Create WSO2 APIM database and import schemas (APIM envs only)
-#   6. Render env files and deploy IS-only Docker stack
-#   7. Configure IS: roles, users, OIDC apps — display credentials
-#   8. Deploy full stack (IS + APIM + frontend + backend)
+#   5. Create WSO2 APIM database and import schemas
+#   6. Render env files and deploy IS+APIM Docker stack
+#   7. Configure APIM: register IS as Key Manager, create DevPortal app shells
+#   8. Configure IS: roles, users, OIDC apps — display credentials
+#   9. Deploy full stack with updated credentials
+#  10. Configure APIM: import APIs, subscribe apps, generate keys, DCR sync
 #
 # Usage:
 #   ansible-playbook playbooks/site.yml \
@@ -19,7 +21,7 @@
 #     --vault-password-file .vault_pass
 #
 # After site.yml completes:
-#   - Copy the client_id / client_secret values printed by Step 7
+#   - Copy the client_id / client_secret values printed by Step 8
 #   - Paste them into env/env.yml
 #   - Re-run deploy-stack.yml alone to push the updated credentials:
 #       ansible-playbook playbooks/deploy-stack.yml \
@@ -43,14 +45,20 @@
 # -- Step 5: Create WSO2 APIM database and import schemas --
 - import_playbook: mysql-setup-wso2-apim.yml
 
-# -- Step 6: Render env files and deploy IS-only Docker stack --
-- import_playbook: deploy-is-only.yml
+# -- Step 6: Render env files and deploy IS+APIM Docker stack --
+- import_playbook: deploy-is-apim.yml
 
-# -- Step 7: Configure IS (roles, users, OIDC apps) --
+# -- Step 7: Configure APIM (KM registration + DevPortal app shells) --
+- import_playbook: configure-apim.yml
+
+# -- Step 8: Configure IS (roles, users, OIDC apps) --
 - import_playbook: configure-is-only.yml
 
-# -- Step 8: Deploy full stack with updated credentials --
+# -- Step 9: Deploy full stack with updated credentials --
 - import_playbook: deploy-stack.yml
+
+# -- Step 10: Configure APIM (API import, subscriptions, keys, DCR sync) --
+- import_playbook: configure-apim-apis-appsub.yml
 
 # -- Post-deployment summary --
 - name: Post-deployment — status summary
