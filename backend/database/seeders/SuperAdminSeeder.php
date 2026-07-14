@@ -94,6 +94,7 @@ class SuperAdminSeeder extends Seeder
                 'appointment_letter_no' => 'LETTER001',
                 'appointment_letter'    => 'letter.pdf',
                 'active_status'         => '1',
+                'is_confirmed'          => 1,
             ]
         );
 
