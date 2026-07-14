@@ -1187,13 +1187,20 @@ class RolePermissionSeeder extends Seeder
             'zonal.deo.family.add',
         ];
 
-        // provincial director same permissions as zonal director + provincial permissions
+        // provincial director same permissions as zonal director + provincial + settings permissions
         $provincialApproveViewPermissions = array_merge($zonalApproveViewPermissions, [
             'menu.provincial',
             'menu.provincial.admin',
             'menu.provincial.deo',
             'provincial.admin.profile.view',
             'provincial.deo.profile.view',
+            'menu.settings.system.settings',
+            'menu.settings.version',
+            'menu.settings.notifications',
+            'menu.settings.privacy',
+            'settings.version.add',
+            'settings.version.delete',
+            'settings.version.edit',
         ]);
 
         foreach (['Provincial Director' => 3, 'Provincial Deputy Director' => 3, 'Provincial Subject Head' => 3] as $roleName => $level) {
