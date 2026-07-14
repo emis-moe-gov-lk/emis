@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { useAuthContext } from "@asgardeo/auth-react";
 import { useAuthUser } from "@/context/useAuthUser";
+import { useIdleTimeout } from "@/hooks/useIdleTimeout";
 import NavBar from "../components/Layout/NavBar";
 import SideBar from "../components/Layout/SideBar";
 import MainContent from "../components/Layout/MainContent";
 
 const DashboardLayout = () => {
+  useIdleTimeout();
   // const location = useLocation();
   const { state, getBasicUserInfo, getDecodedIDToken } = useAuthContext();
   const { user } = useAuthUser();

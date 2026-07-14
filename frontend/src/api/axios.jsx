@@ -25,7 +25,6 @@ api.interceptors.request.use(
       const accessToken = await authClient.getAccessToken();
 
       if (accessToken) {
-        console.log("Access token:", accessToken);
         config.headers.Authorization = `Bearer ${accessToken}`;
       }
     } catch (error) {
@@ -40,15 +39,18 @@ api.interceptors.request.use(
   },
 );
 
-// Response interceptor for handling errors (optional)
+let isRedirectingToLogout = false;
+
+// Response interceptor — auto-logout on 401
 api.interceptors.response.use(
-  (response) => {
-    return response;
-  },
+  (response) => response,
   async (error) => {
-    if (error.response?.status === 401) {
-      console.error("Unauthorized request - token may be expired");
-      // Optionally trigger re-authentication here
+    if (error.response?.status === 401 && !isRedirectingToLogout) {
+      console.error("Unauthorized — token expired. Redirecting to logout.");
+      isRedirectingToLogout = true;
+      sessionStorage.clear();
+      localStorage.clear();
+      window.location.href = "/logout";
     }
     return Promise.reject(error);
   },
