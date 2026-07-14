@@ -1,6 +1,6 @@
 ---
 # ---PLAY-CONFIGURE-APIM--------------------------------------------------
-# Registers WSO2 IS as external Key Manager in APIM, disables Resident KM,
+# Registers WSO2 IS as external Key Manager in APIM
 # and creates DevPortal application shells (no subscriptions or keys yet).
 # Run after deploy-is-apim.yml and before configure-is-only.yml.
 - name: Configure APIM — Key Manager registration and DevPortal applications
@@ -148,50 +148,6 @@
       debug:
         msg: "Key Manager '{{ key_manager_name }}' {{ 'already exists' if km_exists else 'registered successfully' }}"
 
-    # ── Disable Resident Key Manager ──────────────────────────────────────
-
-    - name: Get Resident Key Manager details
-      ansible.builtin.uri:
-        url: "{{ apim_mgmt }}/api/am/admin/v4/key-managers"
-        method: GET
-        validate_certs: no
-        user: "{{ apim_admin_user }}"
-        password: "{{ apim_admin_pass }}"
-        force_basic_auth: yes
-        headers:
-          Content-Type: "application/json"
-      register: all_key_managers
-
-    - name: Find Resident Key Manager
-      set_fact:
-        resident_km: "{{ all_key_managers.json.list | selectattr('name', 'equalto', 'Resident Key Manager') | first | default(None) }}"
-
-    - name: Disable Resident Key Manager
-      ansible.builtin.uri:
-        url: "{{ apim_mgmt }}/api/am/admin/v4/key-managers/{{ resident_km.id }}"
-        method: PUT
-        validate_certs: no
-        user: "{{ apim_admin_user }}"
-        password: "{{ apim_admin_pass }}"
-        force_basic_auth: yes
-        headers:
-          Content-Type: "application/json"
-        body_format: json
-        body:
-          name: "{{ resident_km.name }}"
-          type: "{{ resident_km.type }}"
-          description: "{{ resident_km.description | default('Resident Key Manager') }}"
-          enabled: false
-          tokenType: "{{ resident_km.tokenType | default('DIRECT') }}"
-        status_code: [200]
-      when:
-        - resident_km is not none
-        - resident_km.enabled | default(false)
-      register: resident_km_disabled
-
-    - name: Display Resident Key Manager status
-      debug:
-        msg: "Resident Key Manager {{ 'disabled successfully' if (resident_km_disabled is defined and resident_km_disabled.status | default(0) == 200) else ('already disabled' if (resident_km is not none and not (resident_km.enabled | default(true))) else 'not found') }}"
 
     # =========================================================================
     # PART 2: Create DevPortal Applications (shells only — no subs or keys yet)
@@ -246,6 +202,5 @@
           - "APIM Configuration Complete!"
           - "============================================"
           - "Key Manager: {{ key_manager_name }} — {{ 'exists' if km_exists else 'created' }}"
-          - "Resident KM: {{ 'disabled' if (resident_km is not none and not (resident_km.enabled | default(true))) else 'active' }}"
           - "DevPortal applications: {{ apps_to_create | default([]) | length }}"
           - "============================================"
