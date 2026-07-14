@@ -226,6 +226,7 @@ export const PermissionGroups = {
     ADMIN: "menu.provincial.admin",
     DEO: "menu.provincial.deo",
     ADMIN_CREATE: "provincial.admin.create",
+    ADMIN_PROFILE_EDIT: "provincial.admin.profile.edit",
     DEO_CREATE: "provincial.deo.create",
   },
 

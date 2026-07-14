@@ -225,6 +225,7 @@ Route::prefix('')->group(function () {
         Route::get('/current-appointment-form-data', 'currentAppointmentFormData');
         Route::post('/', 'store');
         Route::get('/{people_id}', 'show');
+        Route::put('/{people_id}', 'update');
         Route::post('/{id}/service-history', 'addServiceHistoryEntry');
         Route::post('/{id}/past-services', 'addPastService');
     });
