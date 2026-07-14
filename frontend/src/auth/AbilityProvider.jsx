@@ -10,14 +10,25 @@ export const AbilityProvider = ({ children }) => {
   const { permissions, roles } = useAuthUser();
 
   useEffect(() => {
-    const handleSignOut = () => {
-      toast.error("Session expired or signed out. Redirecting...", {
+    let redirected = false;
+
+    const handleSessionEnd = () => {
+      if (redirected) return;
+      redirected = true;
+      toast.error("Session expired. Redirecting to login.", {
         id: "session-expiry-toast",
       });
+      sessionStorage.clear();
+      localStorage.clear();
+      window.location.href = "/logout";
     };
 
-    on("sign-out", handleSignOut);
-    on("session-terminated", handleSignOut);
+    on("sign-out", handleSessionEnd);
+    on("session-terminated", handleSessionEnd);
+
+    return () => {
+      redirected = true;
+    };
   }, [on]);
 
   const ability = useMemo(
