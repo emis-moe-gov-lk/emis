@@ -8,11 +8,12 @@ WORKDIR /home/wso2carbon/wso2is-7.2.0
 # Assumes you have 'conf/deployment.toml' in your build context
 COPY --chown=wso2carbon:wso2carbon conf/deployment.toml repository/conf/deployment.toml
 
-# 2. Add custom JAR files (libraries)
-# required for Key Manager connectors and Conencting to external MySQL DB
-# Assumes you have 'lib/' 'dropins/' dirs in your build context
+# 2. Add custom JAR files and webapp archives
+# required for Key Manager connectors and connecting to external MySQL DB
+# Assumes you have 'lib/', 'dropins/', 'webapps/' dirs in your build context
 COPY --chown=wso2carbon:wso2carbon dropins/*.jar repository/components/dropins
 COPY --chown=wso2carbon:wso2carbon lib/*.jar repository/components/lib
+COPY --chown=wso2carbon:wso2carbon webapps/*.war repository/deployment/server/webapps
 
 # 3. Trust any additional certificates dropped into certs/ (one .pem per CA).
 # Empty in prod; local-dev fills it with the nginx-proxy self-signed cert so
