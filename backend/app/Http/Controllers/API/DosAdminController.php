@@ -421,6 +421,186 @@ class DosAdminController extends Controller
     }
 
     // ==============================
+    // UPDATE
+    // ==============================
+
+    public function update(Request $request, $people_id)
+    {
+        try {
+            $people = People::where('people_id', $people_id)->first();
+            if (! $people) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'DOS admin not found',
+                ], 404);
+            }
+
+            $section = (string) $request->input('section');
+
+            if (! in_array($section, ['personal', 'health', 'contact'], true)) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Invalid update section',
+                ], 422);
+            }
+
+            $rules = match ($section) {
+                'personal' => [
+                    'titleId'       => 'required|string',
+                    'fullName'      => 'required|string|max:255',
+                    'genderId'      => 'required|string',
+                    'dateOfBirth'   => 'required|date',
+                    'ethnicityId'   => 'required|string',
+                    'religionId'    => 'required|string',
+                    'civilStatusId' => 'required|string',
+                ],
+                'health' => [
+                    'bloodGroupId'    => 'required|string',
+                    'healthCondition' => 'required|in:0,1',
+                    'knownProblems'   => 'nullable|string|max:500',
+                ],
+                'contact' => [
+                    'email'        => 'required|email',
+                    'phone'        => 'required|string',
+                    'districtId'   => 'required|string',
+                    'dsOfficeId'   => 'required|string',
+                    'gnDivisionId' => 'required|string',
+                    'addressLine1' => 'required|string|max:255',
+                    'addressLine2' => 'required|string|max:255',
+                    'addressLine3' => 'nullable|string|max:255',
+                    'postalCode'   => 'required|string|max:20',
+                ],
+            };
+
+            $validated = $request->validate($rules);
+
+            if ($section === 'contact') {
+                $email = strtolower(trim((string) $validated['email']));
+                $phone = (string) $validated['phone'];
+
+                $emailConflict = People::query()
+                    ->where('email', $email)
+                    ->where('people_id', '!=', $people_id)
+                    ->exists()
+                    || User::query()
+                        ->where('email', $email)
+                        ->where('people_id', '!=', $people_id)
+                        ->exists();
+
+                $phoneConflict = People::query()
+                    ->where('phone', $phone)
+                    ->where('people_id', '!=', $people_id)
+                    ->exists()
+                    || User::query()
+                        ->where('contact', $phone)
+                        ->where('people_id', '!=', $people_id)
+                        ->exists();
+
+                if ($emailConflict || $phoneConflict) {
+                    return response()->json([
+                        'status' => 'validation_error',
+                        'errors' => array_filter([
+                            'email' => $emailConflict ? ['Email is already used by another profile.'] : null,
+                            'phone' => $phoneConflict ? ['Phone number is already used by another profile.'] : null,
+                        ]),
+                    ], 422);
+                }
+            }
+
+            DB::beginTransaction();
+
+            if ($section === 'personal') {
+                $initials = People::generateInitials($validated['fullName']);
+                $people->update([
+                    'title_id'           => $validated['titleId'],
+                    'full_name'          => ucwords(strtolower($validated['fullName'])),
+                    'name_with_initials' => $initials,
+                    'gender_id'          => $validated['genderId'],
+                    'date_of_birth'      => $validated['dateOfBirth'],
+                    'ethnicity_id'       => $validated['ethnicityId'],
+                    'religion_id'        => $validated['religionId'],
+                    'civil_status_id'    => $validated['civilStatusId'],
+                ]);
+
+                $retirementDate = Carbon::parse($validated['dateOfBirth'])->addYears(60)->toDateString();
+                $people->appointment()->update([
+                    'retirement_date' => $retirementDate,
+                ]);
+
+                $user = User::where('people_id', $people_id)->first();
+                if ($user) {
+                    $user->update([
+                        'name' => $initials,
+                    ]);
+                }
+            }
+
+            if ($section === 'health') {
+                $people->update([
+                    'blood_group_id'   => $validated['bloodGroupId'],
+                    'health_condition' => (int) $validated['healthCondition'],
+                    'health_problem'   => $validated['knownProblems'] ?? null,
+                ]);
+            }
+
+            if ($section === 'contact') {
+                $people->update([
+                    'email'          => strtolower(trim((string) $validated['email'])),
+                    'phone'          => $validated['phone'],
+                    'district_id'    => $validated['districtId'],
+                    'ds_office_id'   => $this->resolveDsOfficePrimaryKey((string) $validated['dsOfficeId']),
+                    'gn_division_id' => $validated['gnDivisionId'],
+                    'address_line1'  => $validated['addressLine1'],
+                    'address_line2'  => $validated['addressLine2'],
+                    'address_line3'  => $validated['addressLine3'] ?? null,
+                    'postal_code'    => $validated['postalCode'],
+                ]);
+
+                $user = User::where('people_id', $people_id)->first();
+                if ($user) {
+                    $user->update([
+                        'email'   => strtolower(trim((string) $validated['email'])),
+                        'contact' => $validated['phone'],
+                    ]);
+                }
+            }
+
+            DB::commit();
+
+            try {
+                $user = User::where('people_id', $people_id)->first();
+                if ($user) {
+                    $wso2Is = app(Wso2IsProvisioningService::class);
+                    $wso2Is->syncUserProfile($user);
+                }
+            } catch (\Throwable $e) {
+                Log::error('DOS Admin Update WSO2 IS sync error', ['message' => $e->getMessage()]);
+            }
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'DOS admin updated successfully',
+                'data'    => $people->fresh(),
+            ], 200);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'status'  => 'validation_error',
+                'message' => 'Validation failed',
+                'errors'  => $e->errors(),
+            ], 422);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('DOS Admin Update Error', ['error' => $e->getMessage()]);
+
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Failed to update DOS admin',
+            ], 500);
+        }
+    }
+
+    // ==============================
     // SERVICE HISTORY
     // ==============================
 
