@@ -1192,8 +1192,15 @@ class RolePermissionSeeder extends Seeder
             'zonal.deo.family.add',
         ];
 
-        // provincial director same permissions as zonal director + provincial + settings permissions
-        $provincialApproveViewPermissions = array_merge($zonalApproveViewPermissions, [
+        // provincial director permissions — view only, no verify/confirm/reject
+        $provincialViewPermissions = array_values(array_filter($zonalApproveViewPermissions, fn ($perm) => ! in_array($perm, [
+            'teacher.profile.confirm',
+            'alerts.profile.verify',
+            'alerts.profile.confirm',
+            'alerts.profile.reject',
+        ])));
+
+        $provincialViewPermissions = array_merge($provincialViewPermissions, [
             'menu.provincial',
             'menu.provincial.admin',
             'menu.provincial.deo',
@@ -1214,7 +1221,7 @@ class RolePermissionSeeder extends Seeder
             $role = Role::firstOrCreate(['name' => $roleName]);
             $role->level = $level;
             $role->save();
-            $role->syncPermissions($provincialApproveViewPermissions);
+            $role->syncPermissions($provincialViewPermissions);
         }
         
 
