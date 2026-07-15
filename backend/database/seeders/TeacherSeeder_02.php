@@ -35,6 +35,109 @@ class TeacherSeeder_02 extends Seeder
         $teachers = [
             [
                 // --- Personal (all fields — no nulls) ---
+                'nic'                      => '199012345075',
+                'dob'                      => '1990-01-01',
+                'title_id'                 => 'T02',
+                'full_name'                => 'Arshvin Waduge',
+                'gender_id'                => 'G01',
+                'religion_id'              => 'R01',
+                'ethnicity_id'             => 'E01',
+                'civil_status_id'          => 'C02',
+                'blood_group_id'           => 'B01',
+                'email'                    => 'tarshvin@gmail.com',
+                'phone'                    => '0772345678',
+                'health_condition'         => '0',
+                'health_problem'           => 'Mild asthma, managed with inhaler',
+                // --- Permanent address ---
+                'district_id'              => 'DIS001',
+                'gn_division_id'           => 'GND00001',
+                'address_line1'            => '123 Main Street',
+                'address_line2'            => 'Colombo 07',
+                'address_line3'            => 'Western Province',
+                'postal_code'              => '10100',
+                'latitude'                 => '6.9271',
+                'longitude'                => '79.8612',
+                // --- Temporary address ---
+                't_address_line1'          => '456 Temple Lane',
+                't_address_line2'          => 'Nugegoda',
+                't_address_line3'          => 'Western Province',
+                't_postal_code'            => '10250',
+                // --- Appointment ---
+                'first_appointment_date'   => '2015-06-01',
+                'appointment_letter_no'    => 'SLTS/2015/003',
+                'w_op_no'                  => 'WOP001236',
+                'pay_sheet_no'             => 'PAY001236',
+                // --- Teacher ---
+                'teacher_category'         => 'TCAT0001',
+                'teacher_type'             => 'TCHTYPE002',
+                'appointment_medium'       => 'MED01',
+                'appointment_subject'      => 'ASUB0020',  // Mathematics
+                'main_subject'             => 'SUB0004',   // Mathematics
+                'secondary_subject'        => 'SUB0021',   // ICT
+                'current_teaching_subject' => 'SUB0004',   // Mathematics
+                // --- Education ---
+                'education'                => [
+                    [
+                        'qualifications_id' => 'EQ006',    // Bachelor's Degree
+                        'institution'       => 'University of Colombo',
+                        'effective_date'    => '2012-05-20',
+                        'grade'             => 'GRD002',   // 2nd Upper Class
+                        'description'       => 'BSc in Mathematics',
+                    ],
+                    [
+                        'qualifications_id' => 'EQ007',    // Higher Diploma
+                        'institution'       => 'National Institute of Education',
+                        'effective_date'    => '2014-07-15',
+                        'grade'             => 'GRD005',   // None
+                        'description'       => 'Diploma in Education (Mathematics)',
+                    ],
+                ],
+                // --- Family ---
+                'family'                   => [
+                    'spouse'        => [
+                        'nic'              => '199345678901',
+                        'dob'              => '1993-05-10',
+                        'title_id'         => 'T01',
+                        'full_name'        => 'Sanduni Kavindi Perera',
+                        'gender_id'        => 'G02',
+                        'religion_id'      => 'R01',
+                        'ethnicity_id'     => 'E01',
+                        'civil_status_id'  => 'C02',
+                        'blood_group_id'   => 'B04',
+                        'email'            => 'sanduni.kavindi@gmail.com',
+                        'phone'            => '0702345678',
+                        'health_condition' => '1',
+                        'health_problem'   => 'None',
+                        'district_id'      => 'DIS001',
+                        'gn_division_id'   => 'GND00001',
+                        'address_line1'    => '123 Main Street',
+                        'address_line2'    => 'Colombo 07',
+                        'address_line3'    => 'Western Province',
+                        'postal_code'      => '10100',
+                        'latitude'         => '6.9271',
+                        'longitude'        => '79.8612',
+                        't_address_line1'  => '123 Main Street',
+                        't_address_line2'  => 'Colombo 07',
+                        't_address_line3'  => 'Western Province',
+                        't_postal_code'    => '10100',
+                    ],
+                    'married_date'  => '2017-08-20',
+                    'married_cf_no' => 'MC2017002345',
+                    'married_cf'    => 'none.pdf',
+                    'family_name'   => 'Perera Family',
+                    'children'      => [
+                        [
+                            'child_name'       => 'Kaviru Roshan Perera',
+                            'date_of_birth'    => '2019-04-15',
+                            'gender_id'        => 'G01',
+                            'birth_fc_no'      => 'BC2019002345',
+                            'health_condition' => true,
+                        ],
+                    ],
+                ],
+            ],
+            [
+                // --- Personal (all fields — no nulls) ---
                 'nic'                      => '198667890123',
                 'dob'                      => '1986-03-15',
                 'title_id'                 => 'T01',
