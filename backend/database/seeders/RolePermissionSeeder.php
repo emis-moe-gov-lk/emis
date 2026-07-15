@@ -1318,7 +1318,6 @@ class RolePermissionSeeder extends Seeder
             'menu.provincial',
             'menu.provincial.admin',
             'menu.provincial.deo',
-            'provincial.admin.create',
             'provincial.admin.profile.view',
             'provincial.admin.service.add',
             'provincial.admin.qualification.add',
