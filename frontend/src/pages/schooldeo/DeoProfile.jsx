@@ -801,9 +801,10 @@ const DeoProfile = () => {
 
   const isDevelopmentOfficer = userRoles.includes("development officer") || userRoles.includes("zonal deo");
   const isZonalDirector = userRoles.includes("zonal director");
+  const isProvincialRole = userRoles.includes("provincial director") || userRoles.includes("provincial deputy director") || userRoles.includes("provincial subject head");
   const isPendingStatus = !teacher?.confirmed && !teacher?.verified && !teacher?.rejected && !teacher?.revised;
   const isVerifiedStatus = !!teacher?.verified || String(teacher?.status ?? "").trim().toLowerCase() === "verified";
-  const shouldShowVerificationStrip = isDevelopmentOfficer ? !!teacher?.rejected || !!teacher?.revised : isZonalDirector ? (isVerifiedStatus && !teacher?.confirmed && !teacher?.rejected && !teacher?.revised) : !teacher?.confirmed;
+  const shouldShowVerificationStrip = isProvincialRole ? false : isDevelopmentOfficer ? !!teacher?.rejected || !!teacher?.revised : isZonalDirector ? (isVerifiedStatus && !teacher?.confirmed && !teacher?.rejected && !teacher?.revised) : !teacher?.confirmed;
 
   const handleVerify = async () => {
     if (!teacher?.id || isVerifying) return;

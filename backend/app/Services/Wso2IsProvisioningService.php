@@ -242,7 +242,7 @@ class Wso2IsProvisioningService
             $isUserId = $this->findUserIdByEmail($user->email);
 
             if ($isUserId) {
-                // User already exists in IS — sync profile instead of creating
+                // User already exists in IS — sync profile and reset password
                 $this->patchScimUser($isUserId, [[
                     'op'    => 'replace',
                     'value' => [
@@ -250,6 +250,7 @@ class Wso2IsProvisioningService
                         'phoneNumbers' => $user->contact
                             ? [['value' => $user->contact, 'type' => 'mobile']]
                             : [],
+                        'password' => $plainPassword,
                         'active' => (bool) $user->active_status,
                     ],
                 ]]);

@@ -15,6 +15,11 @@ export const getProvincialAdminById = async (id) => {
   return response.data;
 };
 
+export const updateProvincialAdmin = async (id, data) => {
+  const response = await api.put(`/provincial-admins/${id}`, data);
+  return response.data;
+};
+
 export const addProvincialAdminServiceHistoryEntry = async (peopleId, data) => {
   const response = await api.post(`/provincial-admins/${peopleId}/service-history`, data);
   return response.data;

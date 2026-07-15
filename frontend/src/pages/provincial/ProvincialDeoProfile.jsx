@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { HiDocumentText, HiPlus } from "react-icons/hi";
 import { Spinner } from "flowbite-react";
@@ -19,6 +19,7 @@ import {
 
 import Can from "@/components/common/Can";
 import { PermissionGroups } from "@/data/permissionGroups";
+import ProvincialDeoUpdateModal from "@/components/provincial/ProvincialDeoUpdateModal";
 
 const formatDate = (value) => {
   if (!value) return null;
@@ -38,6 +39,7 @@ export default function ProvincialDeoProfile() {
   const [deo, setDeo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("general");
+  const [modalSection, setModalSection] = useState(null);
 
   const [serviceHistory, setServiceHistory] = useState({ appointments: [], historyEntries: [], currentAppointment: null });
   const [isServiceHistoryModalOpen, setIsServiceHistoryModalOpen] = useState(false);
@@ -48,27 +50,28 @@ export default function ProvincialDeoProfile() {
   const [isSavingPastService, setIsSavingPastService] = useState(false);
   const [isDownloadingDocument, setIsDownloadingDocument] = useState(false);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await getProvincialDeoById(id);
-        if (res.status === "success") {
-          const d = res.data;
-          setDeo(d);
-          setServiceHistory({
-            appointments: d.my_appointments ?? [],
-            historyEntries: d.appointment_history ?? [],
-            currentAppointment: d.current_appointment ?? null,
-          });
-        }
-      } catch (err) {
-        console.error("Failed to load DEO profile", err);
-      } finally {
-        setLoading(false);
+  const loadProfile = useCallback(async () => {
+    try {
+      const res = await getProvincialDeoById(id);
+      if (res.status === "success") {
+        const d = res.data;
+        setDeo(d);
+        setServiceHistory({
+          appointments: d.my_appointments ?? [],
+          historyEntries: d.appointment_history ?? [],
+          currentAppointment: d.current_appointment ?? null,
+        });
       }
-    };
-    load();
+    } catch (err) {
+      console.error("Failed to load DEO profile", err);
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
+
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
 
   const openServiceHistoryModal = () => {
     const firstApptId = serviceHistory.appointments[0]?.appointment_id ?? "";
@@ -321,7 +324,7 @@ export default function ProvincialDeoProfile() {
 
         {/* Right content */}
         <section className="lg:col-span-9 space-y-5">
-          {activeTab === "general" && <GeneralTab profile={profile} />}
+          {activeTab === "general" && <GeneralTab profile={profile} onEdit={setModalSection} />}
           {activeTab === "qualification" && <QualificationTab />}
           {activeTab === "employment" && <EmploymentTab profile={profile} />}
           {activeTab === "service_history" && (
@@ -346,6 +349,14 @@ export default function ProvincialDeoProfile() {
         onClose={closeServiceHistoryModal}
         onSubmit={handleServiceHistorySave}
         isSubmitting={isSavingServiceHistory}
+      />
+
+      <ProvincialDeoUpdateModal
+        isOpen={modalSection !== null}
+        section={modalSection}
+        deoId={id}
+        onClose={() => setModalSection(null)}
+        onSaved={loadProfile}
       />
 
       <PastServiceModal
@@ -444,7 +455,19 @@ function MiniKey({ label, value }) {
    Shared: ColorSection + FieldCell + RoundedActionButton
 ========================================================= */
 
-function ColorSection({ title, color = "blue", children }) {
+function RoundedActionButton({ icon: Icon, children, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-black transition-all duration-200 shadow-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-blue-200 dark:hover:border-blue-800"
+    >
+      {Icon && <Icon className="h-4 w-4 text-blue-500" />}
+      {children}
+    </button>
+  );
+}
+
+function ColorSection({ title, color = "blue", right, children }) {
   const headerClass =
     {
       slate: "bg-slate-700",
@@ -461,7 +484,10 @@ function ColorSection({ title, color = "blue", children }) {
       <div
         className={`px-6 py-4 text-white ${headerClass} bg-linear-to-r from-[rgba(255,255,255,0.05)] to-transparent`}
       >
-        <h3 className="text-base font-black tracking-tight">{title}</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-base font-black tracking-tight">{title}</h3>
+          {right && <div className="flex-shrink-0">{right}</div>}
+        </div>
       </div>
       <div className="p-6">{children}</div>
     </div>
@@ -487,10 +513,22 @@ function FieldCell({ label, value, span = 1 }) {
    Tabs
 ========================================================= */
 
-function GeneralTab({ profile }) {
+function GeneralTab({ profile, onEdit }) {
   return (
     <div className="space-y-6">
-      <ColorSection title="Personal Information" color="indigo">
+      <ColorSection
+        title="Personal Information"
+        color="indigo"
+        right={
+          onEdit && (
+            <Can permission={PermissionGroups.PROVINCIAL.DEO_PROFILE_EDIT}>
+              <RoundedActionButton onClick={() => onEdit("personal")}>
+                Edit
+              </RoundedActionButton>
+            </Can>
+          )
+        }
+      >
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <FieldCell label="Full Name" value={profile.fullName} span={3} />
           <FieldCell label="Name with Initials" value={profile.initialsName} span={2} />
@@ -508,7 +546,41 @@ function GeneralTab({ profile }) {
         </div>
       </ColorSection>
 
-      <ColorSection title="Contact Information" color="teal">
+      <ColorSection
+        title="Health Information"
+        color="teal"
+        right={
+          onEdit && (
+            <Can permission={PermissionGroups.PROVINCIAL.DEO_PROFILE_EDIT}>
+              <RoundedActionButton onClick={() => onEdit("health")}>
+                Edit
+              </RoundedActionButton>
+            </Can>
+          )
+        }
+      >
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <FieldCell label="Blood Group" value={profile.bloodGroup} />
+          <FieldCell label="Health Condition" value={profile.healthCondition} />
+          {profile.healthProblem && (
+            <FieldCell label="Known Problems" value={profile.healthProblem} />
+          )}
+        </div>
+      </ColorSection>
+
+      <ColorSection
+        title="Contact Information"
+        color="indigo"
+        right={
+          onEdit && (
+            <Can permission={PermissionGroups.PROVINCIAL.DEO_PROFILE_EDIT}>
+              <RoundedActionButton onClick={() => onEdit("contact")}>
+                Edit
+              </RoundedActionButton>
+            </Can>
+          )
+        }
+      >
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <FieldCell label="Primary Email" value={profile.email} span={2} />
           <FieldCell label="Mobile Number" value={profile.phone} />
