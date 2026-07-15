@@ -1201,6 +1201,13 @@ class RolePermissionSeeder extends Seeder
         ])));
 
         $provincialViewPermissions = array_merge($provincialViewPermissions, [
+            'zonal.admin.create',
+            'zonal.admin.bulk.upload',
+            'zonal.admin.profile.exportpdf',
+            'zonal.admin.service.add',
+            'zonal.admin.qualification.add',
+            'zonal.admin.wop.edit',
+            'zonal.admin.family.add',
             'menu.provincial',
             'menu.provincial.admin',
             'menu.provincial.deo',
