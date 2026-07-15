@@ -1057,6 +1057,7 @@ class RolePermissionSeeder extends Seeder
         'zonal.admin.create',
         'zonal.admin.bulk.upload',
         'zonal.admin.profile.view',
+        'zonal.admin.profile.edit',
         'zonal.admin.profile.exportpdf',
         'zonal.admin.service.add',
         'zonal.admin.qualification.add',
@@ -1078,6 +1079,7 @@ class RolePermissionSeeder extends Seeder
         'provincial.admin.create',
         'provincial.admin.bulk.upload',
         'provincial.admin.profile.view',
+        'provincial.admin.profile.edit',
         'provincial.admin.profile.exportpdf',
         'provincial.admin.service.add',
         'provincial.admin.qualification.add',
@@ -1086,6 +1088,7 @@ class RolePermissionSeeder extends Seeder
         'provincial.deo.create',
         'provincial.deo.bulk.upload',
         'provincial.deo.profile.view',
+        'provincial.deo.profile.edit',
         'provincial.deo.profile.exportpdf',
         'provincial.deo.qualification.add',
         'provincial.deo.service.add',
@@ -1177,6 +1180,8 @@ class RolePermissionSeeder extends Seeder
             'menu.zonal',
             'menu.zonal.admin',
             'menu.zonal.deo',
+            'zonal.admin.profile.view',
+            'zonal.admin.profile.edit',
             'zonal.deo.create',
             'zonal.deo.bulk.upload',
             'zonal.deo.profile.view',
@@ -1187,20 +1192,43 @@ class RolePermissionSeeder extends Seeder
             'zonal.deo.family.add',
         ];
 
-        // provincial director same permissions as zonal director + provincial permissions
-        $provincialApproveViewPermissions = array_merge($zonalApproveViewPermissions, [
+        // provincial director permissions — view only, no verify/confirm/reject
+        $provincialViewPermissions = array_values(array_filter($zonalApproveViewPermissions, fn ($perm) => ! in_array($perm, [
+            'teacher.profile.confirm',
+            'alerts.profile.verify',
+            'alerts.profile.confirm',
+            'alerts.profile.reject',
+        ])));
+
+        $provincialViewPermissions = array_merge($provincialViewPermissions, [
+            'zonal.admin.create',
+            'zonal.admin.bulk.upload',
+            'zonal.admin.profile.exportpdf',
+            'zonal.admin.service.add',
+            'zonal.admin.qualification.add',
+            'zonal.admin.wop.edit',
+            'zonal.admin.family.add',
             'menu.provincial',
             'menu.provincial.admin',
             'menu.provincial.deo',
             'provincial.admin.profile.view',
+            'provincial.admin.profile.edit',
             'provincial.deo.profile.view',
+            'provincial.deo.profile.edit',
+            'menu.settings.system.settings',
+            'menu.settings.version',
+            'menu.settings.notifications',
+            'menu.settings.privacy',
+            'settings.version.add',
+            'settings.version.delete',
+            'settings.version.edit',
         ]);
 
         foreach (['Provincial Director' => 3, 'Provincial Deputy Director' => 3, 'Provincial Subject Head' => 3] as $roleName => $level) {
             $role = Role::firstOrCreate(['name' => $roleName]);
             $role->level = $level;
             $role->save();
-            $role->syncPermissions($provincialApproveViewPermissions);
+            $role->syncPermissions($provincialViewPermissions);
         }
         
 
@@ -1268,6 +1296,7 @@ class RolePermissionSeeder extends Seeder
             'zonal.admin.create',
             'zonal.admin.bulk.upload',
             'zonal.admin.profile.view',
+            'zonal.admin.profile.edit',
             'zonal.admin.profile.exportpdf',
             'zonal.admin.service.add',
             'zonal.admin.qualification.add',

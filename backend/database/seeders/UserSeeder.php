@@ -97,6 +97,7 @@ class UserSeeder extends Seeder
                     'appointment_letter_no' => sprintf('SEED-%03d', $index + 1),
                     'appointment_letter' => 'seed-letter.pdf',
                     'active_status' => '1',
+                    'is_confirmed' => 1,
                     'updated_at' => Carbon::now(),
                     'created_at' => Carbon::now(),
                 ]

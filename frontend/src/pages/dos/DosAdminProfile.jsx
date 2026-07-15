@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { getEditRequests, reviewEditRequest } from "@/api/userService";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { HiDocumentText, HiPlus } from "react-icons/hi";
@@ -20,6 +20,7 @@ import {
 
 import Can from "@/components/common/Can";
 import { PermissionGroups } from "@/data/permissionGroups";
+import DosAdminUpdateModal from "@/components/dos/DosAdminUpdateModal";
 
 const formatDate = (value) => {
   if (!value) return null;
@@ -45,6 +46,7 @@ export default function DosAdminProfile() {
   const [admin, setAdmin] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("general");
+  const [modalSection, setModalSection] = useState(null);
   const [editRequests, setEditRequests] = useState([]);
   const [editRequestRefreshKey, setEditRequestRefreshKey] = useState(0);
 
@@ -57,27 +59,28 @@ export default function DosAdminProfile() {
   const [isSavingPastService, setIsSavingPastService] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await getDosAdmin(id);
-        if (res.status === "success") {
-          const d = res.data;
-          setAdmin(d);
-          setServiceHistory({
-            appointments: d.my_appointments ?? [],
-            historyEntries: d.appointment_history ?? [],
-            currentAppointment: d.current_appointment ?? null,
-          });
-        }
-      } catch {
-        // handled by null check below
-      } finally {
-        setLoading(false);
+  const loadProfile = useCallback(async () => {
+    try {
+      const res = await getDosAdmin(id);
+      if (res.status === "success") {
+        const d = res.data;
+        setAdmin(d);
+        setServiceHistory({
+          appointments: d.my_appointments ?? [],
+          historyEntries: d.appointment_history ?? [],
+          currentAppointment: d.current_appointment ?? null,
+        });
       }
-    };
-    load();
+    } catch {
+      // handled by null check below
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
+
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
 
   useEffect(() => {
     if (!admin?.people_id) return;
@@ -350,7 +353,7 @@ export default function DosAdminProfile() {
 
         {/* Right content */}
         <section className="lg:col-span-9 space-y-5">
-          {activeTab === "general" && <GeneralTab profile={profile} />}
+          {activeTab === "general" && <GeneralTab profile={profile} onEdit={setModalSection} />}
           {activeTab === "qualification" && <QualificationTab />}
           {activeTab === "employment" && <EmploymentTab profile={profile} />}
           {activeTab === "service_history" && (
@@ -375,6 +378,14 @@ export default function DosAdminProfile() {
         onClose={closeServiceHistoryModal}
         onSubmit={handleServiceHistorySave}
         isSubmitting={isSavingServiceHistory}
+      />
+
+      <DosAdminUpdateModal
+        isOpen={modalSection !== null}
+        section={modalSection}
+        adminId={id}
+        onClose={() => setModalSection(null)}
+        onSaved={loadProfile}
       />
 
       <PastServiceModal
@@ -476,7 +487,7 @@ function MiniKey({ label, value }) {
    Shared: ColorSection + FieldCell + RoundedActionButton
 ========================================================= */
 
-function ColorSection({ title, color = "blue", children }) {
+function ColorSection({ title, color = "blue", right, children }) {
   const headerClass =
     {
       slate: "bg-slate-700",
@@ -493,7 +504,10 @@ function ColorSection({ title, color = "blue", children }) {
       <div
         className={`px-6 py-4 text-white ${headerClass} bg-linear-to-r from-[rgba(255,255,255,0.05)] to-transparent`}
       >
-        <h3 className="text-base font-black tracking-tight">{title}</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-base font-black tracking-tight">{title}</h3>
+          {right && <div className="flex-shrink-0">{right}</div>}
+        </div>
       </div>
       <div className="p-6">{children}</div>
     </div>
@@ -531,10 +545,22 @@ function RoundedActionButton({ icon: Icon, children, onClick }) {
    TAB: General
 ========================================================= */
 
-function GeneralTab({ profile }) {
+function GeneralTab({ profile, onEdit }) {
   return (
     <div className="space-y-5">
-      <ColorSection title="Personal & Cultural" color="slate">
+      <ColorSection
+        title="Personal & Cultural"
+        color="slate"
+        right={
+          onEdit && (
+            <Can permission={PermissionGroups.ZONAL.ADMIN_PROFILE_EDIT}>
+              <RoundedActionButton onClick={() => onEdit("personal")}>
+                Edit
+              </RoundedActionButton>
+            </Can>
+          )
+        }
+      >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <FieldCell label="Full Name" value={profile.fullName} />
           <FieldCell label="Initials" value={profile.initialsName} />
@@ -546,7 +572,19 @@ function GeneralTab({ profile }) {
         </div>
       </ColorSection>
 
-      <ColorSection title="Health Information" color="teal">
+      <ColorSection
+        title="Health Information"
+        color="teal"
+        right={
+          onEdit && (
+            <Can permission={PermissionGroups.ZONAL.ADMIN_PROFILE_EDIT}>
+              <RoundedActionButton onClick={() => onEdit("health")}>
+                Edit
+              </RoundedActionButton>
+            </Can>
+          )
+        }
+      >
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <FieldCell label="Blood Group" value={profile.bloodGroup} />
           <FieldCell label="Health Condition" value={profile.healthCondition} />
@@ -554,7 +592,19 @@ function GeneralTab({ profile }) {
         </div>
       </ColorSection>
 
-      <ColorSection title="Contact & Location" color="indigo">
+      <ColorSection
+        title="Contact & Location"
+        color="indigo"
+        right={
+          onEdit && (
+            <Can permission={PermissionGroups.ZONAL.ADMIN_PROFILE_EDIT}>
+              <RoundedActionButton onClick={() => onEdit("contact")}>
+                Edit
+              </RoundedActionButton>
+            </Can>
+          )
+        }
+      >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <FieldCell label="Email" value={profile.email} />
           <FieldCell label="Phone" value={profile.phone} />

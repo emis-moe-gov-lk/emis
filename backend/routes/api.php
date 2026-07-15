@@ -186,6 +186,7 @@ Route::prefix('')->group(function () {
         Route::get('/', 'index');                              // GET all DOS admins
         Route::post('/', 'store');                             // POST register education administrator
         Route::get('/{id}', 'show');                          // GET single DOS admin profile
+        Route::patch('/{id}', 'update');                      // PATCH update DOS admin
         Route::post('/{id}/service-history', 'addServiceHistoryEntry'); // POST add service history entry
         Route::post('/{id}/past-services', 'addPastService');           // POST add past service block
     });
@@ -225,6 +226,7 @@ Route::prefix('')->group(function () {
         Route::get('/current-appointment-form-data', 'currentAppointmentFormData');
         Route::post('/', 'store');
         Route::get('/{people_id}', 'show');
+        Route::put('/{people_id}', 'update');
         Route::post('/{id}/service-history', 'addServiceHistoryEntry');
         Route::post('/{id}/past-services', 'addPastService');
     });
