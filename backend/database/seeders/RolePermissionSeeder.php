@@ -1332,7 +1332,7 @@ class RolePermissionSeeder extends Seeder
             'provincial.deo.family.add',
         ]);
 
-        foreach (['Provincial DEO' => 4, 'Provincial Clerk (DEO)' => 4] as $roleName => $level) {
+        foreach (['Provincial DEO' => 4] as $roleName => $level) {
             $role = Role::firstOrCreate(['name' => $roleName]);
             $role->level = $level;
             $role->save();
