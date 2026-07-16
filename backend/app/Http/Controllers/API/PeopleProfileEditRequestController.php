@@ -109,6 +109,103 @@ class PeopleProfileEditRequestController extends Controller
         }
     }
 
+    public function update(Request $request, int $id)
+    {
+        try {
+            $authPeopleId = $request->attributes->get('jwt_people_id') ?? $request->user()?->people_id;
+
+            if (! $authPeopleId) {
+                return response()->json(['status' => 'error', 'message' => 'Unauthenticated'], 401);
+            }
+
+            $editRequest = PeopleProfileEditRequest::where('id', $id)
+                ->where('people_id', $authPeopleId)
+                ->firstOrFail();
+
+            if ($editRequest->status !== '1') {
+                return response()->json(['status' => 'error', 'message' => 'Only pending requests can be edited.'], 409);
+            }
+
+            $validated = $request->validate([
+                'subject'   => 'required|string|max:255',
+                'complaint' => 'required|string',
+            ]);
+
+            $editRequest->update([
+                'requested_changes' => [
+                    'subject'   => $validated['subject'],
+                    'complaint' => $validated['complaint'],
+                ],
+            ]);
+
+            try {
+                Cache::forget("people_edit_requests_{$editRequest->people_id}");
+                Log::debug('[Cache] Forgot people_edit_requests_' . $editRequest->people_id);
+            } catch (\Throwable $e) {
+                Log::warning('[Cache] Failed to forget edit requests cache', [
+                    'key'   => "people_edit_requests_{$editRequest->people_id}",
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Edit request updated successfully.',
+                'data'    => $editRequest,
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['status' => 'error', 'message' => 'Edit request not found.'], 404);
+        } catch (\Throwable $e) {
+            Log::error('Edit Request Update Error', ['message' => $e->getMessage()]);
+
+            return response()->json(['status' => 'error', 'message' => 'Failed to update request.'], 500);
+        }
+    }
+
+    public function destroy(Request $request, int $id)
+    {
+        try {
+            $authPeopleId = $request->attributes->get('jwt_people_id') ?? $request->user()?->people_id;
+
+            if (! $authPeopleId) {
+                return response()->json(['status' => 'error', 'message' => 'Unauthenticated'], 401);
+            }
+
+            $editRequest = PeopleProfileEditRequest::where('id', $id)
+                ->where('people_id', $authPeopleId)
+                ->firstOrFail();
+
+            if ($editRequest->status !== '1') {
+                return response()->json(['status' => 'error', 'message' => 'Only pending requests can be deleted.'], 409);
+            }
+
+            $editRequest->delete();
+
+            try {
+                Cache::forget("people_edit_requests_{$authPeopleId}");
+                Log::debug('[Cache] Forgot people_edit_requests_' . $authPeopleId);
+            } catch (\Throwable $e) {
+                Log::warning('[Cache] Failed to forget edit requests cache', [
+                    'key'   => "people_edit_requests_{$authPeopleId}",
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Edit request deleted successfully.',
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['status' => 'error', 'message' => 'Edit request not found.'], 404);
+        } catch (\Throwable $e) {
+            Log::error('Edit Request Delete Error', ['message' => $e->getMessage()]);
+
+            return response()->json(['status' => 'error', 'message' => 'Failed to delete request.'], 500);
+        }
+    }
+
     public function review(Request $request, int $id)
     {
         try {
