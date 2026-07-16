@@ -31,7 +31,7 @@ class TeacherSeeder_02 extends Seeder
 
             return;
         }
-
+//teacher seeder 2 is for creating teachers with family and education details. It creates two teachers with their personal, address, appointment, education, and family information. It also provisions users in WSO2 Identity Server for authentication.
         $teachers = [
             [
                 // --- Personal (all fields — no nulls) ---
