@@ -163,6 +163,8 @@ export const PermissionGroups = {
     TEACHER: "menu.schools.teachers",
     PRINCIPAL: "menu.schools.principals",
     DEO: "menu.schools.deo",
+    DEO_CREATE: "school.deo.create",
+    DEO_BULK_UPLOAD: "school.deo.bulk.upload",
     BULK_UPLOAD: "teacher.bulk.upload",
     CREATE: "teacher.create",
     DELETE: "teacher.delete",

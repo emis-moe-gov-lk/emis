@@ -1025,6 +1025,8 @@ class RolePermissionSeeder extends Seeder
         'menu.schools.principals',
         'menu.schools.deo',
         'menu.schools.clerk',
+        'school.deo.create',
+        'school.deo.bulk.upload',
         'teacher.bulk.upload',
         'teacher.create',
         'teacher.delete',
@@ -1213,8 +1215,15 @@ class RolePermissionSeeder extends Seeder
             'menu.provincial.deo',
             'provincial.admin.profile.view',
             'provincial.admin.profile.edit',
+            'provincial.deo.create',
+            'provincial.deo.bulk.upload',
             'provincial.deo.profile.view',
             'provincial.deo.profile.edit',
+            'provincial.deo.profile.exportpdf',
+            'provincial.deo.qualification.add',
+            'provincial.deo.service.add',
+            'provincial.deo.wop.edit',
+            'provincial.deo.family.add',
             'menu.settings.system.settings',
             'menu.settings.version',
             'menu.settings.notifications',
@@ -1252,6 +1261,8 @@ class RolePermissionSeeder extends Seeder
             'menu.schools.teachers',
             'menu.schools.principals',
             'menu.schools.deo',
+            'school.deo.create',
+            'school.deo.bulk.upload',
             'teacher.bulk.upload',
             'teacher.create',
             'teacher.update',
@@ -1313,12 +1324,27 @@ class RolePermissionSeeder extends Seeder
         ];
 
 
-         // provincial DEO same permissions as zonal DEO + provincial permissions
-        $provincialDeoPermissionsList = array_merge($zonalDeoPermissions, [
+         // provincial DEO same permissions as zonal DEO + provincial permissions,
+         // but without zonal admin management (those belong to zonal/provincial director level)
+        $excludeZonalAdminPermissions = [
+            'school.deo.create',
+            'school.deo.bulk.upload',
+            'teacher.create',
+            'teacher.bulk.upload',
+            'zonal.admin.create',
+            'zonal.admin.bulk.upload',
+            'zonal.admin.profile.edit',
+            'zonal.admin.profile.exportpdf',
+            'zonal.admin.service.add',
+            'zonal.admin.qualification.add',
+            'zonal.admin.wop.edit',
+            'zonal.admin.family.add',
+        ];
+
+        $provincialDeoPermissionsList = array_values(array_diff(array_merge($zonalDeoPermissions, [
             'menu.provincial',
             'menu.provincial.admin',
             'menu.provincial.deo',
-            'provincial.admin.create',
             'provincial.admin.profile.view',
             'provincial.admin.service.add',
             'provincial.admin.qualification.add',
@@ -1330,9 +1356,9 @@ class RolePermissionSeeder extends Seeder
             'provincial.deo.service.add',
             'provincial.deo.wop.edit',
             'provincial.deo.family.add',
-        ]);
+        ]), $excludeZonalAdminPermissions));
 
-        foreach (['Provincial DEO' => 4, 'Provincial Clerk (DEO)' => 4] as $roleName => $level) {
+        foreach (['Provincial DEO' => 4] as $roleName => $level) {
             $role = Role::firstOrCreate(['name' => $roleName]);
             $role->level = $level;
             $role->save();

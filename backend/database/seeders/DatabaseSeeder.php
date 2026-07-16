@@ -79,7 +79,7 @@ class DatabaseSeeder extends Seeder
         $this->call(DeoOfficerSeeder::class);
         $this->call(TeacherSeeder_02::class);
         $this->call(TeacherSeeder::class);
-        $this->call(TeacherSeeder_03::class);
+        // $this->call(TeacherSeeder_03::class);
         $this->call(TeacherSeeder_04::class);
         $this->call(RecruitmentCategorySeeder::class);
 

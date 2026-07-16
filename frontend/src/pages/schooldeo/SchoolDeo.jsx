@@ -10,6 +10,8 @@ import {
   HiChevronRight,
 } from "react-icons/hi";
 import { NavLink, useNavigate } from "react-router-dom";
+import Can from "@/components/common/Can";
+import { PermissionGroups } from "@/data/permissionGroups";
 import DirectoryCard from "@/components/common/DirectoryCard";
 import Button from "@/components/UiComponents/Button";
 import profile_m from "@/assets/images/profile_m.png";
@@ -103,17 +105,21 @@ const SchoolDeo = () => {
         </div>
 
         <div className="flex items-center gap-3">
-          <Button 
-            variant="secondary" 
-            onClick={() => alert("Bulk Upload Placeholder")}
-            icon={<HiUpload className="h-4 w-4" />}
-          >
-            Bulk Upload
-          </Button>
+          <Can permission={PermissionGroups.SCHOOLS.DEO_BULK_UPLOAD}>
+            <Button 
+              variant="secondary" 
+              onClick={() => alert("Bulk Upload Placeholder")}
+              icon={<HiUpload className="h-4 w-4" />}
+            >
+              Bulk Upload
+            </Button>
+          </Can>
 
-          <Button onClick={handleCreateDeo} icon={<HiPlus />}>
-            Create DEO
-          </Button>
+          <Can permission={PermissionGroups.SCHOOLS.DEO_CREATE}>
+            <Button onClick={handleCreateDeo} icon={<HiPlus />}>
+              Create DEO
+            </Button>
+          </Can>
         </div>
       </div>
 
