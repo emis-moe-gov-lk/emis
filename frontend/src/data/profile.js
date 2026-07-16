@@ -1,3 +1,4 @@
+//profile.js
 export const personalData = [
   { label: "Full Name", value: "Mr. Widana Pathiranage Somadasa" },
   { label: "Initials With Name", value: "Mr. W.P. Somadasa" },
