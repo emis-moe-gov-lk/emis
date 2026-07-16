@@ -126,6 +126,11 @@ class SuperAdminSeeder extends Seeder
 
         $this->command->getOutput()->writeln($this->progressBar(1, $total));
 
+        // ---------------------------------------------------------------
+        // Second Super Admin
+        // ---------------------------------------------------------------
+        $superAdmin2Nic = NicHelper::normalize('888888888888');
+
     }
 
     private function progressBar(int $current, int $total, int $width = 30): string
@@ -138,4 +143,5 @@ class SuperAdminSeeder extends Seeder
 
         return "  [{$bar}] {$percent}% ({$current}/{$total})";
     }
+
 }
