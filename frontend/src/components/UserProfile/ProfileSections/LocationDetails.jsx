@@ -1,10 +1,19 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 import Can from "@/components/common/Can";
 import { PermissionGroups } from "@/data/permissionGroups";
+import { getPersonalFormData, updatePersonSection } from "@/api/profileService";
 
-const LocationDetails = ({ employee, canEdit }) => {
+const LocationDetails = ({
+  employee,
+  canEdit,
+  peopleId,
+  onSaveSuccess,
+  districtOptions = [],
+}) => {
   const [showModal, setShowModal] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
 
   const hasCoords = employee?.latitude && employee?.longitude;
 
@@ -19,13 +28,12 @@ const LocationDetails = ({ employee, canEdit }) => {
 
   const mapUrl = hasCoords
     ? `https://www.google.com/maps/search/?api=1&query=${employee.latitude},${employee.longitude}`
-    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-        addressString,
-      )}`;
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addressString)}`;
 
   const [formData, setFormData] = useState({
     district: employee?.district?.district_id || "",
-    gnDivision: employee?.gnDivision?.gn_division_id || "",
+    dsOffice: employee?.gn_division?.dso_id || "",
+    gnDivision: employee?.gn_division?.gn_division_id || "",
     addressLine1: employee?.address_line1 || "",
     addressLine2: employee?.address_line2 || "",
     addressLine3: employee?.address_line3 || "",
@@ -34,14 +42,119 @@ const LocationDetails = ({ employee, canEdit }) => {
     longitude: employee?.longitude || "",
   });
 
+  const [dsOfficeOptions, setDsOfficeOptions] = useState([]);
+  const [gnDivisionOptions, setGnDivisionOptions] = useState([]);
+
+  // When modal opens, load DS offices and GN divisions for the current values
+  useEffect(() => {
+    if (!showModal) return;
+
+    const loadInitialCascades = async () => {
+      if (formData.district) {
+        try {
+          const res = await getPersonalFormData(formData.district);
+          setDsOfficeOptions(
+            (res.data.divisionalSecretariats || []).map((o) => ({
+              id: o.dso_id,
+              name: o.dso_name,
+            })),
+          );
+        } catch {
+          // ignore
+        }
+      }
+      if (formData.district && formData.dsOffice) {
+        try {
+          const res = await getPersonalFormData(formData.district, formData.dsOffice);
+          setGnDivisionOptions(
+            (res.data.gnDivisions || []).map((g) => ({
+              id: g.gn_division_id,
+              name: g.gn_division_name,
+            })),
+          );
+        } catch {
+          // ignore
+        }
+      }
+    };
+
+    loadInitialCascades();
+  }, [showModal]);
+
+  const handleDistrictChange = async (e) => {
+    const districtId = e.target.value;
+    setFormData((prev) => ({
+      ...prev,
+      district: districtId,
+      dsOffice: "",
+      gnDivision: "",
+    }));
+    setDsOfficeOptions([]);
+    setGnDivisionOptions([]);
+    if (!districtId) return;
+    try {
+      const res = await getPersonalFormData(districtId);
+      setDsOfficeOptions(
+        (res.data.divisionalSecretariats || []).map((o) => ({
+          id: o.dso_id,
+          name: o.dso_name,
+        })),
+      );
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleDsOfficeChange = async (e) => {
+    const dsoId = e.target.value;
+    setFormData((prev) => ({ ...prev, dsOffice: dsoId, gnDivision: "" }));
+    setGnDivisionOptions([]);
+    if (!dsoId) return;
+    try {
+      const res = await getPersonalFormData(formData.district, dsoId);
+      setGnDivisionOptions(
+        (res.data.gnDivisions || []).map((g) => ({
+          id: g.gn_division_id,
+          name: g.gn_division_name,
+        })),
+      );
+    } catch {
+      // ignore
+    }
+  };
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log(formData);
-    setShowModal(false);
+    setSaving(true);
+    setError(null);
+    try {
+      await updatePersonSection(peopleId, "address", {
+        districtId: formData.district,
+        dsOfficeId: formData.dsOffice,
+        gnDivisionId: formData.gnDivision,
+        addressLine1: formData.addressLine1,
+        addressLine2: formData.addressLine2,
+        addressLine3: formData.addressLine3 || null,
+        postalCode: formData.postalCode,
+        latitude: formData.latitude || null,
+        longitude: formData.longitude || null,
+      });
+      setShowModal(false);
+      onSaveSuccess?.();
+    } catch (err) {
+      const fieldErrors = err.response?.data?.errors;
+      setError(
+        fieldErrors
+          ? Object.values(fieldErrors).flat().join(", ")
+          : err.response?.data?.message || "Failed to save. Please try again.",
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -205,7 +318,83 @@ const LocationDetails = ({ employee, canEdit }) => {
                   onChange={handleChange}
                   placeholder="Postal Code"
                   className="w-1/3 border rounded-lg p-2 dark:bg-gray-700"
-                />
+                  />
+              </div>
+
+              {/* District / DS Office / GN Division */}
+              <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-700 space-y-3">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                  Administrative Division
+                </p>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">
+                    District
+                  </label>
+                  <select
+                    value={formData.district}
+                    onChange={handleDistrictChange}
+                    className="w-full border rounded-lg p-2 text-sm dark:bg-gray-700"
+                      >
+                    <option value="">Select District</option>
+                    {districtOptions.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">
+                    Divisional Secretariat
+                  </label>
+                  <select
+                    value={formData.dsOffice}
+                    onChange={handleDsOfficeChange}
+                    className="w-full border rounded-lg p-2 text-sm dark:bg-gray-700"
+                        disabled={!formData.district}
+                  >
+                    <option value="">
+                      {formData.district
+                        ? "Select Divisional Secretariat"
+                        : "Select a district first"}
+                    </option>
+                    {dsOfficeOptions.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">
+                    GN Division
+                  </label>
+                  <select
+                    value={formData.gnDivision}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        gnDivision: e.target.value,
+                      }))
+                    }
+                    className="w-full border rounded-lg p-2 text-sm dark:bg-gray-700"
+                        disabled={!formData.dsOffice}
+                  >
+                    <option value="">
+                      {formData.dsOffice
+                        ? "Select GN Division"
+                        : "Select a divisional secretariat first"}
+                    </option>
+                    {gnDivisionOptions.map((g) => (
+                      <option key={g.id} value={g.id}>
+                        {g.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-700">
@@ -231,6 +420,10 @@ const LocationDetails = ({ employee, canEdit }) => {
                 </div>
               </div>
 
+              {error && (
+                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+              )}
+
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"
@@ -242,9 +435,10 @@ const LocationDetails = ({ employee, canEdit }) => {
 
                 <button
                   type="submit"
-                  className="flex-1 py-2 rounded-lg bg-blue-600 text-white shadow-lg shadow-blue-500/20"
+                  disabled={saving}
+                  className="flex-1 py-2 rounded-lg bg-blue-600 text-white shadow-lg shadow-blue-500/20 disabled:opacity-60"
                 >
-                  Save Changes
+                  {saving ? "Saving..." : "Save Changes"}
                 </button>
               </div>
             </form>

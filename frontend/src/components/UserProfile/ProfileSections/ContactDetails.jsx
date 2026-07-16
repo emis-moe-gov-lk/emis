@@ -2,16 +2,33 @@ import React, { useState } from "react";
 
 import Can from "@/components/common/Can";
 import { PermissionGroups } from "@/data/permissionGroups";
+import { updatePersonSection } from "@/api/profileService";
 
-const ContactDetails = ({ employee, canEdit }) => {
+const ContactDetails = ({ employee, canEdit, peopleId, onSaveSuccess }) => {
   const [showModal, setShowModal] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
   const [email, setEmail] = useState(employee?.email || "");
   const [phone, setPhone] = useState(employee?.phone || "");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log({ email, phone });
-    setShowModal(false);
+    setSaving(true);
+    setError(null);
+    try {
+      await updatePersonSection(peopleId, "contact", { email, phone });
+      setShowModal(false);
+      onSaveSuccess?.();
+    } catch (err) {
+      const fieldErrors = err.response?.data?.errors;
+      setError(
+        fieldErrors
+          ? Object.values(fieldErrors).flat().join(", ")
+          : err.response?.data?.message || "Failed to save. Please try again.",
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -130,6 +147,10 @@ const ContactDetails = ({ employee, canEdit }) => {
                 />
               </div>
 
+              {error && (
+                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+              )}
+
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"
@@ -141,9 +162,10 @@ const ContactDetails = ({ employee, canEdit }) => {
 
                 <button
                   type="submit"
-                  className="flex-1 py-2 rounded-lg bg-blue-600 text-white"
+                  disabled={saving}
+                  className="flex-1 py-2 rounded-lg bg-blue-600 text-white disabled:opacity-60"
                 >
-                  Save Changes
+                  {saving ? "Saving..." : "Save Changes"}
                 </button>
               </div>
             </form>
