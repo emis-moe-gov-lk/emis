@@ -18,7 +18,7 @@ class SuperAdminSeeder extends Seeder
 {
     public function run(Wso2IsProvisioningService $wso2Is): void
     {
-        $total = 2;
+        $total = 1;
 
         // Ensure the role exists
         $superAdminRole = Role::firstOrCreate(['name' => 'super admin']);
@@ -94,6 +94,7 @@ class SuperAdminSeeder extends Seeder
                 'appointment_letter_no' => 'LETTER001',
                 'appointment_letter'    => 'letter.pdf',
                 'active_status'         => '1',
+                'is_confirmed'          => 1,
                 'is_confirmed'          => 1,
             ]
         );
