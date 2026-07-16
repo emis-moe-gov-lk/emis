@@ -1,4 +1,4 @@
-- name: Configure IS post-installation (No APIM)
+- name: Configure IS post-installation
   hosts: swarm_managers
   gather_facts: false
   vars:

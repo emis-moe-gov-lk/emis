@@ -69,7 +69,7 @@ else
 fi
 
 # -- Step 8: Configure IS (roles, users, OIDC apps) --
-ansible-playbook -i "$INVENTORY_FILE" -e @"$ENV_FILE" -e deploy_env="$ENV" "$PB_DIR/configure-is-only.yml"
+ansible-playbook -i "$INVENTORY_FILE" -e @"$ENV_FILE" -e deploy_env="$ENV" "$PB_DIR/configure-is.yml"
 
 # -- Step 9: Deploy full stack (IS + APIM + frontend + backend) --
 ansible-playbook -i "$INVENTORY_FILE" -e @"$ENV_FILE" -e deploy_env="$ENV" "$PB_DIR/deploy-stack.yml"

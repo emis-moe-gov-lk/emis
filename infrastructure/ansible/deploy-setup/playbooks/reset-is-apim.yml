@@ -1,0 +1,68 @@
+---
+# ============================================================
+# EMIS — WSO2 IS + APIM Full Reset Playbook
+# ============================================================
+# Performs a full reset of WSO2 IS and APIM:
+#   1. Stops wso2-is and wso2-apim services (scales to 0).
+#   2. Resets IS databases (drops, recreates, imports schemas).
+#   3. Resets APIM databases (drops, recreates, imports schemas).
+#   4. Redeploys IS+APIM stack (re-renders env files, deploys latest images).
+#   5. Reconfigures APIM (registers IS as Key Manager, creates DevPortal apps).
+#   6. Reconfigures IS (creates roles, users, OIDC apps).
+#
+# Usage:
+#   ansible-playbook playbooks/reset-is-apim.yml \
+#     -i inventory/inventory.yml \
+#     -e @env/env.yml \
+#     --vault-password-file .vault_pass
+# ============================================================
+
+# ── Step 1: Stop WSO2 IS and APIM services ─────────────────────────────────────
+- name: Stop WSO2 IS and APIM services
+  hosts: swarm_managers
+  become: true
+  tasks:
+    - name: Scale down wso2-is service to 0
+      ansible.builtin.shell: "docker service scale {{ stack_name }}_wso2-is=0"
+      register: is_scale_down
+      failed_when:
+        - is_scale_down.rc != 0
+        - "'no such service' not in is_scale_down.stderr"
+
+    - name: Scale down wso2-apim service to 0
+      ansible.builtin.shell: "docker service scale {{ stack_name }}_wso2-apim=0"
+      register: apim_scale_down
+      failed_when:
+        - apim_scale_down.rc != 0
+        - "'no such service' not in apim_scale_down.stderr"
+
+# ── Step 2: Reset WSO2 IS databases ────────────────────────────────────────────
+- name: Reset WSO2 IS databases
+  ansible.builtin.import_playbook: mysql-setup-wso2-is-only.yml
+
+# ── Step 3: Reset WSO2 APIM databases ──────────────────────────────────────────
+- name: Reset WSO2 APIM databases
+  ansible.builtin.import_playbook: mysql-setup-wso2-apim.yml
+
+# ── Step 4: Deploy IS+APIM stack (re-renders env files) ────────────────────────
+- name: Deploy WSO2 IS + APIM stack
+  ansible.builtin.import_playbook: deploy-is-apim.yml
+
+# ── Step 5: Configure APIM (KM registration + DevPortal app shells) ────────────
+- name: Configure WSO2 API Manager
+  ansible.builtin.import_playbook: configure-apim.yml
+
+# ── Step 6: Configure IS (roles, users, OIDC apps) ─────────────────────────────
+- name: Configure WSO2 Identity Server
+  ansible.builtin.import_playbook: configure-is.yml
+
+- name: Post-reset summary
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Print success message
+      ansible.builtin.debug:
+        msg:
+          - "================================================================"
+          - "WSO2 IS and APIM have been RESET and RECONFIGURED."
+          - "================================================================"

@@ -3,7 +3,7 @@
 # Imports APIs, subscribes DevPortal apps, generates OAuth keys linked to
 # the IS key manager, and syncs callback/origin/claim config back to IS.
 # Run after deploy-stack.yml (APIM + backend are live) and after
-# configure-is-only.yml (IS apps exist).
+# configure-is.yml (IS apps exist).
 - name: Configure APIM — API import, subscriptions, keys, and IS sync
   hosts: swarm_managers
   gather_facts: false

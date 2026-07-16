@@ -52,7 +52,7 @@
 - import_playbook: configure-apim.yml
 
 # -- Step 8: Configure IS (roles, users, OIDC apps) --
-- import_playbook: configure-is-only.yml
+- import_playbook: configure-is.yml
 
 # -- Step 9: Deploy full stack with updated credentials --
 - import_playbook: deploy-stack.yml
