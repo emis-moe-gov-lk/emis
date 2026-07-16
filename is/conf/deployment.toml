@@ -43,6 +43,10 @@ file_name = "client-truststore.p12"
 password = "wso2carbon"
 type = "PKCS12"
 
+# --- Role Management ---
+[role_mgt]
+allow_system_prefix_for_role = true
+
 # --- Auth endpoint credentials ---
 [account_recovery.endpoint.auth]
 hash = "66cd9688a2ae068244ea01e70f0e230f5623b7fa4cdecb65070a09ec06452262"
@@ -65,6 +69,15 @@ notification_endpoint = "https://$env{APIM_HOST}:$env{APIM_PORT}/internal/data/v
 username = "$env{APIM_WSO2USER_USERNAME}"
 password = "$env{APIM_WSO2USER_PASSWORD}"
 'header.X-WSO2-KEY-MANAGER' = "WSO2-IS"
+
+# --- SCIM2/Me — cross-tenant access for Key Manager user info ---
+[[resource.access_control]]
+context = "(.*)/scim2/Me"
+secure = true
+http_method = "GET"
+cross_tenant = true
+permissions = []
+scopes = []
 
 # --- Allow Admin Basic Auth for managing Roles and Users via SCIM2 ---
 [[resource.access_control]]

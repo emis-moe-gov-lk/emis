@@ -73,23 +73,6 @@ url = "https://$env{APIM_HOSTNAME}/devportal"
 url = "https://$env{APIM_HOSTNAME}/publisher"
 
 
-# ----------
-#   IDP - (Internal Portal Authentication)
-# ----------
-
-[apim.key_manager]
-service_url = "https://$env{APIM_IS_HOST}:$env{APIM_IS_PORT}/services/"
-username = "$env{APIM_IS_KEYMANAGER_USERNAME}"
-password = "$env{APIM_IS_KEYMANAGER_PASSWORD}"
-type = "WSO2-IS"
-
-[apim.idp]
-server_url = "https://$env{APIM_IS_HOST}:$env{APIM_IS_PORT}"
-authorize_endpoint = "https://$env{APIM_IS_HOSTNAME}/oauth2/authorize"
-oidc_logout_endpoint = "https://$env{APIM_IS_HOSTNAME}/oidc/logout"
-oidc_check_session_endpoint = "https://$env{APIM_IS_HOSTNAME}/oidc/checksession"
-
-
 # ----------------
 #  Health Checks
 # ---------------
