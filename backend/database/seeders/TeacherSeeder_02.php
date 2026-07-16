@@ -36,7 +36,7 @@ class TeacherSeeder_02 extends Seeder
             [
                 // --- Personal (all fields — no nulls) ---
                 'nic'                      => '199012345075',
-                'dob'                      => '1990-01-01',
+                'dob'                      => '1990-06-23',
                 'title_id'                 => 'T02',
                 'full_name'                => 'Arshvin Waduge',
                 'gender_id'                => 'G01',
