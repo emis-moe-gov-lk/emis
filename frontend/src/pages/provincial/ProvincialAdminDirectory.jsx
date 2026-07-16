@@ -3,6 +3,7 @@ import ProvincialHeader from "@/components/provincial/ProvincialHeader";
 import ProvincialList from "@/components/provincial/ProvincialList";
 import { getAllProvincialAdmins } from "@/api/provincialAdminService";
 import { Spinner } from "flowbite-react";
+import { PermissionGroups } from "@/data/permissionGroups";
 
 export default function ProvincialAdminDirectory() {
   const [employees, setEmployees] = useState([]);
@@ -71,6 +72,7 @@ export default function ProvincialAdminDirectory() {
         searchPlaceholder="Search Provincial Administrators"
         createLabel="Add Provincial Administrator"
         createPath="/employees/provincial/admin/create"
+        permission={PermissionGroups.PROVINCIAL.ADMIN_CREATE}
       />
 
       {error ? (

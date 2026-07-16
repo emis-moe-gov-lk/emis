@@ -2,6 +2,7 @@ import { TextInput } from "flowbite-react";
 import StatusBadge from "@/components/common/StatusBadge";
 import { HiSearch, HiPlus } from "react-icons/hi";
 import { useNavigate } from "react-router-dom";
+import Can from "@/components/common/Can";
 
 export default function ProvincialHeader({
   count,
@@ -12,6 +13,7 @@ export default function ProvincialHeader({
   searchPlaceholder,
   createLabel,
   createPath,
+  permission,
   loadingLabel,
 }) {
   const navigate = useNavigate();
@@ -48,15 +50,17 @@ export default function ProvincialHeader({
           />
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate(createPath || "create")}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors shadow-sm"
-          >
-            <HiPlus />
-            {createLabel || "Add New"}
-          </button>
-        </div>
+        <Can permission={permission}>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate(createPath || "create")}
+              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors shadow-sm"
+            >
+              <HiPlus />
+              {createLabel || "Add New"}
+            </button>
+          </div>
+        </Can>
       </div>
 
       {loadingLabel ? (

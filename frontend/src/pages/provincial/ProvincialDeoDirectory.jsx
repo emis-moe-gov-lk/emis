@@ -71,6 +71,7 @@ export default function ProvincialDeoDirectory() {
         searchPlaceholder="Search Provincial DEOs"
         createLabel="Add Provincial DEO"
         createPath="/employees/provincial/deo/create"
+        permission="provincial.deo.create"
       />
 
       {error ? (
