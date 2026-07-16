@@ -267,7 +267,10 @@ Route::prefix('')->group(function () {
     Route::get('/user/{people_id}', UserApiController::class)->middleware('auth:jwt');
     Route::get('/user/{people_id}/edit-requests', [PeopleProfileEditRequestController::class, 'indexByPerson'])->middleware('auth:jwt');
     Route::post('/profile/edit-requests', [PeopleProfileEditRequestController::class, 'store'])->middleware('auth:jwt');
-    Route::patch('/profile/edit-requests/{id}', [PeopleProfileEditRequestController::class, 'review'])->middleware('auth:jwt');
+    Route::patch('/profile/edit-requests/{id}', [PeopleProfileEditRequestController::class, 'update'])->middleware('auth:jwt');
+    Route::delete('/profile/edit-requests/{id}', [PeopleProfileEditRequestController::class, 'destroy'])->middleware('auth:jwt');
+    // this route is for reviewing the edit requests by the admin or authorized personnel    
+    Route::patch('/profile/edit-requests/{id}/review', [PeopleProfileEditRequestController::class, 'review'])->middleware('auth:jwt');
     Route::get('/dashboard/{people_id}', DashboardController::class)->middleware('auth:jwt');
     Route::get('/pdf/teacher/{people_id}', [TeacherPdf::class, 'generateSimplePdf'])->middleware('auth:jwt');
     Route::get('/pdf/office-admin/{people_id}', [\App\Http\Controllers\Pdf\OfficeAdminPdf::class, 'generatePdf'])->middleware('auth:jwt');

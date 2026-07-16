@@ -161,7 +161,7 @@ export const getEditRequests = (peopleId) =>
   api.get(`/user/${peopleId}/edit-requests`);
 
 export const reviewEditRequest = (id, data) =>
-  api.patch(`/profile/edit-requests/${id}`, data);
+  api.patch(`/profile/edit-requests/${id}/review`, data);
 
 export const getZonalEditRequests = (params = {}) =>
   api.get("/alerts/edit-requests", { params });

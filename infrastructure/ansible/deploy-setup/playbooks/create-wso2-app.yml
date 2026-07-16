@@ -16,7 +16,7 @@
     apps_to_create:
       - name: "Web App - TEST"
         description: "SPA APP TEST - TEST"
-        template_id: ""  # Empty for standard OIDC applications
+        template_id: "" # Empty for standard OIDC applications
         public_client: true
         grant_types:
           - "authorization_code"
@@ -80,6 +80,53 @@
             scopes:
               - "internal_role_mgt_update"
               - "internal_role_mgt_users_update"
+
+      - name: "EMIS Mobile App- TEST"
+        description: "SPA APP TEST - TEST"
+        template_id: "mobile-application" # Empty for standard OIDC applications
+        public_client: true
+        grant_types:
+          - "authorization_code"
+          - "refresh_token"
+        callback_urls:
+          - "https://app-dev.emis.moe.gov.lk"
+          - "lk.gov.moe.emis-hr://logoutcallback"
+          - "lk.gov.moe.emis-hr://callback"
+        allowed_origins:
+          - "https://app-dev.emis.moe.gov.lk"
+          - "https://localhost:8090"
+        #claims:
+        #  dialect: "LOCAL"
+        #  requested_claims:
+        #    - claim:
+        #        uri: "http://wso2.org/claims/emailaddress"
+        #      mandatory: false
+        #    - claim:
+        #        uri: "http://wso2.org/claims/roles"
+        #      mandatory: false
+        #  subject:
+        #    uri: "http://wso2.org/claims/userid"
+        #    include_user_domain: false
+        #    include_tenant_domain: false
+        #    use_mapped_local_subject: false
+        associated_roles:
+          allowed_audience: "ORGANIZATION"
+        oidc_custom_config:
+          pkce:
+            mandatory: false
+            support_plain: false
+          access_token:
+            type: "JWT"
+            user_expiry: 3600
+            app_expiry: 3600
+            attributes:
+              - "email"
+              - "given_name"
+              - "roles"
+          refresh_token:
+            expiry: 86400
+          id_token:
+            expiry: 3600
 
   tasks:
     - name: Wait for IS management API to be ready

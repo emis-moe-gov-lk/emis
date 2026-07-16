@@ -18,7 +18,7 @@ class SuperAdminSeeder extends Seeder
 {
     public function run(Wso2IsProvisioningService $wso2Is): void
     {
-        $total = 1;
+        $total = 2;
 
         // Ensure the role exists
         $superAdminRole = Role::firstOrCreate(['name' => 'super admin']);
@@ -125,6 +125,30 @@ class SuperAdminSeeder extends Seeder
 
         $this->command->getOutput()->writeln($this->progressBar(1, $total));
 
+        // ---------------------------------------------------------------
+        // Second Super Admin
+        // ---------------------------------------------------------------
+        $superAdmin2Nic = NicHelper::normalize('888888888888');
+
+    }
+
+    private function progressBar(int $current, int $total, int $width = 30): string
+    {
+        $percent = $total > 0 ? (int) floor(($current / $total) * 100) : 0;
+        $filled  = $total > 0 ? (int) floor(($current / $total) * $width) : 0;
+
+        $bar = str_repeat('=', max(0, $filled - 1)) . ($filled > 0 ? '>' : '');
+        $bar = str_pad($bar, $width, ' ');
+
+        $result = $wso2Is->provisionUser($user2, 'SuperAdmin@123', 'super admin');
+        if ($result['provisioned'] ?? false) {
+            $this->command->info("  WSO2: provisioned {$user2->email}");
+        } else {
+            $reason = $result['error'] ?? ($result['skipped'] ?? false ? 'WSO2 disabled' : 'unknown');
+            $this->command->warn("  WSO2 provisioning failed for {$user2->email}: {$reason}");
+        }
+
+        $this->command->getOutput()->writeln($this->progressBar(2, $total));
     }
 
     private function progressBar(int $current, int $total, int $width = 30): string
