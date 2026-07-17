@@ -63,7 +63,7 @@ ansible-playbook -i "$INVENTORY_FILE" -e @"$ENV_FILE" -e deploy_env="$ENV" "$PB_
 
 # -- Step 7: Configure APIM (KM registration + DevPortal app shells) --
 if grep -q "^mysql_apim_db:" "$ENV_FILE"; then
-  ansible-playbook -i "$INVENTORY_FILE" -e @"$ENV_FILE" -e deploy_env="$ENV" "$PB_DIR/configure-apim.yml"
+  ansible-playbook -i "$INVENTORY_FILE" -e @"$ENV_FILE" -e deploy_env="$ENV" "$PB_DIR/configure-apim-km-apps.yml"
 else
   echo "Skipping Step 7: APIM configuration (mysql_apim_db not defined in env)"
 fi

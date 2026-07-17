@@ -1,9 +1,9 @@
 ---
-# ---PLAY-CONFIGURE-APIM--------------------------------------------------
+# ---PLAY-CONFIGURE-APIM-KM-APPS-------------------------------------------
 # Registers WSO2 IS as external Key Manager in APIM
 # and creates DevPortal application shells (no subscriptions or keys yet).
 # Run after deploy-is-apim.yml and before configure-is.yml.
-- name: Configure APIM — Key Manager registration and DevPortal applications
+- name: Configure APIM — Key Manager registration and DevPortal app shells
   hosts: swarm_managers
   gather_facts: false
   vars:

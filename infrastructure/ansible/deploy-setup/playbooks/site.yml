@@ -49,7 +49,7 @@
 - import_playbook: deploy-is-apim.yml
 
 # -- Step 7: Configure APIM (KM registration + DevPortal app shells) --
-- import_playbook: configure-apim.yml
+- import_playbook: configure-apim-km-apps.yml
 
 # -- Step 8: Configure IS (roles, users, OIDC apps) --
 - import_playbook: configure-is.yml

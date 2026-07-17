@@ -49,12 +49,12 @@
   ansible.builtin.import_playbook: deploy-is-apim.yml
 
 # ── Step 5: Configure APIM (KM registration + DevPortal app shells) ────────────
-- name: Configure WSO2 API Manager
-  ansible.builtin.import_playbook: configure-apim.yml
+#- name: Configure WSO2 API Manager
+#  ansible.builtin.import_playbook: configure-apim-km-apps.yml
 
 # ── Step 6: Configure IS (roles, users, OIDC apps) ─────────────────────────────
-- name: Configure WSO2 Identity Server
-  ansible.builtin.import_playbook: configure-is.yml
+#- name: Configure WSO2 Identity Server
+#  ansible.builtin.import_playbook: configure-is.yml
 
 - name: Post-reset summary
   hosts: localhost
