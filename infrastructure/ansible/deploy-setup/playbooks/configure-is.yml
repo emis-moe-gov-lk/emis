@@ -495,3 +495,36 @@
         - teacher_role_id is defined
         - teacher_role_id != 'NOT_FOUND'
 
+    - name: Update docker-swarm/frontend.env with VITE client ID
+      ansible.builtin.lineinfile:
+        path: "{{ playbook_dir }}/../../../docker-swarm/frontend.env"
+        regexp: '^VITE_ASGARDEO_CLIENT_ID='
+        line: "VITE_ASGARDEO_CLIENT_ID={{ app_credentials['EMIS Web App'].clientId | default('') }}"
+      delegate_to: localhost
+      run_once: true
+      when:
+        - app_credentials is defined
+        - app_credentials['EMIS Web App'] is defined
+
+    - name: Update docker-swarm/backend.env with M2M and Teacher role credentials
+      ansible.builtin.lineinfile:
+        path: "{{ playbook_dir }}/../../../docker-swarm/backend.env"
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+      loop:
+        - regexp: '^WSO2_M2M_CLIENT_ID='
+          line: "WSO2_M2M_CLIENT_ID={{ app_credentials['EMIS-HRM M2M'].clientId | default('') }}"
+        - regexp: '^WSO2_M2M_CLIENT_SECRET='
+          line: "WSO2_M2M_CLIENT_SECRET={{ app_credentials['EMIS-HRM M2M'].clientSecret | default('') }}"
+        - regexp: '^WSO2_TEACHER_ROLE_ID='
+          line: "WSO2_TEACHER_ROLE_ID={{ teacher_role_id }}"
+        - regexp: '^WSO2_ENABLED='
+          line: "WSO2_ENABLED=True"
+      delegate_to: localhost
+      run_once: true
+      when:
+        - app_credentials is defined
+        - app_credentials['EMIS-HRM M2M'] is defined
+        - teacher_role_id is defined
+        - teacher_role_id != 'NOT_FOUND'
+

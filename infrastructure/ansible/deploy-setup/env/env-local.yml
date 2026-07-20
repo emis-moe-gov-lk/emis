@@ -1,0 +1,186 @@
+---
+# ============================================================
+# EMIS Local Deployment Environment
+# ============================================================
+# Local single-machine Docker Swarm setup.
+# MySQL runs as a container — no bare-metal install needed.
+# Env files are pre-baked in infrastructure/docker-swarm/.
+
+# ── Stack identity ───────────────────────────────────────────
+stack_name: emis-local
+deploy_env: local
+stack_deploy_path: /opt/emis-local
+stack_network_subnet: "172.22.0.0/16"
+
+# ── Base endpoints ───────────────────────────────────────────
+frontend_url: "http://localhost"
+backend_url:  "http://localhost:9000"
+idp_hostname: "localhost"
+apim_hostname: "localhost"
+
+# ── Host port mappings ───────────────────────────────────────
+frontend_host_port: 80
+backend_host_port:  9000
+is_host_port:       9444
+apim_host_port:     9443
+apim_gateway_port:  8243
+apim_gateway_http_port: 8280
+
+# ── Docker image tags ────────────────────────────────────────
+frontend_image_repo: emis-frontend
+frontend_image_tag:  local
+backend_image_repo:  emis-backend
+backend_image_tag:   local
+is_image_repo:       emis-is
+is_image_tag:        local
+apim_image_repo:     emis-apim
+apim_image_tag:      local
+
+# ── WSO2 IS ──────────────────────────────────────────────────
+is_hostname: "localhost"
+is_proxy_host: "localhost"
+is_proxy_port: "443"
+is_admin_user: admin
+is_admin_password: ADMINIS11
+is_db_host: "localhost"
+is_db_port: "3306"
+is_port: "9444"
+
+# ── Backend (Laravel) ────────────────────────────────────────
+app_env: local
+app_debug: "true"
+app_url: "http://localhost:9000"
+
+db_host: "localhost"
+db_port: "3306"
+db_database: emis_hrm_db_local
+db_username: emis-user-local
+db_password: EmisUserDev0
+
+wso2_enabled: "True"
+wso2_base_url: "https://localhost:9444"
+wso2_verify_ssl: "False"
+wso2_m2m_client_id: changeme
+wso2_m2m_client_secret: changeme
+wso2_teacher_role_id: changeme
+
+memcached_host: memcached
+
+# ── WSO2 APIM ────────────────────────────────────────────────
+apim_notification_host: "localhost"
+apim_notification_port: "9443"
+apim_notification_user: admin
+apim_notification_password: ADMIN111
+
+# ── Frontend (Vite) ──────────────────────────────────────────
+vite_asgardeo_base_url: "https://localhost:9444"
+vite_asgardeo_client_id: changeme
+vite_signin_redirect_url: "http://localhost/authentication/callback"
+vite_signout_redirect_url: "http://localhost/logout"
+vite_api_base_url: "http://localhost:9000/api"
+
+# ── EMIS Application Roles ───────────────────────────────────
+emis_roles:
+  - "super admin"
+  - "Admin"
+  - "MOE Administrator"
+  - "MOE Director"
+  - "Provincial Director"
+  - "Provincial DEO"
+  - "Zonal Director"
+  - "Zonal Deputy Director"
+  - "Zonal DEO"
+  - "Divisional Head"
+  - "Divisional DEO"
+  - "Principal"
+  - "Teacher"
+  - "School DEO"
+
+# ── OIDC Applications (created directly in IS) ───────────────
+emis_apps:
+  - name: "EMIS Web App"
+    description: "EMIS Frontend SPA"
+    template_id: ""
+    public_client: true
+    grant_types:
+      - "authorization_code"
+      - "refresh_token"
+    callback_urls:
+      - "http://localhost/authentication/callback"
+      - "http://localhost/logout"
+    allowed_origins:
+      - "http://localhost"
+    claims:
+      dialect: "LOCAL"
+      requested_claims: []
+      subject:
+        uri: "http://wso2.org/claims/userid"
+        include_user_domain: false
+        include_tenant_domain: false
+        use_mapped_local_subject: false
+    associated_roles:
+      allowed_audience: "ORGANIZATION"
+    oidc_custom_config:
+      pkce:
+        mandatory: false
+        support_plain: false
+      access_token:
+        type: "JWT"
+        user_expiry: 3600
+        app_expiry: 3600
+        attributes:
+          - "email"
+          - "given_name"
+          - "roles"
+      refresh_token:
+        expiry: 86400
+      id_token:
+        expiry: 3600
+
+  - name: "EMIS-HRM M2M"
+    description: "Machine-to-Machine application for SCIM2 API access"
+    template_id: "m2m-application"
+    public_client: false
+    grant_types:
+      - "client_credentials"
+    callback_urls: []
+    allowed_origins: []
+    authorized_apis:
+      - identifier: "/scim2/Users"
+        policy: "RBAC"
+        scopes:
+          - "internal_user_mgt_create"
+          - "internal_user_mgt_update"
+      - identifier: "/scim2/Roles"
+        policy: "RBAC"
+        scopes:
+          - "internal_role_mgt_update"
+          - "internal_role_mgt_users_update"
+
+# ── APIM DevPortal Applications ──────────────────────────────
+emis_apim_apps:
+  - name: "EMIS API Consumer"
+    description: "Backend API consumer app"
+    throttling_policy: "Unlimited"
+    token_type: "JWT"
+    grant_types:
+      - "authorization_code"
+      - "refresh_token"
+    callback_url: "http://localhost/authentication/callback"
+    token_expiry: 3600
+    refresh_token_expiry: 86400
+    id_token_expiry: 3600
+    scopes: []
+    public_client: true
+    subscribe_to:
+      - "EMIS-HRM-API"
+
+# ── APIM APIs to import and publish ──────────────────────────
+emis_apis:
+  - name: "EMIS-HRM-API"
+    version: "1.0.0"
+    context: "/emis-hrm/1.0.0"
+    endpoint_url: "http://localhost:9000"
+    openapi_url: "http://localhost:9000/api.json"
+    subscription_policies:
+      - "Unlimited"

@@ -1,63 +1,41 @@
 ---
 # ============================================================
-# EMIS — Master Deployment Orchestration
+# EMIS — Local Deployment Orchestration
 # ============================================================
-# Runs all deployment steps in order:
-#   1. Pre-flight SSH / become checks
-#   2. Install MySQL
-#   3. Create EMIS application database
-#   4. Create WSO2 IS databases and import schemas
-#   5. Create WSO2 APIM database and import schemas
-#   6. Render env files and deploy IS+APIM Docker stack
-#   7. Configure APIM: register IS as Key Manager, create DevPortal app shells
-#   8. Configure IS: roles, users, OIDC apps — display credentials
-#   9. Deploy full stack with updated credentials
-#  10. Configure APIM: import APIs, subscribe apps, generate keys, DCR sync
+# Runs deployment steps in order:
+#   1. Pre-flight checks (Docker, Swarm)
+#   2. Deploy full stack (MySQL + IS + APIM + frontend + backend)
+#      MySQL container auto-creates databases via init scripts.
+#   3. Configure IS: roles, users, OIDC apps
+#      Harvested M2M credentials are written back to
+#      docker-swarm/backend.env and frontend.env.
+#   4. Configure APIM: register IS as Key Manager, create DevPortal apps
+#   5. Redeploy full stack — picks up updated M2M creds from docker-swarm/
+#   6. Configure APIM: import APIs, subscribe apps, generate keys, DCR sync
 #
 # Usage:
 #   ansible-playbook playbooks/site.yml \
-#     -i inventory/inventory.yml \
-#     -e @env/env.yml \
+#     -i inventory/inventory-local.yml \
+#     -e @env/env-local.yml \
 #     --vault-password-file .vault_pass
-#
-# After site.yml completes:
-#   - Copy the client_id / client_secret values printed by Step 8
-#   - Paste them into env/env.yml
-#   - Re-run deploy-stack.yml alone to push the updated credentials:
-#       ansible-playbook playbooks/deploy-stack.yml \
-#         -i inventory/inventory.yml \
-#         -e @env/env.yml \
-#         --vault-password-file .vault_pass
 # ============================================================
 
 # -- Step 1: Pre-flight checks --
 - import_playbook: pre-check.yml
 
-# -- Step 2: Install MySQL 8.0 --
-- import_playbook: mysql-install.yml
-
-# -- Step 3: Create EMIS application database and user --
-- import_playbook: mysql-setup-emis-db.yml
-
-# -- Step 4: Create WSO2 IS databases and import schemas --
-- import_playbook: mysql-setup-wso2-is-only.yml
-
-# -- Step 5: Create WSO2 APIM database and import schemas --
-- import_playbook: mysql-setup-wso2-apim.yml
-
-# -- Step 6: Render env files and deploy IS+APIM Docker stack --
-- import_playbook: deploy-is-apim.yml
-
-# -- Step 7: Configure APIM (KM registration + DevPortal app shells) --
-- import_playbook: configure-apim-km-apps.yml
-
-# -- Step 8: Configure IS (roles, users, OIDC apps) --
-- import_playbook: configure-is.yml
-
-# -- Step 9: Deploy full stack with updated credentials --
+# -- Step 2: Deploy full stack (MySQL, IS, APIM, frontend, backend) --
 - import_playbook: deploy-stack.yml
 
-# -- Step 10: Configure APIM (API import, subscriptions, keys, DCR sync) --
+# -- Step 3: Configure IS (roles, users, OIDC apps → writes creds to docker-swarm/) --
+- import_playbook: configure-is.yml
+
+# -- Step 4: Configure APIM (register IS as Key Manager, create DevPortal app shells) --
+- import_playbook: configure-apim-km-apps.yml
+
+# -- Step 5: Redeploy full stack (picks up updated M2M creds from backend.env) --
+- import_playbook: deploy-stack.yml
+
+# -- Step 6: Configure APIM (API import, subscriptions, OAuth keys, DCR sync) --
 - import_playbook: configure-apim-apis-appsub.yml
 
 # -- Post-deployment summary --
@@ -69,5 +47,5 @@
       ansible.builtin.debug:
         msg:
           - "================================================================"
-          - "EMIS stack successfully deployed on {{ deploy_env }}."
+          - "EMIS local stack successfully deployed."
           - "================================================================"

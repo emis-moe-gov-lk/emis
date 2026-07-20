@@ -1,13 +1,14 @@
 ---
-# ---PLAY-DEPLOY-IS-APIM------------------------------------------------
-# Renders essential env files and deploys WSO2 IS + APIM Docker stack.
-# Frontend and backend are deployed later via deploy-stack.yml.
-- name: Render environment files and deploy IS+APIM Docker stack
+# ---PLAY-DEPLOY-IS-APIM-LOCAL------------------------------------------------
+# Copies pre-baked env files and IS+APIM stack YAML from docker-swarm/ to the
+# deploy directory, then deploys the IS+APIM Docker stack. No Jinja2 rendering.
+- name: Deploy IS+APIM Docker stack
   hosts: swarm_managers
   become: true
   vars:
-    deploy_path: "{{ stack_deploy_path | default('/opt/emis-noapim') }}"
+    deploy_path: "{{ stack_deploy_path | default('/opt/emis-local') }}"
     stack_file: "{{ deploy_path }}/docker-stack-is-apim.yml"
+    local_swarm_dir: "{{ playbook_dir }}/../../../docker-swarm"
 
   tasks:
     - name: Ensure stack deploy directory exists
@@ -16,28 +17,10 @@
         state: directory
         mode: '0755'
 
-    - name: Render docker.env (.env for image tags)
-      ansible.builtin.template:
-        src:  ../templates/docker.env.j2
-        dest: "{{ deploy_path }}/.env"
-        mode: '0600'
-
-    - name: Render is.env
-      ansible.builtin.template:
-        src:  ../templates/is.env.j2
-        dest: "{{ deploy_path }}/is.env"
-        mode: '0600'
-
-    - name: Render apim.env
-      ansible.builtin.template:
-        src:  ../templates/apim.env.j2
-        dest: "{{ deploy_path }}/apim.env"
-        mode: '0600'
-
-    - name: Copy IS+APIM docker-stack file
+    - name: Copy docker-swarm files to deploy path
       ansible.builtin.copy:
-        src: "../../../docker-swarm/docker-stack-is-apim.yml"
-        dest: "{{ stack_file }}"
+        src: "{{ local_swarm_dir }}/"
+        dest: "{{ deploy_path }}"
         mode: '0644'
 
     - name: Deploy IS+APIM Docker stack

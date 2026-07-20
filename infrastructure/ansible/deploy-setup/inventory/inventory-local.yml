@@ -1,0 +1,18 @@
+---
+all:
+  vars:
+    ansible_connection: local
+    ansible_python_interpreter: auto
+  children:
+    swarm_managers:
+      hosts:
+        localhost:
+          ansible_host: localhost
+    swarm_workers:
+      hosts:
+        localhost:
+          ansible_host: localhost
+    db_host:
+      hosts:
+        localhost:
+          ansible_host: localhost

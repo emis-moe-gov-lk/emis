@@ -1,62 +1,26 @@
 ---
-# ---PLAY-DEPLOY-STACK-NOAPIM-----
-# Renders env files from templates and deploys the no-APIM Docker stack.
-- name: Render environment files and deploy Docker stack
+# ---PLAY-DEPLOY-STACK-LOCAL-----
+# Copies pre-baked env files and stack YAMLs from docker-swarm/ to the deploy
+# directory, then deploys the Docker Swarm stack. No Jinja2 template rendering.
+- name: Deploy full Docker stack
   hosts: swarm_managers
   become: true
   vars:
-    deploy_path: "{{ stack_deploy_path | default('/opt/emis-noapim') }}"
+    deploy_path: "{{ stack_deploy_path | default('/opt/emis-local') }}"
     stack_file:  "{{ deploy_path }}/docker-stack.yml"
+    local_swarm_dir: "{{ playbook_dir }}/../../../docker-swarm"
 
   tasks:
-    - name: Debug environment variables
-      ansible.builtin.debug:
-        msg:
-          - "vite_asgardeo_client_id: {{ vite_asgardeo_client_id }}"
-          - "wso2_m2m_client_id: {{ wso2_m2m_client_id }}"
-          - "wso2_m2m_client_secret: {{ wso2_m2m_client_secret }}"
-          - "wso2_teacher_role_id: {{ wso2_teacher_role_id }}"
-
     - name: Ensure stack deploy directory exists
       ansible.builtin.file:
         path: "{{ deploy_path }}"
         state: directory
         mode: '0755'
 
-    - name: Render docker.env (.env for image tags)
-      ansible.builtin.template:
-        src:  ../templates/docker.env.j2
-        dest: "{{ deploy_path }}/.env"
-        mode: '0600'
-
-    - name: Render frontend.env
-      ansible.builtin.template:
-        src:  ../templates/frontend.env.j2
-        dest: "{{ deploy_path }}/frontend.env"
-        mode: '0600'
-
-    - name: Render backend.env
-      ansible.builtin.template:
-        src:  ../templates/backend.env.j2
-        dest: "{{ deploy_path }}/backend.env"
-        mode: '0600'
-
-    - name: Render is.env
-      ansible.builtin.template:
-        src:  ../templates/is.env.j2
-        dest: "{{ deploy_path }}/is.env"
-        mode: '0600'
-
-    - name: Render apim.env
-      ansible.builtin.template:
-        src:  ../templates/apim.env.j2
-        dest: "{{ deploy_path }}/apim.env"
-        mode: '0600'
-
-    - name: Copy docker-stack.yml to deploy path
+    - name: Copy docker-swarm files to deploy path
       ansible.builtin.copy:
-        src:  "../../../docker-swarm/docker-stack.yml"
-        dest: "{{ stack_file }}"
+        src: "{{ local_swarm_dir }}/"
+        dest: "{{ deploy_path }}"
         mode: '0644'
 
     - name: Deploy Docker stack

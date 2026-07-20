@@ -1,6 +1,10 @@
+# ── VOLUMES ────────────────────────────────────────────────────────────────────
+volumes:
+  mysql_data:
+
 # ── NETWORKS ──────────────────────────────────────────────────────────────────
 networks:
-  noapim-uat-swm-network:
+  emis-network:
     driver: overlay
     name: "${STACK_NAME}-network"
     attachable: true
@@ -12,6 +16,32 @@ networks:
 # ── SERVICES ──────────────────────────────────────────────────────────────────
 services:
 
+  # ── MySQL ───────────────────────────────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
+      MYSQL_DATABASE: "${MYSQL_DATABASE}"
+      MYSQL_USER: "${MYSQL_USER}"
+      MYSQL_PASSWORD: "${MYSQL_PASSWORD}"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql-init:/docker-entrypoint-initdb.d
+    networks:
+      - emis-network
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$${MYSQL_ROOT_PASSWORD} || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
   # ── WSO2 Identity Server ───────────────────────────────────────────────────
   wso2-is:
     image: "${WSO2_IS_DOCKERIMG_REPO}:${WSO2_IS_DOCKERIMG_TAG}"
@@ -20,7 +50,10 @@ services:
     env_file:
       - is.env
     networks:
-      - noapim-uat-swm-network
+      - emis-network
+    depends_on:
+      mysql:
+        condition: service_healthy
     deploy:
       replicas: 1
       restart_policy:
@@ -35,13 +68,15 @@ services:
       - "${APIM_HOST_PORT}:9443"
       - "${APIM_GATEWAY_PORT}:8243"
       - "${APIM_GATEWAY_HTTP_PORT}:8280"
-    extra_hosts:
-      - "secret.emis.moe.gov.lk:192.168.200.1"
     env_file:
       - apim.env
-    command: ["sh", "-c", "exec $${WSO2_SERVER_HOME}/bin/api-manager.sh"]
     networks:
-      - noapim-uat-swm-network
+      - emis-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+      wso2-is:
+        condition: service_started
     healthcheck:
       test: ["CMD-SHELL", "curl -kf https://localhost:9443/api/health-check/v1.0/health || exit 1"]
       interval: 30s

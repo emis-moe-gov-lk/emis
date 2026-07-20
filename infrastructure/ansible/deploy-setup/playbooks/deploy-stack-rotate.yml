@@ -1,30 +1,21 @@
 ---
-# ---PLAY-DEPLOY-STACK-ROTATE-----
-# CI/CD-optimised variant of deploy-stack.yml.
-# Only re-renders docker.env (.env file with image tags)
-# and redeploys the Docker stack.
-# Service env files (frontend.env, backend.env, is.env) and
-# docker-stack.yml are assumed to already exist on the server
-# and do not need regeneration during image rotation.
+# ---PLAY-DEPLOY-STACK-ROTATE-LOCAL-----
+# Copies updated .env (image tags) from docker-swarm/ and redeploys the stack.
+# Service env files and docker-stack.yml are assumed to already exist on the server.
 - name: Rotate Docker stack images
   hosts: swarm_managers
   become: true
   vars:
-    deploy_path: "{{ stack_deploy_path | default('/opt/emis-noapim') }}"
+    deploy_path: "{{ stack_deploy_path | default('/opt/emis-local') }}"
     stack_file:  "{{ deploy_path }}/docker-stack.yml"
+    local_swarm_dir: "{{ playbook_dir }}/../../../docker-swarm"
 
   tasks:
-    - name: Render docker.env (.env — image tags only)
-      ansible.builtin.template:
-        src:  ../templates/docker.env.j2
+    - name: Copy updated .env (image tags) to deploy path
+      ansible.builtin.copy:
+        src: "{{ local_swarm_dir }}/.env"
         dest: "{{ deploy_path }}/.env"
-        mode: '0600'
-
-    - name: Render apim.env (infisical credentials)
-      ansible.builtin.template:
-        src:  ../templates/apim.env.j2
-        dest: "{{ deploy_path }}/apim.env"
-        mode: '0600'
+        mode: '0644'
 
     - name: Deploy Docker stack with rotated images
       ansible.builtin.shell: |
