@@ -10,6 +10,8 @@ ENV_DIR="$ANSIBLE_DIR/env"
 INVENTORY_DIR="$ANSIBLE_DIR/inventory"
 PB_DIR="$ANSIBLE_DIR/playbooks"
 
+export ANSIBLE_CONFIG="$ANSIBLE_DIR/ansible.cfg"
+
 ENV_FILE="$ENV_DIR/env-local.yml"
 INVENTORY_FILE="$INVENTORY_DIR/inventory-local.yml"
 
@@ -21,6 +23,19 @@ fi
 
 if [ ! -f "$INVENTORY_FILE" ]; then
   echo "Error: inventory-local.yml not found in $INVENTORY_DIR"
+  exit 1
+fi
+
+# Check docker-swarm env files exist (copy from .example if missing)
+SWARM_DIR="$SCRIPT_DIR/../docker-swarm"
+MISSING=""
+for f in .env is.env apim.env backend.env frontend.env; do
+  [ -f "$SWARM_DIR/$f" ] || MISSING="$MISSING  $f\n"
+done
+if [ -n "$MISSING" ]; then
+  echo "Missing docker-swarm env files:"
+  printf "%b" "$MISSING"
+  echo "Run: cd $SWARM_DIR && cp env.example .env && cp is.env.example is.env && cp apim.env.example apim.env && cp backend.env.example backend.env && cp frontend.env.example frontend.env"
   exit 1
 fi
 

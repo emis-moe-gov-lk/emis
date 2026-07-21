@@ -9,6 +9,7 @@
     deploy_path: "{{ stack_deploy_path | default('/opt/emis-local') }}"
     stack_file: "{{ deploy_path }}/docker-stack-is-apim.yml"
     local_swarm_dir: "{{ playbook_dir }}/../../../docker-swarm"
+    repo_root: "{{ playbook_dir }}/../../../.."
 
   tasks:
     - name: Ensure stack deploy directory exists
@@ -22,6 +23,28 @@
         src: "{{ local_swarm_dir }}/"
         dest: "{{ deploy_path }}"
         mode: '0644'
+
+    - name: Build missing IS+APIM Docker images
+      ansible.builtin.shell: |
+        set -a
+        source {{ deploy_path }}/.env
+        set +a
+        for pair in \
+          "${WSO2_IS_DOCKERIMG_REPO}:${WSO2_IS_DOCKERIMG_TAG} is" \
+          "${WSO2_APIM_DOCKERIMG_REPO}:${WSO2_APIM_DOCKERIMG_TAG} apim"; do
+          img="${pair% *}"
+          ctx="${pair#* }"
+          if ! docker image inspect "$img" >/dev/null 2>&1; then
+            echo "Building $img from {{ repo_root }}/${ctx}..."
+            docker build -t "$img" "{{ repo_root }}/${ctx}"
+          else
+            echo "Image $img already exists, skipping build."
+          fi
+        done
+      args:
+        executable: /bin/bash
+      register: build_result
+      changed_when: "'Building' in build_result.stdout"
 
     - name: Deploy IS+APIM Docker stack
       ansible.builtin.shell: |
