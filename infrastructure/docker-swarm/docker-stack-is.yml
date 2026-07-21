@@ -52,8 +52,7 @@ services:
     networks:
       - emis-network
     depends_on:
-      mysql:
-        condition: service_healthy
+      - mysql
     deploy:
       replicas: 1
       restart_policy:

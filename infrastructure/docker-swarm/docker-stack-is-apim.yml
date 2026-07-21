@@ -52,8 +52,7 @@ services:
     networks:
       - emis-network
     depends_on:
-      mysql:
-        condition: service_healthy
+      - mysql
     deploy:
       replicas: 1
       restart_policy:
@@ -73,10 +72,8 @@ services:
     networks:
       - emis-network
     depends_on:
-      mysql:
-        condition: service_healthy
-      wso2-is:
-        condition: service_started
+      - mysql
+      - wso2-is
     healthcheck:
       test: ["CMD-SHELL", "curl -kf https://localhost:9443/api/health-check/v1.0/health || exit 1"]
       interval: 30s

@@ -123,8 +123,7 @@ services:
     networks:
       - emis-network
     depends_on:
-      mysql:
-        condition: service_healthy
+      - mysql
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:2019/metrics || exit 1"]
       interval: 30s
