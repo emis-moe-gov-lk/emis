@@ -1,6 +1,14 @@
 #!/bin/bash
 set -e
 
+echo 'Waiting for MySQL...'
+until echo > /dev/tcp/mysql/3306 2>/dev/null; do sleep 5; done
+echo 'MySQL is ready'
+
+echo 'Waiting for WSO2 IS...'
+until echo > /dev/tcp/wso2-is/9444 2>/dev/null; do sleep 5; done
+echo 'WSO2 IS is ready'
+
 ARGS=("$@")
 if [ "${APIM_SETUP_MODE}" = "true" ]; then
   ARGS+=("-Dsetup")

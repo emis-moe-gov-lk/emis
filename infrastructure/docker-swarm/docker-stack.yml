@@ -53,6 +53,12 @@ services:
       - emis-network
     depends_on:
       - mysql
+    entrypoint: ["/bin/bash", "-c"]
+    command: |
+      echo 'Waiting for MySQL...' &&
+      until echo > /dev/tcp/mysql/3306 2>/dev/null; do sleep 5; done &&
+      echo 'MySQL is ready, starting WSO2 IS...' &&
+      exec /home/wso2carbon/wso2is-7.2.0/bin/wso2server.sh
     deploy:
       replicas: 1
       restart_policy:
@@ -111,7 +117,10 @@ services:
     env_file:
       - backend.env
     command: >
-      sh -c "
+      bash -c "
+      echo 'Waiting for MySQL...' &&
+      until echo > /dev/tcp/mysql/3306 2>/dev/null; do sleep 5; done &&
+      echo 'MySQL is ready' &&
       composer install --no-interaction &&
       cp .env.example .env &&
       php artisan key:generate --force &&
