@@ -41,26 +41,37 @@ fi
 
 echo "Using env:     $ENV_FILE"
 echo "Using inventory: $INVENTORY_FILE"
+
+echo -n "Enter sudo password: "
+read -s BECOME_PASS
+echo
+echo "$BECOME_PASS" | sudo -S -v 2>/dev/null
+if [ $? -ne 0 ]; then
+  echo "Error: invalid sudo password"
+  exit 1
+fi
 echo "Starting local deployment..."
 
+ANSIBLE_OPTS="-i $INVENTORY_FILE -e @$ENV_FILE"
+
 # -- Step 1: Pre-flight checks (Docker, Swarm, ports) --
-ansible-playbook -i "$INVENTORY_FILE" -e @"$ENV_FILE" "$PB_DIR/pre-check.yml"
+ansible-playbook $ANSIBLE_OPTS "$PB_DIR/pre-check.yml"
 
 # -- Step 2: Deploy full stack (MySQL, IS, APIM, frontend, backend) --
 #    MySQL auto-creates databases via init scripts on first start.
-ansible-playbook -i "$INVENTORY_FILE" -e @"$ENV_FILE" "$PB_DIR/deploy-stack.yml"
+ansible-playbook $ANSIBLE_OPTS "$PB_DIR/deploy-stack.yml"
 
 # -- Step 3: Configure IS (roles, users, OIDC apps) --
 #    Credentials are written back to docker-swarm/backend.env and frontend.env.
-ansible-playbook -i "$INVENTORY_FILE" -e @"$ENV_FILE" "$PB_DIR/configure-is.yml"
+ansible-playbook $ANSIBLE_OPTS "$PB_DIR/configure-is.yml"
 
 # -- Step 4: Configure APIM (register IS as Key Manager, create DevPortal app shells) --
-ansible-playbook -i "$INVENTORY_FILE" -e @"$ENV_FILE" "$PB_DIR/configure-apim-km-apps.yml"
+ansible-playbook $ANSIBLE_OPTS "$PB_DIR/configure-apim-km-apps.yml"
 
 # -- Step 5: Redeploy stack (picks up updated M2M creds from docker-swarm/) --
-ansible-playbook -i "$INVENTORY_FILE" -e @"$ENV_FILE" "$PB_DIR/deploy-stack.yml"
+ansible-playbook $ANSIBLE_OPTS "$PB_DIR/deploy-stack.yml"
 
 # -- Step 6: Configure APIM (API import, subscriptions, keys, DCR sync) --
-ansible-playbook -i "$INVENTORY_FILE" -e @"$ENV_FILE" "$PB_DIR/configure-apim-apis-appsub.yml"
+ansible-playbook $ANSIBLE_OPTS "$PB_DIR/configure-apim-apis-appsub.yml"
 
 echo "Local deployment finished successfully."
