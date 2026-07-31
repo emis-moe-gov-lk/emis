@@ -43,6 +43,8 @@ All private hosts sit behind a public jumpbox.
 ## 4. Strict Guardrails
 - **CRITICAL:** Never hardcode secrets or passwords in the playbooks or compose files. Utilize Ansible Vault or referencing variables in `env/env.yml`. 
 - **CRITICAL:** Docker Swarm stack files must use environment variable placeholders (`${VARIABLE_NAME}`) for credentials, to be populated dynamically by Ansible templates.
+- **CRITICAL:** Never commit plaintext credentials in any file. This includes `.env` files, `env/env.yml`, scripts, and any other file in the repository. All secrets must be encrypted via Ansible Vault (use `env/env.yml` as the vault-encrypted store) or injected at runtime via Infisical.
+- **CRITICAL:** `.env` files (e.g. `docker-swarm/.env`) must not be committed to the repository. They are generated dynamically from Jinja2 templates by Ansible and should remain local artifacts only.
 - **Path Resolution:** When generating or modifying scripts, you must calculate paths relative to the script's location using `SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"`. 
 - **Ansible Relativity:** Note that copy modules in playbooks use a relative path configuration requiring `../../../docker-swarm/` to exit the playbook directory context.
 
