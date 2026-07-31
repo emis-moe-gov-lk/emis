@@ -5,8 +5,8 @@
   vars:
     # Connection details (falling back to env/uat.yml values when included/run with it)
     is_mgmt: "https://{{ is_hostname | default('idp-dev.emis.moe.gov.lk') }}"
-    is_admin_name: "{{ is_admin_user | default('admin') }}"
-    is_admin_pass: "{{ is_admin_password | default('ADMIN111') }}"
+    is_admin_name: "{{ is_admin_user }}"
+    is_admin_pass: "{{ is_admin_password }}"
 
     # Test values for callback urls and origins (normally loaded from env configuration)
     vite_signin_redirect_url: "https://app-dev.emis.moe.gov.lk/authentication/callback"
