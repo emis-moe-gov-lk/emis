@@ -1,0 +1,14 @@
+% ============================================================
+%  sections/deo-officers.tex
+% ============================================================
+\section{DEO Officers}
+
+Base path: \texttt{/deo-officers}. All endpoints require authentication.
+
+\apiendpoint{\GET}{/deo-officers}{\authjwt}{Returns all Divisional Education Office officers.}
+\apiendpoint{\GET}{/deo-officers/form-data}{\authjwt}{Returns dropdown data for the DEO officer form.}
+\apiendpoint{\GET}{/deo-officers/current-appointment-form-data}{\authjwt}{Returns dropdown data for the DEO current appointment form.}
+\apiendpoint{\POST}{/deo-officers}{\authjwt}{Creates a new DEO officer record.}
+\apiendpoint{\GET}{/deo-officers/\{id\}}{\authjwt}{Returns a single DEO officer profile.}
+\apiendpoint{\PATCH}{/deo-officers/\{id\}}{\authjwt}{Updates a DEO officer record.}
+\apiendpoint{\DELETE}{/deo-officers/\{id\}}{\authjwt}{Deactivates (soft-deletes) a DEO officer record.}

@@ -1,0 +1,12 @@
+% ============================================================
+%  sections/dos-admins.tex
+% ============================================================
+\section{DOS Admins}
+
+Base path: \texttt{/dos-admins}. All endpoints require authentication.
+
+\apiendpoint{\GET}{/dos-admins}{\authjwt}{Returns all Department of Schools administrator profiles.}
+\apiendpoint{\POST}{/dos-admins}{\authjwt}{Registers a new education administrator.}
+\apiendpoint{\GET}{/dos-admins/\{id\}}{\authjwt}{Returns a single DOS admin profile.}
+\apiendpoint{\POST}{/dos-admins/\{id\}/service-history}{\authjwt}{Adds a service history entry for a DOS admin.}
+\apiendpoint{\POST}{/dos-admins/\{id\}/past-services}{\authjwt}{Adds a past service block for a DOS admin.}

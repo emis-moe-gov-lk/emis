@@ -1,0 +1,26 @@
+% ============================================================
+%  sections/profile.tex
+% ============================================================
+\section{Profile \& Identity}
+
+All endpoints require authentication.
+
+\subsection{Identity}
+\apiendpoint{\GET}{/identity}{\authjwt}{Returns the identity details of the authenticated user.}
+\apiendpoint{\GET}{/mobile/identity}{\authjwt}{Returns identity details for the mobile teacher profile view.}
+
+\subsection{Profile}
+\apiendpoint{\GET}{/profile}{\authjwt}{Returns the full profile of the authenticated user.}
+\apiendpoint{\GET}{/user/\{people\_id\}}{\authjwt}{Returns user account details for the given \texttt{people\_id}.}
+\apiendpoint{\GET}{/dashboard/\{people\_id\}}{\authjwt}{Returns dashboard data for the given \texttt{people\_id}.}
+\apiendpoint{\GET}{/pdf/teacher/\{people\_id\}}{\authjwt}{Generates and streams a PDF of the teacher's profile.}
+
+\subsection{Avatar}
+\apiendpoint{\GET}{/profile/avatar}{\authjwt}{Returns the profile avatar of the authenticated user.}
+\apiendpoint{\POST}{/profile/avatar}{\authjwt}{Uploads a new profile avatar image.}
+\apiendpoint{\PATCH}{/profile/avatar}{\authjwt}{Updates avatar metadata (partial update).}
+\apiendpoint{\DELETE}{/profile/avatar}{\authjwt}{Deletes the profile avatar.}
+
+\subsection{Password}
+\apiendpoint{\PATCH}{/profile/password}{\authjwt}{Changes the password of the authenticated user.}
+\apiendpoint{\POST}{/profile/password/complete-external}{\authjwt}{Completes an externally-initiated password change flow.}
