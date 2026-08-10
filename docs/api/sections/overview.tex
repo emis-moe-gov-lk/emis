@@ -1,0 +1,39 @@
+% ============================================================
+%  sections/overview.tex
+% ============================================================
+\section*{Overview}
+\addcontentsline{toc}{section}{Overview}
+
+This document describes every REST endpoint exposed by the EMIS backend
+(Laravel + FrankenPHP). All requests travel through the WSO2 API Manager
+gateway, which strips the \texttt{/hrm/1.0.0} context path before
+forwarding to Laravel.
+
+\bigskip
+\noindent\colorbox{cjwt!10!white}{%
+  \parbox{\dimexpr\linewidth-2\fboxsep\relax}{%
+    \vspace{6pt}%
+    \textbf{Authentication}\quad Endpoints marked \authjwt{} require a
+    Bearer token issued by WSO2 Identity Server. Include it in every
+    request: \texttt{Authorization: Bearer <token>}\\[4pt]
+    Endpoints marked \noauth{} are publicly accessible without a token.%
+    \vspace{6pt}%
+  }%
+}
+
+\bigskip
+\noindent\textbf{HTTP Methods}
+
+\medskip
+\noindent
+\begin{tabular}{@{} l @{\quad} l @{}}
+  \GET    & Read / retrieve a resource   \\[4pt]
+  \POST   & Create a new resource        \\[4pt]
+  \PUT    & Replace a resource in full   \\[4pt]
+  \PATCH  & Partially update a resource  \\[4pt]
+  \DELETE & Remove a resource            \\
+\end{tabular}
+
+\bigskip
+\noindent All responses are JSON. Standard HTTP status codes apply
+(200~OK, 201~Created, 400~Bad Request, 401~Unauthorized, 404~Not Found).

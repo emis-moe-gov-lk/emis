@@ -1,0 +1,11 @@
+% ============================================================
+%  sections/institutions.tex
+% ============================================================
+\section{Institutions}
+
+All institution endpoints require authentication.
+
+\apiendpoint{\GET}{/institutions}{\authjwt}{Returns a paginated list of all institutions.}
+\apiendpoint{\GET}{/institutions/filters}{\authjwt}{Returns available filter options (province, zone, division, type) for the institution list.}
+\apiendpoint{\GET}{/institutions/\{id\}}{\authjwt}{Returns a single institution by ID.}
+\apiendpoint{\PUT}{/institutions/\{id\}}{\authjwt}{Updates an institution record by ID.}

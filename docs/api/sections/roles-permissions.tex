@@ -1,0 +1,18 @@
+% ============================================================
+%  sections/roles-permissions.tex
+% ============================================================
+\section{Roles \& Permissions}
+
+\subsection{Roles}
+Requires authentication.
+
+\apiendpoint{\GET}{/roles}{\authjwt}{Returns all roles.}
+\apiendpoint{\POST}{/roles}{\authjwt}{Creates a new role.}
+\apiendpoint{\PUT}{/roles/\{id\}}{\authjwt}{Updates a role by ID.}
+
+\subsection{Permissions}
+Publicly accessible.
+
+\apiendpoint{\GET}{/permissions}{\noauth}{Returns all available permissions.}
+\apiendpoint{\GET}{/permissions/\{roleid\}}{\noauth}{Returns permissions assigned to a given role.}
+\apiendpoint{\DELETE}{/permissions/\{roleid\}}{\noauth}{Removes permissions from a role.}

@@ -1,0 +1,14 @@
+% ============================================================
+%  sections/user-management.tex
+% ============================================================
+\section{User Management}
+
+All endpoints require authentication.
+
+\apiendpoint{\GET}{/users}{\authjwt}{Returns a list of all system users.}
+\apiendpoint{\POST}{/users}{\authjwt}{Creates a new system user.}
+\apiendpoint{\GET}{/users/\{id\}}{\authjwt}{Returns a single user by ID.}
+\apiendpoint{\PATCH}{/users/\{id\}}{\authjwt}{Updates a user record.}
+\apiendpoint{\DELETE}{/users/\{id\}}{\authjwt}{Deletes a user.}
+\apiendpoint{\PATCH}{/users/\{id\}/toggle-status}{\authjwt}{Toggles the active / inactive status of a user.}
+\apiendpoint{\POST}{/users/\{id\}/reset-password}{\authjwt}{Resets the password for a user.}
